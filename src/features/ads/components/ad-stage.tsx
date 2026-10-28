@@ -12,6 +12,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-client';
+import { recordRiderActivity } from '@/features/referral/services/captain-referral';
 
 const styles = {
   style384_1: "relative",
@@ -116,7 +117,7 @@ const AD_STAGE_COPY = {
     call: 'اتصال',
     openLocation: 'فتح الموقع',
     whatsappMessage: (title: string) => `مرحباً، شاهدت إعلانكم في التطبيق: ${title}`,
-    emptyTitle: 'مرحباً بك في رادار الذكي',
+    emptyTitle: 'مرحباً بك في منصة بينكم',
     emptyDescription: 'لا توجد إعلانات نشطة في منطقتك الآن. سنعرض لك العروض فور توفرها.',
     emptyFetchIssue: 'لا توجد إعلانات متاحة الآن. سنعرض لك العروض فور توفرها.',
     emptyButton: 'ابدأ رحلتك',
@@ -142,7 +143,7 @@ const AD_STAGE_COPY = {
     call: 'Call',
     openLocation: 'Open location',
     whatsappMessage: (title: string) => `Hello, I saw your ad in the app: ${title}`,
-    emptyTitle: 'Welcome to Smart Radar',
+    emptyTitle: 'Welcome to bynkcom',
     emptyDescription: 'No active ads are available in your area right now. We will show offers as soon as they are available.',
     emptyFetchIssue: 'No ads are available right now. We will show offers as soon as they are available.',
     emptyButton: 'Start your ride',
@@ -332,6 +333,19 @@ export function AdStage({
       }
     });
   }, [adsToUse]);
+
+  useEffect(() => {
+    // Rider active ad engagement:
+    // If rider stays on AdStage for >= 10 seconds, record active interaction!
+    // (If they open and immediately close/leave within < 10 seconds, timer is cancelled).
+    if (audience === 'rider' || !audience) {
+      const timer = setTimeout(() => {
+        void recordRiderActivity('ad_watch');
+      }, 10000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [audience]);
 
   useEffect(() => {
     const flushOnExit = () => flushAdEventBufferOnExit();
@@ -599,6 +613,7 @@ export function AdStage({
     event.stopPropagation();
     setTakeoverAd(ad);
     enqueueAdEvent(ad, 'click');
+    void recordRiderActivity('ad_click');
   };
 
   const showNavigationShell = true;

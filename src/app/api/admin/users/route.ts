@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { verifyAdminCaller, hasAdminSectorAccess } from '@/lib/admin-auth-verifier';
+import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 
 export async function GET(req: Request) {
   const admin = await verifyAdminCaller(req);
@@ -10,6 +11,14 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const roleFilter = searchParams.get('role')?.toUpperCase() || 'CAPTAIN';
+  const targetSector = roleFilter === 'CAPTAIN' ? 'captains' : 'riders';
+
+  if (!hasAdminSectorAccess(admin, targetSector)) {
+    return NextResponse.json(
+      { success: false, error: 'غير مصرح: ليس لديك صلاحية الوصول لهذا القطاع' },
+      { status: 403 }
+    );
+  }
 
   try {
     const targetRole = roleFilter === 'CAPTAIN' ? 'CAPTAIN' : 'RIDER';
@@ -47,14 +56,15 @@ export async function GET(req: Request) {
       captainProfilesMap = new Map((caps || []).map(c => [c.id, c]));
     }
 
-    // 3.5. Fetch completed trips count and active requests in batch
+    // 3.5. Fetch completed trips count, active requests, and referral activity in batch
     let completedTripsMap = new Map<string, number>();
     let activeRequestsMap = new Map<string, string>();
     let consecutiveCancellationsMap = new Map<string, number>();
+    let referralMap = new Map<string, any>();
 
     if (profileIds.length > 0) {
       if (roleFilter === 'RIDER') {
-        const [completedRes, activeRes, recentReqsRes] = await Promise.all([
+        const [completedRes, activeRes, recentReqsRes, referralRes] = await Promise.all([
           supabaseAdmin
             .from('ride_requests')
             .select('rider_id')
@@ -71,6 +81,10 @@ export async function GET(req: Request) {
             .in('rider_id', profileIds)
             .order('created_at', { ascending: false })
             .limit(500),
+          supabaseAdmin
+            .from('captain_rider_referrals')
+            .select('id, rider_id, captain_id, last_interacted_at, last_inactivity_notified_at, created_at, profiles:captain_id(full_name, phone, serial_id)')
+            .in('rider_id', profileIds),
         ]);
 
         for (const row of completedRes.data || []) {
@@ -81,6 +95,11 @@ export async function GET(req: Request) {
         for (const row of activeRes.data || []) {
           if (row.rider_id) {
             activeRequestsMap.set(row.rider_id, row.status);
+          }
+        }
+        for (const row of referralRes.data || []) {
+          if (row.rider_id) {
+            referralMap.set(row.rider_id, row);
           }
         }
 
@@ -149,9 +168,9 @@ export async function GET(req: Request) {
 
     // 4. Fetch governorate, district, and countries lookup tables
     const [govRes, distRes, countriesRes] = await Promise.all([
-      supabaseAdmin.from('governorates').select('id, name_ar'),
-      supabaseAdmin.from('districts').select('id, name_ar'),
-      supabaseAdmin.from('countries').select('id, currency_ar, currency_en, name_ar'),
+      supabaseAdmin.from('governorates').select('id, name_ar, country_id').order('id', { ascending: true }),
+      supabaseAdmin.from('districts').select('id, name_ar, governorate_id').order('id', { ascending: true }),
+      supabaseAdmin.from('countries').select('id, currency_ar, currency_en, name_ar, country_code').order('id', { ascending: true }),
     ]);
 
     const govMap = new Map((govRes.data || []).map(g => [g.id, g.name_ar]));
@@ -192,7 +211,9 @@ export async function GET(req: Request) {
         phone: p.phone || '',
         email: p.email || '',
         role: p.role,
+        preferred_language: p.preferred_language || 'ar',
         country_id: p.country_id,
+        country_name: country?.name_ar || (isEgypt ? 'مصر' : 'الأردن'),
         currency: currencyAr,
         currency_ar: currencyAr,
         currency_code: currencyCode,
@@ -243,10 +264,34 @@ export async function GET(req: Request) {
           currency_code: currencyCode,
           currency_ar: currencyAr,
         },
+        referral_activity: {
+          has_referral: Boolean(referralMap.get(p.id)),
+          referral_id: referralMap.get(p.id)?.id || null,
+          captain_id: referralMap.get(p.id)?.captain_id || null,
+          captain_name: (referralMap.get(p.id)?.profiles as any)?.full_name || null,
+          captain_phone: (referralMap.get(p.id)?.profiles as any)?.phone || null,
+          captain_serial: (referralMap.get(p.id)?.profiles as any)?.serial_id || null,
+          last_interacted_at: referralMap.get(p.id)?.last_interacted_at || p.updated_at || p.created_at,
+          days_inactive: referralMap.get(p.id)
+            ? Math.max(0, Math.floor((Date.now() - new Date(referralMap.get(p.id).last_interacted_at || referralMap.get(p.id).created_at).getTime()) / (1000 * 60 * 60 * 24)))
+            : 0,
+          is_active: referralMap.get(p.id)
+            ? Math.max(0, Math.floor((Date.now() - new Date(referralMap.get(p.id).last_interacted_at || referralMap.get(p.id).created_at).getTime()) / (1000 * 60 * 60 * 24))) < 10
+            : true,
+          last_notified_at: referralMap.get(p.id)?.last_inactivity_notified_at || null,
+        },
       };
     });
 
-    return NextResponse.json({ success: true, users });
+    return NextResponse.json({
+      success: true,
+      users,
+      geo: {
+        countries: (countriesRes.data || []).map(c => ({ id: c.id, name_ar: c.name_ar, country_code: c.country_code })),
+        governorates: (govRes.data || []).map(g => ({ id: g.id, name_ar: g.name_ar, country_id: g.country_id })),
+        districts: (distRes.data || []).map(d => ({ id: d.id, name_ar: d.name_ar, governorate_id: d.governorate_id })),
+      },
+    });
   } catch (error: any) {
     console.error('[Admin Users API] GET error:', error);
     return NextResponse.json({ success: false, error: error?.message || 'Failed to fetch users' }, { status: 500 });
@@ -270,9 +315,10 @@ export async function POST(req: Request) {
   try {
     const { action, userId, userIds, target, role = 'CAPTAIN' } = body || {};
 
-    const isBulkAction = action?.startsWith('bulk_');
+    const isBulkAction = action?.startsWith('bulk_') || action === 'run_inactivity_check';
+    const effectiveUserId = userId || body?.riderId;
 
-    if (!isBulkAction && !userId) {
+    if (!isBulkAction && !effectiveUserId) {
       return NextResponse.json({ success: false, error: 'userId is required' }, { status: 400 });
     }
 
@@ -378,19 +424,19 @@ export async function POST(req: Request) {
         if (normalizedStatus === 'ACTIVE') {
           notifTitle = isRider ? 'تم تنشيط حسابك على الرادار ⚡' : 'تم تنشيط حسابك على الرادار ⚡';
           notifDesc = isRider
-            ? 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت جاهزاً لطلب الرحلات والتواصل مع الكباتن عبر الرادار.'
-            : 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت متصلاً بالرادار وجاهزاً لاستقبال طلبات الركاب.';
+            ? 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت جاهزاً لطلب الرحلات والتواصل مع الكباتن المعلنين عبر الرادار.'
+            : 'قامت إدارة المنظومة بتنشيط حسابك فورياً، وأصبحت متصلاً بالرادار وجاهزاً لاستقبال طلبات المستخدمين.';
         } else if (normalizedStatus === 'IDLE') {
           notifTitle = isRider ? 'تم ضبط حسابك إلى وضع الجاهزية 🛑' : 'تم ضبط وضعك إلى خامل (جاهز) 🛑';
           notifDesc = isRider
             ? 'أنت الآن في وضع الجاهزية، يمكنك طلب الرحلات عبر الرادار في أي وقت.'
             : 'أنت الآن في وضع الجاهزية والخمول، يمكنك تفعيل الاتصال بالرادار متى شئت.';
         } else if (normalizedStatus === 'SUSPENDED') {
-          notifTitle = isRider ? 'تنبيه إداري: تم تعليق حساب الراكب مؤقتاً ⚠️' : 'تنبيه إداري: تم تعليق حسابك مؤقتاً ⚠️';
+          notifTitle = isRider ? 'تنبيه إداري: تم تعليق حساب المستخدم مؤقتاً ⚠️' : 'تنبيه إداري: تم تعليق حسابك مؤقتاً ⚠️';
           notifDesc = 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات لمراجعة النشاط أو المناعة السلوكية. يرجى مراجعة الإدارة أو التواصل مع الدعم لفك التعليق.';
           notifType = 'warning';
         } else if (normalizedStatus === 'BANNED') {
-          notifTitle = isRider ? 'إشعار أمني: تم حظر حساب الراكب نهائياً 🚫' : 'إشعار أمني: تم حظر حسابك نهائياً 🚫';
+          notifTitle = isRider ? 'إشعار أمني: تم حظر حساب المستخدم نهائياً 🚫' : 'إشعار أمني: تم حظر حسابك نهائياً 🚫';
           notifDesc = isRider
             ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف إمكانية طلب الرحلات والاتصال بالرادار.'
             : 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية.';
@@ -433,8 +479,8 @@ export async function POST(req: Request) {
           await supabaseAdmin.from('user_notifications').insert({
             id: `notif_verif_${userId}_${Date.now()}`,
             user_id: userId,
-            title: 'تهانينا يا كابتن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
-            description: 'تمت مراجعة وتدقيق هويتك ومستنداتك بنجاح من قبل إدارة المنظومة، ومُنحت شارة «كابتن موثق رسمياً ✓».',
+            title: 'تهانينا يا كابتن معلن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
+            description: 'تمت مراجعة وتدقيق هويتك ومستنداتك بنجاح من قبل إدارة المنظومة، ومُنحت شارة «كابتن معلن موثق رسمياً ✓».',
             type: 'admin_message',
             is_read: false,
             created_at: new Date().toISOString(),
@@ -443,7 +489,7 @@ export async function POST(req: Request) {
           await supabaseAdmin.from('user_notifications').insert({
             id: `notif_verif_rej_${userId}_${Date.now()}`,
             user_id: userId,
-            title: 'تنبيه: مراجعة وثائق الكابتن ⚠️',
+            title: 'تنبيه: مراجعة وثائق الكابتن المعلن ⚠️',
             description: reason || 'يرجى إعادة رفع وثائق واضحة ومطابقة للشروط والتعليمات لتأكيد اعتماد الحساب.',
             type: 'warning',
             is_read: false,
@@ -655,7 +701,7 @@ export async function POST(req: Request) {
       // 6. Update captain tier (Rank)
       case 'update_tier': {
         const tier = String(body.tier).toUpperCase();
-        if (!['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].includes(tier)) {
+        if (!['PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].includes(tier)) {
           return NextResponse.json({ success: false, error: 'الرتبة غير صحيحة' }, { status: 400 });
         }
 
@@ -703,8 +749,8 @@ export async function POST(req: Request) {
         const tierNames: Record<string, string> = {
           PLATINUM: 'البلاتينية 💎',
           GOLD: 'الذهبية 🥇',
-          SILVER: 'الفضية 🥈',
           BRONZE: 'البرونزية 🥉',
+          SILVER: 'الفضية 🥈',
         };
 
         // Push real-time notification to the captain
@@ -712,7 +758,7 @@ export async function POST(req: Request) {
           id: `notif_tier_${userId}_${Date.now()}`,
           user_id: userId,
           title: `ترقية سيادية: أصبحت رتبتك ${tierNames[tier] || tier} 🏆`,
-          description: `تهانينا يا كابتن! قامت الإدارة بترقية رتبتك إلى (${tierNames[tier] || tier})، مما يمنحك مميزات تسعير وعروض أفضل على الرادار.`,
+          description: `تهانينا يا كابتن معلن! قامت الإدارة بترقية رتبتك إلى (${tierNames[tier] || tier})، مما يمنحك مميزات تسعير وعروض أفضل على الرادار.`,
           type: 'admin_message',
           is_read: false,
           created_at: new Date().toISOString(),
@@ -754,25 +800,43 @@ export async function POST(req: Request) {
           created_at: new Date().toISOString(),
         });
 
-        return NextResponse.json({ success: true, message: 'تم فك تعليق الرحلة وإعادة الكابتن لوضع الجاهزية (IDLE).' });
+        return NextResponse.json({ success: true, message: 'تم فك تعليق الرحلة وإعادة الكابتن المعلن لوضع الجاهزية (IDLE).' });
       }
 
-      // 8. Send direct real-time message/notification to user or captain
+      // 8. Send direct real-time message/notification to user or captain tailored by language
       case 'send_message': {
-        const { title, message, type } = body;
+        const { title, message, type, titleEn, messageEn, title_en, message_en } = body;
         if (!message || !String(message).trim()) {
           return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
         }
 
         const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
         const msgType = type || 'admin_message';
+        const enTitle = (titleEn || title_en || '').trim();
+        const enMessage = (messageEn || message_en || '').trim();
+
+        // Fetch recipient's preferred_language
+        const { data: recipientProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('preferred_language')
+          .eq('id', userId)
+          .maybeSingle();
+
+        const isEn = (recipientProfile?.preferred_language || '').toLowerCase() === 'en';
+        const userTitle = isEn && enTitle ? enTitle : msgTitle;
+        const encodedPayload = encodeNotificationPayload(
+          msgTitle,
+          String(message).trim(),
+          enTitle || msgTitle,
+          enMessage || String(message).trim()
+        );
 
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from('user_notifications')
           .insert({
             user_id: userId,
-            title: msgTitle,
-            description: String(message).trim(),
+            title: userTitle,
+            description: encodedPayload.description,
             type: msgType,
             is_read: false,
             created_at: new Date().toISOString(),
@@ -784,47 +848,66 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: 'تم إرسال الرسالة بنجاح عبر الإشعار اللحظي.',
+          message: 'تم إرسال الرسالة بنجاح عبر الإشعار اللحظي وفق لغة الكابتن.',
           notification: notif,
         });
       }
 
-      // 9. Bulk send real-time notification to all or selected captains
+      // 9. Bulk send real-time notification to all or selected captains tailored by language
       case 'bulk_send_message': {
-        const { title, message, type } = body;
+        const { title, message, type, titleEn, messageEn, title_en, message_en } = body;
         if (!message || !String(message).trim()) {
           return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
         }
 
         const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
         const msgType = type || 'admin_message';
+        const enTitle = (titleEn || title_en || '').trim();
+        const enMessage = (messageEn || message_en || '').trim();
 
-        let targetIds: string[] = [];
+        let targetProfiles: Array<{ id: string; preferred_language?: string }> = [];
 
         if (Array.isArray(userIds) && userIds.length > 0) {
-          targetIds = userIds;
+          const { data: usersData, error: uErr } = await supabaseAdmin
+            .from('profiles')
+            .select('id, preferred_language')
+            .in('id', userIds);
+
+          if (uErr) throw uErr;
+          targetProfiles = usersData || userIds.map((id) => ({ id, preferred_language: 'ar' }));
         } else {
           const { data: captainsData, error: capErr } = await supabaseAdmin
             .from('profiles')
-            .select('id')
+            .select('id, preferred_language')
             .eq('role', role);
 
           if (capErr) throw capErr;
-          targetIds = (captainsData || []).map(c => c.id);
+          targetProfiles = captainsData || [];
         }
 
-        if (targetIds.length === 0) {
+        if (targetProfiles.length === 0) {
           return NextResponse.json({ success: false, error: 'لم يتم العثور على أي مستخدمين لإرسال الإشعار إليهم' }, { status: 400 });
         }
 
-        const notifications = targetIds.map(id => ({
-          user_id: id,
-          title: msgTitle,
-          description: String(message).trim(),
-          type: msgType,
-          is_read: false,
-          created_at: new Date().toISOString(),
-        }));
+        const notifications = targetProfiles.map((p) => {
+          const isEn = (p.preferred_language || '').toLowerCase() === 'en';
+          const userTitle = isEn && enTitle ? enTitle : msgTitle;
+          const encodedPayload = encodeNotificationPayload(
+            msgTitle,
+            String(message).trim(),
+            enTitle || msgTitle,
+            enMessage || String(message).trim()
+          );
+
+          return {
+            user_id: p.id,
+            title: userTitle,
+            description: encodedPayload.description,
+            type: msgType,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          };
+        });
 
         const CHUNK_SIZE = 500;
         for (let i = 0; i < notifications.length; i += CHUNK_SIZE) {
@@ -837,8 +920,29 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          count: targetIds.length,
-          message: `تم إرسال الإشعار اللحظي بنجاح إلى (${targetIds.length}) مستخدم.`,
+          count: targetProfiles.length,
+          message: `تم إرسال الإشعار اللحظي بنجاح إلى (${targetProfiles.length}) مستخدم وفقاً للغة كل كابتن.`,
+        });
+      }
+
+      // Update captain or user preferred language
+      case 'update_language': {
+        const targetLang = String(body.language || 'ar').toLowerCase() === 'en' ? 'en' : 'ar';
+        const { error: langErr } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            preferred_language: targetLang,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (langErr) throw langErr;
+
+        return NextResponse.json({
+          success: true,
+          userId,
+          preferred_language: targetLang,
+          message: targetLang === 'en' ? 'تم ضبط لغة الكابتن إلى الإنجليزية بنجاح.' : 'تم ضبط لغة الكابتن إلى العربية بنجاح.',
         });
       }
 
@@ -922,7 +1026,7 @@ export async function POST(req: Request) {
           return NextResponse.json({
             success: true,
             count: targetIds.length,
-            message: `تم شحن ${numMinutes} دقيقة رادار لـ (${targetIds.length}) كابتن بنجاح وإرسال إشعار لحظي لكل منهم.`,
+            message: `تم شحن ${numMinutes} دقيقة رادار لـ (${targetIds.length}) كابتن معلن بنجاح وإرسال إشعار لحظي لكل منهم.`,
           });
         } else {
           const numAmount = Number(amount);
@@ -974,9 +1078,118 @@ export async function POST(req: Request) {
           return NextResponse.json({
             success: true,
             count: targetIds.length,
-            message: `تم تعديل الرصيد النقدي بمقدار (${numAmount}) لـ (${targetIds.length}) كابتن بنجاح.`,
+            message: `تم تعديل الرصيد النقدي بمقدار (${numAmount}) لـ (${targetIds.length}) كابتن معلن بنجاح.`,
           });
         }
+      }
+
+      // 10. Simulate Rider Referral Inactivity / Activity
+      case 'simulate_rider_activity': {
+        const { riderId, daysAgo = 0, captainId } = body;
+        const targetRiderId = riderId || effectiveUserId;
+        if (!targetRiderId) {
+          return NextResponse.json({ success: false, error: 'riderId is required' }, { status: 400 });
+        }
+
+        // Check if referral exists
+        let { data: refRow } = await supabaseAdmin
+          .from('captain_rider_referrals')
+          .select('id, captain_id')
+          .eq('rider_id', targetRiderId)
+          .maybeSingle();
+
+        // If no referral exists, link to the provided captain or the first active captain
+        if (!refRow) {
+          let targetCaptainId = captainId;
+          if (!targetCaptainId) {
+            const { data: firstCap } = await supabaseAdmin
+              .from('profiles')
+              .select('id')
+              .eq('role', 'CAPTAIN')
+              .limit(1)
+              .maybeSingle();
+            targetCaptainId = firstCap?.id;
+          }
+
+          if (targetCaptainId) {
+            const { data: newRef, error: createRefErr } = await supabaseAdmin
+              .from('captain_rider_referrals')
+              .insert({
+                rider_id: targetRiderId,
+                captain_id: targetCaptainId,
+                last_interacted_at: new Date().toISOString(),
+              })
+              .select('id, captain_id')
+              .single();
+
+            if (!createRefErr && newRef) {
+              refRow = newRef;
+            }
+          }
+        }
+
+        const daysNum = Math.max(0, Number(daysAgo) || 0);
+        const newInteractedAt = daysNum <= 0
+          ? new Date().toISOString()
+          : new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000).toISOString();
+
+        if (refRow?.id) {
+          const { error: updErr } = await supabaseAdmin
+            .from('captain_rider_referrals')
+            .update({
+              last_interacted_at: newInteractedAt,
+              last_inactivity_notified_at: null,
+            })
+            .eq('id', refRow.id);
+
+          if (updErr) throw updErr;
+        }
+
+        // Also touch profiles.updated_at
+        await supabaseAdmin
+          .from('profiles')
+          .update({
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', targetRiderId);
+
+        return NextResponse.json({
+          success: true,
+          message: daysNum <= 0
+            ? 'تم تنشيط الراكب واعتباره متفاعلاً اليوم بنجاح ⚡'
+            : `تمت محاكاة عدم نشاط الراكب منذ ${daysNum} يوماً بنجاح ⏳`,
+          simulatedDaysAgo: daysNum,
+          lastInteractedAt: newInteractedAt,
+          captainId: refRow?.captain_id || null,
+        });
+      }
+
+      // 11. Run Inactivity Sweep & Trigger Captain Notifications
+      case 'run_inactivity_check': {
+        const { captainId } = body;
+        let resData: any;
+        if (captainId) {
+          const { data, error } = await supabaseAdmin.rpc('check_captain_inactive_riders', {
+            p_captain_id: captainId,
+          });
+          if (error) throw error;
+          resData = data;
+        } else {
+          const { data, error } = await supabaseAdmin.rpc('check_and_notify_inactive_referred_riders');
+          if (error) throw error;
+          resData = data;
+        }
+
+        const count = resData?.notifications_dispatched || resData?.total_notifications_dispatched || 0;
+
+        return NextResponse.json({
+          success: true,
+          message: count > 0
+            ? `تم فحص عدم النشاط وإرسال (${count}) إشعار تنبيه للكباتن بنجاح 🚀`
+            : 'تم فحص عدم النشاط: لا توجد إشعارات جديدة مستحقة حالياً.',
+          data: resData,
+          notificationsDispatched: count,
+        });
       }
 
       default:

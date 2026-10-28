@@ -73,6 +73,7 @@ export interface RiderActiveTrip {
   tripDurationMinutes?: number | null;
   captain?: RiderActiveTripCaptain | null;
   status?: string;
+  cancel_requested_by?: 'rider' | 'captain' | null;
 }
 
 export interface RiderMachineState {
@@ -281,6 +282,7 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     tripDurationMinutes: estimatedTripMinutes,
     captain: selectedOffer?.captain || rowCaptain || null,
     status: String(acceptedRow.status || 'ACCEPTED').toUpperCase(),
+    cancel_requested_by: (acceptedRow.cancel_requested_by as any) || null,
   };
 }
 

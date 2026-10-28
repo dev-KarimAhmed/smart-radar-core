@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
+import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
 
 export interface AppNotification {
   id: string;
@@ -10,7 +12,7 @@ export interface AppNotification {
   description: string;
   timestamp: number;
   read: boolean;
-  type?: 'info' | 'offer' | 'trip' | 'system' | 'WALLET_CREDIT' | 'WALLET_ALERT' | 'admin_message' | string;
+  type?: 'info' | 'offer' | 'trip' | 'system' | 'WALLET_CREDIT' | 'WALLET_ALERT' | 'admin_message' | 'referral' | string;
 }
 
 const STORAGE_KEY = 'radar_user_notifications_v1';
@@ -37,10 +39,18 @@ function initStoreIfNeeded(): void {
 
     const initial: AppNotification[] = [
       {
-        id: 'welcome-radar',
-        title: 'مرحباً بك في رادار',
-        description: 'تم تفعيل حسابك بنجاح. رادارك الذكي جاهز لمطابقة أفضل العروض في منطقتك.',
-        timestamp: Date.now(),
+        id: 'welcome-activation',
+        title: 'تم تنشيط حسابك ...',
+        description: 'قامت إدارة المنظومة بتنشيط حسابك. يمكنك التعرف على ما تبثه شبكة بينكم من إعلانات الأسواق.',
+        timestamp: Date.now() - 1800000,
+        read: false,
+        type: 'message',
+      },
+      {
+        id: 'app-update-bync',
+        title: 'أخبار شبكة بينكم للإعلان الرقمي',
+        description: 'قامت بينكم بتحديث التطبيق وأصبح الاستفادة من الإعلانات أسرع وأسهل.',
+        timestamp: Date.now() - 3600000,
         read: false,
         type: 'system',
       },
@@ -224,10 +234,12 @@ function setupRealtimeChannelIfNeeded(userId: string) {
         if (payload.eventType === 'INSERT' && payload.new) {
           const newRow = payload.new as any;
           if (newRow?.title) {
+            const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
+            const parsed = parseNotificationContent(newRow, isArabic);
             if (latestToastFn) {
               latestToastFn(
-                newRow.title,
-                newRow.description || '',
+                parsed.title,
+                parsed.description,
                 newRow.type === 'WALLET_ALERT' || newRow.type === 'urgent' || newRow.type === 'warning' ? 'destructive' : 'default'
               );
             }
@@ -244,6 +256,10 @@ function setupRealtimeChannelIfNeeded(userId: string) {
               String(newRow.id || '').includes('top')
             ) {
               window.dispatchEvent(new CustomEvent('radar-wallet-refresh'));
+            }
+
+            if (newRow.type === 'referral') {
+              window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
             }
           }
         }

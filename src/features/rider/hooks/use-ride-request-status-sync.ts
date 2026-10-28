@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { Offer } from '@/core/types';
-import { fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
+import { cancelRideRequest, fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
@@ -113,6 +113,7 @@ export function useRideRequestStatusSync(params: {
         const now = Date.now();
         // If the request was created more than 180 seconds (3 minutes) ago, it is expired.
         if (createdAt > 0 && now - createdAt > 180000) {
+          void cancelRideRequest(supabase, requestId).catch(() => {});
           dispatch({ type: 'RESET_TO_IDLE' });
           return;
         }
@@ -216,21 +217,11 @@ export function useRideRequestStatusSync(params: {
         }
       },
       (error) => {
-        toast({
-          variant: 'destructive',
-          title: t('request.updateFailedTitle'),
-          description: getLocalizedMarketplaceError(error, language, {
-            permissionDenied: t('errors.permissionDenied'),
-            authRequired: t('errors.authRequired'),
-            network: t('errors.network'),
-            fareCalculation: t('errors.fareCalculation'),
-            missingColumns: t('errors.missingColumns'),
-            invalidStatus: t('errors.invalidStatus'),
-            foreignKeyMismatch: t('errors.foreignKeyMismatch'),
-            duplicateActive: t('errors.duplicateActive'),
-            generic: t('errors.generic'),
-          }),
-        });
+        // Do not pop up destructive toasts on transient websocket reconnects during page navigation.
+        // The background reconciler (reconcile) below guarantees safety and state sync.
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Rider status sync] Realtime subscription notice:', error);
+        }
       },
     );
   }, [dispatch, language, state.requestId, t, toast]);
@@ -251,7 +242,7 @@ export function useRideRequestStatusSync(params: {
     const reconcile = async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id,created_at')
+        .select('id,status,completed_at,cancelled_at,accepted_offer_id,selected_offer_id,created_at,cancel_requested_by')
         .eq('id', state.requestId!)
         .maybeSingle();
 

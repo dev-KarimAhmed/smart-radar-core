@@ -39,8 +39,8 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(
   const rankWeight: Record<CaptainRank, number> = {
     PLATINUM: 4,
     GOLD: 3,
-    SILVER: 2,
-    BRONZE: 1,
+    BRONZE: 2,
+    SILVER: 1,
   };
 
   return offers
@@ -69,9 +69,9 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(
         return aFare - bFare;
       }
 
-      // 4. Captain Rank: Platinum > Gold > Silver > Bronze (tie-breaker when fares are equal)
-      const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.BRONZE;
-      const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.BRONZE;
+      // 4. Captain Rank: Platinum > Gold > Bronze > Silver (tie-breaker when fares are equal)
+      const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.SILVER;
+      const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.SILVER;
       if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;
 
       // 4b. Captain Trust / Rating Score: higher rating ranks before lower rating (tie-breaker when ranks are equal)

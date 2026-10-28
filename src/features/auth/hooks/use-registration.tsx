@@ -111,6 +111,10 @@ interface RegistrationContextType {
   // "create a new account" link can replay its attention animation — see
   // PersonalStep, where the link's `key` is tied to this value.
   createAccountPulseKey: number;
+  awaitingConfirmationEmail: string | null;
+  setAwaitingConfirmationEmail: (email: string | null) => void;
+  resendConfirmationEmail: (overrideEmail?: string) => Promise<boolean>;
+  verifyEmailCode: (code: string) => Promise<boolean>;
 }
 
 const RegistrationContext = createContext<RegistrationContextType | undefined>(undefined);
@@ -135,6 +139,104 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     verificationDoc: '',
   });
   const [authPassword, setAuthPassword] = useState('');
+  const [awaitingConfirmationEmail, setAwaitingConfirmationEmail] = useState<string | null>(null);
+
+  const verifyEmailCode = async (code: string): Promise<boolean> => {
+    const cleanCode = code.trim().replace(/\D/g, '');
+    if (cleanCode.length !== 6) {
+      toast({
+        variant: 'destructive',
+        title: lang === 'ar' ? 'رمز تفعيل غير مكتمل' : 'Incomplete code',
+        description: lang === 'ar' ? 'يرجى إدخال كود التفعيل المكون من 6 أرقام.' : 'Please enter the 6-digit activation code.',
+      });
+      return false;
+    }
+
+    const emailToVerify = (awaitingConfirmationEmail || personal.email)?.trim();
+    try {
+      const res = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: cleanCode,
+          email: emailToVerify,
+          phone: personal.phone,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'كود التفعيل غير صحيح أو انتهت صلاحيته.');
+      }
+
+      toast({
+        title: lang === 'ar' ? 'تم تفعيل الحساب بنجاح! 🎉' : 'Account activated successfully! 🎉',
+        description: data.message || (lang === 'ar' ? 'تم تأكيد بريدك الإلكتروني بنجاح.' : 'Your email has been confirmed successfully.'),
+      });
+
+      // Auto login if phone & password are available
+      if (personal.phone && authPassword) {
+        try {
+          await signInRiderWithPhone({
+            phone: personal.phone,
+            password: authPassword,
+            rememberMe,
+          });
+          setAwaitingConfirmationEmail(null);
+          router.replace('/');
+          return true;
+        } catch (loginErr) {
+          console.warn('[Auto-login after OTP failed]', loginErr);
+        }
+      }
+
+      setAwaitingConfirmationEmail(null);
+      setAuthMode('login');
+      return true;
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: lang === 'ar' ? 'فشل تأكيد الكود' : 'Verification failed',
+        description: err?.message || (lang === 'ar' ? 'كود التفعيل غير صحيح أو انتهت صلاحيته.' : 'Invalid or expired code.'),
+      });
+      return false;
+    }
+  };
+
+  const resendConfirmationEmail = async (overrideEmail?: string) => {
+    const emailToResend = (overrideEmail || awaitingConfirmationEmail || personal.email)?.trim();
+    if (!emailToResend) {
+      toast({
+        variant: 'destructive',
+        title: lang === 'ar' ? 'البريد الإلكتروني غير متوفر' : 'Email missing',
+        description: lang === 'ar' ? 'يرجى إدخال بريدك الإلكتروني لإعادة إرسال رسالة التأكيد.' : 'Please provide your email to resend confirmation.',
+      });
+      return false;
+    }
+
+    try {
+      const res = await fetch('/api/auth/resend-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailToResend, phone: personal.phone }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'تعذر إعادة إرسال رسالة التأكيد.');
+      }
+      toast({
+        title: lang === 'ar' ? 'تم الإرسال بنجاح ✉️' : 'Sent successfully ✉️',
+        description: data.message || (lang === 'ar' ? 'تم إرسال رابط تأكيد جديد إلى بريدك الإلكتروني.' : 'New confirmation link sent to your email.'),
+      });
+      return true;
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: lang === 'ar' ? 'خطأ أثناء الإرسال' : 'Dispatch error',
+        description: err?.message || (lang === 'ar' ? 'تعذر إعادة إرسال رسالة التأكيد. حاول مرة أخرى لاحقاً.' : 'Failed to resend confirmation email.'),
+      });
+      return false;
+    }
+  };
   // Keep the first SSR/client render identical. Browser storage is hydrated
   // after mount so the remember-me preference cannot cause a hydration diff.
   const [rememberMe, setRememberMe] = useState(false);
@@ -306,7 +408,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     setAuthMode('register');
     setPersonal((current) => ({
       ...current,
-      name: `راكب تجربة ${serial}`,
+      name: `مستخدم تجربة ${serial}`,
       phone: demoPhone,
       email: `test${serial}@example.com`,
       country: String(selectedCountry.id),
@@ -397,8 +499,8 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       color: 'black',
       plate: `TEST-${plateSuffix}`,
       year: '2022',
-      companyName: 'Smart Radar',
-      officeName: 'Smart Radar Test Office',
+      companyName: 'bynkcom',
+      officeName: 'مكتب بينكم التجريبي',
       officePhone: demoPhone,
       sideId: `D-${plateSuffix}`,
     }));
@@ -533,6 +635,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
       const signUpResult = await signUpRiderWithPhone(signUpInput);
 
+      if ((signUpResult as any).needsEmailConfirmation) {
+        setAwaitingConfirmationEmail((signUpResult as any).email || personal.email.trim());
+        toast({
+          title: lang === 'ar' ? 'تم إنشاء الحساب بنجاح! ✉️' : 'Account created successfully! ✉️',
+          description: lang === 'ar'
+            ? 'يرجى مراجعة بريدك الإلكتروني والضغط على رابط التفعيل لتأكيد الحساب.'
+            : 'Please check your email and click the confirmation link to activate your account.',
+        });
+        return;
+      }
+
       const isExistingUser =
         Array.isArray(signUpResult.user?.identities) &&
         signUpResult.user.identities.length === 0;
@@ -654,6 +767,32 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      const isAccountInUse = `${(error as any)?.message || ''}`.includes('account_in_use') || `${(error as any)?.message || ''}`.includes('قيد الاستخدام');
+      if (isAccountInUse) {
+        toast({
+          variant: 'destructive',
+          title: lang === 'ar' ? 'الحساب قيد الاستخدام حالياً' : 'Account Already In Use',
+          description: lang === 'ar'
+            ? 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز الآخر.'
+            : 'This account is currently active on another device. You cannot log in until it is logged out from the other device.',
+          duration: 8000,
+        });
+        return;
+      }
+
+      const isUnconfirmed = (error as any)?.message === 'email_not_confirmed' || `${(error as any)?.message || ''}`.includes('email_not_confirmed');
+      if (isUnconfirmed) {
+        setAwaitingConfirmationEmail(personal.email?.trim() || (error as any)?.email || null);
+        toast({
+          variant: 'destructive',
+          title: lang === 'ar' ? 'الحساب قيد الانتظار' : 'Account pending verification',
+          description: lang === 'ar'
+            ? 'يرجى تأكيد حسابك عبر الرابط المرسل إلى بريدك الإلكتروني أولاً لتفعيل الحساب.'
+            : 'Please confirm your email using the link sent to your inbox before logging in.',
+        });
+        return;
+      }
+
       const wrongCredentials = authMode === 'login' && isInvalidPhoneOrPasswordError(error);
       if (wrongCredentials) setCreateAccountPulseKey((key) => key + 1);
 
@@ -679,6 +818,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     personal.gov,
     personal.name,
     personal.phone,
+    personal.email,
     personal.verificationDoc,
     rememberMe,
     role,
@@ -763,6 +903,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     handleAdminSubmit,
     handleLogoTap,
     createAccountPulseKey,
+    awaitingConfirmationEmail,
+    setAwaitingConfirmationEmail,
+    resendConfirmationEmail,
+    verifyEmailCode,
   };
 
   return <RegistrationContext.Provider value={value}>{children}</RegistrationContext.Provider>;

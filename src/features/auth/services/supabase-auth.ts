@@ -34,18 +34,46 @@ export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
 
   setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
 
-  const { supabase } = await import('@/lib/supabase-client');
-  const { data, error } = await supabase.auth.signUp({
-    phone: validation.phone,
-    password: input.password,
-    options: {
-      data: metadata,
-    },
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      phone: validation.phone,
+      password: input.password,
+      fullName: input.fullName,
+      email: input.email?.trim().toLowerCase(),
+      role: input.role || 'RIDER',
+      countryId: input.countryId,
+      governorateId: input.governorateId,
+      districtId: input.districtId,
+      captainProfile: input.captainProfile || null,
+    }),
   });
 
-  if (error) throw error;
-  cacheSupabaseSession(data.session);
-  return data;
+  let resData: any = null;
+  try {
+    resData = await response.json();
+  } catch {
+    throw new Error('حدث خطأ في استجابة الخادم أثناء إنشاء الحساب. حاول مرة أخرى.');
+  }
+  if (!response.ok || !resData?.success) {
+    throw new Error(resData?.error || 'فشل إنشاء الحساب. حاول مرة أخرى.');
+  }
+
+  return {
+    user: {
+      id: resData.userId,
+      email: resData.email,
+      phone: validation.phone,
+      user_metadata: metadata as unknown as Record<string, unknown>,
+      email_confirmed_at: null,
+      identities: [{ id: resData.userId }],
+    },
+    session: null,
+    needsEmailConfirmation: true,
+    email: resData.email,
+    message: resData.message,
+  };
 }
 
 export interface CaptainSignUpInput extends Omit<RiderSupabaseSignUpInput, 'role' | 'captainProfile'> {
@@ -128,25 +156,31 @@ async function syncCaptainProfileFromAuthUser(
   if (error) throw error;
 }
 
-export async function checkAccountInUseByPhone(supabase: any, phone: string, currentDeviceId: string): Promise<boolean> {
+export async function checkAccountInUse(supabase: any, identifier: string, currentDeviceId: string): Promise<boolean> {
   if (typeof window === 'undefined') return false;
-  const normalized = phone.trim().replace(/[\s()-]/g, '');
-  if (!normalized) return false;
+  const isEmail = identifier.includes('@');
+  const cleanId = isEmail
+    ? identifier.trim().toLowerCase()
+    : identifier.trim().replace(/\D/g, '');
+
+  if (!cleanId) return false;
+
+  const channelName = (isEmail ? 'user-session-email-' : 'user-session-phone-') + cleanId;
 
   return new Promise((resolve) => {
     let resolved = false;
 
-    const channel = supabase.channel('user-session-phone-' + normalized);
+    const channel = supabase.channel(channelName);
 
     const timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
         try {
-          void channel.unsubscribe();
+          void supabase.removeChannel(channel);
         } catch {}
         resolve(false);
       }
-    }, 600);
+    }, 650);
 
     channel.on('broadcast', { event: 'session_active' }, (payload: any) => {
       const foreignDeviceId = payload.payload?.deviceId;
@@ -154,7 +188,7 @@ export async function checkAccountInUseByPhone(supabase: any, phone: string, cur
         resolved = true;
         clearTimeout(timer);
         try {
-          void channel.unsubscribe();
+          void supabase.removeChannel(channel);
         } catch {}
         resolve(true);
       }
@@ -172,6 +206,10 @@ export async function checkAccountInUseByPhone(supabase: any, phone: string, cur
   });
 }
 
+export async function checkAccountInUseByPhone(supabase: any, phone: string, currentDeviceId: string): Promise<boolean> {
+  return checkAccountInUse(supabase, phone, currentDeviceId);
+}
+
 export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   const validation = validatePhoneAndPassword(input.phone, input.password);
   if (!validation.ok) throw new Error(validation.message);
@@ -180,14 +218,15 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
 
   let currentDeviceId = '';
   if (typeof window !== 'undefined') {
-    currentDeviceId = window.sessionStorage.getItem('radar_device_id') || '';
+    currentDeviceId = window.localStorage.getItem('radar_device_id') || '';
     if (!currentDeviceId) {
       currentDeviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
-      window.sessionStorage.setItem('radar_device_id', currentDeviceId);
+      window.localStorage.setItem('radar_device_id', currentDeviceId);
     }
   }
 
-  // Check if account is in active use BEFORE calling signInWithPassword
+  // فحص حتمي أحادي الجلسة (Single Session Gate):
+  // إذا كان الحساب مفتوحاً بالفعل ونشطاً على جهاز آخر، يتم منع تسجيل الدخول فوراً
   const inUse = await checkAccountInUseByPhone(supabase, validation.phone, currentDeviceId);
   if (inUse) {
     throw new Error('account_in_use:الحساب قيد الاستخدام حالياً على جهاز آخر.');
@@ -201,6 +240,24 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   });
 
   if (error) throw error;
+
+  // Grandfathering: Accounts created before the email verification rollout (or legacy phone-only accounts)
+  // are permanently exempt from email confirmation blocking to prevent existing users from being locked out.
+  const userEmail = data.user?.email || (data.user?.user_metadata?.email as string | undefined);
+  const userCreatedAtMs = data.user?.created_at ? new Date(data.user.created_at).getTime() : 0;
+  // Cutoff timestamp for email verification rollout: Oct 23, 2026 15:30:00 UTC (1792769400000 ms)
+  const isPreFeatureAccount = userCreatedAtMs > 0 && userCreatedAtMs < 1792769400000;
+  const isPhoneOnlyAccount = !userEmail || !userEmail.includes('@');
+  const requiresEmailConfirmation = !isPreFeatureAccount && !isPhoneOnlyAccount;
+
+  if (data.user && requiresEmailConfirmation && !data.user.email_confirmed_at) {
+    await supabase.auth.signOut();
+    clearSupabaseSessionCache();
+    const unconfirmedErr = new Error('email_not_confirmed');
+    (unconfirmedErr as any).email = userEmail;
+    (unconfirmedErr as any).phone = validation.phone;
+    throw unconfirmedErr;
+  }
 
   if (input.expectedRole && data.user) {
     const rawRole = (data.user.user_metadata?.role as string) || 'RIDER';
@@ -236,4 +293,31 @@ export function clearSupabaseSessionCache() {
   localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   clearSupabaseAuthStorage();
+}
+
+
+export async function verifyEmailOtpCode(params: {
+  code: string;
+  email?: string;
+  phone?: string;
+  userId?: string;
+}): Promise<{ success: boolean; error?: string; message?: string }> {
+  const response = await fetch('/api/auth/verify-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  let resData: any = null;
+  try {
+    resData = await response.json();
+  } catch {
+    throw new Error('حدث خطأ في استجابة الخادم أثناء التحقق من الكود.');
+  }
+
+  if (!response.ok || !resData?.success) {
+    throw new Error(resData?.error || 'كود التفعيل غير صحيح أو انتهت صلاحيته.');
+  }
+
+  return resData;
 }

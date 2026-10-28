@@ -69,9 +69,29 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const geolocation = useRiderGeolocation(language, getCountryDefaultCenter(countryConfig));
   const captainPresence = useCaptainPresence(user?.uid, activeCountryId, geolocation.riderH3Cell);
   const emergencyContact = useEmergencyContact(user?.uid, {
-    captainName: state.activeTrip?.captainName,
-    destinationLabel: state.activeTrip?.destinationLabel,
-    requestId: state.requestId,
+    captainName:
+      (state.activeTrip?.captain?.nickname ||
+      state.activeTrip?.captain?.full_name ||
+      state.activeTrip?.captain?.name ||
+      state.activeTrip?.captainName) ?? undefined,
+    captainPhone:
+      (state.activeTrip?.captainPhone || state.activeTrip?.captain?.phone) ?? undefined,
+    captainSerial:
+      (state.activeTrip?.captain?.serial_number ||
+      (state.activeTrip?.captain as any)?.serial ||
+      state.activeTrip?.captainSerial ||
+      state.activeTrip?.captainId?.slice(0, 8).toUpperCase()) ?? undefined,
+    vehicleModel:
+      (state.activeTrip?.captain?.vehicle_model ||
+      state.activeTrip?.vehicleType) ?? undefined,
+    vehiclePlate:
+      (state.activeTrip?.captain?.plate_number ||
+      state.activeTrip?.captain?.license_plate ||
+      state.activeTrip?.vehiclePlate) ?? undefined,
+    vehicleColor: state.activeTrip?.captain?.vehicle_color ?? undefined,
+    destinationLabel: (state.activeTrip?.destinationLabel || state.destination?.label) ?? undefined,
+    requestId: state.activeTrip?.tripId || state.requestId,
+    riderLocation: geolocation.riderLocation,
   });
 
   const destination = useDestinationSelectionState({
@@ -157,6 +177,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         'radar_request_flow',
         'radar_active_rider_machine_state',
         'radar_rider_trip_status',
+        'radar_rider_passenger_count',
       ].forEach((key) => window.localStorage.removeItem(key));
     } catch {
       // Storage can be unavailable in private browsing; in-memory state is still reset.

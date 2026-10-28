@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Archive, Bell, Clock, Download, Heart, History, Languages, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ const styles = {
   header: 'flex shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#060B18] p-5',
   role: 'border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 font-bold text-[#14B8A6] shadow-sm',
   brand: 'flex items-center gap-2',
+  brandLogo: 'h-8 w-auto object-contain drop-shadow-[0_0_12px_rgba(20,184,166,0.35)]',
   brandTitle: 'text-2xl font-black tracking-widest text-white drop-shadow-md',
   brandIcon: 'h-7 w-7 text-[#14B8A6]',
   close: 'h-10 w-10 rounded-full text-gray-400 hover:bg-white/10 hover:text-white',
@@ -122,8 +124,25 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
       <div className={styles.header}>
         <Badge className={styles.role} variant="outline">{tAuto('key_3c26d043')}</Badge>
         <div className={styles.brand}>
-          <h2 className={styles.brandTitle}>{tAuto('key_d9033ee1')}</h2>
-          <ShieldCheck className={styles.brandIcon} />
+          <Image
+            src="/icons/logo-header.png"
+            alt="Radar"
+            width={585}
+            height={152}
+            priority
+            className={styles.brandLogo}
+          />
+          <h2 className="text-sm font-black text-white">
+            {isArabic ? (
+              <>
+                شبكة <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.35)]">بينكم</span> للإعلان الرقمي
+              </>
+            ) : (
+              <>
+                <span className="text-[#14F5D5] font-black">Bynkcom</span> Ad Network
+              </>
+            )}
+          </h2>
         </div>
         <SheetClose asChild>
           <Button aria-label={tAuto('key_f050ab3c')} className={styles.close} size="icon" variant="ghost">
@@ -135,8 +154,9 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
       <ScrollArea className={styles.scroll} type="scroll">
         <div className={styles.profile}>
           <div className={styles.avatar}><UserCircle className={styles.avatarIcon} /></div>
-          <h3 className={styles.name}>{user.name || tAuto('key_f38edfd8')}</h3>
+          <h3 className={styles.name}>{user.name || (isArabic ? 'مستخدم' : 'Rider')}</h3>
           <p className={styles.phone}>{user.phone}</p>
+
 
           {/* Controls inside Sidebar: Language Switch & Install App */}
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap px-4">
@@ -204,7 +224,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
               variant="ghost"
               onClick={() => { window.location.hash = '#notifications'; document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); }}
             >
-              <span className={styles.operationText}>{tAuto('key_d9de8840')}</span>
+              <span className={styles.operationText}>{isArabic ? 'التنبيهات' : 'Notifications'}</span>
               <div className="relative flex items-center gap-2">
                 <Bell className={styles.operationIcon} />
                 {hasUnread && (
@@ -224,7 +244,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
                 href="#history"
               >
                 <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>{tAuto('key_894f7524')}</span>
+                  <span className={styles.operationText}>{isArabic ? 'سجلي مع معلن' : 'My Log with Advertiser'}</span>
                   <History className={styles.operationIcon} />
                 </Button>
               </a>
@@ -236,7 +256,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
                 href="#vault"
               >
                 <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>{tAuto('key_0ae33a07')}</span>
+                  <span className={styles.operationText}>{isArabic ? 'الخزنة' : 'Vault'}</span>
                   <Archive className={styles.operationIcon} />
                 </Button>
               </a>

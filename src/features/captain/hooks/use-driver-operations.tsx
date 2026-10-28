@@ -9,6 +9,7 @@ import { useCaptainLocationPulse } from './use-captain-location-pulse';
 import { useCaptainRadarMinuteConsumption } from './use-captain-radar-minute-consumption';
 import { useDriverTransactions } from './use-driver-transactions';
 import { sovereignEventBroker } from '@/lib/event-broker';
+import type { CaptainCancelCooldownState } from '../services/captain-cancel-cooldown';
 
 const styles = {
   root: "",
@@ -28,6 +29,8 @@ interface DriverOpsContextType {
   resetDormancyTimer: () => void;
   submitOffer: (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => Promise<boolean>;
   isSubmittingOffer: boolean;
+  cancelOffer: (tripId?: string) => Promise<boolean>;
+  isCancellingOffer: boolean;
   markArrivedAtPickup: () => Promise<boolean>;
   startTrip: () => Promise<boolean>;
   isUpdatingTripStep: boolean;
@@ -56,6 +59,7 @@ interface DriverOpsContextType {
   currentH3Cell?: string;
   isDisconnectionLockActive?: boolean;
   radarLockMessage?: string;
+  cancelCooldown?: CaptainCancelCooldownState;
 }
 
 export const DriverOperationsContext = createContext<DriverOpsContextType | undefined>(undefined);
@@ -104,6 +108,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     currentH3Cell,
     isDisconnectionLockActive,
     radarLockMessage,
+    cancelCooldown,
   } = useDriverRadar(user, driverStatus);
 
   useCaptainLocationPulse({
@@ -129,6 +134,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     pendingOfferRequestId,
     submitOffer: rawSubmitOffer,
     isSubmittingOffer,
+    cancelOffer: rawCancelOffer,
+    isCancellingOffer,
     markArrivedAtPickup: rawMarkArrivedAtPickup,
     startTrip: rawStartTrip,
     isUpdatingTripStep,
@@ -145,6 +152,10 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
     return rawSubmitOffer(payload);
   }, [rawSubmitOffer]);
+
+  const cancelOffer = useCallback(async (tripId?: string) => {
+    return rawCancelOffer(tripId);
+  }, [rawCancelOffer]);
 
   const markArrivedAtPickup = useCallback(async () => {
     return rawMarkArrivedAtPickup();
@@ -202,6 +213,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     resetDormancyTimer,
     submitOffer,
     isSubmittingOffer,
+    cancelOffer,
+    isCancellingOffer,
     markArrivedAtPickup,
     startTrip,
     isUpdatingTripStep,
@@ -228,6 +241,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     currentH3Cell,
     isDisconnectionLockActive,
     radarLockMessage,
+    cancelCooldown,
     accountSecurityStatus,
   }), [
     acceptedRider,
@@ -235,6 +249,8 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     activationNonce,
     activeRequest,
     cancelActiveTrip,
+    cancelCooldown,
+    cancelOffer,
     currentDistrict,
     currentH3Cell,
     driverLocation,
@@ -243,6 +259,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     endTrip,
     handshakeAt,
     pendingOfferRequestId,
+    isCancellingOffer,
     isCancellingTrip,
     isDisconnectionLockActive,
     isDormancyWarningVisible,

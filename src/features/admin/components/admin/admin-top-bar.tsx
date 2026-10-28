@@ -230,11 +230,24 @@ export function AdminTopBar() {
           {/* Language Switcher */}
           <Button
             type="button"
-            onClick={toggleLanguage}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const targetLang = isArabic ? 'en' : 'ar';
+              toggleLanguage();
+              toast({
+                title: targetLang === 'ar' ? '🌐 تم التحويل إلى العربية' : '🌐 Switched to English',
+                description:
+                  targetLang === 'ar'
+                    ? 'واجهة لوحة الإدارة تعمل الآن باللغة العربية.'
+                    : 'Admin dashboard interface is now in English.',
+                duration: 2500,
+              });
+            }}
             title={t('switchLanguage')}
-            className="flex-1 sm:flex-initial bg-[#161F30] hover:bg-[#1C273C] text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 hover:border-cyan-500/50 font-bold text-xs sm:text-sm py-2 px-3 sm:px-3.5 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-initial bg-[#161F30] hover:bg-[#1C273C] text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 hover:border-cyan-500/50 font-bold text-xs sm:text-sm py-2 px-3 sm:px-3.5 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer select-none"
           >
-            <Languages className="w-4 h-4 text-cyan-400" />
+            <Languages className="w-4 h-4 text-cyan-400 shrink-0" />
             <span>{t('languageLabel')}</span>
           </Button>
 

@@ -9,6 +9,8 @@ import { useTranslations } from 'next-intl';
 import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } from '../services/ride-location';
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
 import { toEpochMs } from '@/shared/services/trip-countdown';
+import { getServerTime } from '@/lib/server-time';
+import { setCaptainCancelCooldown, clearCaptainCancelCooldown } from '../services/captain-cancel-cooldown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -70,12 +72,14 @@ export function useDriverTransactions(
   const [pendingOfferRequestId, setPendingOfferRequestId] = useState<string | null>(null);
   const pendingOfferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+  const [isCancellingOffer, setIsCancellingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
   const [isEndingTrip, setIsEndingTrip] = useState(false);
   const [isCancellingTrip, setIsCancellingTrip] = useState(false);
   const [isRatingRider, setIsRatingRider] = useState(false);
   const [isRequestingReport, setIsRequestingReport] = useState(false);
   const submittingRef = useRef(false);
+  const cancellingOfferRef = useRef(false);
   const updatingStepRef = useRef(false);
   const endingRef = useRef(false);
   const cancellingRef = useRef(false);
@@ -142,7 +146,17 @@ export function useDriverTransactions(
     selfCancelledTripId.current = null;
     clearPendingOffer();
     setDriverStatus?.('active');
-  }, [clearPendingOffer, setDriverStatus]);
+    if (captainId) {
+      void (async () => {
+        try {
+          await supabase.rpc('set_captain_status', { p_status: 'active' });
+        } catch {}
+        try {
+          await supabase.from('profiles').update({ status: 'ACTIVE' }).eq('id', captainId);
+        } catch {}
+      })();
+    }
+  }, [captainId, clearPendingOffer, setDriverStatus]);
 
   const loadAcceptedRequest = useCallback(async (requestId: string) => {
     const { data, error } = await supabase
@@ -386,6 +400,94 @@ export function useDriverTransactions(
     }
   }, [captainId, pendingOfferRequestId, toast]);
 
+  const cancelOffer = useCallback(async (tripId?: string | null) => {
+    const targetRequestId = tripId || pendingOfferRequestId;
+    if (!targetRequestId || !captainId) return false;
+    if (cancellingOfferRef.current) return false;
+
+    cancellingOfferRef.current = true;
+    setIsCancellingOffer(true);
+
+    try {
+      // 1. Try API route first (runs with admin privileges and checks accept status)
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      let apiSuccess = false;
+
+      try {
+        const res = await fetch('/api/captain/cancel-offer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ requestId: targetRequestId, uid: captainId }),
+        });
+
+        const data = await res.json();
+        if (res.status === 409 || data.error === 'offer_already_accepted') {
+          toast({
+            variant: 'destructive',
+            title: t('offerAlreadyAcceptedTitle'),
+            description: t('offerAlreadyAcceptedDesc'),
+          });
+          clearPendingOffer();
+          return false;
+        }
+
+        if (res.ok && data.success) {
+          apiSuccess = true;
+        }
+      } catch (e) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel-offer API route error, falling back to direct:', e);
+      }
+
+      // 2. Fallback to RPC or direct delete if API route was unreachable
+      if (!apiSuccess) {
+        const { error: rpcErr } = await supabase.rpc('cancel_ride_offer', {
+          p_request_id: targetRequestId,
+        });
+
+        if (rpcErr) {
+          if (rpcErr.message?.includes('offer_already_accepted')) {
+            toast({
+              variant: 'destructive',
+              title: t('offerAlreadyAcceptedTitle'),
+              description: t('offerAlreadyAcceptedDesc'),
+            });
+            clearPendingOffer();
+            return false;
+          }
+          // Direct delete as last-mile fallback
+          await supabase
+            .from('ride_offers')
+            .delete()
+            .eq('request_id', targetRequestId)
+            .eq('captain_id', captainId);
+        }
+      }
+
+      // 3. Clear local pending state
+      clearPendingOffer();
+
+      toast({
+        title: t('offerCancelledTitle'),
+        description: t('offerCancelledDesc'),
+      });
+      return true;
+    } catch (error: any) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel offer failed:', error);
+      toast({
+        variant: 'destructive',
+        title: t('offerCancelFailedTitle'),
+        description: t('offerCancelFailedDesc'),
+      });
+      return false;
+    } finally {
+      cancellingOfferRef.current = false;
+      setIsCancellingOffer(false);
+    }
+  }, [captainId, clearPendingOffer, pendingOfferRequestId, t, toast]);
+
   const markArrivedAtPickup = useCallback(async () => {
     if (!activeRequest?.id || updatingStepRef.current) return false;
     updatingStepRef.current = true;
@@ -454,6 +556,14 @@ export function useDriverTransactions(
 
   const endTrip = useCallback(async () => {
     if (!activeRequest?.id || endingRef.current) return false;
+
+    // Guard: Prevent rapid accidental double-taps (at least 3 seconds)
+    const startedAtMs = activeRequest.startedAtMs;
+    const elapsedSec = startedAtMs ? Math.max(0, Math.floor((getServerTime() - startedAtMs) / 1000)) : 0;
+    if (startedAtMs && elapsedSec < 3) {
+      return false;
+    }
+
     endingRef.current = true;
     setIsEndingTrip(true);
 
@@ -521,6 +631,17 @@ export function useDriverTransactions(
     
     const tripId = activeRequest.id;
     selfCancelledTripId.current = tripId;
+    
+    // Set radar lockout equal to the estimated duration of the cancelled trip (e.g. 20 min)
+    const tripMinutes = Math.max(
+      1,
+      Number(activeRequest.estimatedTime) > 0
+        ? Math.round(Number(activeRequest.estimatedTime))
+        : Number(activeRequest.estimatedDistance) > 0
+          ? Math.max(5, Math.round(Number(activeRequest.estimatedDistance) * 2.5))
+          : 20
+    );
+    setCaptainCancelCooldown(tripMinutes);
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {
@@ -620,6 +741,8 @@ export function useDriverTransactions(
     pendingOfferRequestId,
     submitOffer,
     isSubmittingOffer,
+    cancelOffer,
+    isCancellingOffer,
     markArrivedAtPickup,
     startTrip,
     isUpdatingTripStep,
@@ -635,8 +758,10 @@ export function useDriverTransactions(
     activeRequest,
     acceptedRider,
     cancelActiveTrip,
+    cancelOffer,
     endTrip,
     handshakeAt,
+    isCancellingOffer,
     isCancellingTrip,
     isEndingTrip,
     isRatingRider,
@@ -696,6 +821,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
     pricingPreference: (['APP', 'TAXI', 'FREE'].includes(String(row.pricing_preference || '').toUpperCase())
       ? String(row.pricing_preference).toUpperCase() as 'APP' | 'TAXI' | 'FREE'
       : null),
+    seats: toNumber(row.number_of_riders) ?? toNumber(row.seats) ?? 1,
   };
 }
 

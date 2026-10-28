@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
-import { Clock, MapPin, Radio, ShieldCheck, X } from 'lucide-react';
+import { MapPin, Radio, ShieldCheck, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getServerTime } from '@/lib/server-time';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -21,11 +21,6 @@ const styles = {
   cancelledWrapper: "space-y-4 pointer-events-auto",
   rtl: "text-right",
   ltr: "text-left",
-  cancelledCard: "rounded-[24px] border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-5",
-  cancelledEyebrow: "text-[11px] font-black text-[#14F5D5]",
-  cancelledTitle: "mt-2 text-xl font-bold text-white",
-  cancelledDescription: "mt-3 text-sm leading-relaxed text-slate-300",
-  retryButton: "h-14 w-full bg-[#14B8A6] text-[#0A0F1D] font-bold text-base py-3.5 rounded-xl transition-transform active:scale-[0.98] hover:bg-[#2DD4BF] flex items-center justify-center cursor-pointer",
   wrapper: "space-y-3.5",
   offerList: "space-y-3",
 } as const;
@@ -96,6 +91,19 @@ export function ReceivingOffersScreen({
   const seconds = remainingSeconds % 60;
   const formattedCountdown = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
+  // Step 5: Page 6 - User can click [اكتفي افتح] to reveal offers early, or system auto-reveals after 4 mins
+  const [isOffersListRevealed, setIsOffersListRevealed] = React.useState(false);
+
+  // Auto-reveal if 4 minutes finish and offers exist
+  React.useEffect(() => {
+    if (remainingSeconds === 0 && state.offers.length > 0) {
+      setIsOffersListRevealed(true);
+    }
+  }, [remainingSeconds, state.offers.length]);
+
+  const showOffersList = isOffersListRevealed || (remainingSeconds === 0 && state.offers.length > 0);
+  const isSearchTimedOutWithoutOffers = remainingSeconds === 0 && state.offers.length === 0;
+
   const stages = React.useMemo(() => {
     return isArabic
       ? [
@@ -103,26 +111,26 @@ export function ReceivingOffersScreen({
             index: 0,
             title: 'رصد النطاق الأولي (1.5 كم)',
             description: isExpandingCaptainSearch
-              ? 'جاري توسيع الدائرة لاستقطاب المزيد من الكباتن المتاحين...'
-              : 'جاري مسح ومطابقة أقرب الكباتن المتواجدين في محيطك المباشر',
+              ? 'جاري توسيع النطاق للبحث عن المزيد من الكباتن المعلنين المتاحين...'
+              : 'جاري مسح ومطابقة أقرب الكباتن المعلنين المتواجدين في محيطك المباشر',
             badge: '1.5 كم',
           },
           {
             index: 1,
-            title: 'توسيع الرادار الجغرافي (2.5 كم)',
-            description: 'تم توسيع نطاق البحث تلقائياً ليشمل جميع كباتن المنطقة والمحيط المجاور',
+            title: 'توسيع نطاق البحث (2.5 كم)',
+            description: 'تم توسيع البحث ليشمل جميع الكباتن المعلنين في المنطقة والمحيط المجاور',
             badge: '2.5 كم',
           },
           {
             index: 2,
-            title: 'بث الطلب المباشر للكباتن',
-            description: 'طلبك معروض الآن في صالة مزاد الكباتن، بانتظار تقديم أفضل الأسعار التنافسية',
+            title: 'بث حي للطلب',
+            description: 'طلبك معروض الآن على الكباتن المعلنين لتقديم أفضل عروض الأسعار',
             badge: 'بث حي',
           },
           {
             index: 3,
-            title: 'المسح النهائي وتحديث الاستجابة',
-            description: 'جولة البحث الأخيرة في المنطقة لتأكيد حجز كابتن مناسب قبل إغلاق الطلب',
+            title: 'مسح أخير',
+            description: 'جولة البحث الأخيرة في المنطقة لتأكيد كابتن معلن لرحلتك',
             badge: 'مسح أخير',
           },
         ]
@@ -131,35 +139,33 @@ export function ReceivingOffersScreen({
             index: 0,
             title: 'Scanning Immediate Area (1.5 km)',
             description: isExpandingCaptainSearch
-              ? 'Expanding coverage to find more nearby captains...'
-              : 'Scanning for the closest active captains in your immediate area',
+              ? 'Expanding coverage to find more nearby advertiser captains...'
+              : 'Scanning and matching the closest advertiser captains in your immediate area',
             badge: '1.5 km',
           },
           {
             index: 1,
             title: 'Expanded Radar Range (2.5 km)',
-            description: 'Radar coverage expanded to include all available captains in the sector',
+            description: 'Radar coverage expanded to include all available advertiser captains in the sector',
             badge: '2.5 km',
           },
           {
             index: 2,
             title: 'Live Request Broadcasting',
-            description: 'Your request is actively broadcasted to available drivers for optimal fare bids',
-            badge: 'Live Bids',
+            description: 'Your request is actively broadcasted to advertiser captains for fare bids',
+            badge: 'Live',
           },
           {
             index: 3,
             title: 'Final Search Sweep',
             description: 'Final search cycle to secure an available captain before search closes',
-            badge: 'Final',
+            badge: 'Final Sweep',
           },
         ];
   }, [isArabic, isExpandingCaptainSearch]);
 
   const currentStageIndex = Math.min(3, Math.floor(elapsedSeconds / 60));
   const currentStage = stages[currentStageIndex];
-
-  const hasOffers = state.offers.length > 0;
 
   const labels = React.useMemo(() => ({
     fallbackCaptainName: t('offerPresentation.fallbackCaptainName'),
@@ -172,39 +178,59 @@ export function ReceivingOffersScreen({
     affiliationAppDriver: t('offerPresentation.affiliationAppDriver'),
   }), [t]);
 
-  if (isCancelled) {
+  // Step 5: Page 7 - Fallback screen when cancelled or when 4 minutes expire without any offers
+  if (isCancelled || isSearchTimedOutWithoutOffers) {
     return (
       <div className={cn(styles.cancelledWrapper, isArabic ? styles.rtl : styles.ltr)} dir={isArabic ? 'rtl' : 'ltr'}>
-        <div className={styles.cancelledCard}>
-          <p className={styles.cancelledEyebrow}>{t('offers.noOffersEyebrow')}</p>
-          <h2 className={styles.cancelledTitle}>{t('offers.noOffersTitle')}</h2>
-          <p className={styles.cancelledDescription}>
-            {t('offers.noOffersDescription')}
+        <div className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-5 sm:p-6 shadow-2xl space-y-3 text-start">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
+            <span>{isArabic ? 'لم تصل عروض' : t('offers.noOffersEyebrow')}</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+            {isArabic ? 'نعتذر جميع السائقين مشغولون حالياً' : t('offers.noOffersTitle')}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-bold">
+            {isArabic ? 'يمكنك إعادة المحاولة .' : t('offers.noOffersDescription')}
           </p>
         </div>
 
-        <button onClick={onRetry} className={styles.retryButton}>
-          {t('offers.retry')}
-        </button>
+        <div className="space-y-2 pt-2">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="h-12 w-full rounded-2xl bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] text-sm font-black text-slate-950 shadow-[0_0_20px_rgba(20,245,213,0.35)] transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isArabic ? 'إعادة المحاولة' : t('offers.retry')}
+          </button>
+
+          <button
+            type="button"
+            onClick={onCancelRideRequest}
+            disabled={isCancellingRideRequest}
+            className="h-11 w-full rounded-2xl border border-rose-500/40 bg-rose-500/15 text-xs font-black text-rose-200 shadow-sm transition-all hover:bg-rose-500/25 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <X className="h-4 w-4 text-rose-400" />
+            <span>{isCancellingRideRequest ? (isArabic ? 'جاري الإلغاء...' : t('request.cancelling')) : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}</span>
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={cn(styles.wrapper, isArabic ? styles.rtl : styles.ltr)} dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* Unified Master Status & Route Card - Deep Dark Cyan Cyberpunk Border */}
+      {/* Top Header Card */}
       <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-4 shadow-2xl shadow-black/50 transition-all duration-300">
-        {/* Subtle accent light on top border */}
         <div className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
 
-        {hasOffers ? (
+        {showOffersList ? (
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                {t('offers.chooseCaptain')}
+                {isArabic ? 'اختار العرض المناسب' : t('offers.chooseCaptain')}
               </h2>
-              <p className="mt-1 text-xs text-slate-400">
-                {isArabic ? 'اختر العرض الأنسب لك لبدء الرحلة فوراً' : 'Select your preferred offer to start the ride'}
+              <p className="mt-1 text-xs text-[#14F5D5] font-bold">
+                {isArabic ? `انتظر العروض / ${state.offers.length} إلى 9` : 'Choose the best offer to start your trip'}
               </p>
             </div>
 
@@ -227,7 +253,7 @@ export function ReceivingOffersScreen({
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
                 </span>
                 <span className="text-[11px] font-black text-[#14F5D5]">
-                  {t('offers.searchingCaptain')}
+                  {isArabic ? 'طلبك ظاهر لدى الكباتن المعلنين' : t('offers.searchingCaptain')}
                 </span>
               </div>
 
@@ -238,29 +264,29 @@ export function ReceivingOffersScreen({
                 className="group inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/15 px-3 py-1.5 text-xs font-black text-rose-200 shadow-sm transition-all duration-200 hover:border-rose-500/70 hover:bg-rose-500/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 <X className="h-3.5 w-3.5 text-rose-400 transition-transform group-hover:rotate-90" />
-                <span>{isCancellingRideRequest ? t('request.cancelling') : t('request.cancel')}</span>
+                <span>{isCancellingRideRequest ? t('request.cancelling') : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}</span>
               </button>
             </div>
 
             <div className="mt-3">
               <h2 className="text-lg font-black text-white leading-snug">
-                {t('request.visibleTitle')}
+                {isArabic ? 'طلبك ظاهر لدى الكباتن المعلنين' : t('request.visibleTitle')}
               </h2>
-              <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">
-                {t('offers.waitingDescription')}
+              <p className="mt-0.5 text-xs text-[#14F5D5] font-bold leading-relaxed">
+                {isArabic ? `انتظر العروض / ${state.offers.length} إلى 9` : t('offers.waitingDescription')}
               </p>
             </div>
 
             {(state.destination?.label || state.requestId) ? (
-              <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[#14B8A6]/20 bg-[#03060E]/90 px-3 py-2.5 transition-colors hover:border-[#14B8A6]/40">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]">
+              <div className="mt-3.5 flex items-start gap-2.5 rounded-xl border border-[#14B8A6]/20 bg-[#03060E]/90 p-3 transition-colors hover:border-[#14B8A6]/40">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5] mt-0.5">
                   <MapPin className="h-4 w-4 text-[#14F5D5]" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <span className="block text-[9px] font-black uppercase tracking-wider text-slate-400">
                     {t('destination.label')}
                   </span>
-                  <p className="mt-0.5 truncate text-xs sm:text-sm font-black text-white leading-tight" dir="auto">
+                  <p className="mt-1 text-xs sm:text-sm font-bold text-white leading-relaxed break-words" dir="auto">
                     {state.destination?.label || t('destination.notAvailable')}
                   </p>
                 </div>
@@ -270,33 +296,15 @@ export function ReceivingOffersScreen({
         )}
       </div>
 
-      {!hasOffers ? (
-        <div className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-5 sm:p-6 shadow-2xl shadow-black/50">
-          {/* Subtle Ambient Radial Glow */}
-          <div className="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 h-36 w-64 rounded-full bg-[#14F5D5]/10 blur-3xl" />
+      {!showOffersList ? (
+        <>
+          <div className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-5 sm:p-6 shadow-2xl shadow-black/50">
+            <div className="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 h-36 w-64 rounded-full bg-[#14F5D5]/10 blur-3xl" />
 
-          {/* Top Row inside Card: Live Stage Badge & Countdown Capsule */}
-          <div className="relative z-10 flex items-center justify-between gap-3">
-            {/* Live Stage Tag */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 text-xs font-black text-[#14F5D5] shadow-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
-              </span>
-              <span>{isArabic ? `المرحلة ${currentStageIndex + 1} من 4` : `Stage ${currentStageIndex + 1} of 4`}</span>
-            </div>
 
-            {/* Countdown Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#14B8A6]/25 bg-black/60 px-3.5 py-1 text-xs font-mono font-black text-white shadow-inner">
-              <Clock className="h-3.5 w-3.5 text-[#14F5D5] animate-pulse" />
-              <span className="text-[11px] text-slate-400 font-sans font-bold">{isArabic ? 'المتبقي:' : 'Left:'}</span>
-              <span className="text-sm font-black text-[#14F5D5] tracking-wider">{formattedCountdown}</span>
-            </div>
-          </div>
 
-          {/* Central Radar Pulse Graphic */}
+          {/* Center Graphic */}
           <div className="relative z-10 my-6 flex flex-col items-center justify-center">
-            {/* Concentric Animated Radar Rings */}
             <div className="relative flex h-24 w-24 items-center justify-center">
               <div className="absolute inset-0 rounded-full border border-[#14F5D5]/20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
               <div className="absolute -inset-2 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/5 animate-pulse" />
@@ -305,7 +313,6 @@ export function ReceivingOffersScreen({
               </div>
             </div>
 
-            {/* Current Stage Title & Live Subtitle */}
             <h3 className="mt-3.5 text-base sm:text-lg font-black text-white text-center tracking-tight">
               {currentStage.title}
             </h3>
@@ -314,7 +321,7 @@ export function ReceivingOffersScreen({
             </p>
           </div>
 
-          {/* Segmented Progress Bar (4 Segments for 4 Minutes) */}
+          {/* 4-Minute Progress Bar */}
           <div className="relative z-10 mt-2 space-y-2">
             <div className="grid grid-cols-4 gap-2">
               {stages.map((stg) => {
@@ -349,8 +356,37 @@ export function ReceivingOffersScreen({
             </div>
           </div>
 
-          {/* Bottom Security & Reassurance Ribbon */}
-          <div className="relative z-10 mt-5 flex items-center justify-between rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/5 px-3.5 py-2.5">
+          {/* Step 5: Page 6 - Bottom Offer Count & [اكتفي افتح] Beveled Gold Button */}
+          <div className="relative z-10 mt-5 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#060D19]/90 px-3.5 py-3 shadow-lg">
+            <div className="text-start">
+              <span className="block text-[11px] font-bold text-slate-300">
+                {isArabic ? 'عدد العروض القادمة من المعلنين' : 'Offers from advertisers'}
+              </span>
+              <span className="mt-0.5 block text-sm sm:text-base font-black text-[#14F5D5]">
+                {state.offers.length} {isArabic ? (state.offers.length === 1 ? 'كابتن' : 'كباتن') : 'Captains'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (state.offers.length > 0) {
+                  setIsOffersListRevealed(true);
+                }
+              }}
+              disabled={state.offers.length === 0}
+              className={cn(
+                "relative inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-black text-xs sm:text-sm tracking-wide transition-all select-none cursor-pointer",
+                "border-2 border-[#D4AF37] bg-gradient-to-b from-[#2A2B2E] via-[#1B1C1E] to-[#0E0F10] text-[#FFDF78] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.8),0_4px_12px_rgba(0,0,0,0.5)] active:scale-95",
+                state.offers.length === 0 && "opacity-40 cursor-not-allowed border-slate-600 text-slate-500 shadow-none"
+              )}
+            >
+              {isArabic ? 'اكتفي افتح' : 'Open Offers'}
+            </button>
+          </div>
+
+          {/* Security ribbon */}
+          <div className="relative z-10 mt-3 flex items-center justify-between rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/5 px-3.5 py-2">
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
               <ShieldCheck className="h-3.5 w-3.5 text-[#14F5D5]" />
               <span>{isArabic ? 'رادار جغرافي فوري مشفّر' : 'Encrypted Geospatial Radar'}</span>
@@ -360,36 +396,69 @@ export function ReceivingOffersScreen({
             </span>
           </div>
         </div>
-      ) : (
-        <div className={styles.offerList}>
-          {state.offers.map((offer) => {
-            const { offer: captainOffer, isPreferred } = buildCaptainOfferFromOffer(
-              offer,
-              {
-                captainLocations,
-                riderLocation,
-                destination: state.destination,
-                preferredCaptainIds,
-                language,
-                serverEstimatedFare: state.destination?.serverEstimatedFare,
-              },
-              labels,
-            );
 
-            return (
-              <CaptainOfferCard
-                key={offer.id || offer.driverId}
-                offer={captainOffer}
-                currencyCode={currencyLabel || 'EGP'}
-                isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
-                isPreferred={isPreferred}
-                isExpanded={expandedOfferId === captainOffer.id}
-                countdown={getOfferCountdown(offer, firstSeenAtRef.current.get(offer.id || offer.driverId), now)}
-                onToggleExpand={() => onToggleExpandOffer(captainOffer.id)}
-                onAccept={() => onAcceptOffer(offer)}
-              />
-            );
-          })}
+        {/* Step 5: Page 6 - Cancel Ride Request Button at bottom */}
+        <button
+          type="button"
+          onClick={onCancelRideRequest}
+          disabled={isCancellingRideRequest}
+          className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/15 text-sm font-black text-rose-200 shadow-lg shadow-rose-950/40 transition-all duration-200 hover:border-rose-500/70 hover:bg-rose-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+        >
+          <X className="h-4 w-4 text-rose-400 transition-transform group-hover:rotate-90" />
+          <span>
+            {isCancellingRideRequest
+              ? (isArabic ? 'جاري إلغاء الطلب...' : t('request.cancelling'))
+              : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}
+          </span>
+        </button>
+      </>
+    ) : (
+        <div className="space-y-4">
+          <div className={styles.offerList}>
+            {state.offers.map((offer) => {
+              const { offer: captainOffer, isPreferred } = buildCaptainOfferFromOffer(
+                offer,
+                {
+                  captainLocations,
+                  riderLocation,
+                  destination: state.destination,
+                  preferredCaptainIds,
+                  language,
+                  serverEstimatedFare: state.destination?.serverEstimatedFare,
+                },
+                labels,
+              );
+
+              return (
+                <CaptainOfferCard
+                  key={offer.id || offer.driverId}
+                  offer={captainOffer}
+                  currencyCode={currencyLabel || 'EGP'}
+                  isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
+                  isPreferred={isPreferred}
+                  isExpanded={expandedOfferId === captainOffer.id}
+                  countdown={getOfferCountdown(offer, firstSeenAtRef.current.get(offer.id || offer.driverId), now)}
+                  onToggleExpand={() => onToggleExpandOffer(captainOffer.id)}
+                  onAccept={() => onAcceptOffer(offer)}
+                />
+              );
+            })}
+          </div>
+
+          {/* Step 6: Page 8 - Cancel Ride Request Button at bottom */}
+          <button
+            type="button"
+            onClick={onCancelRideRequest}
+            disabled={isCancellingRideRequest}
+            className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/15 text-sm font-black text-rose-200 shadow-lg shadow-rose-950/40 transition-all duration-200 hover:border-rose-500/70 hover:bg-rose-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+          >
+            <X className="h-4 w-4 text-rose-400 transition-transform group-hover:rotate-90" />
+            <span>
+              {isCancellingRideRequest
+                ? (isArabic ? 'جاري إلغاء الطلب...' : t('request.cancelling'))
+                : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}
+            </span>
+          </button>
         </div>
       )}
     </div>

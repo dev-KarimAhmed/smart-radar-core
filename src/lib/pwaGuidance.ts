@@ -81,7 +81,7 @@ export function getPwaGuidance(env?: PlatformEnvironment, role: 'rider' | 'capta
     return {
       platform: 'ios',
       platformName: 'Apple iOS (Safari)',
-      titleAr: role === 'captain' ? 'تثبيت تطبيق الكابتن السيادي على iPhone' : 'تثبيت تطبيق رادار الراكب على iPhone',
+      titleAr: role === 'captain' ? 'تثبيت تطبيق الكابتن المعلن السيادي على iPhone' : 'تثبيت تطبيق رادار المستخدم على iPhone',
       titleEn: role === 'captain' ? 'Install Sovereign Captain PWA on iPhone' : 'Install Radar Rider PWA on iPhone',
       steps: [
         {
@@ -111,7 +111,7 @@ export function getPwaGuidance(env?: PlatformEnvironment, role: 'rider' | 'capta
       ],
       batteryNoticeAr: role === 'captain'
         ? 'تنبيه: يُرجى تعطيل وضع حفظ الطاقة المنخفض (Low Power Mode) لضمان استمرار حسابات الرادار في الخلفية.'
-        : 'تنبيه: يُرجى إبقاء التطبيق نشطاً في الخلفية لضمان استلام عروض الكباتن وتحديثات الرحلة اللحظية.',
+        : 'تنبيه: يُرجى إبقاء التطبيق نشطاً في الخلفية لضمان استلام عروض الكباتن المعلنين وتحديثات الرحلة اللحظية.',
       batteryNoticeEn: role === 'captain'
         ? 'Notice: Please disable Low Power Mode to ensure continuous background radar tracking.'
         : 'Notice: Keep the app enabled in background to ensure receiving instant captain offers and trip updates.',
@@ -124,7 +124,7 @@ export function getPwaGuidance(env?: PlatformEnvironment, role: 'rider' | 'capta
     return {
       platform: 'android',
       platformName: 'Android (Google Chrome)',
-      titleAr: role === 'captain' ? 'تثبيت التطبيق السيادي الميداني' : 'تثبيت تطبيق رادار الراكب',
+      titleAr: role === 'captain' ? 'تثبيت التطبيق السيادي الميداني' : 'تثبيت تطبيق رادار المستخدم',
       titleEn: role === 'captain' ? 'Install Sovereign Field PWA' : 'Install Radar Rider PWA',
       steps: [
         {
@@ -153,8 +153,8 @@ export function getPwaGuidance(env?: PlatformEnvironment, role: 'rider' | 'capta
         },
       ],
       batteryNoticeAr: role === 'captain'
-        ? 'هام للكابتن: يُرجى استثناء التطبيق من تحسين البطارية (Battery Optimization Whitelist) لمنع تجميد خلايا H3 عند الانتقال للملاحة.'
-        : 'تنبيه للراكب: يُرجى السماح للتطبيق بالعمل في الخلفية لاستلام إشعارات العروض وتتبع وصول الكابتن.',
+        ? 'هام للكابتن المعلن: يُرجى استثناء التطبيق من تحسين البطارية (Battery Optimization Whitelist) لمنع تجميد خلايا H3 عند الانتقال للملاحة.'
+        : 'تنبيه للمستخدم: يُرجى السماح للتطبيق بالعمل في الخلفية لاستلام إشعارات العروض وتتبع وصول الكابتن المعلن.',
       batteryNoticeEn: role === 'captain'
         ? 'Important for Captains: Exclude app from Battery Optimization to prevent H3 freeze when navigating.'
         : 'Notice for Riders: Allow background activity to receive live captain offers and approach alerts.',

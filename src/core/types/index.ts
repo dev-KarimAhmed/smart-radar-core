@@ -25,8 +25,9 @@ export interface User {
   ratingCount?: number;
   heartCount?: number;
   penaltyCount?: number; 
-  rank?: 'Platinum' | 'Gold' | 'Silver' | 'Bronze';
+  rank?: 'Platinum' | 'Gold' | 'Bronze' | 'Silver';
   adminRank?: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
+  allowedSectors?: string[];
   avatar?: string;
   fcmTokens?: string[];
   deviceId?: string;
@@ -127,6 +128,8 @@ export interface Trip {
   riderRatingCount?: number;
   riderCompletedTrips?: number;
   riderFavoritedMe?: boolean;
+  cancel_requested_by?: 'rider' | 'captain' | null;
+  cancel_request_time?: string | null;
 }
 
 export interface Offer {

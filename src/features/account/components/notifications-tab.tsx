@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useNotifications, type AppNotification } from '@/shared/hooks/use-notifications';
+import { highlightBrand } from '@/shared/components/brand-highlight';
 import {
   Bell,
   Check,
@@ -14,13 +15,21 @@ import {
   Wallet,
   ShieldAlert,
   Copy,
+  UserCheck,
+  UserX,
+  Globe,
+  Languages,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useAuth } from '@/hooks/use-auth';
+import { useTranslations } from 'next-intl';
+import { parseNotificationContent, requestTranslation } from '@/shared/utils/notification-i18n';
 
 const styles = {
-  root: 'flex flex-col h-full w-full max-w-3xl mx-auto space-y-4 pb-36 sm:pb-40',
+  root: 'flex flex-col w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4 pb-32 sm:pb-36',
   header: 'flex flex-wrap items-center justify-between gap-3',
   title: 'text-xl sm:text-2xl font-black text-white',
   headerActions: 'flex items-center gap-2 flex-wrap',
@@ -31,7 +40,7 @@ const styles = {
   selectAllBtn: 'border-white/10 text-slate-300 hover:bg-white/10 transition-all cursor-pointer text-xs sm:text-sm',
   deleteSelectedBtn: 'border-rose-500/40 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition-all cursor-pointer text-xs sm:text-sm',
   deleteSelectedBtnDisabled: 'opacity-50 cursor-not-allowed border-white/5 text-slate-500 bg-transparent',
-  container: 'flex-1 rounded-2xl border border-white/10 bg-[#0B0F19]/60 overflow-hidden shadow-xl backdrop-blur-sm',
+  container: 'w-full rounded-2xl border border-white/10 bg-[#0B0F19]/60 shadow-xl backdrop-blur-sm overflow-hidden',
   emptyState: 'flex flex-col items-center justify-center h-64 text-center p-6',
   emptyIcon: 'h-12 w-12 text-slate-600 mb-4',
   emptyText: 'text-slate-400 font-bold',
@@ -84,6 +93,8 @@ function formatNotificationTime(timestamp: number, isArabic: boolean): string {
 }
 
 export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
+  const tRef = useTranslations('referral.notifications');
+  const { user, isCaptain } = useAuth();
   const { isArabic, direction } = useDashboardLanguage();
   const { notifications, hasUnread, markAllAsRead, markAsRead, deleteNotifications } = useNotifications();
 
@@ -91,6 +102,9 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewingNotification, setViewingNotification] = useState<AppNotification | null>(null);
   const [copied, setCopied] = useState(false);
+  const [viewLanguage, setViewLanguage] = useState<'auto' | 'ar' | 'en'>('auto');
+  const [dynamicTranslations, setDynamicTranslations] = useState<Record<string, { title: string; description: string }>>({});
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const allSelected = notifications.length > 0 && selectedIds.size === notifications.length;
 
@@ -138,6 +152,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
       if (!item.read) {
         void markAsRead(item.id);
       }
+      setViewLanguage('auto');
       setViewingNotification(item);
     }
   };
@@ -151,23 +166,23 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs sm:text-sm font-bold cursor-pointer"
+              className="border-2 border-orange-500/80 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 text-orange-300 hover:text-white shadow-[0_0_15px_rgba(249,115,22,0.35)] text-xs sm:text-sm font-bold cursor-pointer transition-all active:scale-95"
             >
               {isArabic ? (
                 <>
                   <ArrowRight className="h-4 w-4 ml-1" />
-                  <span>العودة للرادار</span>
+                  <span>{isCaptain ? 'العودة للرادار' : 'العودة للرئيسية'}</span>
                 </>
               ) : (
                 <>
                   <ArrowLeft className="h-4 w-4 mr-1" />
-                  <span>Back to Radar</span>
+                  <span>{isCaptain ? 'Back to Radar' : 'Back to Home'}</span>
                 </>
               )}
             </Button>
           )}
           <h1 className={styles.title}>
-            {isArabic ? 'التنبيهات' : 'Notifications'}
+            {isArabic ? 'الإشعارات' : 'Notifications'}
           </h1>
         </div>
 
@@ -206,6 +221,28 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
       </div>
 
       <div className={styles.container}>
+        {/* Page 2 Sovereign Welcome Banner */}
+        <div data-step1="sovereign-welcome-banner-step1" className="mb-4 flex items-center justify-between rounded-2xl border border-[#14B8A6]/30 bg-[#060B18]/95 p-3.5 shadow-lg shadow-black/25">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5]">
+              <Bell className="h-4 w-4" />
+            </div>
+            <p className="text-sm font-black text-white">
+              {isArabic ? (
+                <>
+                  شبكة <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]">بينكم</span> للإعلان الرقمي
+                </>
+              ) : (
+                <>
+                  <span className="text-[#14F5D5] font-black">Bynkcom</span> Digital Ad Network
+                </>
+              )}
+            </p>
+          </div>
+          <span className="text-xs font-bold text-[#14B8A6]">
+            {isArabic ? 'ترحب بك' : 'Welcomes you'}
+          </span>
+        </div>
         {/* Selection Bar in Select Mode */}
         {isSelectMode && notifications.length > 0 && (
           <div className={styles.selectionBar}>
@@ -259,6 +296,9 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
               const isMessage = item.type === 'admin_message' || item.type === 'message';
               const isWalletCredit = item.type === 'WALLET_CREDIT';
               const isWalletAlert = item.type === 'WALLET_ALERT';
+              const isReferral = item.type === 'referral';
+              const isReferralInactivity = item.type === 'referral_inactivity';
+              const parsed = parseNotificationContent(item, isArabic);
 
               return (
                 <div
@@ -276,7 +316,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     styles.item,
                     !item.read ? styles.itemUnread : styles.itemRead,
                     isSelectMode && isSelected && styles.itemSelected,
-                    isMessage && !item.read && 'border-r-2 border-amber-400 bg-amber-500/5 hover:bg-amber-500/10'
+                    (isMessage || isReferralInactivity) && !item.read && 'border-r-2 border-amber-400 bg-amber-500/5 hover:bg-amber-500/10'
                   )}
                   title={!item.read && !isSelectMode ? (isArabic ? 'اضغط لعرض التفاصيل وتعيين كمقروء' : 'Click to view details') : (isArabic ? 'اضغط لعرض التفاصيل' : 'Click to view')}
                 >
@@ -295,23 +335,29 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     <div
                       className={cn(
                         styles.iconWrap,
-                        isMessage
+                        isMessage || isReferralInactivity
                           ? 'bg-amber-500/20 text-amber-300'
                           : isWalletCredit
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : isWalletAlert
-                          ? 'bg-rose-500/20 text-rose-300'
-                          : !item.read
-                          ? styles.iconWrapUnread
-                          : styles.iconWrapRead
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : isWalletAlert
+                              ? 'bg-rose-500/20 text-rose-300'
+                              : isReferral
+                                ? 'bg-teal-500/20 text-[#14F5D5]'
+                                : !item.read
+                                  ? styles.iconWrapUnread
+                                  : styles.iconWrapRead
                       )}
                     >
                       {isMessage ? (
                         <MessageSquare className={styles.bellIcon} />
+                      ) : isReferralInactivity ? (
+                        <UserX className={styles.bellIcon} />
                       ) : isWalletCredit ? (
                         <Wallet className={styles.bellIcon} />
                       ) : isWalletAlert ? (
                         <ShieldAlert className={styles.bellIcon} />
+                      ) : isReferral ? (
+                        <UserCheck className={styles.bellIcon} />
                       ) : (
                         <Bell className={styles.bellIcon} />
                       )}
@@ -325,13 +371,23 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                               {isArabic ? 'رسالة' : 'Message'}
                             </span>
                           )}
+                          {isReferralInactivity && (
+                            <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/30">
+                              {tRef('inactivityBadge')}
+                            </span>
+                          )}
+                          {isReferral && (
+                            <span className="shrink-0 rounded bg-[#14B8A6]/20 px-1.5 py-0.5 text-[10px] font-black text-[#14F5D5] border border-[#14B8A6]/30">
+                              {isArabic ? 'إحالة جديدة' : 'New Referral'}
+                            </span>
+                          )}
                           <h3
                             className={cn(
                               styles.itemTitle,
                               !item.read ? styles.itemTitleUnread : styles.itemTitleRead
                             )}
                           >
-                            {item.title}
+                            {highlightBrand(parsed.title)}
                           </h3>
                         </div>
                         <span className={styles.timestamp}>
@@ -339,7 +395,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                         </span>
                       </div>
                       <p className={styles.description}>
-                        {item.description}
+                        {highlightBrand(parsed.description)}
                       </p>
                     </div>
 
@@ -377,18 +433,22 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                     viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                       ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
                       : viewingNotification.type === 'WALLET_CREDIT'
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                      : viewingNotification.type === 'WALLET_ALERT'
-                      ? "border-rose-500/40 bg-rose-500/10 text-rose-300"
-                      : "border-[#14B8A6]/40 bg-[#14B8A6]/10 text-[#14F5D5]"
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                        : viewingNotification.type === 'WALLET_ALERT'
+                          ? "border-rose-500/40 bg-rose-500/10 text-rose-300"
+                          : "border-[#14B8A6]/40 bg-[#14B8A6]/10 text-[#14F5D5]"
                   )}
                 >
                   {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message' ? (
                     <MessageSquare className="h-6 w-6" />
+                  ) : viewingNotification.type === 'referral_inactivity' ? (
+                    <UserX className="h-6 w-6 text-amber-400" />
                   ) : viewingNotification.type === 'WALLET_CREDIT' ? (
                     <Wallet className="h-6 w-6" />
                   ) : viewingNotification.type === 'WALLET_ALERT' ? (
                     <ShieldAlert className="h-6 w-6" />
+                  ) : viewingNotification.type === 'referral' ? (
+                    <UserCheck className="h-6 w-6" />
                   ) : (
                     <Bell className="h-6 w-6" />
                   )}
@@ -399,20 +459,28 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                       "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-black uppercase tracking-wider mb-1",
                       viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                        : viewingNotification.type === 'WALLET_CREDIT'
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                        : viewingNotification.type === 'WALLET_ALERT'
-                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                        : "bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30"
+                        : viewingNotification.type === 'referral_inactivity'
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                          : viewingNotification.type === 'WALLET_CREDIT'
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : viewingNotification.type === 'WALLET_ALERT'
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              : viewingNotification.type === 'referral'
+                                ? "bg-teal-500/20 text-[#14F5D5] border border-teal-500/30"
+                                : "bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30"
                     )}
                   >
                     {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
                       ? (isArabic ? 'رسالة رسمية من الإدارة ✉️' : 'Admin Message ✉️')
-                      : viewingNotification.type === 'WALLET_CREDIT'
-                      ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
-                      : viewingNotification.type === 'WALLET_ALERT'
-                      ? (isArabic ? 'تنبيه مالي ⚠️' : 'Wallet Alert ⚠️')
-                      : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
+                      : viewingNotification.type === 'referral_inactivity'
+                        ? tRef('inactivityDetailTitle')
+                        : viewingNotification.type === 'WALLET_CREDIT'
+                          ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
+                          : viewingNotification.type === 'WALLET_ALERT'
+                            ? (isArabic ? 'تنبيه مالي ⚠️' : 'Wallet Alert ⚠️')
+                            : viewingNotification.type === 'referral'
+                              ? (isArabic ? 'إحالة مستخدم جديد 👥' : 'New Rider Referral 👥')
+                              : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
                   </span>
                   <p className="text-xs text-slate-400">
                     {new Date(viewingNotification.timestamp).toLocaleString(isArabic ? 'ar-EG' : 'en-US', {
@@ -433,58 +501,125 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
             </div>
 
             {/* Modal Body */}
-            <div className="space-y-3 pt-1">
-              <h2 className="text-base sm:text-lg font-black text-white leading-snug">
-                {viewingNotification.title}
-              </h2>
+            {(() => {
+              const parsedModal = viewingNotification ? parseNotificationContent(viewingNotification, isArabic) : null;
+              const activeLang = viewLanguage === 'auto' ? (isArabic ? 'ar' : 'en') : viewLanguage;
+              const isShowingArabic = activeLang === 'ar';
+              const dynamic = viewingNotification ? dynamicTranslations[viewingNotification.id] : null;
 
-              <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap break-words max-h-64 overflow-y-auto selection:bg-[#14B8A6]/30">
-                {viewingNotification.description}
-              </div>
-            </div>
+              const displayTitle = isShowingArabic
+                ? (dynamic?.title || parsedModal?.titleAr || viewingNotification?.title || '')
+                : (dynamic?.title || parsedModal?.titleEn || viewingNotification?.title || '');
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  const idToDelete = viewingNotification.id;
-                  setViewingNotification(null);
-                  await deleteNotifications([idToDelete]);
-                }}
-                className="border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-xs sm:text-sm font-bold cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4 mr-1.5" />
-                <span>{isArabic ? 'حذف الإشعار' : 'Delete'}</span>
-              </Button>
+              const displayDesc = isShowingArabic
+                ? (dynamic?.description || parsedModal?.descriptionAr || viewingNotification?.description || '')
+                : (dynamic?.description || parsedModal?.descriptionEn || viewingNotification?.description || '');
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(
-                      `${viewingNotification.title}\n\n${viewingNotification.description}`
-                    );
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="border-white/10 text-slate-300 hover:bg-white/10 text-xs sm:text-sm font-bold cursor-pointer"
-                >
-                  <Copy className="h-4 w-4 mr-1.5" />
-                  <span>{copied ? (isArabic ? 'تم النسخ ✓' : 'Copied ✓') : (isArabic ? 'نسخ النص' : 'Copy')}</span>
-                </Button>
+              return (
+                <>
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="text-base sm:text-lg font-black text-white leading-snug">
+                        {highlightBrand(displayTitle)}
+                      </h2>
+                      {parsedModal?.hasTranslation && (
+                        <span className="shrink-0 text-[10px] font-bold text-[#14F5D5] bg-[#14B8A6]/15 border border-[#14B8A6]/30 px-2 py-0.5 rounded-full">
+                          {isShowingArabic ? 'مترجم 🌐' : 'Translated 🌐'}
+                        </span>
+                      )}
+                    </div>
 
-                <Button
-                  size="sm"
-                  onClick={() => setViewingNotification(null)}
-                  className="bg-[#14B8A6] text-[#06111f] hover:bg-[#14F5D5] text-xs sm:text-sm font-black cursor-pointer px-4"
-                >
-                  {isArabic ? 'إغلاق' : 'Close'}
-                </Button>
-              </div>
-            </div>
+                    <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap break-words max-h-64 overflow-y-auto selection:bg-[#14B8A6]/30">
+                      {highlightBrand(displayDesc)}
+                    </div>
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const idToDelete = viewingNotification.id;
+                        setViewingNotification(null);
+                        await deleteNotifications([idToDelete]);
+                      }}
+                      className="border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-xs sm:text-sm font-bold cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1.5" />
+                      <span>{isArabic ? 'حذف الإشعار' : 'Delete'}</span>
+                    </Button>
+
+                    <div className="flex items-center gap-2">
+                      {/* Language Translation Toggle */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isTranslating}
+                        onClick={async () => {
+                          if (!viewingNotification || !parsedModal) return;
+                          const nextLang = isShowingArabic ? 'en' : 'ar';
+                          setViewLanguage(nextLang);
+
+                          const hasTarget =
+                            nextLang === 'en'
+                              ? parsedModal.hasTranslation && parsedModal.titleEn && parsedModal.titleEn !== parsedModal.titleAr
+                              : parsedModal.hasTranslation && parsedModal.titleAr && parsedModal.titleAr !== parsedModal.titleEn;
+
+                          if (!hasTarget && !dynamicTranslations[viewingNotification.id]) {
+                            setIsTranslating(true);
+                            try {
+                              const [tTitle, tDesc] = await Promise.all([
+                                requestTranslation(viewingNotification.title, nextLang),
+                                requestTranslation(parsedModal.description || viewingNotification.description, nextLang),
+                              ]);
+                              setDynamicTranslations((prev) => ({
+                                ...prev,
+                                [viewingNotification.id]: { title: tTitle, description: tDesc },
+                              }));
+                            } finally {
+                              setIsTranslating(false);
+                            }
+                          }
+                        }}
+                        className="border-[#14B8A6]/30 text-[#14F5D5] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 text-xs sm:text-sm font-bold cursor-pointer transition active:scale-95"
+                        title={isShowingArabic ? 'عرض بالإنجليزية' : 'عرض بالعربية'}
+                      >
+                        {isTranslating ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1.5 text-[#14F5D5]" />
+                        ) : (
+                          <Globe className="h-4 w-4 mr-1.5 text-[#14F5D5]" />
+                        )}
+                        <span>{isShowingArabic ? 'English' : 'عربي'}</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(`${highlightBrand(displayTitle)}\n\n${highlightBrand(displayDesc)}`);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                        className="border-white/10 text-slate-300 hover:bg-white/10 text-xs sm:text-sm font-bold cursor-pointer"
+                      >
+                        <Copy className="h-4 w-4 mr-1.5" />
+                        <span>{copied ? (isArabic ? 'تم النسخ ✓' : 'Copied ✓') : isArabic ? 'نسخ النص' : 'Copy'}</span>
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        onClick={() => setViewingNotification(null)}
+                        className="bg-[#14B8A6] text-[#06111f] hover:bg-[#14F5D5] text-xs sm:text-sm font-black cursor-pointer px-4"
+                      >
+                        {isArabic ? 'إغلاق' : 'Close'}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

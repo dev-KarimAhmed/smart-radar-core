@@ -9,6 +9,7 @@ import {
   storePendingCaptainReferral,
   clearPendingCaptainReferral,
   removeReferralParamFromUrl,
+  claimCaptainReferral,
 } from '../services/captain-referral';
 
 export function useReferralListener(isArabic = true) {
@@ -44,16 +45,41 @@ export function useReferralListener(isArabic = true) {
     }
   }, []);
 
-  // 2. If rider is already registered / authenticated, referral MUST NOT be applied
+  // 2. Process newly registered referral fallback, or clear if already authenticated
   useEffect(() => {
     if (!user?.uid || !isPassenger) return;
+    if (typeof window === 'undefined') return;
+
+    try {
+      const newlyRegisteredRef = window.sessionStorage.getItem('radar_newly_registered_referral');
+      if (newlyRegisteredRef && newlyRegisteredRef.trim()) {
+        window.sessionStorage.removeItem('radar_newly_registered_referral');
+        clearPendingCaptainReferral();
+        removeReferralParamFromUrl();
+        void claimCaptainReferral(newlyRegisteredRef.trim()).then((res) => {
+          if (res.success && res.captain_name) {
+            window.sessionStorage.setItem('radar_just_linked_captain_name', res.captain_name);
+            window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
+            toast({
+              title: t('linkedSuccessTitle'),
+              description: t('linkedSuccessDesc', {
+                captainName: res.captain_name.trim() || (isArabic ? 'كابتنك المعلن المعتمد' : 'Your Captain'),
+              }),
+            });
+          }
+        });
+        return;
+      }
+    } catch {
+      // ignore
+    }
 
     const pending = getPendingCaptainReferral();
     if (pending) {
       clearPendingCaptainReferral();
       removeReferralParamFromUrl();
     }
-  }, [user?.uid, isPassenger]);
+  }, [user?.uid, isPassenger, user?.name, isArabic, t, toast]);
 
   // 3. Welcome toast when rider registers through referral link
   useEffect(() => {
@@ -67,7 +93,7 @@ export function useReferralListener(isArabic = true) {
         toast({
           title: t('linkedSuccessTitle'),
           description: t('linkedSuccessDesc', {
-            captainName: captainName.trim() || (isArabic ? 'كابتنك المعتمد' : 'Your Captain'),
+            captainName: captainName.trim() || (isArabic ? 'كابتنك المعلن المعتمد' : 'Your Captain'),
           }),
         });
       }

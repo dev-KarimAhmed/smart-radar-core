@@ -53,7 +53,7 @@ const styles = {
   adStage: 'relative z-[80] flex w-full flex-1 flex-col justify-start items-center pt-2 border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)] lg:h-full lg:justify-center lg:pt-0',
   content: 'w-full flex-1 p-4 md:p-8',
   contentHome: 'p-0 md:p-0 lg:p-0',
-  contentInner: 'min-h-0 overflow-y-auto px-0 py-4 md:px-0 md:py-6',
+  contentInner: 'min-h-0 overflow-y-auto scrollbar-thin px-0 py-4 md:px-0 md:py-6',
   contentHidden: 'hidden',
   footer: 'sticky bottom-0 z-[100] w-full shrink-0 lg:hidden',
 } as const;
@@ -119,7 +119,7 @@ export function RiderShell() {
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-black text-rose-200">
-              {dashboardLanguage.isArabic ? 'حساب الراكب محظور نهائياً 🚫' : 'Rider Account Permanently Banned 🚫'}
+              {dashboardLanguage.isArabic ? 'حساب المستخدم محظور نهائياً 🚫' : 'Rider Account Permanently Banned 🚫'}
             </h1>
             <p className="text-xs leading-6 text-rose-100/80">
               {dashboardLanguage.isArabic
@@ -150,7 +150,7 @@ export function RiderShell() {
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-black text-amber-200">
-              {dashboardLanguage.isArabic ? 'حساب الراكب معلق مؤقتاً ⚠️' : 'Rider Account Suspended ⚠️'}
+              {dashboardLanguage.isArabic ? 'حساب المستخدم معلق مؤقتاً ⚠️' : 'Rider Account Suspended ⚠️'}
             </h1>
             <p className="text-xs leading-6 text-amber-100/80">
               {dashboardLanguage.isArabic
@@ -191,7 +191,7 @@ export function RiderShell() {
       : hash === '#profile'
         ? <ProfileScreen />
         : hash === '#notifications'
-          ? <NotificationsScreen />
+          ? <NotificationsScreen onClose={() => { window.location.hash = '#'; }} />
           : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
 
   return (

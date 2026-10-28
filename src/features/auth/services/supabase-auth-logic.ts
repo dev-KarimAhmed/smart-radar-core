@@ -91,17 +91,18 @@ export function buildRiderSignUpMetadata(input: RiderSupabaseSignUpInput): Rider
     throw new Error('يرجى كتابة الاسم الكامل.');
   }
 
+  const cleanEmail = (input.email || '').replace(/[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ').trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error('البريد الإلكتروني مطلوب لتأكيد وتفعيل الحساب.');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    throw new Error('يرجى إدخال بريد إلكتروني صحيح لتصلك رسالة التأكيد.');
+  }
+
   if (input.role === 'CAPTAIN') {
     const parts = fullName.split(/\s+/).filter(Boolean);
     if (parts.length < 4 || !parts.every((p) => p.length >= 2 && /^[؀-ۿa-zA-Z]+$/.test(p))) {
       throw new Error('يرجى كتابة الاسم الرباعي كاملاً (الاسم، الأب، الجد، العائلة) بحروف صحيحة دون أرقام أو رموز.');
-    }
-    const cleanEmail = input.email?.trim();
-    if (!cleanEmail) {
-      throw new Error('البريد الإلكتروني مطلوب لإنشاء حساب الكابتن.');
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      throw new Error('يرجى إدخال بريد إلكتروني صحيح.');
     }
   }
 
@@ -141,6 +142,26 @@ export function isInvalidPhoneOrPasswordError(error: unknown) {
 }
 
 export function mapSupabaseAuthError(error: unknown) {
+  // If error has an Arabic message from our backend/validations, return it directly!
+  const candidateMsg = error instanceof Error
+    ? error.message
+    : (typeof error === 'object' && error !== null && 'message' in error)
+      ? String((error as any).message)
+      : typeof error === 'string'
+        ? error
+        : null;
+
+  if (candidateMsg) {
+    const rawMsg = candidateMsg.trim();
+    if (rawMsg.includes('account_in_use') || rawMsg.includes('قيد الاستخدام')) {
+      return 'الحساب قيد الاستخدام حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم الخروج من الجهاز الآخر.';
+    }
+    if (/[\u0600-\u06FF]/.test(rawMsg)) {
+      if (!rawMsg.includes('duplicate key') && !rawMsg.includes('Database error') && !rawMsg.includes('syntax error')) {
+        return rawMsg;
+      }
+    }
+  }
   const authError = typeof error === 'object' && error !== null
     ? (error as Partial<AuthError> & { message?: string; code?: string; status?: number; details?: string; error_description?: string })
     : {};
@@ -183,7 +204,7 @@ export function mapSupabaseAuthError(error: unknown) {
     fullText.includes('unique_email') ||
     fullText.includes('email_exists') ||
     fullText.includes('email_already_exists') ||
-    (fullText.includes('email') && (fullText.includes('already exists') || fullText.includes('مسجل بالفعل') || fullText.includes('taken')))
+    (fullText.includes('email') && (fullText.includes('registered') || fullText.includes('already exists') || fullText.includes('مسجل بالفعل') || fullText.includes('taken')))
   ) {
     return 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.';
   }
@@ -204,6 +225,7 @@ export function mapSupabaseAuthError(error: unknown) {
   if (
     code.includes('phone_exists') ||
     code.includes('user_already_exists') ||
+    fullText.includes('registered') ||
     fullText.includes('already registered') ||
     fullText.includes('already exists') ||
     fullText.includes('user_already_exists') ||
@@ -225,6 +247,14 @@ export function mapSupabaseAuthError(error: unknown) {
     return code.includes('otp') || fullText.includes('token')
       ? 'رمز التحقق غير صحيح أو انتهت صلاحيته.'
       : 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+  }
+
+  if (
+    code.includes('email_not_confirmed') ||
+    fullText.includes('email_not_confirmed') ||
+    fullText.includes('email not confirmed')
+  ) {
+    return 'يرجى تأكيد حسابك عبر الرابط المرسل إلى بريدك الإلكتروني أولاً لتفعيل الحساب.';
   }
 
   if (
@@ -300,7 +330,7 @@ export function mapSupabaseAuthError(error: unknown) {
     return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
   }
 
-  if (error instanceof Error && /^(يرجى|كلمة المرور|قيمة|هذه|رقم)/.test(error.message)) return error.message;
+  if (error instanceof Error && error.message && /[\u0600-\u06FF]/.test(error.message)) return error.message;
 
   return 'تعذر إكمال العملية. يرجى المحاولة مرة أخرى.';
 }
@@ -308,8 +338,10 @@ export function mapSupabaseAuthError(error: unknown) {
 export function buildUserFromSupabaseAuth(authUser: User) {
   const metadata = authUser.user_metadata || {};
   const vehicle = metadata.vehicle && typeof metadata.vehicle === 'object' ? metadata.vehicle as Record<string, unknown> : {};
+  const phone = String(metadata.phone || authUser.phone || '');
+  const isSovereignOwner = authUser.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || phone === '+201551981922';
   const rawRole = String(metadata.role || 'RIDER').toLowerCase();
-  const role = rawRole === 'captain' ? 'driver' : rawRole;
+  const role = isSovereignOwner ? 'admin' : (rawRole === 'captain' ? 'driver' : rawRole);
   const metadataStatus = String(metadata.status || 'idle').toLowerCase();
   const status = ['active', 'idle', 'busy', 'rating'].includes(metadataStatus)
     ? metadataStatus as 'active' | 'idle' | 'busy' | 'rating'
@@ -323,7 +355,6 @@ export function buildUserFromSupabaseAuth(authUser: User) {
   const subRole = (metadata.subRole || (affiliationType === 'independent' ? 'independent' : 'captain')) as 'independent' | 'captain' | undefined;
 
   const countryId = metadata.country_id !== undefined ? Number(metadata.country_id) : undefined;
-  const phone = String(metadata.phone || authUser.phone || '');
   const isEgypt = countryId === 2 || phone.startsWith('+20');
   const currencyAr = metadata.currency_ar !== undefined && metadata.currency_ar !== null
     ? String(metadata.currency_ar)
@@ -332,13 +363,19 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     ? String(metadata.currency_en)
     : (isEgypt ? 'EGP' : 'JOD');
 
-  const adminRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | undefined = role === 'admin'
-    ? (metadata.admin_rank || metadata.adminRank || (
-        authUser.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || phone === '+201551981922'
-          ? 'GENERAL_ADMIN'
-          : 'ASSISTANT_ADMIN'
-      ))
-    : undefined;
+  const adminRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | undefined = isSovereignOwner
+    ? 'GENERAL_ADMIN'
+    : (role === 'admin'
+        ? (metadata.admin_rank || metadata.adminRank || 'ASSISTANT_ADMIN')
+        : undefined);
+
+  const allowedSectors: string[] | undefined = isSovereignOwner || adminRank === 'GENERAL_ADMIN'
+    ? ['captains', 'riders', 'wallet', 'hourly_rates', 'delegates', 'admins']
+    : (Array.isArray(metadata.allowed_sectors)
+        ? metadata.allowed_sectors
+        : (Array.isArray(metadata.allowedSectors)
+            ? metadata.allowedSectors
+            : undefined));
 
   return {
     uid: authUser.id,
@@ -346,6 +383,7 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     role: role === 'rider' ? 'rider' : role,
     subRole,
     adminRank,
+    allowedSectors,
     name: String(metadata.full_name || metadata.name || authUser.phone || ''),
     countryId,
     currencyAr,

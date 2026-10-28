@@ -70,8 +70,8 @@ function normalizeCaptainTier(value: unknown, rating = 5): CaptainTier {
   if (normalized.includes('SILVER') || normalized.includes('فض')) return 'SILVER';
   if (rating >= 4.9) return 'PLATINUM';
   if (rating >= 4.7) return 'GOLD';
-  if (rating >= 4.4) return 'SILVER';
-  return 'BRONZE';
+  if (rating >= 4.4) return 'BRONZE';
+  return 'SILVER';
 }
 
 export function useBiddingProposal({

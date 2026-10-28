@@ -609,7 +609,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     profile, fullName, setFullName, nickname, setNickname, phone, setPhone,
     nationalIdNumber, licenseNumber, vehiclePlate, setVehiclePlate,
     vehicleMake, setVehicleMake, vehicleModel, setVehicleModel,
-    vehicleColor, vehicleYear, setVehicleYear, businessName, setBusinessName,
+    vehicleColor, setVehicleColor, vehicleYear, setVehicleYear, businessName, setBusinessName,
     officePhone, setOfficePhone, sideId, setSideId, companyCode, setCompanyCode,
     facebookUrl, setFacebookUrl, instagramUrl, setInstagramUrl,
     baseFare, setBaseFare, pricePerKm, setPricePerKm, pricePerMin, setPricePerMin,
@@ -704,8 +704,8 @@ function getCaptainTier(profile: ProfileRow | null, rating: number, t: TFunction
 
   if (rating >= 4.9) return { key: 'platinum', label: tierLabel('platinum', t) };
   if (rating >= 4.7) return { key: 'gold', label: tierLabel('gold', t) };
-  if (rating >= 4.4) return { key: 'silver', label: tierLabel('silver', t) };
-  return { key: 'bronze', label: tierLabel('bronze', t) };
+  if (rating >= 4.4) return { key: 'bronze', label: tierLabel('bronze', t) };
+  return { key: 'silver', label: tierLabel('silver', t) };
 }
 
 function normalizeTier(value: string) {

@@ -11,7 +11,7 @@ import {
   clearSupabaseSessionCache,
 } from '@/lib/supabase-auth';
 import { hasStoredSupabaseAuthSession, SUPABASE_AUTH_STORAGE_KEY } from '@/features/auth/services/supabase-auth-storage';
-import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
+import { DASHBOARD_LANGUAGE_KEY, DASHBOARD_LANGUAGE_EVENT, useDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 import { syncServerTime } from '@/lib/server-time';
 
@@ -25,6 +25,15 @@ const styles = { root: 'contents' } as const;
 function getInitialUserFromCache(): SovereignUser | null {
   if (typeof window === 'undefined') return null;
   try {
+    const rawMock =
+      window.localStorage.getItem('radar_sovereign_mock_user') ||
+      window.sessionStorage.getItem('radar_sovereign_mock_user');
+    if (rawMock) {
+      const parsedMock = JSON.parse(rawMock);
+      if (parsedMock && (parsedMock.role === 'admin' || parsedMock.adminRank === 'GENERAL_ADMIN')) {
+        return parsedMock as SovereignUser;
+      }
+    }
     const raw =
       window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
       window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY);
@@ -186,10 +195,19 @@ function AuthContent({ children }: { children: ReactNode }) {
     } catch {}
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('radar_admin_active_id');
+      window.sessionStorage.removeItem('radar_admin_active_id');
+      window.localStorage.removeItem('radar_sovereign_mock_user');
+      window.sessionStorage.removeItem('radar_sovereign_mock_user');
+    }
     restorePreservedLanguage(preservedLanguage);
     setUser(null);
     try {
       const { supabase } = await import('@/lib/supabase-client');
+      try {
+        supabase.removeAllChannels();
+      } catch {}
       await supabase.auth.signOut();
     } catch {
       setUser(null);
@@ -208,22 +226,26 @@ function AuthContent({ children }: { children: ReactNode }) {
     if (!user?.uid) return;
     let isMounted = true;
     let channel: any = null;
+    let channelPhone: any = null;
+    let channelPhoneDigits: any = null;
+    let channelEmail: any = null;
 
     let deviceId = '';
     if (typeof window !== 'undefined') {
-      deviceId = window.sessionStorage.getItem('radar_device_id') || '';
+      deviceId = window.localStorage.getItem('radar_device_id') || '';
       if (!deviceId) {
         deviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
-        window.sessionStorage.setItem('radar_device_id', deviceId);
+        window.localStorage.setItem('radar_device_id', deviceId);
       }
     }
     
     const phoneKey = user.phone ? user.phone.trim().replace(/[\s()-]/g, '') : '';
+    const phoneDigits = user.phone ? user.phone.trim().replace(/\D/g, '') : '';
+    const emailKey = (user as any).email ? String((user as any).email).trim().toLowerCase() : '';
 
     import('@/lib/supabase-client').then(({ supabase }) => {
       if (!isMounted) return;
 
-      const channels: any[] = [];
       const handleCheckActive = (payload: any, ch: any) => {
         const foreignDeviceId = payload.payload?.deviceId;
         if (foreignDeviceId && foreignDeviceId !== deviceId) {
@@ -235,42 +257,111 @@ function AuthContent({ children }: { children: ReactNode }) {
         }
       };
 
-      channel = supabase.channel('user-session-' + user.uid);
-      channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
-      channel.on('broadcast', { event: 'session_active' }, async (payload: any) => {
+      const handleForeignTakeover = (payload: any) => {
         const foreignDeviceId = payload.payload?.deviceId;
         if (foreignDeviceId && foreignDeviceId !== deviceId) {
           toast({
             variant: 'destructive',
-            title: 'الحساب قيد الاستخدام',
-            description: 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك استخدامه حتى يتم تسجيل الخروج من الجهاز الآخر.',
+            title: 'تم تسجيل الدخول من جهاز آخر',
+            description: 'تم تسجيل الدخول إلى هذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.',
             duration: 10000,
           });
-          await forceKickout();
+          void forceKickout();
         }
-      });
+      };
+
+      channel = supabase.channel('user-session-' + user.uid);
+      channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
+      channel.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
       channel.subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           channel.send({
             type: 'broadcast',
-            event: 'check_active_session',
+            event: 'session_takeover',
             payload: { deviceId },
           });
         }
       });
 
-      if (phoneKey) {
-        const channelPhone = supabase.channel('user-session-phone-' + phoneKey);
+      if (phoneDigits) {
+        channelPhoneDigits = supabase.channel('user-session-phone-' + phoneDigits);
+        channelPhoneDigits.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhoneDigits));
+        channelPhoneDigits.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
+        channelPhoneDigits.subscribe();
+      }
+
+      if (phoneKey && phoneKey !== phoneDigits) {
+        channelPhone = supabase.channel('user-session-phone-' + phoneKey);
         channelPhone.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhone));
+        channelPhone.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
         channelPhone.subscribe();
+      }
+
+      if (emailKey) {
+        channelEmail = supabase.channel('user-session-email-' + emailKey);
+        channelEmail.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelEmail));
+        channelEmail.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
+        channelEmail.subscribe();
       }
     });
     
     return () => {
       isMounted = false;
-      if (channel) channel.unsubscribe();
+      import('@/lib/supabase-client').then(({ supabase }) => {
+        try {
+          if (channel) supabase.removeChannel(channel);
+          if (channelPhoneDigits) supabase.removeChannel(channelPhoneDigits);
+          if (channelPhone) supabase.removeChannel(channelPhone);
+          if (channelEmail) supabase.removeChannel(channelEmail);
+        } catch {}
+      });
     };
-  }, [user?.uid, toast, forceKickout]);
+  }, [user?.uid, user?.phone, (user as any)?.email, toast, forceKickout]);
+
+  // Keep preferred_language in profiles synced with active device/user language choice
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const syncLanguageToProfile = async (targetLang: 'ar' | 'en') => {
+      try {
+        const { supabase } = await import('@/lib/supabase-client');
+        await supabase
+          .from('profiles')
+          .update({ preferred_language: targetLang })
+          .eq('id', user.uid);
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[useAuth] Failed to sync preferred_language:', err);
+        }
+      }
+    };
+
+    // 1. Initial sync on mount if local preference exists
+    const stored = typeof window !== 'undefined'
+      ? (window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) as 'ar' | 'en' | null)
+      : null;
+    if (stored === 'en' || stored === 'ar') {
+      void syncLanguageToProfile(stored);
+    }
+
+    // 2. Realtime listener for whenever language toggle is pressed
+    const handleLangChange = (event: Event) => {
+      const detail = (event as CustomEvent<'ar' | 'en'>).detail;
+      if (detail === 'en' || detail === 'ar') {
+        void syncLanguageToProfile(detail);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
+      }
+    };
+  }, [user?.uid]);
 
   const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
     if (!(process.env.NODE_ENV !== 'production')) return;
@@ -278,6 +369,7 @@ function AuthContent({ children }: { children: ReactNode }) {
     setLoading(false);
     if (typeof window !== 'undefined' && mockUser?.uid) {
       window.localStorage.setItem('radar_admin_active_id', mockUser.uid);
+      window.localStorage.setItem('radar_sovereign_mock_user', JSON.stringify(mockUser));
     }
   }, []);
 
@@ -298,11 +390,16 @@ function AuthContent({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('radar_admin_active_id');
       window.sessionStorage.removeItem('radar_admin_active_id');
+      window.localStorage.removeItem('radar_sovereign_mock_user');
+      window.sessionStorage.removeItem('radar_sovereign_mock_user');
     }
     restorePreservedLanguage(preservedLanguage);
     setUser(null);
     try {
       const { supabase } = await import('@/lib/supabase-client');
+      try {
+        supabase.removeAllChannels();
+      } catch {}
       await supabase.auth.signOut();
     } catch {
       setUser(null);

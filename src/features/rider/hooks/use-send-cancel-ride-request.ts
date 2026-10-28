@@ -80,7 +80,7 @@ export function useSendCancelRideRequest(params: {
     generic: t('errors.generic'),
   }), [t]);
 
-  const handleSendRequest = React.useCallback(async () => {
+  const handleSendRequest = React.useCallback(async (explicitRiderCount?: number) => {
     if (riderOps?.accountSecurityStatus) {
       toast({
         variant: 'destructive',
@@ -115,21 +115,29 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
-    let effectiveRiderCount = riderCount;
-    if (!effectiveRiderCount || effectiveRiderCount < 1) {
-      if (typeof window !== 'undefined') {
+    let liveStorageCount = 0;
+    if (typeof window !== 'undefined') {
+      try {
         const stored = window.localStorage.getItem('radar_rider_passenger_count');
         const parsed = stored ? parseInt(stored, 10) : 0;
-        if (parsed >= 1) effectiveRiderCount = parsed;
-      }
+        if (Number.isFinite(parsed) && parsed >= 1) liveStorageCount = parsed;
+      } catch {}
     }
 
-    // When retrying or if destination was already confirmed, never block the rider for passenger count: fallback to at least 1
-    if ((state.screen === 'RECEIVING_OFFERS' || Boolean(state.destination)) && (!effectiveRiderCount || effectiveRiderCount < 1)) {
+    let effectiveRiderCount = (typeof explicitRiderCount === 'number' && explicitRiderCount >= 1)
+      ? explicitRiderCount
+      : (typeof riderCount === 'number' && riderCount >= 1)
+        ? riderCount
+        : (liveStorageCount >= 1)
+          ? liveStorageCount
+          : 0;
+
+    // Only when retrying from an already-active offer search, fallback to 1 so retry doesn't stall:
+    if (state.screen === 'RECEIVING_OFFERS' && effectiveRiderCount < 1) {
       effectiveRiderCount = 1;
     }
 
-    if (effectiveRiderCount !== undefined && effectiveRiderCount < 1) {
+    if (effectiveRiderCount < 1) {
       toast({
         variant: 'destructive',
         title: t('request.passengersMissingTitle'),
@@ -138,7 +146,7 @@ export function useSendCancelRideRequest(params: {
       return;
     }
 
-    if (effectiveRiderCount && effectiveRiderCount >= 1 && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem('radar_rider_passenger_count', String(effectiveRiderCount));
       } catch {}
@@ -220,9 +228,52 @@ export function useSendCancelRideRequest(params: {
         routeDurationMinutes: currentRouteEstimate?.durationMinutes ?? Math.max(1, Math.ceil((effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2) * 1.5)),
         countryId,
         pricingPreference: pricingPreference || null,
+        numberOfRiders: effectiveRiderCount,
       });
 
-      const request = await createRideRequest(supabase, payload);
+      let request;
+      try {
+        request = await createRideRequest(supabase, payload);
+      } catch (insertError: any) {
+        const errorMsg = String(insertError?.message || '') + String(insertError?.code || '') + String(insertError?.details || '');
+        const isDuplicateActive =
+          insertError?.code === '23505' ||
+          errorMsg.includes('unique_active_rider_request') ||
+          errorMsg.includes('duplicate');
+
+        if (isDuplicateActive && userId) {
+          try {
+            const { data: staleRows } = await (supabase as any)
+              .from('ride_requests')
+              .select('id, status')
+              .eq('rider_id', userId)
+              .in('status', ['PENDING', 'ACCEPTED', 'ARRIVED', 'TRIP_ACTIVE'])
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            const staleId = staleRows?.[0]?.id;
+            if (staleId) {
+              try {
+                await cancelRideRequest(supabase, staleId);
+              } catch {
+                await fetch('/api/trip/mutual-cancel', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ requestId: staleId, cancelledByRole: 'rider' }),
+                }).catch(() => {});
+              }
+              request = await createRideRequest(supabase, payload);
+            } else {
+              throw insertError;
+            }
+          } catch {
+            throw insertError;
+          }
+        } else {
+          throw insertError;
+        }
+      }
+
       dispatch({ type: 'SERVER_REQUEST_CREATED', requestId: request.id });
       dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
 

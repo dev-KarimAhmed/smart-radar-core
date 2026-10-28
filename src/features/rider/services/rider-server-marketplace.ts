@@ -70,6 +70,7 @@ export interface RideRequestInsertInput {
   routeDurationMinutes?: number;
   countryId: number;
   pricingPreference?: 'FREE' | 'APP' | 'TAXI' | null;
+  numberOfRiders?: number;
 }
 
 export interface RideRequestInsertPayload {
@@ -89,6 +90,7 @@ export interface RideRequestInsertPayload {
   country_id: number;
   status: 'PENDING';
   pricing_preference?: 'FREE' | 'APP' | 'TAXI' | null;
+  number_of_riders?: number;
 }
 
 export interface RideRequestRow {
@@ -170,6 +172,7 @@ export function buildRideRequestInsertPayload(input: RideRequestInsertInput): Ri
     country_id: toStrictPositiveInteger(input.countryId, 'country_id'),
     status: 'PENDING',
     pricing_preference: input.pricingPreference || null,
+    number_of_riders: input.numberOfRiders && input.numberOfRiders >= 1 ? Math.min(Math.max(1, Math.round(input.numberOfRiders)), 10) : 1,
   };
 }
 
@@ -191,12 +194,25 @@ export async function createRideRequest(client: SupabaseInsertLike, payload: Rid
     throw new Error('ride_request_insert_missing_row');
   }
 
-  return {
+  const result: RideRequestRow = {
     id: String(row.id),
     status: String(row.status),
     server_estimated_fare:
       typeof row.server_estimated_fare === 'number' ? row.server_estimated_fare : undefined,
   };
+
+  try {
+    const ch = (client as any)?.channel?.('public:radar-feed');
+    if (ch && typeof ch.send === 'function') {
+      void ch.send({
+        type: 'broadcast',
+        event: 'RIDE_REQUEST_CREATED',
+        payload: { requestId: result.id, originH3: payload.origin_h3 },
+      });
+    }
+  } catch {}
+
+  return result;
 }
 
 export async function fetchRideOffers(client: SupabaseMarketplaceRpcLike, requestId: string): Promise<Offer[]> {
@@ -325,6 +341,13 @@ export function subscribeToRideRequestStatus(
 
     const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
     void maybeChannel.unsubscribe?.();
+    if (typeof (client as any)?.removeChannel === 'function') {
+      try {
+        void (client as any).removeChannel(channel);
+      } catch {
+        // Channel already removed
+      }
+    }
   };
 }
 
@@ -369,6 +392,13 @@ export function subscribeToRideOffers(
 
     const maybeChannel = channel as { unsubscribe?: () => Promise<unknown> | unknown };
     void maybeChannel.unsubscribe?.();
+    if (typeof (client as any)?.removeChannel === 'function') {
+      try {
+        void (client as any).removeChannel(channel);
+      } catch {
+        // Channel already removed
+      }
+    }
   };
 }
 
@@ -412,7 +442,7 @@ export function mapRiderMarketplaceError(error: unknown) {
     message.includes('permission denied') ||
     message.includes('permission')
   ) {
-    return 'تعذر إنشاء طلب الرحلة بسبب صلاحيات قاعدة البيانات. تأكد من تفعيل سياسة إدخال طلبات الرحلات للراكب.';
+    return 'تعذر إنشاء طلب الرحلة بسبب صلاحيات قاعدة البيانات. تأكد من تفعيل سياسة إدخال طلبات الرحلات للمستخدم.';
   }
 
   if (message.includes('jwt') || message.includes('auth') || message.includes('rider_id')) {
@@ -447,7 +477,7 @@ export function mapRiderMarketplaceError(error: unknown) {
   }
 
   if (message.includes('23503') || message.includes('foreign key') || message.includes('country_id')) {
-    return 'بيانات الدولة أو الراكب غير متطابقة مع قاعدة البيانات. حدّث الحساب أو اختر الوجهة مرة أخرى.';
+    return 'بيانات الدولة أو المستخدم غير متطابقة مع قاعدة البيانات. حدّث الحساب أو اختر الوجهة مرة أخرى.';
   }
 
   if (message.includes('23505') || message.includes('duplicate') || message.includes('active request')) {
@@ -511,6 +541,7 @@ function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
   const isIndependentDriver = rawAffiliationType === 'independent'
     || rawCompany === 'مستقل'
     || rawCompany === 'كابتن مستقل'
+    || rawCompany === 'كابتن معلن مستقل'
     || rawCompany?.toLowerCase() === 'independent';
   const resolvedAffiliationType = isIndependentDriver
     ? 'independent'

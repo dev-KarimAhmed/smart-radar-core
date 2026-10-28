@@ -17,6 +17,8 @@ export { useDetectedCountryCode } from './hooks/use-detected-country-code';
 export {
   mapSupabaseAuthError,
   signUpCaptainWithPhone,
+  signInRiderWithPhone,
+  verifyEmailOtpCode,
   type CaptainProfileMetadata,
 } from './services/supabase-auth';
 

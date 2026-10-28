@@ -10,12 +10,22 @@ export function getDeviceDashboardLanguage(): AppLanguage {
 
 export function readStoredDashboardLanguage(): AppLanguage {
   if (typeof window === 'undefined') return 'ar';
-  const storedLanguage = window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY);
-  if (storedLanguage === 'ar' || storedLanguage === 'en') return storedLanguage;
+  try {
+    const storedLanguage = window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY);
+    if (storedLanguage === 'ar' || storedLanguage === 'en') return storedLanguage;
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]+)/);
+    if (cookieMatch && (cookieMatch[1] === 'ar' || cookieMatch[1] === 'en')) {
+      return cookieMatch[1] as AppLanguage;
+    }
+  } catch {}
   return 'ar';
 }
 
 export function persistDashboardLanguage(language: AppLanguage) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(DASHBOARD_LANGUAGE_KEY, language === 'en' ? 'en' : 'ar');
+  const normalized: AppLanguage = language === 'en' ? 'en' : 'ar';
+  try {
+    window.localStorage.setItem(DASHBOARD_LANGUAGE_KEY, normalized);
+    document.cookie = `NEXT_LOCALE=${normalized}; path=/; max-age=31536000; SameSite=Lax`;
+  } catch {}
 }

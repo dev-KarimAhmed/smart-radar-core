@@ -62,13 +62,17 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     applyDocumentLanguage(stored);
   }, []);
 
-  // Keep in sync with language changes dispatched elsewhere (e.g. the
-  // registration flow) via the shared CustomEvent bus.
+  // Keep in sync with language changes dispatched elsewhere via the shared CustomEvent bus.
   useEffect(() => {
     const handleLanguageChange = (event: Event) => {
-      const next = (event as CustomEvent<AppLanguage>).detail === 'en' ? 'en' : 'ar';
-      setLocaleState(next);
-      applyDocumentLanguage(next);
+      const detail = (event as CustomEvent<AppLanguage>).detail;
+      const next: AppLanguage = detail === 'en' ? 'en' : 'ar';
+      setLocaleState((current) => {
+        if (current === next) return current;
+        applyDocumentLanguage(next);
+        persistDashboardLanguage(next);
+        return next;
+      });
     };
     window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
     return () => window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLanguageChange);
@@ -78,23 +82,33 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     (language: AppLanguage) => {
       const normalized: AppLanguage = language === 'en' ? 'en' : 'ar';
       applyLocale(normalized);
-      window.dispatchEvent(new CustomEvent(DASHBOARD_LANGUAGE_EVENT, { detail: normalized }));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(DASHBOARD_LANGUAGE_EVENT, { detail: normalized }));
+      }
     },
     [applyLocale],
   );
+
+  const toggleLocale = useCallback(() => {
+    const next: AppLanguage = locale === 'ar' ? 'en' : 'ar';
+    applyLocale(next);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(DASHBOARD_LANGUAGE_EVENT, { detail: next }));
+    }
+  }, [locale, applyLocale]);
 
   const contextValue = useMemo<LocaleContextValue>(
     () => ({
       currentLocale: locale,
       setLocale,
-      toggleLocale: () => setLocale(locale === 'ar' ? 'en' : 'ar'),
+      toggleLocale,
     }),
-    [setLocale, locale],
+    [setLocale, toggleLocale, locale],
   );
 
   return (
     <LocaleContext.Provider value={contextValue}>
-      <NextIntlClientProvider key={locale} locale={locale} messages={MESSAGES[locale]} timeZone="Asia/Amman">
+      <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]} timeZone="Asia/Amman">
         {children}
       </NextIntlClientProvider>
     </LocaleContext.Provider>

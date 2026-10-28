@@ -34,6 +34,9 @@ import {
   MessageSquare,
   Send,
   MessageCircle,
+  MapPin,
+  Globe,
+  Languages,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -53,6 +56,8 @@ import { cn } from '@/lib/utils';
 import { getRankTheme } from '@/core/utils';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
+import { GeoFilterBar, GeoLookup } from './geo-filter-bar';
+import { requestTranslation } from '@/shared/utils/notification-i18n';
 
 export interface CaptainUser {
   id: string;
@@ -62,14 +67,19 @@ export interface CaptainUser {
   email: string;
   role: string;
   status: 'ACTIVE' | 'IDLE' | 'BUSY' | 'SUSPENDED' | 'BANNED';
-  tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+  tier: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
   rating: number;
   rating_count: number;
   heart_count: number;
   penalty_count: number;
   trust_score: number;
+  country_id?: number;
+  country_name?: string;
+  governorate_id?: number;
+  district_id?: number;
   governorate: string;
   district: string;
+  preferred_language?: string;
   created_at: string;
   vehicle: {
     brand: string;
@@ -135,6 +145,38 @@ export function DriversManagementTab() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [verificationFilter, setVerificationFilter] = useState<string>('ALL');
   const [rankFilter, setRankFilter] = useState<string>('ALL');
+  const [languageFilter, setLanguageFilter] = useState<'ALL' | 'ar' | 'en'>('ALL');
+
+  // Geographic filtering state
+  const [selectedCountry, setSelectedCountry] = useState<string>('ALL');
+  const [selectedGovernorate, setSelectedGovernorate] = useState<string>('ALL');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('ALL');
+  const [geoLookup, setGeoLookup] = useState<GeoLookup>({
+    countries: [],
+    governorates: [],
+    districts: [],
+  });
+
+  const handleCountryChange = useCallback((val: string) => {
+    setSelectedCountry(val);
+    setSelectedGovernorate('ALL');
+    setSelectedDistrict('ALL');
+  }, []);
+
+  const handleGovernorateChange = useCallback((val: string) => {
+    setSelectedGovernorate(val);
+    setSelectedDistrict('ALL');
+  }, []);
+
+  const handleDistrictChange = useCallback((val: string) => {
+    setSelectedDistrict(val);
+  }, []);
+
+  const handleResetGeo = useCallback(() => {
+    setSelectedCountry('ALL');
+    setSelectedGovernorate('ALL');
+    setSelectedDistrict('ALL');
+  }, []);
 
   // Modals state
   const [inspectCaptain, setInspectCaptain] = useState<CaptainUser | null>(null);
@@ -145,8 +187,35 @@ export function DriversManagementTab() {
   // Message modal inputs
   const [messageTitle, setMessageTitle] = useState('رسالة من إدارة المنظومة');
   const [messageBody, setMessageBody] = useState('');
+  const [messageTitleEn, setMessageTitleEn] = useState('');
+  const [messageBodyEn, setMessageBodyEn] = useState('');
+  const [isTranslatingDirect, setIsTranslatingDirect] = useState(false);
   const [messageType, setMessageType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
   const [submittingMessage, setSubmittingMessage] = useState(false);
+
+  const handleTranslateDirect = async () => {
+    setIsTranslatingDirect(true);
+    try {
+      const [tTitle, tBody] = await Promise.all([
+        messageTitle.trim() ? requestTranslation(messageTitle.trim(), 'en') : Promise.resolve(''),
+        messageBody.trim() ? requestTranslation(messageBody.trim(), 'en') : Promise.resolve(''),
+      ]);
+      setMessageTitleEn(tTitle);
+      setMessageBodyEn(tBody);
+      toast({
+        title: '🌐 تم إنشاء الترجمة الإنجليزية بنجاح',
+        description: 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر توليد الترجمة',
+        description: 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.',
+      });
+    } finally {
+      setIsTranslatingDirect(false);
+    }
+  };
 
   // Topup modal inputs
   const [minutesToAdd, setMinutesToAdd] = useState<number>(60);
@@ -178,8 +247,35 @@ export function DriversManagementTab() {
   // Bulk Message inputs
   const [bulkMsgTitle, setBulkMsgTitle] = useState('إشعار من إدارة المنظومة');
   const [bulkMsgBody, setBulkMsgBody] = useState('');
+  const [bulkMsgTitleEn, setBulkMsgTitleEn] = useState('');
+  const [bulkMsgBodyEn, setBulkMsgBodyEn] = useState('');
+  const [isTranslatingBulk, setIsTranslatingBulk] = useState(false);
   const [bulkMsgType, setBulkMsgType] = useState<'info' | 'admin_message' | 'warning' | 'urgent'>('admin_message');
   const [submittingBulkMsg, setSubmittingBulkMsg] = useState(false);
+
+  const handleTranslateBulk = async () => {
+    setIsTranslatingBulk(true);
+    try {
+      const [tTitle, tBody] = await Promise.all([
+        bulkMsgTitle.trim() ? requestTranslation(bulkMsgTitle.trim(), 'en') : Promise.resolve(''),
+        bulkMsgBody.trim() ? requestTranslation(bulkMsgBody.trim(), 'en') : Promise.resolve(''),
+      ]);
+      setBulkMsgTitleEn(tTitle);
+      setBulkMsgBodyEn(tBody);
+      toast({
+        title: '🌐 تم إنشاء الترجمة الإنجليزية بنجاح',
+        description: 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.',
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر توليد الترجمة',
+        description: 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.',
+      });
+    } finally {
+      setIsTranslatingBulk(false);
+    }
+  };
 
   const fetchCaptains = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -188,15 +284,22 @@ export function DriversManagementTab() {
       const data = await res.json();
       if (data?.success && Array.isArray(data.users)) {
         setCaptains(data.users);
+        if (data.geo) {
+          setGeoLookup({
+            countries: Array.isArray(data.geo.countries) ? data.geo.countries : [],
+            governorates: Array.isArray(data.geo.governorates) ? data.geo.governorates : [],
+            districts: Array.isArray(data.geo.districts) ? data.geo.districts : [],
+          });
+        }
       } else {
-        throw new Error(data?.error || 'فشل تحميل بيانات الكباتن');
+        throw new Error(data?.error || 'فشل تحميل بيانات الكباتن المعلنين');
       }
     } catch (err: any) {
       console.warn('[DriversManagementTab] fetch error:', err);
       toast({
         variant: 'destructive',
         title: 'خطأ استدعاء الأسطول',
-        description: err.message || 'تعذر جلب بيانات الكباتن من قاعدة البيانات',
+        description: err.message || 'تعذر جلب بيانات الكباتن المعلنين من قاعدة البيانات',
       });
     } finally {
       setLoading(false);
@@ -252,7 +355,9 @@ export function DriversManagementTab() {
         c.vehicle.plate.toLowerCase().includes(q) ||
         c.vehicle.brand.toLowerCase().includes(q) ||
         c.vehicle.model.toLowerCase().includes(q) ||
-        c.governorate.toLowerCase().includes(q);
+        (c.governorate && c.governorate.toLowerCase().includes(q)) ||
+        (c.district && c.district.toLowerCase().includes(q)) ||
+        (c.country_name && c.country_name.toLowerCase().includes(q));
 
       const matchesStatus =
         statusFilter === 'ALL' ||
@@ -268,9 +373,54 @@ export function DriversManagementTab() {
         rankFilter === 'ALL' ||
         String(c.tier || '').toUpperCase() === rankFilter.toUpperCase();
 
-      return matchesSearch && matchesStatus && matchesVerification && matchesRank;
+      // Geo Filtering: Country
+      const targetCountry = geoLookup.countries.find((cntry) => String(cntry.id) === selectedCountry);
+      const matchesCountry =
+        selectedCountry === 'ALL' ||
+        c.country_id === Number(selectedCountry) ||
+        (targetCountry && (c.country_name === targetCountry.name_ar || (targetCountry.country_code && c.phone?.startsWith(targetCountry.country_code === 'EG' ? '+20' : '+962'))));
+
+      // Geo Filtering: Governorate
+      const targetGov = geoLookup.governorates.find((g) => String(g.id) === selectedGovernorate);
+      const matchesGov =
+        selectedGovernorate === 'ALL' ||
+        c.governorate_id === Number(selectedGovernorate) ||
+        (targetGov && c.governorate === targetGov.name_ar);
+
+      // Geo Filtering: District
+      const targetDist = geoLookup.districts.find((d) => String(d.id) === selectedDistrict);
+      const matchesDist =
+        selectedDistrict === 'ALL' ||
+        c.district_id === Number(selectedDistrict) ||
+        (targetDist && c.district === targetDist.name_ar);
+
+      const matchesLanguage =
+        languageFilter === 'ALL' ||
+        (c.preferred_language || 'ar').toLowerCase() === languageFilter.toLowerCase();
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesVerification &&
+        matchesRank &&
+        matchesLanguage &&
+        matchesCountry &&
+        matchesGov &&
+        matchesDist
+      );
     });
-  }, [captains, searchQuery, statusFilter, verificationFilter, rankFilter]);
+  }, [
+    captains,
+    searchQuery,
+    statusFilter,
+    verificationFilter,
+    rankFilter,
+    languageFilter,
+    selectedCountry,
+    selectedGovernorate,
+    selectedDistrict,
+    geoLookup,
+  ]);
 
   // Statistics KPI
   const stats = useMemo(() => {
@@ -342,7 +492,7 @@ export function DriversManagementTab() {
       toast({
         variant: 'destructive',
         title: 'تنبيه',
-        description: 'يرجى تحديد كابتن واحد على الأقل أولاً.',
+        description: 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.',
       });
       return;
     }
@@ -350,7 +500,7 @@ export function DriversManagementTab() {
       toast({
         variant: 'destructive',
         title: 'تنبيه',
-        description: 'لا يوجد كباتن مطابقين للفلاتر الحالية.',
+        description: 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.',
       });
       return;
     }
@@ -382,7 +532,7 @@ export function DriversManagementTab() {
 
       toast({
         title: '⚡ تم الشحن بنجاح',
-        description: result.message || 'تم تحديث أرصدة الكباتن وإشعارهم بنجاح.',
+        description: result.message || 'تم تحديث أرصدة الكباتن المعلنين وإشعارهم بنجاح.',
       });
 
       setIsBulkTopupOpen(false);
@@ -413,7 +563,7 @@ export function DriversManagementTab() {
       toast({
         variant: 'destructive',
         title: 'تنبيه',
-        description: 'يرجى تحديد كابتن واحد على الأقل أولاً.',
+        description: 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.',
       });
       return;
     }
@@ -421,7 +571,7 @@ export function DriversManagementTab() {
       toast({
         variant: 'destructive',
         title: 'تنبيه',
-        description: 'لا يوجد كباتن مطابقين للفلاتر الحالية.',
+        description: 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.',
       });
       return;
     }
@@ -432,6 +582,8 @@ export function DriversManagementTab() {
         action: 'bulk_send_message',
         title: bulkMsgTitle.trim(),
         message: bulkMsgBody.trim(),
+        titleEn: bulkMsgTitleEn.trim(),
+        messageEn: bulkMsgBodyEn.trim(),
         type: bulkMsgType,
         userIds: targetIds,
       };
@@ -448,11 +600,13 @@ export function DriversManagementTab() {
 
       toast({
         title: '📢 تم إرسال الإشعار اللحظي',
-        description: result.message || 'تم بث الإشعار بنجاح إلى جميع الكباتن المحددين.',
+        description: result.message || 'تم بث الإشعار بنجاح إلى جميع الكباتن المعلنين المحددين.',
       });
 
       setIsBulkMessageOpen(false);
       setBulkMsgBody('');
+      setBulkMsgTitleEn('');
+      setBulkMsgBodyEn('');
     } catch (err: any) {
       toast({
         variant: 'destructive',
@@ -461,6 +615,45 @@ export function DriversManagementTab() {
       });
     } finally {
       setSubmittingBulkMsg(false);
+    }
+  };
+
+
+  const handleToggleCaptainLanguage = async (captainId: string, currentLang?: string) => {
+    const nextLang = (currentLang || 'ar').toLowerCase() === 'en' ? 'ar' : 'en';
+    // Optimistic update in table
+    setCaptains((prev) =>
+      prev.map((c) => (c.id === captainId ? { ...c, preferred_language: nextLang } : c))
+    );
+    try {
+      const res = await adminFetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update_language',
+          userId: captainId,
+          language: nextLang,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update captain language');
+      }
+      toast({
+        title: isArabic ? 'تم تحديث لغة الكابتن' : 'Language updated',
+        description: isArabic
+          ? `تم ضبط لغة الكابتن إلى ${nextLang === 'en' ? 'الإنجليزية 🇬🇧' : 'العربية 🇸🇦'}`
+          : `Captain language set to ${nextLang === 'en' ? 'English 🇬🇧' : 'Arabic 🇸🇦'}`,
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'تعذر تحديث لغة الكابتن' : 'Failed to update captain language',
+        description: err?.message || (isArabic ? 'حدث خطأ' : 'An error occurred'),
+      });
+      // Revert
+      setCaptains((prev) =>
+        prev.map((c) => (c.id === captainId ? { ...c, preferred_language: currentLang || 'ar' } : c))
+      );
     }
   };
 
@@ -632,114 +825,164 @@ export function DriversManagementTab() {
       </div>
 
       {/* 3. Search and Multi-filter Controls */}
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-[#0B0F19]/90 border border-white/10 p-3.5 rounded-2xl">
-        <div className={styles.searchContainer}>
-          <Search className={styles.searchIcon} />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('searchPlaceholder')}
-            className={styles.searchInput}
-          />
+      <div className="space-y-2.5">
+        <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-[#0B0F19]/90 border border-white/10 p-3.5 rounded-2xl">
+          <div className={styles.searchContainer}>
+            <Search className={styles.searchIcon} />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('searchPlaceholder')}
+              className={styles.searchInput}
+            />
+          </div>
+
+          {/* Filter Badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Status filter */}
+            <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
+              <span className="text-slate-400 px-2 font-bold">{t('filterStatus')}</span>
+              {[
+                { key: 'ALL', label: t('statusAll') },
+                { key: 'ACTIVE', label: t('statusActive') },
+                { key: 'IDLE', label: t('statusIdle') },
+                { key: 'BUSY', label: t('statusBusy') },
+                { key: 'SUSPENDED', label: t('statusSuspended') },
+                { key: 'BANNED', label: t('statusBanned') },
+              ].map((st) => (
+                <button
+                  key={st.key}
+                  type="button"
+                  onClick={() => setStatusFilter(st.key)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
+                    statusFilter === st.key
+                      ? "bg-[#14B8A6] text-[#0B0F19]"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Verification filter */}
+            <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
+              <span className="text-slate-400 px-2 font-bold">{t('filterVerification')}</span>
+              {[
+                { key: 'ALL', label: t('statusAll') },
+                { key: 'APPROVED', label: t('verApproved') },
+                { key: 'PENDING', label: t('verPending') },
+              ].map((ver) => (
+                <button
+                  key={ver.key}
+                  type="button"
+                  onClick={() => setVerificationFilter(ver.key)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
+                    verificationFilter === ver.key
+                      ? "bg-[#14B8A6] text-[#0B0F19]"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {ver.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Rank Tier filter */}
+            <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
+              <span className="text-slate-400 px-2 font-bold">{t('filterRank')}</span>
+              {[
+                { key: 'ALL', label: t('statusAll') },
+                { key: 'PLATINUM', label: t('rankPlatinum') },
+                { key: 'GOLD', label: t('rankGold') },
+                { key: 'BRONZE', label: t('rankBronze') },
+                { key: 'SILVER', label: t('rankSilver') },
+              ].map((rk) => (
+                <button
+                  key={rk.key}
+                  type="button"
+                  onClick={() => setRankFilter(rk.key)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
+                    rankFilter === rk.key
+                      ? "bg-[#14B8A6] text-[#0B0F19]"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {rk.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 5. Language Filter */}
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+              <Languages className="w-3.5 h-3.5 text-[#14B8A6] mx-1 shrink-0" />
+              {[
+                { key: 'ALL', label: isArabic ? 'كل اللغات' : 'All' },
+                { key: 'ar', label: '🇸🇦 العربية' },
+                { key: 'en', label: '🇬🇧 English' },
+              ].map((lf) => (
+                <button
+                  key={lf.key}
+                  type="button"
+                  onClick={() => setLanguageFilter(lf.key as 'ALL' | 'ar' | 'en')}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
+                    languageFilter === lf.key
+                      ? "bg-[#14B8A6] text-[#0B0F19]"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {lf.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Reset Filters button if any filter is active */}
+            {(statusFilter !== 'ALL' ||
+              verificationFilter !== 'ALL' ||
+              rankFilter !== 'ALL' ||
+              languageFilter !== 'ALL' ||
+              selectedCountry !== 'ALL' ||
+              selectedGovernorate !== 'ALL' ||
+              selectedDistrict !== 'ALL' ||
+              searchQuery.trim() !== '') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('ALL');
+                  setVerificationFilter('ALL');
+                  setRankFilter('ALL');
+                  setLanguageFilter('ALL');
+                  setSelectedCountry('ALL');
+                  setSelectedGovernorate('ALL');
+                  setSelectedDistrict('ALL');
+                  setSearchQuery('');
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition cursor-pointer"
+                title={t('resetFiltersTooltip')}
+              >
+                <RotateCcw className="w-3 h-3 text-[#14B8A6]" />
+                <span>{t('resetFilters')}</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Filter Badges */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Status filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">{t('filterStatus')}</span>
-            {[
-              { key: 'ALL', label: t('statusAll') },
-              { key: 'ACTIVE', label: t('statusActive') },
-              { key: 'IDLE', label: t('statusIdle') },
-              { key: 'BUSY', label: t('statusBusy') },
-              { key: 'SUSPENDED', label: t('statusSuspended') },
-              { key: 'BANNED', label: t('statusBanned') },
-            ].map((st) => (
-              <button
-                key={st.key}
-                type="button"
-                onClick={() => setStatusFilter(st.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  statusFilter === st.key
-                    ? "bg-[#14B8A6] text-[#0B0F19]"
-                    : "text-slate-400 hover:text-white"
-                )}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Verification filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">{t('filterVerification')}</span>
-            {[
-              { key: 'ALL', label: t('statusAll') },
-              { key: 'APPROVED', label: t('verApproved') },
-              { key: 'PENDING', label: t('verPending') },
-            ].map((ver) => (
-              <button
-                key={ver.key}
-                type="button"
-                onClick={() => setVerificationFilter(ver.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  verificationFilter === ver.key
-                    ? "bg-[#14B8A6] text-[#0B0F19]"
-                    : "text-slate-400 hover:text-white"
-                )}
-              >
-                {ver.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Rank Tier filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">{t('filterRank')}</span>
-            {[
-              { key: 'ALL', label: t('statusAll') },
-              { key: 'PLATINUM', label: t('rankPlatinum') },
-              { key: 'GOLD', label: t('rankGold') },
-              { key: 'SILVER', label: t('rankSilver') },
-              { key: 'BRONZE', label: t('rankBronze') },
-            ].map((rk) => (
-              <button
-                key={rk.key}
-                type="button"
-                onClick={() => setRankFilter(rk.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  rankFilter === rk.key
-                    ? "bg-[#14B8A6] text-[#0B0F19]"
-                    : "text-slate-400 hover:text-white"
-                )}
-              >
-                {rk.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Reset Filters button if any filter is active */}
-          {(statusFilter !== 'ALL' || verificationFilter !== 'ALL' || rankFilter !== 'ALL' || searchQuery.trim() !== '') && (
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('ALL');
-                setVerificationFilter('ALL');
-                setRankFilter('ALL');
-                setSearchQuery('');
-              }}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition"
-              title={t('resetFiltersTooltip')}
-            >
-              <RotateCcw className="w-3 h-3 text-[#14B8A6]" />
-              <span>{t('resetFilters')}</span>
-            </button>
-          )}
-        </div>
+        {/* Geographic Filtering Bar */}
+        <GeoFilterBar
+          geoLookup={geoLookup}
+          selectedCountry={selectedCountry}
+          selectedGovernorate={selectedGovernorate}
+          selectedDistrict={selectedDistrict}
+          onCountryChange={handleCountryChange}
+          onGovernorateChange={handleGovernorateChange}
+          onDistrictChange={handleDistrictChange}
+          onResetGeo={handleResetGeo}
+          isArabic={isArabic}
+        />
       </div>
 
       {/* Floating / Sticky Bulk Action Bar for Selected Captains */}
@@ -893,11 +1136,40 @@ export function DriversManagementTab() {
                                 <Badge variant="outline" className="font-mono text-[10px] font-bold bg-cyan-950/60 border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded-md">
                                   {captain.serial_id}
                                 </Badge>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleToggleCaptainLanguage(captain.id, captain.preferred_language);
+                                  }}
+                                  className="cursor-pointer transition-transform hover:scale-105 active:scale-95 inline-flex"
+                                  title={isArabic ? 'اضغط لتغيير لغة الكابتن (عربي / English)' : 'Click to toggle captain language (AR / EN)'}
+                                >
+                                  {(captain.preferred_language || 'ar').toLowerCase() === 'en' ? (
+                                    <Badge variant="outline" className="font-sans text-[9px] font-bold bg-blue-950/70 border-blue-500/40 text-blue-300 px-1.5 py-0 rounded flex items-center gap-1 hover:border-blue-400 hover:bg-blue-900/60 transition-colors">
+                                      <span>🇬🇧</span>
+                                      <span>EN</span>
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="font-sans text-[9px] font-bold bg-emerald-950/70 border-emerald-500/40 text-emerald-300 px-1.5 py-0 rounded flex items-center gap-1 hover:border-emerald-400 hover:bg-emerald-900/60 transition-colors">
+                                      <span>🇸🇦</span>
+                                      <span>AR</span>
+                                    </Badge>
+                                  )}
+                                </button>
                               </div>
                               <div className="flex items-center gap-1.5 text-slate-300 text-xs font-mono font-semibold" dir="ltr">
                                 <Phone className="h-3 w-3 text-[#14B8A6]" />
                                 <span>{captain.phone}</span>
                               </div>
+                              {(captain.governorate || captain.country_name) && (
+                                <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium pt-0.5">
+                                  <MapPin className="h-3 w-3 text-[#14B8A6] shrink-0" />
+                                  <span className="truncate max-w-[180px]" title={`${captain.country_name ? `${captain.country_name} • ` : ''}${captain.governorate}${captain.district ? ` - ${captain.district}` : ''}`}>
+                                    {captain.country_name ? `${captain.country_name} • ` : ''}{captain.governorate}{captain.district ? ` - ${captain.district}` : ''}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1221,7 +1493,7 @@ export function DriversManagementTab() {
                       action: 'update_verification',
                       userId: inspectCaptain.id,
                       verificationStatus: 'APPROVED',
-                    }, isArabic ? 'تم اعتماد وتوثيق الكابتن بنجاح' : 'Captain successfully verified and approved');
+                    }, isArabic ? 'تم اعتماد وتوثيق الكابتن المعلن بنجاح' : 'Captain successfully verified and approved');
                     if (ok) setInspectCaptain(null);
                   }}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-9 rounded-xl px-5 shadow-lg shadow-emerald-600/20"
@@ -1410,7 +1682,7 @@ export function DriversManagementTab() {
                         action: 'adjust_balance',
                         userId: topupCaptain.id,
                         amount: cashBalanceToAdd,
-                      }, isArabic ? `تم إيداع ${cashBalanceToAdd} ${capCurr} في محفظة الكابتن بنجاح.` : `Successfully deposited ${cashBalanceToAdd} ${capCurr} into captain wallet.`);
+                      }, isArabic ? `تم إيداع ${cashBalanceToAdd} ${capCurr} في محفظة الكابتن المعلن بنجاح.` : `Successfully deposited ${cashBalanceToAdd} ${capCurr} into captain wallet.`);
                       if (ok) setTopupCaptain(null);
                     }
                   }}
@@ -1478,7 +1750,7 @@ export function DriversManagementTab() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 block">{t('sovereignTier')}</label>
                 <div className="grid grid-cols-4 gap-1.5 text-xs font-mono">
-                  {['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].map((tier) => (
+                  {['PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].map((tier) => (
                     <button
                       key={tier}
                       type="button"
@@ -1536,7 +1808,7 @@ export function DriversManagementTab() {
                       await executeAdminAction({
                         action: 'force_clear_trip',
                         userId: securityCaptain.id,
-                      }, isArabic ? 'تم تحرير الكابتن وإعادته لوضع الجاهزية IDLE.' : 'Captain trip cleared, reverted to IDLE status.');
+                      }, isArabic ? 'تم تحرير الكابتن المعلن وإعادته لوضع الجاهزية IDLE.' : 'Captain trip cleared, reverted to IDLE status.');
                     }}
                     className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] h-8 rounded-xl font-bold cursor-pointer"
                   >
@@ -1565,7 +1837,7 @@ export function DriversManagementTab() {
                         action: 'update_status',
                         userId: securityCaptain.id,
                         status: targetStatus,
-                      }, isArabic ? `تم تحديث حالة الكابتن إلى ${targetStatus}` : `Captain status updated to ${targetStatus}`);
+                      }, isArabic ? `تم تحديث حالة الكابتن المعلن إلى ${targetStatus}` : `Captain status updated to ${targetStatus}`);
                     }
                     if (String(targetTier).toUpperCase() !== String(securityCaptain.tier).toUpperCase()) {
                       ok = await executeAdminAction({
@@ -1621,16 +1893,29 @@ export function DriversManagementTab() {
                         {messageCaptain.serial_id}
                       </Badge>
                     </div>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      {messageCaptain.phone} • {messageCaptain.governorate}
-                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {messageCaptain.phone} • {messageCaptain.governorate}
+                      </span>
+                      {(messageCaptain.preferred_language || 'ar').toLowerCase() === 'en' ? (
+                        <Badge variant="outline" className="font-sans text-[10px] font-bold bg-blue-950/70 border-blue-500/40 text-blue-300 px-1.5 py-0 rounded flex items-center gap-1">
+                          <span>🇬🇧</span>
+                          <span>{isArabic ? 'الإنجليزية' : 'English'}</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="font-sans text-[10px] font-bold bg-emerald-950/70 border-emerald-500/40 text-emerald-300 px-1.5 py-0 rounded flex items-center gap-1">
+                          <span>🇸🇦</span>
+                          <span>{isArabic ? 'العربية' : 'Arabic'}</span>
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Direct WhatsApp Action */}
                 {messageCaptain.phone && (
                   <a
-                    href={`https://wa.me/${messageCaptain.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(isArabic ? `مرحباً كابتن ${messageCaptain.full_name}، نتواصل معك من إدارة رادار الذكي.` : `Hello Captain ${messageCaptain.full_name}, contacting you from Smart Radar Administration.`)}`}
+                    href={`https://wa.me/${messageCaptain.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(isArabic ? `مرحباً كابتن معلن ${messageCaptain.full_name}، نتواصل معك من إدارة بينكم - bynkcom.` : `Hello Captain ${messageCaptain.full_name}, contacting you from bynkcom Administration.`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shrink-0 cursor-pointer"
@@ -1704,13 +1989,13 @@ export function DriversManagementTab() {
                     "يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب تعليق الحساب.",
                     "تمت مراجعة حسابك واعتماد بياناتك ووثائقك بنجاح.",
                     "تنبيه إداري: نرجو الالتزام بعدم إلغاء الرحلات بعد قبولها لضمان استقرار حسابك.",
-                    "شكر وتقدير من إدارة الرادار لأدائك المتميز والتزامك العالي.",
+                    "شكر وتقدير من إدارة بينكم لأدائك المتميز والتزامك العالي.",
                     "يرجى التأكد من تشغيل محدد الموقع (GPS) بدقة عالية أثناء فترات العمل."
                   ] : [
                     "Please renew driving license or vehicle documents to avoid account suspension.",
                     "Your account has been audited and verified successfully.",
                     "Administrative notice: Please avoid canceling accepted trips to preserve your account stability.",
-                    "Appreciation from Radar Administration for your exemplary service and commitment.",
+                    "Appreciation from byncom Administration for your exemplary service and commitment.",
                     "Please ensure GPS high-accuracy mode is enabled during active duty."
                   ]).map((tpl, idx) => (
                     <button
@@ -1727,14 +2012,60 @@ export function DriversManagementTab() {
 
               {/* Message Body */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">{t('msgContentLabel')}</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300">{t('msgContentLabel')}</label>
+                  <button
+                    type="button"
+                    disabled={isTranslatingDirect || !messageBody.trim()}
+                    onClick={handleTranslateDirect}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#14F5D5] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 border border-[#14B8A6]/30 px-2 py-0.5 rounded-lg transition-all cursor-pointer disabled:opacity-40"
+                    title={isArabic ? 'توليد الترجمة الإنجليزية تلقائياً' : 'Auto-generate English translation'}
+                  >
+                    {isTranslatingDirect ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Globe className="w-3 h-3" />
+                    )}
+                    <span>{isArabic ? 'ترجمة تلقائية للإنجليزية' : 'Auto-Translate to English'}</span>
+                  </button>
+                </div>
                 <textarea
                   value={messageBody}
                   onChange={(e) => setMessageBody(e.target.value)}
                   placeholder={t('msgBodyPlaceholder')}
-                  rows={4}
+                  rows={3}
                   className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-teal-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                   required
+                />
+              </div>
+
+              {/* English Version (Optional / Auto-generated) */}
+              <div className="space-y-2 p-3 rounded-2xl bg-white/[0.02] border border-white/10">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-[#14B8A6]" />
+                    <span>{isArabic ? 'النسخة الإنجليزية (تصل للمستخدم إذا كانت واجهته بالإنجليزية)' : 'English Version (Delivered if user UI is in English)'}</span>
+                  </label>
+                  {messageBodyEn && (
+                    <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                      {isArabic ? 'مترجم ✓' : 'Ready ✓'}
+                    </span>
+                  )}
+                </div>
+                <Input
+                  value={messageTitleEn}
+                  onChange={(e) => setMessageTitleEn(e.target.value)}
+                  placeholder="English Subject (Optional, auto-generated)"
+                  className="bg-black/60 border-white/10 text-white text-xs h-8 rounded-lg focus:border-teal-500 text-left font-sans"
+                  dir="ltr"
+                />
+                <textarea
+                  value={messageBodyEn}
+                  onChange={(e) => setMessageBodyEn(e.target.value)}
+                  placeholder="English message content (Auto-fills when clicking 'Auto-Translate to English')"
+                  rows={2}
+                  className="w-full bg-black/60 border border-white/10 text-white text-xs p-2.5 rounded-lg focus:border-teal-500 outline-none resize-none font-sans leading-relaxed text-left"
+                  dir="ltr"
                 />
               </div>
 
@@ -1760,12 +2091,16 @@ export function DriversManagementTab() {
                         userId: messageCaptain.id,
                         title: messageTitle.trim(),
                         message: messageBody.trim(),
+                        titleEn: messageTitleEn.trim(),
+                        messageEn: messageBodyEn.trim(),
                         type: messageType,
-                      }, isArabic ? 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.' : 'Notification sent to captain successfully.');
+                      }, isArabic ? 'تم إرسال الرسالة إلى الكابتن المعلن بنجاح عبر الإشعار اللحظي.' : 'Notification sent to captain successfully.');
 
                       if (ok) {
                         setMessageCaptain(null);
                         setMessageBody('');
+                        setMessageTitleEn('');
+                        setMessageBodyEn('');
                       }
                     } finally {
                       setSubmittingMessage(false);
@@ -2184,27 +2519,100 @@ export function DriversManagementTab() {
 
             {/* Message Body */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300">{t('msgContentLabel')}</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-300">{t('msgContentLabel')}</label>
+                <button
+                  type="button"
+                  disabled={isTranslatingBulk || !bulkMsgBody.trim()}
+                  onClick={handleTranslateBulk}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 px-2 py-0.5 rounded-lg transition-all cursor-pointer disabled:opacity-40"
+                  title={isArabic ? 'توليد الترجمة الإنجليزية تلقائياً' : 'Auto-generate English translation'}
+                >
+                  {isTranslatingBulk ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Globe className="w-3 h-3" />
+                  )}
+                  <span>{isArabic ? 'ترجمة تلقائية للإنجليزية' : 'Auto-Translate to English'}</span>
+                </button>
+              </div>
               <textarea
                 value={bulkMsgBody}
                 onChange={(e) => setBulkMsgBody(e.target.value)}
                 placeholder={t('msgBodyPlaceholder')}
-                rows={4}
+                rows={3}
                 className={cn("w-full bg-black/60 border border-white/10 text-white text-xs p-3 rounded-xl focus:border-indigo-500 outline-none resize-none font-sans leading-relaxed", isArabic ? "text-right" : "text-left")}
                 required
               />
             </div>
 
-            {/* Broadcast Summary */}
-            <div className="bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl text-xs text-slate-300 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-indigo-300">
-                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-                <span>{t('broadcastSummaryHeader')}</span>
+            {/* English Version (Optional / Auto-generated) */}
+            <div className="space-y-2 p-3 rounded-2xl bg-white/[0.02] border border-white/10">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>{isArabic ? 'النسخة الإنجليزية (تصل للمستخدم إذا كانت واجهته بالإنجليزية)' : 'English Version (Delivered if user UI is in English)'}</span>
+                </label>
+                {bulkMsgBodyEn && (
+                  <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                    {isArabic ? 'مترجم ✓' : 'Ready ✓'}
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-slate-300">
-                {t('broadcastSummaryText', { count: getTargetCount(bulkScope) })}
-              </p>
+              <Input
+                value={bulkMsgTitleEn}
+                onChange={(e) => setBulkMsgTitleEn(e.target.value)}
+                placeholder="English Broadcast Subject (Optional, auto-generated)"
+                className="bg-black/60 border-white/10 text-white text-xs h-8 rounded-lg focus:border-indigo-500 text-left font-sans"
+                dir="ltr"
+              />
+              <textarea
+                value={bulkMsgBodyEn}
+                onChange={(e) => setBulkMsgBodyEn(e.target.value)}
+                placeholder="English broadcast message (Auto-fills when clicking 'Auto-Translate to English')"
+                rows={2}
+                className="w-full bg-black/60 border border-white/10 text-white text-xs p-2.5 rounded-lg focus:border-indigo-500 outline-none resize-none font-sans leading-relaxed text-left"
+                dir="ltr"
+              />
             </div>
+
+            {/* Broadcast Summary */}
+            {(() => {
+              const targetList = bulkScope === 'all'
+                ? captains
+                : bulkScope === 'selected'
+                  ? captains.filter(c => selectedCaptainIds.has(c.id))
+                  : filteredCaptains;
+              const enCount = targetList.filter(c => (c.preferred_language || 'ar').toLowerCase() === 'en').length;
+              const arCount = targetList.length - enCount;
+
+              return (
+                <div className="bg-indigo-950/40 border border-indigo-500/30 p-3 rounded-2xl text-xs text-slate-300 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-indigo-300">
+                      <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                      <span>{t('broadcastSummaryHeader')}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                      <span className="bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 px-2 py-0.5 rounded-lg font-bold">
+                        🇸🇦 {arCount} {isArabic ? 'عربية' : 'AR'}
+                      </span>
+                      <span className="bg-blue-950/70 border border-blue-500/40 text-blue-300 px-2 py-0.5 rounded-lg font-bold">
+                        🇬🇧 {enCount} {isArabic ? 'إنجليزية' : 'EN'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    {t('broadcastSummaryText', { count: getTargetCount(bulkScope) })}
+                  </p>
+                  <p className="text-[10px] text-indigo-200/90 bg-indigo-900/30 p-2 rounded-xl border border-indigo-500/20 leading-relaxed">
+                    ℹ️ {isArabic
+                      ? 'يتم إرسال الإشعار لكل كابتن وفق لغته المفضلة تلقائياً (النص العربي للكباتن باللغة العربية، والنص الإنجليزي للكباتن باللغة الإنجليزية).'
+                      : 'Each captain will receive the broadcast message in their own preferred language automatically.'}
+                  </p>
+                </div>
+              );
+            })()}
 
             <DialogFooter className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
               <Button

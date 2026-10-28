@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useState, useEffect, type ReactNode } from 'react';
 import {
   Bell,
@@ -68,7 +69,9 @@ const styles = {
   roundAction: 'h-10 w-10 rounded-full hover:bg-black/20',
   srOnly: 'sr-only',
   requestRideWrapper: 'absolute left-1/2 -translate-x-1/2 flex items-center justify-center',
-  requestRideButton: 'h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-7 sm:px-9 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer',
+  requestRideButton: 'h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-5 sm:px-7 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer',
+  btnLogo: 'h-6 sm:h-7 w-auto object-contain shrink-0',
+  headerCenterLogo: 'h-8 sm:h-9 w-auto object-contain drop-shadow-[0_0_12px_rgba(20,184,166,0.35)]',
 } as const;
 
 const pulseMap = {
@@ -185,6 +188,25 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
   const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall(isCaptain ? 'captain' : 'rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash || '#' : '#'));
+
+  useEffect(() => {
+    const handleHash = () => setCurrentHash(window.location.hash || '#');
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  const isNotificationsActive = currentHash === '#notifications';
+
+  const handleToggleNotifications = () => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#notifications') {
+        window.location.hash = '#';
+      } else {
+        window.location.hash = '#notifications';
+      }
+    }
+  };
 
 
   useEffect(() => {
@@ -196,7 +218,27 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   return (
     <div className={styles.root}>
       <header className={cn(styles.primary, "relative")}>
-        {sidebar && user ? (
+        {user?.role === 'rider' ? (
+          <button
+            type="button"
+            onClick={handleToggleNotifications}
+            aria-label={isArabic ? 'الإشعارات' : 'Notifications'}
+            title={isArabic ? 'الإشعارات' : 'Notifications'}
+            className={cn(
+              "relative inline-flex items-center justify-center rounded-xl border h-9 w-9 sm:h-10 sm:w-10 transition cursor-pointer shrink-0",
+              isNotificationsActive
+                ? "border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5] shadow-[0_0_15px_rgba(20,245,213,0.25)]"
+                : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
+            )}
+          >
+            <Bell className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+            {hasUnread && (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+        ) : sidebar && user ? (
           <Sheet>
             <SheetTrigger asChild>
               <Button
@@ -226,7 +268,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
           </Sheet>
         ) : <div className={styles.spacer} />}
 
-        {user?.role === 'rider' && (
+        {user?.role === 'rider' ? (
           <div className={styles.requestRideWrapper}>
             <Button
               type="button"
@@ -243,12 +285,43 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
               }}
               className={styles.requestRideButton}
             >
-              <span>{isArabic ? 'اطلب رحلة' : 'Request Ride'}</span>
+              <Image
+                src="/icons/logo-header.png"
+                alt="Radar"
+                width={585}
+                height={152}
+                priority
+                className={styles.btnLogo}
+              />
+              <span>{isArabic ? 'ابحث واطلب' : 'Search & Request'}</span>
             </Button>
+          </div>
+        ) : (
+          <div className={styles.requestRideWrapper}>
+            <Image
+              src="/icons/logo-header.png"
+              alt="Radar"
+              width={585}
+              height={152}
+              priority
+              className={styles.headerCenterLogo}
+            />
           </div>
         )}
 
-        <div className={styles.spacer} />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={toggleLanguage}
+            className="h-8 gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 text-xs font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 transition-all cursor-pointer"
+            title={isArabic ? 'Switch to English' : 'التبديل إلى العربية'}
+          >
+            <Languages className="h-3.5 w-3.5" />
+            <span>{isArabic ? 'EN' : 'عربي'}</span>
+          </Button>
+        </div>
       </header>
       {user && isCaptain ? <DriverCabin /> : null}
 

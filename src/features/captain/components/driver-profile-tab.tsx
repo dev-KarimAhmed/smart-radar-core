@@ -54,10 +54,12 @@ function ReferralCardSkeleton() {
         <div className="h-6 w-20 rounded-full border border-teal-500/30 bg-teal-500/10" />
       </div>
       <div className="mb-3 h-3.5 w-5/6 rounded bg-slate-700/40" />
-      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/40 p-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 rounded-2xl border border-white/10 bg-black/40 p-2">
         <div className="mx-2 h-4 flex-1 rounded bg-white/5" />
-        <div className="h-8.5 w-24 rounded-xl border border-teal-500/30 bg-teal-500/15" />
-        <div className="h-8.5 w-8.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15" />
+        <div className="flex items-center gap-2">
+          <div className="h-8.5 w-24 rounded-xl border border-teal-500/30 bg-teal-500/15" />
+          <div className="h-8.5 w-8.5 rounded-xl border border-emerald-500/30 bg-emerald-500/15" />
+        </div>
       </div>
     </div>
   );
@@ -195,11 +197,11 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
   return (
     <section className={styles.style300_16}>
       <div className={styles.style430_61}>
-        <div className="space-y-5">
+        <div className="w-full min-w-0 space-y-5">
           <DriverReferralCard user={user} isArabic={language === 'ar'} />
           <DriverAccountPanel state={state} user={user} />
         </div>
-        <div className="space-y-5">
+        <div className="w-full min-w-0 space-y-5">
           <DriverVehiclePanel state={state} language={language} />
           <DriverTariffPanel state={state} />
         </div>

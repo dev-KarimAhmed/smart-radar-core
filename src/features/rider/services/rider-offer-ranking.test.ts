@@ -29,16 +29,16 @@ test('prioritizeRiderOffers: favorite captains float before non-favorites', () =
   assert.equal(sorted[0].id, 'offer-2', 'Favorite captain should float before higher-ranked non-favorite');
 });
 
-test('prioritizeRiderOffers: captain rank sorting (Platinum > Gold > Silver > Bronze)', () => {
+test('prioritizeRiderOffers: captain rank sorting (Platinum > Gold > Bronze > Silver)', () => {
   const offers = [
-    { id: 'bronze', driverRank: 'BRONZE', finalFare: 10 },
+    { id: 'silver', driverRank: 'SILVER', finalFare: 10 },
     { id: 'gold', driverRank: 'GOLD', finalFare: 10 },
     { id: 'platinum', driverRank: 'PLATINUM', finalFare: 10 },
-    { id: 'silver', driverRank: 'SILVER', finalFare: 10 },
+    { id: 'bronze', driverRank: 'BRONZE', finalFare: 10 },
   ];
 
   const sorted = prioritizeRiderOffers(offers, [], null);
-  assert.deepEqual(sorted.map((o) => o.id), ['platinum', 'gold', 'silver', 'bronze']);
+  assert.deepEqual(sorted.map((o) => o.id), ['platinum', 'gold', 'bronze', 'silver']);
 });
 
 test('prioritizeRiderOffers: higher rating score floats before lower rating when rank is equal', () => {

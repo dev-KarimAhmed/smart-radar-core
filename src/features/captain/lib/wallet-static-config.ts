@@ -85,8 +85,8 @@ export const DEFAULT_DISTRICT_PAYMENT_INFO: CaptainDistrictPaymentInfo = {
     orange_money: '0780000000',
     efawateercom: '9200000',
   },
-  delegateName: 'المندوب المالي العام',
-  delegatePhone: '962790000000',
+  delegateName: '',
+  delegatePhone: '',
 };
 
 export function getCaptainDistrictPaymentInfo(district?: string | null): CaptainDistrictPaymentInfo {

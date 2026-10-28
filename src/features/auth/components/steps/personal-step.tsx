@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  Check,
+  Clock,
   ChevronDown,
+  Copy,
   Eye,
   EyeOff,
   KeyRound,
@@ -11,6 +15,9 @@ import {
   Loader2,
   LockKeyhole,
   Mail,
+  MailCheck,
+  RefreshCw,
+  ArrowRight,
   MapPin,
   Phone,
   ShieldCheck,
@@ -49,7 +56,8 @@ const styles = {
   style345_7: "relative z-10 flex min-h-screen w-full items-center justify-center px-0 py-0 sm:px-6 sm:py-10",
   style346_8: "flex min-h-screen w-full max-w-md flex-col justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 shadow-2xl backdrop-blur-xl sm:my-12 sm:min-h-0 sm:rounded-3xl sm:p-8",
   style347_9: "mb-7 text-center",
-  style348_10: "mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14B8A6] shadow-[0_0_30px_rgba(20,184,166,0.18)]",
+  style348_10: "mx-auto mb-4 flex items-center justify-center",
+  brandLogoImg: "h-14 sm:h-16 w-auto object-contain drop-shadow-[0_4px_20px_rgba(20,184,166,0.35)] select-none",
   style349_11: "h-7 w-7",
   style351_12: "text-sm font-bold text-[#14B8A6]",
   style362_13: "mt-3 text-3xl font-black tracking-normal text-[#F8FAFC]",
@@ -205,8 +213,8 @@ type Lang = 'ar' | 'en';
 type AuthMode = 'register' | 'login';
 
 const roleLabels = {
-  rider: { ar: 'راكب', en: 'Rider' },
-  driver: { ar: 'سائق', en: 'Driver' },
+  rider: { ar: 'مستخدم', en: 'Rider' },
+  driver: { ar: 'كابتن معلن', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
   admin: { ar: 'مشرف', en: 'Admin' },
@@ -216,7 +224,7 @@ const copy = {
   ar: {
     languageButton: 'English',
     languageAria: 'تغيير اللغة إلى الإنجليزية',
-    brand: 'الرادار الذكي',
+    brand: 'بينكم - bynkcom',
     registerTitle: 'حساب جديد',
     loginTitle: 'تسجيل الدخول',
     registerSubtitle: 'اكتب بياناتك مرة واحدة، وبعدها تدخل رحلاتك بسرعة.',
@@ -225,7 +233,7 @@ const copy = {
     fullNamePlaceholder: 'اكتب اسمك',
     phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
-    email: 'البريد الإلكتروني (اختياري)',
+    email: 'البريد الإلكتروني (إلزامي لتفعيل الحساب)',
     emailPlaceholder: 'you@example.com',
     country: 'الدولة',
     countryPlaceholder: 'اختر الدولة',
@@ -262,12 +270,12 @@ const copy = {
     switchToLogin: 'سجل دخولك',
     switchToRegister: 'اعمل حساب جديد',
     back: 'العودة لاختيار نوع الحساب',
-    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
+    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'بينكم V5.5', 'تجربة موبايل سهلة'],
   },
   en: {
     languageButton: 'العربية',
     languageAria: 'Switch language to Arabic',
-    brand: 'Smart Radar',
+    brand: 'bynkcom',
     registerTitle: 'Create Account',
     loginTitle: 'Login',
     registerSubtitle: 'Add your details once, then reach your rides faster.',
@@ -276,7 +284,7 @@ const copy = {
     fullNamePlaceholder: 'Enter your name',
     phone: 'Phone Number',
     phonePlaceholder: '+962790000000',
-    email: 'Email (optional)',
+    email: 'Email (required for verification)',
     emailPlaceholder: 'you@example.com',
     country: 'Country',
     countryPlaceholder: 'Choose country',
@@ -313,13 +321,13 @@ const copy = {
     switchToLogin: 'Login',
     switchToRegister: 'Create an account',
     back: 'Back to account type',
-    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'Smart Radar V5.5', 'Easy mobile flow'],
+    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'bynkcom V5.5', 'Easy mobile flow'],
   },
 } as const;
 
 const authRoleLabels = {
-  rider: { ar: 'راكب', en: 'Rider' },
-  driver: { ar: 'سائق', en: 'Driver' },
+  rider: { ar: 'مستخدم', en: 'Rider' },
+  driver: { ar: 'كابتن معلن', en: 'Driver' },
   advertiser: { ar: 'معلن', en: 'Advertiser' },
   delegate: { ar: 'مندوب تسويق', en: 'Delegate' },
   admin: { ar: 'مشرف', en: 'Admin' },
@@ -329,7 +337,7 @@ const authCopy = {
   ar: {
     languageButton: 'English',
     languageAria: 'تغيير اللغة إلى الإنجليزية',
-    brand: 'الرادار الذكي',
+    brand: 'بينكم - bynkcom',
     registerTitle: 'حساب جديد',
     loginTitle: 'تسجيل الدخول',
     registerSubtitle: 'اكتب بياناتك مرة واحدة، وبعدها تدخل حسابك بسرعة.',
@@ -338,7 +346,7 @@ const authCopy = {
     fullNamePlaceholder: 'اكتب اسمك',
     phone: 'رقم الهاتف',
     phonePlaceholder: '+962790000000',
-    email: 'البريد الإلكتروني (اختياري)',
+    email: 'البريد الإلكتروني (إلزامي لتفعيل الحساب)',
     emailPlaceholder: 'you@example.com',
     country: 'الدولة',
     countryPlaceholder: 'اختر الدولة',
@@ -375,12 +383,12 @@ const authCopy = {
     switchToLogin: 'سجل دخولك',
     switchToRegister: 'اعمل حساب جديد',
     back: 'العودة لاختيار نوع الحساب',
-    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'رادار ذكي V5.5', 'تجربة موبايل سهلة'],
+    ticker: ['رحلات أقرب', 'دخول آمن', 'اختيار واضح', 'بينكم V5.5', 'تجربة موبايل سهلة'],
   },
   en: {
     languageButton: 'العربية',
     languageAria: 'Switch language to Arabic',
-    brand: 'Smart Radar',
+    brand: 'bynkcom',
     registerTitle: 'Create Account',
     loginTitle: 'Login',
     registerSubtitle: 'Add your details once, then reach your rides faster.',
@@ -389,7 +397,7 @@ const authCopy = {
     fullNamePlaceholder: 'Enter your name',
     phone: 'Phone Number',
     phonePlaceholder: '+962790000000',
-    email: 'Email (optional)',
+    email: 'Email (required for verification)',
     emailPlaceholder: 'you@example.com',
     country: 'Country',
     countryPlaceholder: 'Choose country',
@@ -426,7 +434,7 @@ const authCopy = {
     switchToLogin: 'Login',
     switchToRegister: 'Create an account',
     back: 'Back to account type',
-    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'Smart Radar V5.5', 'Easy mobile flow'],
+    ticker: ['Closer rides', 'Secure access', 'Clear choice', 'bynkcom V5.5', 'Easy mobile flow'],
   },
 } as const;
 
@@ -456,29 +464,64 @@ export function PersonalStep() {
     lang,
     setLang,
     createAccountPulseKey,
+    awaitingConfirmationEmail,
+    setAwaitingConfirmationEmail,
+    resendConfirmationEmail,
+    verifyEmailCode,
   } = useRegistration();
+  const [otpInput, setOtpInput] = useState('');
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
   const [resetEmail, setResetEmail] = useState('');
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
-  const [resetRecoveryUrl, setResetRecoveryUrl] = useState('');
   const [resetError, setResetError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
 
-  // Password recovery files a request and returns the direct recoveryUrl to bypass any email delay or rate limits.
+  React.useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCountdown]);
+
+  const handleVerifyOtp = async () => {
+    const cleanCode = otpInput.trim().replace(/\D/g, '');
+    if (cleanCode.length !== 6 || isVerifyingOtp) return;
+    setIsVerifyingOtp(true);
+    try {
+      await verifyEmailCode(cleanCode);
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (resendCountdown > 0 || isResending) return;
+    setIsResending(true);
+    try {
+      const success = await resendConfirmationEmail(awaitingConfirmationEmail || undefined);
+      if (success) {
+        setResendCountdown(60);
+      }
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // Password recovery dispatches a secure reset link directly to the user's private email inbox.
   const submitPasswordRecovery = async () => {
     setResetSubmitting(true);
     setResetError('');
     setResetMessage('');
-    setResetRecoveryUrl('');
     try {
       const res = await requestPasswordRecovery(resetPhone, resetEmail);
       setResetMessage(res.message);
-      if (res.recoveryUrl) {
-        setResetRecoveryUrl(res.recoveryUrl);
-      }
     } catch (error) {
       setResetError(error instanceof Error ? error.message : tAuto('key_ae0a0345'));
     } finally {
@@ -489,10 +532,15 @@ export function PersonalStep() {
   const onFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError('');
-    if (authMode === 'register' && personal.email && personal.email.trim().length > 0) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(personal.email.trim())) {
-        setEmailError(lang === 'ar' ? tAuto('key_445e75c0') : 'Invalid email format');
+    if (authMode === 'register') {
+      const cleanEmail = personal.email?.trim() || '';
+      if (!cleanEmail) {
+        setEmailError(lang === 'ar' ? 'البريد الإلكتروني مطلوب لتفعيل الحساب' : 'Email is required for verification');
+        return;
+      }
+      const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
+      if (!emailRegex.test(cleanEmail)) {
+        setEmailError(lang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Invalid email format');
         return;
       }
     }
@@ -520,7 +568,115 @@ export function PersonalStep() {
     navigateAuth(nextMode, role);
   };
 
-  return (
+  if (awaitingConfirmationEmail) {
+    return (
+      <main dir={isArabic ? 'rtl' : 'ltr'} className={styles.style329_1}>
+        <div className={styles.style331_2} />
+        <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl border border-emerald-500/30 bg-[#0D1424]/95 p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-center space-y-6 animate-in fade-in duration-200">
+            {/* Header Icon */}
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[#14B8A6]/25 to-teal-500/10 border border-[#14B8A6]/40 text-[#14F5D5] shadow-[0_0_30px_rgba(20,184,166,0.3)]">
+              <MailCheck className="h-10 w-10 animate-pulse drop-shadow-[0_0_10px_rgba(20,245,213,0.6)]" />
+            </div>
+
+            {/* Title & Description */}
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {isArabic ? 'تأكيد وتفعيل الحساب' : 'Account Activation'}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xs mx-auto">
+                {isArabic
+                  ? 'تم إرسال كود تفعيل مكون من 6 أرقام إلى بريدك الإلكتروني:'
+                  : 'A 6-digit activation code was sent to your email:'}
+              </p>
+            </div>
+
+            {/* Email Address Pill */}
+            <div className="inline-flex items-center gap-2 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 px-4 py-2 shadow-inner">
+              <Mail className="h-4 w-4 text-[#14F5D5]" />
+              <span className="font-mono font-bold text-xs sm:text-sm text-[#14F5D5] tracking-wide" dir="ltr">
+                {awaitingConfirmationEmail}
+              </span>
+            </div>
+
+            {/* 6-digit OTP Code Input Card */}
+            <div className="rounded-2xl border border-emerald-500/30 bg-black/50 p-4 space-y-3.5" dir={isArabic ? 'rtl' : 'ltr'}>
+              <label className="block text-xs font-bold text-slate-200 text-center">
+                {isArabic ? 'أدخل كود التفعيل المكون من 6 أرقام:' : 'Enter the 6-digit verification code:'}
+              </label>
+
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="• • • • • •"
+                dir="ltr"
+                className="w-full h-13 rounded-xl border-2 border-[#14B8A6]/50 bg-black/70 px-4 text-center font-mono text-2xl sm:text-3xl font-black text-[#14F5D5] tracking-[0.4em] focus:border-[#14F5D5] focus:outline-none focus:ring-2 focus:ring-[#14F5D5]/30 transition-all placeholder:tracking-normal placeholder:text-slate-600 shadow-inner"
+              />
+
+              <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-300">
+                <Clock className="h-3.5 w-3.5 shrink-0 text-amber-400 animate-pulse" />
+                <span>{isArabic ? 'الكود صالح لمدة 15 دقيقة فقط' : 'Code is valid for 15 minutes only'}</span>
+              </div>
+
+              {/* Verify Button */}
+              <button
+                type="button"
+                disabled={otpInput.trim().length !== 6 || isVerifyingOtp}
+                onClick={handleVerifyOtp}
+                className="w-full min-h-12 flex items-center justify-center gap-2 rounded-xl bg-[#14B8A6] hover:bg-[#2DD4BF] active:scale-95 text-[#0B0F19] font-black text-sm transition shadow-[0_10px_25px_rgba(20,184,166,0.35)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isVerifyingOtp ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-[#0B0F19]" />
+                ) : (
+                  <Check className="h-4 w-4 stroke-[3]" />
+                )}
+                <span>{isArabic ? 'تأكيد الكود وتفعيل الحساب 🚀' : 'Confirm & Activate 🚀'}</span>
+              </button>
+            </div>
+
+            {/* Actions: Resend & Login */}
+            <div className="space-y-3 pt-1">
+              <button
+                type="button"
+                disabled={isResending || resendCountdown > 0}
+                onClick={handleResendConfirmation}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-95 h-11 text-xs sm:text-sm font-bold text-slate-300 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isResending ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-[#14F5D5]" />
+                ) : (
+                  <RefreshCw className={cn("h-4 w-4 text-[#14F5D5]", resendCountdown > 0 ? "" : "hover:rotate-180 transition-transform")} />
+                )}
+                <span>
+                  {resendCountdown > 0
+                    ? (isArabic ? `إعادة الإرسال خلال (${resendCountdown} ثانية)` : `Resend in (${resendCountdown}s)`)
+                    : (isArabic ? 'إعادة إرسال كود التفعيل' : 'Resend activation code')}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAwaitingConfirmationEmail(null);
+                  goToMode('login');
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/5 bg-transparent hover:bg-white/5 active:scale-95 h-10 text-xs font-bold text-slate-400 hover:text-white transition-all cursor-pointer"
+              >
+                <ArrowRight className={cn("h-4 w-4", isArabic ? "" : "rotate-180")} />
+                <span>{isArabic ? 'الانتقال إلى تسجيل الدخول' : 'Go to login'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+    return (
     <main
       dir={isArabic ? 'rtl' : 'ltr'}
       className={styles.style329_1}
@@ -541,7 +697,14 @@ export function PersonalStep() {
         <div className={styles.style346_8}>
           <header className={styles.style347_9}>
             <div className={styles.style348_10}>
-              <ShieldCheck className={styles.style349_11} aria-hidden="true" />
+              <Image
+                src="/icons/logo-header.png"
+                alt="Radar"
+                width={585}
+                height={152}
+                priority
+                className={styles.brandLogoImg}
+              />
             </div>
             <p className={styles.style351_12}>
               {t.brand} · {roleName}
@@ -614,15 +777,36 @@ export function PersonalStep() {
                     placeholder={t.emailPlaceholder}
                     value={personal.email}
                     onChange={(event) => {
-                      setPersonal({ ...personal, email: event.target.value });
-                      if (emailError) setEmailError('');
+                      const val = event.target.value;
+                      setPersonal({ ...personal, email: val });
+                      const cleanVal = val.trim();
+                      if (!cleanVal) {
+                        setEmailError(isArabic ? 'البريد الإلكتروني مطلوب لتفعيل الحساب' : 'Email is required');
+                      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanVal)) {
+                        setEmailError(isArabic ? 'يرجى إدخال بريد إلكتروني صحيح (مثل: name@example.com)' : 'Please enter a valid email address');
+                      } else {
+                        setEmailError('');
+                      }
                     }}
-                    className={cn(styles.input, styles.style642_83, emailError && 'border-rose-500/50')}
+                    className={cn(
+                      styles.input,
+                      styles.style642_83,
+                      emailError
+                        ? '!border-rose-500/70 focus:!border-rose-500'
+                        : personal.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal.email.trim())
+                          ? '!border-emerald-500/70 focus:!border-emerald-500'
+                          : ''
+                    )}
                     autoComplete="email"
                   />
                   {emailError ? (
-                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px]')}>
+                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-rose-400 mt-1 font-bold text-[10px] animate-in fade-in duration-150')}>
                       {emailError}
+                    </p>
+                  ) : personal.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal.email.trim()) ? (
+                    <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, 'text-emerald-400 mt-1 font-bold text-[10px] animate-in fade-in duration-150 flex items-center gap-1')}>
+                      <Check className="h-3 w-3 inline stroke-[2.5]" />
+                      <span>{isArabic ? 'صيغة البريد الإلكتروني صحيحة' : 'Valid email format'}</span>
                     </p>
                   ) : null}
                 </Field>
@@ -901,7 +1085,7 @@ function Field({
 
 function buildSupportWhatsappUrl(phone: string, fallbackLabel = 'غير محدد') {
   const supportPhone = getSupportPhone();
-  const message = `طلب إعادة تعيين كلمة مرور الراكب. رقم الحساب: ${phone || fallbackLabel}`;
+  const message = `طلب إعادة تعيين كلمة مرور المستخدم. رقم الحساب: ${phone || fallbackLabel}`;
 
   if (!supportPhone) {
     return `https://wa.me/?text=${encodeURIComponent(message)}`;

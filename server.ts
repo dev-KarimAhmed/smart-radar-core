@@ -87,23 +87,32 @@ async function startServer() {
     next();
   };
 
-  // Parse JSON bodies ONLY for custom Express endpoints.
-  // Next.js App Router routes (/api/admin/users, /api/admin/list-admins, /api/maps/resolve, pages)
+  // Parse JSON bodies ONLY for custom Express endpoints that need req.body.
+  // Next.js App Router API routes (/api/auth/, /api/admin/, /api/captain/, /api/maps/, etc.)
   // handle their own body streaming natively via Web API Request.json().
   // If express.json() reads a request destined for Next.js, it consumes and locks the body stream,
   // causing Next.js App Router to throw: "TypeError: Response body object should not be disturbed or locked".
   const jsonParser = express.json();
-  const nextApiPrefixes = [
-    '/api/admin/',
-    '/api/maps/',
+  const expressRoutesWithBody = [
+    '/api/password-reset',
+    '/api/revive-driver',
+    '/api/redeem-voucher',
+    '/api/commute-driver',
+    '/api/kill-switch',
+    '/api/clear-delegate-dues',
+    '/api/verify-signatures',
+    '/api/reconcile-and-sign',
+    '/api/generate-magic-link',
+    '/api/verify-magic-link',
+    '/api/delegate-task-transition',
   ];
 
   app.use((req, res, next) => {
-    // If request is destined for Next.js App Router, bypass express.json()
-    if (nextApiPrefixes.some(p => req.path.startsWith(p)) || !req.path.startsWith('/api/')) {
-      return next();
+    // Only parse JSON for designated Express endpoints; all Next.js routes bypass
+    if (expressRoutesWithBody.some(r => req.path.startsWith(r))) {
+      return jsonParser(req, res, next);
     }
-    return jsonParser(req, res, next);
+    return next();
   });
 
   // Rate limited like every other state-mutating route: /password-reset/request is public

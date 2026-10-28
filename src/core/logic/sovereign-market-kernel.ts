@@ -41,7 +41,7 @@ export const RadarBundleIntegrityKernel = {
       return {
         status: 'REJECTED',
         alertType: 'BLOCK',
-        message: '🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً. الرادار الذكي لا يقبل نبضاً يهدد استدامة الميدان. يرجى مراجعة قيم التسعير.',
+        message: '🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً. بينكم - bynkcom لا يقبل نبضاً يهدد استدامة الميدان. يرجى مراجعة قيم التسعير.',
         isDumpingTriggered: true
       };
     }
@@ -67,7 +67,7 @@ export const RadarBundleIntegrityKernel = {
       return {
         status: 'REJECTED',
         alertType: 'BLOCK',
-        message: '🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً. الرادار الذكي لا يقبل نبضاً يهدد استدامة الميدان. يرجى مراجعة قيم التسعير.',
+        message: '🚫 خطأ في المداخلات: القيمة غير منطقية تشغيلياً. بينكم - bynkcom لا يقبل نبضاً يهدد استدامة الميدان. يرجى مراجعة قيم التسعير.',
         isDumpingTriggered: true
       };
     } 

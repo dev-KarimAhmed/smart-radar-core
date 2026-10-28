@@ -114,7 +114,7 @@ export const styles = {
   countdownLabelUrgent: "shrink-0 font-mono text-xs font-black tabular-nums text-rose-300 animate-pulse",
 } as const;
 
-export type CaptainRank = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+export type CaptainRank = 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
 
 export interface CaptainProfile {
   id: string;
@@ -188,22 +188,22 @@ export interface CaptainOfferCardCountdown {
 export const premiumFactors: Record<CaptainRank, number> = {
   PLATINUM: 0.2,
   GOLD: 0.15,
-  SILVER: 0.15,
   BRONZE: 0.15,
+  SILVER: 0.15,
 };
 
 export const rankLabels: Record<'ar' | 'en', Record<CaptainRank, string>> = {
   ar: {
     PLATINUM: 'بلاتيني',
     GOLD: 'ذهبي',
-    SILVER: 'فضي',
     BRONZE: 'برونزي',
+    SILVER: 'فضي',
   },
   en: {
     PLATINUM: 'Platinum',
     GOLD: 'Gold',
-    SILVER: 'Silver',
     BRONZE: 'Bronze',
+    SILVER: 'Silver',
   },
 };
 

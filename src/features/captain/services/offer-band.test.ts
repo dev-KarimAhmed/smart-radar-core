@@ -18,10 +18,10 @@ import {
  */
 const EXPECTED: Array<[CaptainTier, number, number]> = [
   // rank,      granted, warns above
+  ['PLATINUM', 0.2, 0.2],
+  ['GOLD', 0.1, 0.15],
   ['BRONZE', 0.05, 0.15],
   ['SILVER', 0.0, 0.15],
-  ['GOLD', 0.1, 0.15],
-  ['PLATINUM', 0.2, 0.2],
 ];
 
 test('each rank grants exactly its stated increase', () => {

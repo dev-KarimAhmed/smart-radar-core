@@ -55,11 +55,11 @@ export function Toaster() {
 
               <div className="flex-1 min-w-0">
                 <h4 className="font-bold text-sm sm:text-base text-white leading-snug tracking-tight">
-                  {toast.title}
+                  {(toast.title || '').replace(/<!--i18n:[\s\S]*?-->/g, '').trim()}
                 </h4>
                 {toast.description && (
                   <p className="text-xs sm:text-sm font-medium text-slate-200 mt-0.5 leading-relaxed">
-                    {toast.description}
+                    {(toast.description || '').replace(/<!--i18n:[\s\S]*?-->/g, '').trim()}
                   </p>
                 )}
               </div>

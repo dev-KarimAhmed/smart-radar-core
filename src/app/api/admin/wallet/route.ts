@@ -163,7 +163,7 @@ export async function GET(req: Request) {
 
             const govName = profile.governorate_id ? govMap.get(profile.governorate_id) : 'عمّان';
             const distName = profile.district_id ? distMap.get(profile.district_id) : 'المركز';
-            const captainName = profile.full_name || cap.nickname || 'كابتن غير مسمّى';
+            const captainName = profile.full_name || cap.nickname || 'كابتن معلن غير مسمّى';
             const captainSerial = profile.serial_id || `C-${String(tx.profile_id).slice(0, 4)}`;
 
             return {
@@ -318,7 +318,48 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'transactionId is required' }, { status: 400 });
         }
 
-        // Fetch transaction
+        const minsNum = creditType === 'MINUTES' ? (Number(minutesToGrant) || 0) : 0;
+
+        // Try atomic PostgreSQL RPC first
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('approve_wallet_receipt', {
+            p_transaction_id: transactionId,
+            p_credit_type: creditType,
+            p_minutes: minsNum,
+            p_admin_id: admin.id,
+            p_admin_note: adminNote || null,
+          });
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            const profileId = rpcRes.profile_id;
+            const grantedMinutes = rpcRes.minutes_credited || 0;
+            const creditedAmount = rpcRes.amount_credited || rpcRes.amount || 0;
+            const cur = rpcRes.currency || 'د.أ';
+
+            const notifMsg = creditType === 'MINUTES'
+              ? `تمت الموافقة على إيصالك وتغذية حسابك بـ ${grantedMinutes} دقيقة طيران رادار.`
+              : `تمت الموافقة على إيصالك وإيداع ${creditedAmount} ${cur} في رصيد محفظتك.`;
+
+            await sendCaptainNotification(
+              profileId,
+              `notif_rcpt_app_${transactionId}`,
+              'تم اعتماد إيصال الشحن بنجاح ⚡',
+              notifMsg,
+              'WALLET_CREDIT'
+            );
+
+            return NextResponse.json({
+              success: true,
+              message: creditType === 'MINUTES'
+                ? `تم اعتماد الإيصال وإضافة ${grantedMinutes} دقيقة رادار لحساب الكابتن المعلن بنجاح.`
+                : `تم اعتماد الإيصال وإيداع ${creditedAmount} ${cur} في رصيد الكابتن المعلن بنجاح.`,
+            });
+          }
+        } catch (rpcCatch) {
+          console.warn('[Admin Wallet API] approve_wallet_receipt RPC warning, falling back to direct update:', rpcCatch);
+        }
+
+        // Fallback: Fetch transaction
         const { data: tx, error: fetchTxErr } = await supabaseAdmin
           .from('wallet_transactions')
           .select('*')
@@ -372,7 +413,7 @@ export async function POST(req: Request) {
           }, { onConflict: 'profile_id' });
 
           // Update transaction
-          await supabaseAdmin.from('wallet_transactions').update({
+          const { error: updateTxErr } = await supabaseAdmin.from('wallet_transactions').update({
             status: 'COMPLETED',
             currency_ar: captainCurrency,
             currency_code: captainCurrencyCode,
@@ -389,6 +430,14 @@ export async function POST(req: Request) {
             updated_at: new Date().toISOString(),
           }).eq('id', transactionId);
 
+          if (updateTxErr) {
+            console.error('[Admin Wallet API] Failed to update transaction status:', updateTxErr);
+            return NextResponse.json({
+              success: false,
+              error: `فشل تحديث حالة الإيصال في قاعدة البيانات: ${updateTxErr.message}. يرجى تطبيق كود الـ SQL في Supabase أولاً.`,
+            }, { status: 400 });
+          }
+
           // Push in-app notification to captain
           await sendCaptainNotification(
             captainId,
@@ -400,7 +449,7 @@ export async function POST(req: Request) {
 
           return NextResponse.json({
             success: true,
-            message: `تم اعتماد الإيصال وإضافة ${grantedMins} دقيقة رادار لحساب الكابتن بنجاح.`,
+            message: `تم اعتماد الإيصال وإضافة ${grantedMins} دقيقة رادار لحساب الكابتن المعلن بنجاح.`,
           });
         } else {
           // Credit as CASH (dynamically in captain currency)
@@ -415,7 +464,7 @@ export async function POST(req: Request) {
           }, { onConflict: 'profile_id' });
 
           // Update transaction
-          await supabaseAdmin.from('wallet_transactions').update({
+          const { error: updateTxErr } = await supabaseAdmin.from('wallet_transactions').update({
             status: 'COMPLETED',
             currency_ar: captainCurrency,
             currency_code: captainCurrencyCode,
@@ -432,6 +481,14 @@ export async function POST(req: Request) {
             updated_at: new Date().toISOString(),
           }).eq('id', transactionId);
 
+          if (updateTxErr) {
+            console.error('[Admin Wallet API] Failed to update transaction status:', updateTxErr);
+            return NextResponse.json({
+              success: false,
+              error: `فشل تحديث حالة الإيصال في قاعدة البيانات: ${updateTxErr.message}. يرجى تطبيق كود الـ SQL في Supabase أولاً.`,
+            }, { status: 400 });
+          }
+
           // Push in-app notification to captain
           await sendCaptainNotification(
             captainId,
@@ -443,7 +500,7 @@ export async function POST(req: Request) {
 
           return NextResponse.json({
             success: true,
-            message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد الكابتن بنجاح.`,
+            message: `تم اعتماد الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في رصيد الكابتن المعلن بنجاح.`,
           });
         }
       }
@@ -457,6 +514,34 @@ export async function POST(req: Request) {
 
         const rejectReason = reason || 'الإيصال غير واضح أو لم يتم استلام التحويل';
 
+        // Try atomic PostgreSQL RPC first
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('reject_wallet_receipt', {
+            p_transaction_id: transactionId,
+            p_reason: rejectReason,
+            p_admin_id: admin.id,
+          });
+
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            const profileId = rpcRes.profile_id;
+            await sendCaptainNotification(
+              profileId,
+              `notif_rcpt_rej_${transactionId}`,
+              'تنبيه: تعذر قبول إيصال الشحن ⚠️',
+              `تم رفض الإيصال للأسباب التالية: ${rejectReason}. يرجى مراجعة الإدارة أو إعادة المحاولة بإيصال واضح.`,
+              'WALLET_ALERT'
+            );
+
+            return NextResponse.json({
+              success: true,
+              message: 'تم رفض الإيصال وإشعار الكابتن المعلن بالسبب.',
+            });
+          }
+        } catch (rpcCatch) {
+          console.warn('[Admin Wallet API] reject_wallet_receipt RPC warning, falling back to direct update:', rpcCatch);
+        }
+
+        // Fallback: Fetch transaction
         const { data: tx, error: fetchErr } = await supabaseAdmin
           .from('wallet_transactions')
           .select('*')
@@ -467,7 +552,7 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'لم يتم العثور على الإيصال' }, { status: 404 });
         }
 
-        await supabaseAdmin.from('wallet_transactions').update({
+        const { error: updateTxErr } = await supabaseAdmin.from('wallet_transactions').update({
           status: 'REJECTED',
           description_ar: `تم رفض الإيصال: ${rejectReason}`,
           metadata: {
@@ -478,6 +563,14 @@ export async function POST(req: Request) {
           },
           updated_at: new Date().toISOString(),
         }).eq('id', transactionId);
+
+        if (updateTxErr) {
+          console.error('[Admin Wallet API] Failed to reject receipt in database:', updateTxErr);
+          return NextResponse.json({
+            success: false,
+            error: `فشل رفض الإيصال في قاعدة البيانات: ${updateTxErr.message}. يرجى تطبيق كود الـ SQL في Supabase أولاً.`,
+          }, { status: 400 });
+        }
 
         // Notify captain
         await sendCaptainNotification(
@@ -490,7 +583,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: 'تم رفض الإيصال وإشعار الكابتن بالسبب.',
+          message: 'تم رفض الإيصال وإشعار الكابتن المعلن بالسبب.',
         });
       }
 
@@ -656,7 +749,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           success: true,
-          message: 'تم إرسال الرسالة إلى الكابتن بنجاح عبر الإشعار اللحظي.',
+          message: 'تم إرسال الرسالة إلى الكابتن المعلن بنجاح عبر الإشعار اللحظي.',
           notification: notif,
         });
       }

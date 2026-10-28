@@ -163,7 +163,7 @@ export function HistoryCaptainTrips({
                           <User className={styles.riderAvatarIcon} />
                         </div>
                         <div className={styles.riderNameContainer}>
-                          <span className={styles.riderLabel}>{isArabic ? 'الراكب' : 'Rider'}</span>
+                          <span className={styles.riderLabel}>{isArabic ? 'المستخدم' : 'Rider'}</span>
                           <h4 className={styles.riderName} dir="auto">{trip.riderName}</h4>
                         </div>
                       </div>
@@ -217,7 +217,7 @@ export function HistoryCaptainTrips({
                       <div className="pt-2 flex items-center justify-between border-t border-white/5 gap-2 flex-wrap">
                         <span className="text-[11px] font-medium text-slate-400">
                           {isBlocked
-                            ? (isArabic ? 'هذا الراكب محظور من رادارك' : 'Rider is blocked from radar')
+                            ? (isArabic ? 'هذا المستخدم محظور من رادارك' : 'Rider is blocked from radar')
                             : ''}
                         </span>
                         <div>
@@ -261,7 +261,7 @@ export function HistoryCaptainTrips({
                               className="h-8 px-3 rounded-xl border border-white/10 bg-white/5 hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5"
                             >
                               <Ban className="h-3.5 w-3.5" />
-                              <span>{isArabic ? 'حظر الراكب' : 'Block Rider'}</span>
+                              <span>{isArabic ? 'حظر المستخدم' : 'Block Rider'}</span>
                             </Button>
                           )}
                         </div>

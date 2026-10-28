@@ -8,8 +8,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'رادار - إشعار جديد';
     const options = {
       body: data.body || '',
-      icon: data.icon || '/icons/icon-192.png',
-      badge: data.badge || '/icons/icon-192.png',
+      icon: data.icon || '/icons/logo-header.png',
+      badge: data.badge || '/icons/logo-header.png',
       data: data.data || {},
       vibrate: [200, 100, 200],
       tag: data.tag || 'radar-notification',
@@ -21,7 +21,7 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
       self.registration.showNotification('رادار', {
         body: text,
-        icon: '/icons/icon-192.png',
+        icon: '/icons/logo-header.png',
       })
     );
   }

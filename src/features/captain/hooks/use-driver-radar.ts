@@ -13,6 +13,7 @@ import {
   isValidCoordinatePair,
   normalizeExternalMapUrl,
 } from '../services/ride-location';
+import { getCaptainCancelCooldown, type CaptainCancelCooldownState } from '../services/captain-cancel-cooldown';
 
 const DRIVER_H3_RESOLUTION = 9;
 const RADAR_RING_SIZE = 5;
@@ -45,6 +46,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   const countryConfig = useCountryConfig(user?.countryId);
   const [rawRequests, setRawRequests] = useState<Trip[]>([]);
   const [radarLockMessage, setRadarLockMessage] = useState('');
+  const [cancelCooldown, setCancelCooldown] = useState<CaptainCancelCooldownState>(() => getCaptainCancelCooldown());
   const previousRequestIdsRef = useRef<Set<string>>(new Set());
   const [profileAnchor, setProfileAnchor] = useState<RadarLocation | null>(null);
   const [rejectedTripIds, setRejectedTripIds] = useState<string[]>(() => {
@@ -56,6 +58,18 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return [];
     }
   });
+
+  useEffect(() => {
+    const handleCooldownChange = () => {
+      setCancelCooldown(getCaptainCancelCooldown());
+    };
+    window.addEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
+    window.addEventListener('storage', handleCooldownChange);
+    return () => {
+      window.removeEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
+      window.removeEventListener('storage', handleCooldownChange);
+    };
+  }, []);
 
   // Cached real GPS location from previous session in this device to eliminate fallback jumps
   const [cachedGpsLocation] = useState<RadarLocation | null>(() => {
@@ -137,28 +151,12 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       return false;
     }
 
-    const { data, error } = await supabase.rpc('get_captain_wallet_status');
-
-    if (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] wallet pre-check failed:', error);
-      setRadarLockMessage(tRef.current('radarWalletCheckFailed'));
+    const cooldown = getCaptainCancelCooldown();
+    if (cooldown.isActive) {
       return false;
     }
 
-    const walletStatus = data as { has_active_bundle?: boolean; balance?: number; paid_minutes_remaining?: number; bonus_minutes_remaining?: number } | null;
-    const totalMinutes = Number(walletStatus?.paid_minutes_remaining || 0) + Number(walletStatus?.bonus_minutes_remaining || 0);
-    const hasActiveBundle = walletStatus?.has_active_bundle === true || totalMinutes > 0;
-    const cashBalance = Number(walletStatus?.balance || 0);
-
-    if (!hasActiveBundle) {
-      setRadarLockMessage(
-        cashBalance > 0
-          ? tRef.current('radarAllocationRequired')
-          : tRef.current('radarBundleRequired')
-      );
-      return false;
-    }
-
+    // Captain is allowed to be available and use radar freely even with zero balance
     setRadarLockMessage('');
     return true;
   }, []); // ✅ stable — reads uid/status/t from refs
@@ -328,6 +326,13 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
           void fetchPendingRequests();
         },
       )
+      .on(
+        'broadcast',
+        { event: 'RIDE_REQUEST_CREATED' },
+        () => {
+          void fetchPendingRequests();
+        },
+      )
       .subscribe((status) => {
         if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
           console.warn('[Driver radar] realtime channel issue:', status);
@@ -339,14 +344,26 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     };
   }, [driverStatus, fetchPendingRequests, user?.uid]);
 
-  // Belt-and-suspenders poll every 10 seconds: cleans up expired requests and syncs radar
+  // Active radar polling every 2.5 seconds: fast, responsive updates for incoming requests
   useEffect(() => {
     if (driverStatus !== 'active') return;
     const intervalId = window.setInterval(() => {
       void fetchPendingRequests();
-    }, 10_000);
+    }, 2_500);
     return () => window.clearInterval(intervalId);
   }, [driverStatus, fetchPendingRequests]);
+
+  useEffect(() => {
+    if (!cancelCooldown.isActive) return;
+    const interval = window.setInterval(() => {
+      const nextState = getCaptainCancelCooldown();
+      setCancelCooldown(nextState);
+      if (!nextState.isActive) {
+        void fetchPendingRequests();
+      }
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [cancelCooldown.isActive, fetchPendingRequests]);
 
   const rejectRequest = useCallback((tripId: string) => {
     setRejectedTripIds((prev) => {
@@ -359,8 +376,12 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   }, []);
 
   const requests = useMemo(() => {
+    if (cancelCooldown.isActive) {
+      const live = getCaptainCancelCooldown();
+      if (live.isActive) return [];
+    }
     return rawRequests.filter((request) => !rejectedTripIds.includes(request.id));
-  }, [rawRequests, rejectedTripIds]);
+  }, [cancelCooldown.isActive, rawRequests, rejectedTripIds]);
 
   return {
     driverLocation: displayLocation,
@@ -371,6 +392,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     currentDistrict: user?.district || '',
     currentH3Cell,
     radarLockMessage,
+    cancelCooldown,
     isDisconnectionLockActive: false,
   };
 }
@@ -406,7 +428,7 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     stringify(row.destination_address_ar) ||
     stringify(row.destination_address_en) ||
     stringify(row.destination_address) ||
-    'وجهة الراكب';
+    'وجهة المستخدم';
 
   const fare = toNumber(row.server_fare) ?? toNumber(row.server_estimated_fare);
   const destinationLat = toNumber(row.destination_lat);
@@ -444,7 +466,7 @@ function mapRideRequestToTrip(row: RideRequestRow): Trip | null {
     riderFavoritedMe: row.rider_favorited_me === true,
     estimatedDistance: distanceKm ?? undefined,
     estimatedTime: storedDurationMinutes ?? (distanceKm ? Math.max(1, Math.round(distanceKm * 2.5)) : undefined),
-    seats: 1,
+    seats: toNumber(row.number_of_riders) ?? toNumber(row.seats) ?? toNumber((row as any).passengers) ?? 1,
     offerPrice: fare ?? undefined,
     createdAt: stringify(row.created_at),
     district: destinationLabel || originH3,

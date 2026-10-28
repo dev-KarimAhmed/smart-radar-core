@@ -27,6 +27,7 @@ export type CaptainDashboardAction =
   | { type: 'SELECT_REQUEST'; request: Trip }
   | { type: 'IGNORE_REQUEST'; requestId: string }
   | { type: 'OFFER_SUBMITTED'; requestId: string; offerId?: string | null }
+  | { type: 'OFFER_CANCELLED' }
   | { type: 'SERVER_ACCEPTED'; request: Trip; offerId?: string | null; step?: CaptainTripStep }
   | { type: 'CONFIRM_ARRIVAL' }
   | { type: 'START_TRIP' }
@@ -81,6 +82,14 @@ export function captainDashboardReducer(
         selectedRequest: null,
       };
 
+    case 'OFFER_CANCELLED':
+      return {
+        ...state,
+        tripStep: 'IDLE',
+        submittedOfferRequestId: null,
+        submittedOfferId: null,
+      };
+
     case 'SERVER_ACCEPTED': {
       const isSameTrip = state.selectedRequest?.id === action.request.id;
       return {
@@ -126,4 +135,14 @@ export function captainDashboardReducer(
     default:
       return state;
   }
+}
+
+export function getCaptainTripStepFromStatus(status: unknown): CaptainTripStep {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'ARRIVED') return 'ARRIVED';
+  if (normalized === 'TRIP_ACTIVE' || normalized === 'ACTIVE' || normalized === 'STARTED' || normalized === 'IN_PROGRESS') {
+    return 'STARTED';
+  }
+  if (normalized === 'COMPLETED') return 'COMPLETED';
+  return 'ACCEPTED';
 }

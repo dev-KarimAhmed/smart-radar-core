@@ -16,7 +16,7 @@ test('root shell renders without a route-loading placeholder', async ({ page }) 
 test('root preserves the original role-selection login UI', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'مرحبا بك في الرادار الذكي' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'مرحبا بك في بينكم - bynkcom' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'تسجيل الدخول' })).toBeVisible();
   await expect(page.getByText('رحلتك تبدأ من هنا')).toHaveCount(0);
 });

@@ -39,11 +39,17 @@ assert.equal(
   'تسجيل الهاتف غير مفعّل حالياً في إعدادات الخدمة.',
 );
 
+assert.equal(
+  mapSupabaseAuthError({ message: 'account_in_use:الحساب قيد الاستخدام حالياً على جهاز آخر.' }),
+  'الحساب قيد الاستخدام حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم الخروج من الجهاز الآخر.',
+);
+
 assert.deepEqual(
   buildRiderSignUpMetadata({
     phone: '+962 79 000 0000',
     password: '123456',
     fullName: ' Demo Rider ',
+    email: 'rider@example.com',
     countryId: 2,
     governorateId: 1,
     districtId: 9,
@@ -52,7 +58,10 @@ assert.deepEqual(
     role: 'RIDER',
     full_name: 'Demo Rider',
     phone: '+962790000000',
+    email: 'rider@example.com',
     country_id: 2,
+    currency_ar: 'ج.م',
+    currency_en: 'EGP',
     governorate_id: 1,
     district_id: 9,
   },
@@ -64,6 +73,7 @@ assert.throws(
       phone: '+962790000000',
       password: '123456',
       fullName: 'Demo Rider',
+      email: 'rider@example.com',
       countryId: 2,
       governorateId: 0,
       districtId: 9,
