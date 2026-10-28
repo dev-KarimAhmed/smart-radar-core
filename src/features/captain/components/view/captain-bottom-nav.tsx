@@ -12,9 +12,9 @@ const styles = {
   mobileBottomNavItem: 'flex h-14 w-20 flex-col items-center justify-center rounded-xl transition-all cursor-pointer',
   mobileBottomNavItemActive: 'bg-[#14B8A6]/15 text-[#14F5D5]',
   mobileBottomNavItemIdle: 'text-slate-400 hover:text-slate-200',
-  mobileBottomNavIcon: 'mb-1 h-5 w-5 transition-transform',
+  mobileBottomNavIcon: 'mb-1 h-5 w-5 transition-transform shrink-0',
   mobileBottomNavIconActive: 'scale-110',
-  mobileBottomNavLabel: 'text-[10px] font-bold tracking-tight',
+  mobileBottomNavLabel: 'text-[10px] font-bold tracking-tight text-center leading-tight w-full block',
 } as const;
 
 export interface CaptainBottomNavProps {

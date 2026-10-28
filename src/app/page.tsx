@@ -44,16 +44,6 @@ export default function HomePage() {
     user.role === 'delegate'
   );
 
-  // Eager prefetch target route to accelerate transition
-  useEffect(() => {
-    if (!user) return;
-    if (user.role === 'driver') router.prefetch('/captain');
-    else if (user.role === 'rider') router.prefetch('/rider');
-    else if (user.role === 'admin') router.prefetch('/admin');
-    else if (user.role === 'advertiser') router.prefetch('/advertiser/dashboard');
-    else if (user.role === 'delegate') router.prefetch('/delegate');
-  }, [router, user]);
-
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash || '';
@@ -82,14 +72,36 @@ export default function HomePage() {
         return;
       }
     }
+
     if (loading || !user || hasRedirectedRef.current) return;
     hasRedirectedRef.current = true;
     const search = typeof window !== 'undefined' ? window.location.search : '';
-    if (user.role === 'driver') router.replace(`/captain${search}`);
-    else if (user.role === 'rider') router.replace(`/rider${search}`);
-    else if (user.role === 'admin') router.replace(`/admin${search}`);
-    else if (user.role === 'advertiser') router.replace(`/advertiser/dashboard${search}`);
-    else if (user.role === 'delegate') router.replace(`/delegate${search}`);
+
+    const targetPath =
+      user.role === 'driver' ? `/captain${search}` :
+      user.role === 'rider' ? `/rider${search}` :
+      user.role === 'admin' ? `/admin${search}` :
+      user.role === 'advertiser' ? `/advertiser/dashboard${search}` :
+      user.role === 'delegate' ? `/delegate${search}` :
+      null;
+
+    if (targetPath) {
+      // 1. محاولة الانتقال السريع بـ SPA Router
+      try {
+        router.replace(targetPath);
+      } catch {}
+
+      // 2. صمام أمان حتمي فوري (Hard Redirect Fallback):
+      // إذا تأخر راوتر Next.js أو علق لأي سبب شبكي أو محلي لأكثر من 800ms،
+      // يُجبر المتصفح على الانتقال مباشرة وتجاوز شاشة التحميل دون الحاجة لـ Reload يدوي
+      const timer = window.setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname !== targetPath.split('?')[0]) {
+          window.location.replace(targetPath);
+        }
+      }, 800);
+
+      return () => window.clearTimeout(timer);
+    }
   }, [loading, router, user]);
 
   const loadingSubtitle = useMemo(() => {
@@ -104,11 +116,28 @@ export default function HomePage() {
   }, [isRedirecting, user?.role, tAuto]);
 
   if (loading || isRedirecting) {
+    const directTarget =
+      user?.role === 'driver' ? '/captain' :
+      user?.role === 'rider' ? '/rider' :
+      user?.role === 'admin' ? '/admin' :
+      user?.role === 'advertiser' ? '/advertiser/dashboard' :
+      user?.role === 'delegate' ? '/delegate' :
+      null;
+
     return (
       <div className={styles.loadingRoot}>
         <div className={styles.loadingIconFrame}><div className={styles.loadingIcon} /></div>
         <div className={styles.loadingTitle}>{tAuto('key_74d1106b')}</div>
         <div className={styles.loadingBody}>{loadingSubtitle}</div>
+        {directTarget && (
+          <button
+            type="button"
+            onClick={() => window.location.replace(directTarget)}
+            className="mt-4 text-[11px] font-bold text-[#14F5D5]/80 hover:text-[#14F5D5] underline underline-offset-4 cursor-pointer transition active:scale-95"
+          >
+            اضغط هنا للدخول المباشر
+          </button>
+        )}
       </div>
     );
   }

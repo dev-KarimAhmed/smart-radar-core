@@ -64,6 +64,7 @@ export function RiderShellFrame({
 }: RiderShellFrameProps) {
   const t = useTranslations('riderView');
   const isRideFlowActive = screen === 'DESTINATION_SELECTION' || screen === 'RECEIVING_OFFERS' || screen === 'TRIP_ACTIVE';
+  const isTripActive = screen === 'TRIP_ACTIVE';
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -98,20 +99,25 @@ export function RiderShellFrame({
         </div>
 
         <aside className={styles.aside} data-rider-panel="true">
-          <div className={styles.topBar}>
-            <div className={styles.topBarSpacer} />
+          <div className={cn(
+            styles.topBar,
+            isTripActive && "py-2 border-b-0 justify-center min-h-0"
+          )}>
+            {!isTripActive && <div className={styles.topBarSpacer} />}
             <div className={styles.dragHandle} />
-            <button
-              type="button"
-              onClick={onCloseOrCancel}
-              className={styles.closeButton}
-              aria-label={t('destination.closeDestination')}
-            >
-              <X className={styles.closeIcon} />
-            </button>
+            {!isTripActive && (
+              <button
+                type="button"
+                onClick={onCloseOrCancel}
+                className={styles.closeButton}
+                aria-label={t('destination.closeDestination')}
+              >
+                <X className={styles.closeIcon} />
+              </button>
+            )}
           </div>
 
-          <div className={styles.scrollArea}>
+          <div className={cn(styles.scrollArea, isTripActive && "pt-1 space-y-3 px-3.5 sm:px-4")}>
             {!isRideFlowActive ? (
               <div className={styles.panelHeaderCard}>
                 <div className={styles.panelHeaderRow}>

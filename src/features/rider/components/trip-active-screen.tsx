@@ -102,14 +102,14 @@ export function TripActiveScreen({
     : (isArabic ? 'وقت الوصول المتوقع' : t('trip.driverArrival'));
 
   return (
-    <div className={cn("space-y-3.5", isArabic ? "text-right" : "text-left")} dir={isArabic ? 'rtl' : 'ltr'}>
+    <div className={cn("space-y-3 sm:space-y-3.5", isArabic ? "text-right" : "text-left")} dir={isArabic ? 'rtl' : 'ltr'}>
       {/* 1. الترويسة الرئيسية: بيانات السائق والتايمر الواضح */}
-      <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-4 shadow-xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-3.5 sm:p-4 shadow-xl shadow-black/40">
         <div className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
 
         <div className="flex items-center justify-between gap-3">
           {/* بيانات السائق وحالة المسار */}
-          <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
             {/* مؤشر الحالة الفعلي (بدون عبارة الرحلة بدأت) */}
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2.5 py-0.5 shadow-sm">
               <span className="relative flex h-2 w-2">
@@ -138,9 +138,9 @@ export function TripActiveScreen({
           </div>
 
           {/* التايمر الرقمي الواضح جداً */}
-          <div className="shrink-0 flex flex-col items-center justify-center rounded-2xl border-2 border-[#14B8A6]/40 bg-[#040814] px-4 py-2.5 text-center min-w-[115px] shadow-lg shadow-[#14B8A6]/10">
+          <div className="shrink-0 flex flex-col items-center justify-center rounded-2xl border-2 border-[#14B8A6]/40 bg-[#040814] px-3.5 py-2 sm:px-4 sm:py-2.5 text-center min-w-[110px] shadow-lg shadow-[#14B8A6]/10">
             <div className="flex items-center gap-1 text-[#14F5D5] mb-0.5">
-              <Clock className="h-4 w-4 animate-pulse text-[#14F5D5]" />
+              <Clock className="h-3.5 w-3.5 animate-pulse text-[#14F5D5]" />
               <span className="text-[10px] font-black text-slate-300 whitespace-nowrap">
                 {timerLabel}
               </span>
