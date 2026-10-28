@@ -232,8 +232,18 @@ export async function updateCaptainAd(
     });
 
     if (res.ok) {
+      const data = await res.json();
+      const finalImageUrl = data?.imageUrl || updates.imageUrl;
       const current = getCaptainAds(captainId);
-      const updated = current.map((a) => (a.id === adId ? { ...a, ...updates } : a));
+      const updated = current.map((a) =>
+        a.id === adId || (updates.seatNumber && a.seatNumber === updates.seatNumber)
+          ? {
+              ...a,
+              ...updates,
+              imageUrl: finalImageUrl ? normalizeCaptainAdImageUrl(finalImageUrl) : a.imageUrl,
+            }
+          : a
+      );
       sessionStorage.setItem(getCacheKey(captainId), JSON.stringify(updated));
       notifyAdsUpdated(captainId);
       return true;

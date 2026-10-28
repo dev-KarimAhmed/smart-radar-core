@@ -285,14 +285,6 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
               }}
               className={styles.requestRideButton}
             >
-              <Image
-                src="/icons/logo-header.png"
-                alt="Radar"
-                width={585}
-                height={152}
-                priority
-                className={styles.btnLogo}
-              />
               <span>{isArabic ? 'ابحث واطلب' : 'Search & Request'}</span>
             </Button>
           </div>

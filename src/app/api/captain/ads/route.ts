@@ -36,6 +36,78 @@ async function resolveAdImageUrl(url: string): Promise<string> {
   return url;
 }
 
+async function uploadAdImageIfDataUrl(
+  captainId: string,
+  seatNumber: number | string,
+  imageUrl: string
+): Promise<string> {
+  if (typeof imageUrl === 'string' && imageUrl.startsWith('data:image/')) {
+    try {
+      const matches = imageUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+      if (matches) {
+        const contentType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const ext = contentType.split('/')[1] || 'png';
+        const cleanFolder = captainId.replace(/[^a-zA-Z0-9_-]/g, '_') || 'captain';
+        const filePath = `${cleanFolder}/seat_${seatNumber}_${Date.now()}.${ext}`;
+
+        let uploadSuccess = false;
+
+        // أولاً: محاولة الرفع إلى سلة إعلانات الكباتن العامة captain-ads
+        try {
+          const { error: uploadAdsErr } = await supabaseAdmin.storage
+            .from('captain-ads')
+            .upload(filePath, buffer, {
+              contentType,
+              upsert: true,
+            });
+
+          if (!uploadAdsErr) {
+            const { data: publicUrlData } = supabaseAdmin.storage
+              .from('captain-ads')
+              .getPublicUrl(filePath);
+
+            if (publicUrlData?.publicUrl) {
+              return publicUrlData.publicUrl;
+            }
+          }
+        } catch (adsErr) {
+          console.warn('[Captain Ads API] Upload to captain-ads failed:', adsErr);
+        }
+
+        // ثانياً: بديل مساند في حال عدم جاهزية سلة captain-ads - الرفع إلى captain-documents
+        try {
+          const { error: uploadDocsErr } = await supabaseAdmin.storage
+            .from('captain-documents')
+            .upload(filePath, buffer, {
+              contentType,
+              upsert: true,
+            });
+
+          if (!uploadDocsErr) {
+            const { data: signData } = await supabaseAdmin.storage
+              .from('captain-documents')
+              .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+
+            if (signData?.signedUrl) {
+              return signData.signedUrl;
+            } else {
+              return `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(filePath)}`;
+            }
+          }
+        } catch (docsErr) {
+          console.warn('[Captain Ads API] Upload to captain-documents failed:', docsErr);
+        }
+      }
+    } catch (storageErr) {
+      console.warn('[Captain Ads API] Storage upload fallback to direct URL:', storageErr);
+    }
+  }
+
+  return imageUrl;
+}
+
 /**
  * جلب جميع إعلانات الكابتن من الباك إند
  * يمكن لأي راكب يقبل عرض الكابتن استدعاء هذا الرابط لجلب إعلاناته
@@ -128,80 +200,7 @@ export async function POST(req: Request) {
     const nowIso = new Date().toISOString();
     const nowMs = Date.now();
 
-    let uploadedImageUrl = imageUrl;
-
-    // إذا كانت الصورة Data URL كبيرة وكان UUID متاحاً، يتم رفعها لسلة التخزين المناسبة
-    if (typeof imageUrl === 'string' && imageUrl.startsWith('data:image/') && isUuid(captainId)) {
-      try {
-        const matches = imageUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-        if (matches) {
-          const contentType = matches[1];
-          const base64Data = matches[2];
-          const buffer = Buffer.from(base64Data, 'base64');
-          const ext = contentType.split('/')[1] || 'png';
-          const filePath = `${captainId}/seat_${seatNumber}_${Date.now()}.${ext}`;
-
-          let uploadSuccess = false;
-
-          // أولاً: محاولة الرفع إلى سلة إعلانات الكباتن العامة captain-ads
-          try {
-            const { error: uploadAdsErr } = await supabaseAdmin.storage
-              .from('captain-ads')
-              .upload(filePath, buffer, {
-                contentType,
-                upsert: true,
-              });
-
-            if (!uploadAdsErr) {
-              const { data: publicUrlData } = supabaseAdmin.storage
-                .from('captain-ads')
-                .getPublicUrl(filePath);
-
-              if (publicUrlData?.publicUrl) {
-                uploadedImageUrl = publicUrlData.publicUrl;
-                uploadSuccess = true;
-              }
-            }
-          } catch (adsErr) {
-            console.warn('[Captain Ads API] Upload to captain-ads failed:', adsErr);
-          }
-
-          // ثانياً: بديل مساند في حال عدم جاهزية سلة captain-ads - الرفع إلى captain-documents برابط موقع أو بروكسي
-          if (!uploadSuccess) {
-            try {
-              const { error: uploadDocsErr } = await supabaseAdmin.storage
-                .from('captain-documents')
-                .upload(filePath, buffer, {
-                  contentType,
-                  upsert: true,
-                });
-
-              if (!uploadDocsErr) {
-                const { data: signData } = await supabaseAdmin.storage
-                  .from('captain-documents')
-                  .createSignedUrl(filePath, 60 * 60 * 24 * 365);
-
-                if (signData?.signedUrl) {
-                  uploadedImageUrl = signData.signedUrl;
-                  uploadSuccess = true;
-                } else {
-                  uploadedImageUrl = `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(filePath)}`;
-                  uploadSuccess = true;
-                }
-              }
-            } catch (docsErr) {
-              console.warn('[Captain Ads API] Upload to captain-documents failed:', docsErr);
-            }
-          }
-
-          if (!uploadSuccess) {
-            console.warn('[Captain Ads API] Storage upload fallback to direct URL (Base64)');
-          }
-        }
-      } catch (storageErr) {
-        console.warn('[Captain Ads API] Storage upload fallback to direct URL:', storageErr);
-      }
-    }
+    const uploadedImageUrl = await uploadAdImageIfDataUrl(captainId, seatNumber, imageUrl);
 
     // 1. محاولة الإدخال في Supabase
     let savedRow: any = null;
@@ -279,18 +278,52 @@ export async function PUT(req: Request) {
     if (caption !== undefined) {
       updates.caption = caption ? String(caption).trim().slice(0, CAPTAIN_ADS_CONFIG.MAX_CAPTION_LENGTH) : null;
     }
-    if (imageUrl) updates.image_url = imageUrl;
+
+    let uploadedImageUrl = imageUrl;
+    if (imageUrl) {
+      uploadedImageUrl = await uploadAdImageIfDataUrl(captainId, seatNumber || 1, imageUrl);
+      updates.image_url = uploadedImageUrl;
+    }
+
     if (status) updates.status = status;
     if (seatNumber) updates.seat_number = Number(seatNumber);
 
     try {
-      let query = supabaseAdmin.from('captain_ads').update(updates);
+      let updatedInDb = false;
       if (adId && isUuid(adId)) {
-        query = query.eq('id', adId);
-      } else if (seatNumber) {
-        query = query.eq('captain_id', captainId).eq('seat_number', Number(seatNumber));
+        const { data, error } = await supabaseAdmin
+          .from('captain_ads')
+          .update(updates)
+          .eq('id', adId)
+          .select();
+        if (!error && data && data.length > 0) {
+          updatedInDb = true;
+        }
       }
-      await query;
+
+      if (!updatedInDb && seatNumber) {
+        // تحديث برقم المقعد ومعرف الكابتن
+        const { data, error } = await supabaseAdmin
+          .from('captain_ads')
+          .update(updates)
+          .eq('captain_id', captainId)
+          .eq('seat_number', Number(seatNumber))
+          .select();
+
+        if (!error && data && data.length > 0) {
+          updatedInDb = true;
+        } else {
+          // محاولة Upsert في حال لم يكن السجل موجوداً مسبقاً
+          await supabaseAdmin.from('captain_ads').upsert(
+            {
+              captain_id: captainId,
+              seat_number: Number(seatNumber),
+              ...updates,
+            },
+            { onConflict: 'captain_id,seat_number' }
+          );
+        }
+      }
     } catch (err) {
       console.warn('[Captain Ads API] Supabase update fallback:', err);
     }
@@ -301,8 +334,10 @@ export async function PUT(req: Request) {
       if (ad.id === adId || (seatNumber && ad.seatNumber === Number(seatNumber))) {
         return {
           ...ad,
-          ...updates,
+          imageUrl: uploadedImageUrl || ad.imageUrl,
           caption: updates.caption !== undefined ? (updates.caption || undefined) : ad.caption,
+          status: updates.status || ad.status,
+          seatNumber: updates.seat_number ? Number(updates.seat_number) : ad.seatNumber,
           updatedAt: Date.now(),
         };
       }
@@ -310,7 +345,7 @@ export async function PUT(req: Request) {
     });
     inMemoryFallbackStore.set(captainId, updatedList);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, imageUrl: uploadedImageUrl });
   } catch (error: any) {
     console.error('[Captain Ads API PUT Error]:', error);
     return NextResponse.json(

@@ -194,50 +194,64 @@ export function usePricePerKmSetup(
       employmentType = currentName && currentName !== 'مستقل' ? currentName : 'مكتب تاكسي';
     }
 
-    const { error } = await supabase
-      .from('captain_profiles')
-      .update({
-        base_fare: value.baseFare,
-        price_per_km: value.pricePerKm,
-        price_per_min: value.pricePerMin,
-        included_km: value.includedKm,
-        pricing_mode: mode,
-        affiliation_type: affiliationType,
-        employment_type: employmentType,
-        vehicle_type: vehicleType,
-      })
-      .eq('id', user.uid);
+    let updateError: any = null;
+    try {
+      const updatePromise = supabase
+        .from('captain_profiles')
+        .update({
+          base_fare: value.baseFare,
+          price_per_km: value.pricePerKm,
+          price_per_min: value.pricePerMin,
+          included_km: value.includedKm,
+          pricing_mode: mode,
+          affiliation_type: affiliationType,
+          employment_type: employmentType,
+          vehicle_type: vehicleType,
+        })
+        .eq('id', user.uid);
 
-    if (error) {
-      const minBaseFare = getRejectedBaseFareFloor(error);
+      const timeoutPromise = new Promise<{ error: any }>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 4500)
+      );
+
+      const res: any = await Promise.race([updatePromise, timeoutPromise]);
+      updateError = res?.error || null;
+    } catch (err) {
+      updateError = err;
+    }
+
+    if (updateError) {
+      const minBaseFare = getRejectedBaseFareFloor(updateError);
       if (minBaseFare !== null) {
         setTariff((previous) => ({ ...previous, minBaseFare }));
         return { saved: false, reason: 'base_fare_below_market_minimum', minBaseFare };
       }
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff save]', error);
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff save]', updateError);
       return { saved: false, reason: 'unknown' };
     }
 
-    // Sync with Supabase Auth user metadata so user context in frontend immediately reflects the new account type
-    try {
-      await supabase.auth.updateUser({
-        data: {
-          subRole,
-          affiliation: {
-            ...currentAffiliation,
-            type: affiliationType,
-            companyName: affiliationType === 'independent' ? '' : employmentType,
-            name: affiliationType === 'independent' ? 'مستقل' : employmentType,
+    // Sync with Supabase Auth user metadata in background (non-blocking so modal confirms instantly)
+    void (async () => {
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            subRole,
+            affiliation: {
+              ...currentAffiliation,
+              type: affiliationType,
+              companyName: affiliationType === 'independent' ? '' : employmentType,
+              name: affiliationType === 'independent' ? 'مستقل' : employmentType,
+            },
+            vehicle: {
+              ...((user as any)?.vehicle || {}),
+              type: vehicleType,
+            },
           },
-          vehicle: {
-            ...((user as any)?.vehicle || {}),
-            type: vehicleType,
-          },
-        },
-      });
-    } catch (authErr) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff sync auth metadata]', authErr);
-    }
+        });
+      } catch (authErr) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff sync auth metadata]', authErr);
+      }
+    })();
 
     setTariff((previous) => ({
       ...previous,

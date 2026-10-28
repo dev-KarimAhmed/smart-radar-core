@@ -30,7 +30,7 @@ import {
 
 const styles = {
   container: "relative w-full overflow-hidden rounded-3xl border border-[#00ffcc]/30 bg-gradient-to-b from-[#091224] via-[#050B17] to-[#02060F] p-4 sm:p-5 shadow-2xl shadow-black/50 select-none",
-  topHeaderRow: "flex items-center justify-between border-b border-white/10 pb-3 mb-3 gap-2",
+  topHeaderRow: "flex items-center justify-between border-b border-white/10 pb-2.5 mb-2.5 gap-2",
   titleBox: "flex items-center gap-2",
   titleIconBox: "flex h-7 w-7 items-center justify-center rounded-lg border border-[#00ffcc]/40 bg-[#00ffcc]/15 text-[#00ffcc] shadow-[0_0_10px_rgba(0,255,204,0.3)]",
   titleIcon: "h-4 w-4",
@@ -50,12 +50,11 @@ const styles = {
   storyProgressBar: "h-full bg-gradient-to-r from-teal-400 to-[#00ffcc] rounded-full",
   storyProgressFilled: "h-full w-full bg-[#00ffcc] rounded-full",
   storyProgressUnfilled: "h-full w-0 bg-transparent",
-  mainAdCard: "w-full max-w-md mx-auto rounded-2xl border border-[#00ffcc]/35 bg-[#081020] p-4 shadow-xl flex flex-col justify-between transition-all duration-300",
+  mainAdCard: "w-full max-w-lg mx-auto rounded-2xl border border-[#00ffcc]/35 bg-[#081020] p-4 sm:p-5 shadow-xl flex flex-col justify-between min-h-[320px] transition-all duration-300",
   seatBadgeRow: "flex items-center justify-between w-full mb-2.5",
   seatBadge: "font-mono text-[10px] font-black text-[#00ffcc] bg-[#00ffcc]/10 border border-[#00ffcc]/25 rounded-md px-2 py-0.5",
-  counterBadge: "font-mono text-[10px] text-slate-400 bg-white/5 border border-white/10 rounded-md px-2 py-0.5",
-  imageWrapper: "relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-black/80 mb-3 cursor-pointer group shadow-md",
-  adImage: "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105",
+  imageWrapper: "relative w-full aspect-[4/3] sm:aspect-[16/10] rounded-xl overflow-hidden border border-white/10 bg-black/60 flex items-center justify-center cursor-pointer group shadow-md my-auto",
+  adImage: "h-full w-full object-contain object-center transition-transform duration-500 group-hover:scale-105",
   navPrevBtn: "flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 hover:bg-[#00ffcc]/30 hover:border-[#00ffcc] text-white backdrop-blur-md shadow-md transition active:scale-90 cursor-pointer",
   navNextBtn: "flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 hover:bg-[#00ffcc]/30 hover:border-[#00ffcc] text-white backdrop-blur-md shadow-md transition active:scale-90 cursor-pointer",
   navIcon: "h-4 w-4",
@@ -65,13 +64,13 @@ const styles = {
   captionText: "text-xs sm:text-sm font-semibold text-slate-200 leading-relaxed",
   seeMoreBtn: "inline-block text-[11px] font-black text-[#00ffcc] hover:text-[#00ffcc]/80 underline underline-offset-2 cursor-pointer transition select-none self-start",
   seeLessBtn: "inline-block text-[11px] font-black text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer transition select-none self-start",
-  riverViewport: "captain-river-viewport-mask relative w-full overflow-hidden py-1",
-  riverTrackAnimated: "captain-river-stream-track flex flex-nowrap min-w-max gap-2.5 sm:gap-3 py-1",
-  cardContainerRiver: "w-[240px] sm:w-[260px] shrink-0 rounded-2xl border border-white/10 hover:border-[#00ffcc]/60 bg-[#081020]/90 p-3 shadow-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,204,0.2)] flex flex-col justify-between",
+  riverViewport: "captain-river-viewport-mask relative w-full overflow-hidden py-2",
+  riverTrackAnimated: "captain-river-stream-track flex flex-nowrap min-w-max gap-3 sm:gap-4 py-1",
+  cardContainerRiver: "w-[290px] sm:w-[330px] shrink-0 rounded-2xl border border-white/10 hover:border-[#00ffcc]/60 bg-[#081020]/90 p-3.5 sm:p-4 shadow-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,204,0.2)] flex flex-col justify-between items-center min-h-[300px] sm:min-h-[330px]",
   activeDot: "flex h-2 w-2 relative",
   activeDotPing: "animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ffcc] opacity-75",
   activeDotCore: "relative inline-flex rounded-full h-2 w-2 bg-[#00ffcc]",
-  imageClickArea: "h-full w-full",
+  imageClickArea: "h-full w-full flex items-center justify-center",
   lightboxOverlay: "fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-in fade-in duration-200",
   lightboxContent: "relative max-h-[90vh] w-full max-w-lg overflow-hidden rounded-3xl border border-[#00ffcc]/40 bg-[#070D19] shadow-2xl text-right",
   lightboxHeader: "flex items-center justify-between border-b border-white/10 px-5 py-3.5 bg-black/40",
@@ -583,14 +582,14 @@ export function CaptainTripAdsViewer({ captainId, isArabic = true }: CaptainTrip
 
               return (
                 <div key={uniqueKey} className={styles.cardContainerRiver} dir={isArabic ? 'rtl' : 'ltr'}>
-                  <div>
-                    <div className="flex items-center justify-end w-full mb-2">
-                      <span className={styles.activeDot}>
-                        <span className={styles.activeDotPing} />
-                        <span className={styles.activeDotCore} />
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-end w-full mb-1">
+                    <span className={styles.activeDot}>
+                      <span className={styles.activeDotPing} />
+                      <span className={styles.activeDotCore} />
+                    </span>
+                  </div>
 
+                  <div className="w-full flex-1 flex flex-col items-center justify-center my-auto">
                     <div
                       className={styles.imageWrapper}
                       onClick={() => setLightboxAd(ad)}
