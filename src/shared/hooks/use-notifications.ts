@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
 import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import { playNotificationSound } from '@/shared/utils/notification-sound';
 import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
 
 export interface AppNotification {
@@ -285,10 +286,7 @@ function setupRealtimeChannelIfNeeded(userId: string | null): void {
               );
             }
 
-            try {
-              const audio = new Audio('/sounds/notification.mp3');
-              void audio.play().catch(() => {});
-            } catch {}
+            playNotificationSound();
 
             if (
               newRow.type === 'WALLET_CREDIT' ||
@@ -488,6 +486,7 @@ export function useNotifications() {
       const detail = (e as CustomEvent<Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean }>).detail;
       if (detail?.title) {
         addNotification(detail);
+        playNotificationSound();
       }
     };
 

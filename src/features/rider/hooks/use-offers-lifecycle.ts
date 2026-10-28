@@ -15,6 +15,7 @@ import { getLocalizedMarketplaceError } from '../services/rider-offer-presentati
 import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/rider-offer-ranking';
 import { fetchFavoriteCaptainIds } from '@/features/account/services/favorite-captains';
 import { getOfferCountdown } from '../services/offer-countdown';
+import { playNotificationSound } from '@/shared/utils/notification-sound';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
 const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minute (240s) search window
@@ -65,15 +66,25 @@ export function useOffersLifecycle(
       const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
 
       const nowTs = Date.now();
+      let hasNewOffer = false;
       for (const offer of sortedOffers) {
         const offerId = offer.id || offer.driverId;
         if (offerId && !firstSeenAtRef.current.has(offerId)) {
           firstSeenAtRef.current.set(offerId, nowTs);
+          hasNewOffer = true;
 
           if (typeof window !== 'undefined') {
             const captainName = offer.driverName || (language === 'ar' ? 'كابتن معلن' : 'Captain');
             const price = offer.price ? `${offer.price} ج.م` : '';
             const eta = offer.pickup_eta_minutes ? ` (وصول خلال ${offer.pickup_eta_minutes} د)` : '';
+
+            toast({
+              title: language === 'ar' ? 'عرض كابتن معلن جديد 🚗' : 'New Captain Offer 🚗',
+              description: language === 'ar'
+                ? `وصلك عرض بقيمة ${price} من الكابتن المعلن ${captainName}${eta}`
+                : `Offer of ${price} received from ${captainName}${eta}`,
+              duration: 5000,
+            });
 
             window.dispatchEvent(
               new CustomEvent('app-notification', {
@@ -89,6 +100,10 @@ export function useOffersLifecycle(
             );
           }
         }
+      }
+
+      if (hasNewOffer) {
+        playNotificationSound();
       }
 
       setPreferredCaptainIds(favoriteIds);
