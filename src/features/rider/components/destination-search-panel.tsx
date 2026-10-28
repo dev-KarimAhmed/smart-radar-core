@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, ChevronDown, ExternalLink, Loader2, MapPin } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ExternalLink, Loader2, MapPin, ShieldAlert, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
@@ -163,44 +163,68 @@ export function DestinationSearchPanel({
             )}
           </div>
 
-          {/* Sovereign Dropdown Warning Accordion matching the client's design */}
-          <div className="mt-3 overflow-hidden rounded-xl border border-amber-500/70 bg-[#0B0F19] shadow-lg shadow-black/40" dir={isArabic ? 'rtl' : 'ltr'}>
+          {/* Sovereign Dropdown Warning Accordion - Cyber Premium Glass Aesthetic */}
+          <div
+            className="relative mt-3.5 overflow-hidden rounded-2xl border border-rose-500/35 bg-gradient-to-r from-[#170914] via-[#0A0F1E] to-[#170914] shadow-[0_4px_20px_rgba(0,0,0,0.5),0_0_15px_rgba(244,63,94,0.12)] transition-all duration-300 hover:border-rose-500/50 hover:shadow-[0_0_22px_rgba(244,63,94,0.22)]"
+            dir={isArabic ? 'rtl' : 'ltr'}
+          >
+            {/* Top ambient glowing hairline */}
+            <div className="pointer-events-none absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-rose-500/60 to-transparent" />
+
             <button
               type="button"
               onClick={() => setIsAccordionOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between bg-[#120708] px-3.5 py-2.5 transition hover:bg-[#1a0b0d] cursor-pointer select-none"
+              className="group flex w-full items-center justify-between gap-2.5 px-3.5 py-2.5 transition-colors hover:bg-white/[0.03] cursor-pointer select-none"
             >
-              {/* Red Warning Pill on the far right (in RTL) */}
-              <span className="inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-0.5 text-xs font-black text-white shadow-[0_0_12px_rgba(220,38,38,0.7)] tracking-wider">
-                {isArabic ? 'تنبيه' : 'Alert'}
-              </span>
+              {/* Right side: Pulsing badge & full readable text */}
+              <div className="flex items-center gap-2.5 min-w-0 flex-1 text-start">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
+                </span>
 
-              {/* Yellow Chevron on the far left (in RTL) */}
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 text-yellow-400 font-black transition-transform duration-200 shrink-0",
-                  isAccordionOpen && "rotate-180"
-                )}
-              />
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-gradient-to-r from-rose-500/25 to-rose-600/35 px-2.5 py-0.5 text-[11px] font-black text-rose-200 shadow-[0_0_10px_rgba(244,63,94,0.35)] shrink-0">
+                  <ShieldAlert className="h-3 w-3 text-rose-300" />
+                  <span>{isArabic ? 'تنبيه' : 'Alert'}</span>
+                </span>
+
+                <span className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors leading-snug">
+                  {isArabic ? 'دقة الإحداثيات 90% تجنباً للخلاف' : '90% GPS Accuracy Guidance'}
+                </span>
+              </div>
+
+              {/* Left side: Squircle glowing chevron */}
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-300 transition-all duration-300 group-hover:border-rose-500/60 group-hover:bg-rose-500/20 group-hover:scale-105 shrink-0">
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-300",
+                    isAccordionOpen && "rotate-180"
+                  )}
+                />
+              </div>
             </button>
 
             {isAccordionOpen && (
-              <div className="border-t border-amber-500/40 bg-[#3B0707] px-4 py-3.5 text-center space-y-1 animate-in fade-in duration-150">
-                <p className="text-xs sm:text-sm font-black text-yellow-400 leading-tight">
-                  {isArabic ? 'النظام يحقق نتائج 90 % من الدقة' : 'The system achieves 90% accuracy results'}
+              <div className="border-t border-rose-500/20 bg-gradient-to-b from-[#1C091A]/80 via-[#0A0D1A]/90 to-[#040711] p-4 text-center space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Accuracy Highlight Pill */}
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-1 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                  <span className="text-xs font-black text-amber-300">
+                    {isArabic ? 'النظام يحقق نتائج 90% من الدقة' : 'System achieves 90% accuracy results'}
+                  </span>
+                </div>
+
+                {/* Dispute prevention explanation */}
+                <p className="text-xs sm:text-sm font-bold text-slate-200 leading-snug">
+                  {isArabic ? 'تجنباً للخلاف مع الكابتن المعلن في نقطة الوصول' : 'To avoid disputes with the advertiser captain on arrival'}
                 </p>
-                <p className="text-xs font-bold text-yellow-300/95 leading-tight">
-                  {isArabic ? 'تجنبا للخلاف مع المعلن' : 'To avoid disputes with the advertiser'}
-                </p>
-                <p className="text-xs font-bold text-yellow-300/90 leading-tight">
-                  {isArabic ? 'إذا رغبت' : 'If you wish'}
-                </p>
-                <p className="text-xs font-black text-yellow-400 leading-tight">
-                  {isArabic ? 'وتحقق من الاحداثيات خرائط جوجل' : 'and verify coordinates from Google Maps'}
-                </p>
-                <p className="text-xs font-black text-yellow-400 leading-none">
-                  ..
-                </p>
+
+                {/* Google Maps verification tip */}
+                <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 p-2.5 text-xs font-bold text-rose-200 leading-relaxed shadow-inner">
+                  {isArabic
+                    ? 'إذا رغبت، تحقق من الإحداثيات عبر خرائط Google قبل تأكيد الطلب'
+                    : 'If you wish, please verify the coordinates on Google Maps before confirming'}
+                </div>
               </div>
             )}
           </div>
