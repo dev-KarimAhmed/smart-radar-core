@@ -277,6 +277,7 @@ const styles = {
 
 
 function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: (id: string) => Promise<void>; onReject: (id: string, reason: string) => Promise<void> }) {
+    const { isArabic } = useDashboardLanguage();
     const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const [rejecting, setRejecting] = useState(false);
@@ -308,12 +309,12 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
     }
   };
 
-  const title = ad.content?.title || ad.title || 'إعلان بدون عنوان';
-  const description = ad.content?.description || ad.description || 'لا يوجد وصف متاح';
+  const title = ad.content?.title || ad.title || (isArabic ? 'إعلان بدون عنوان' : 'Untitled Ad');
+  const description = ad.content?.description || ad.description || (isArabic ? 'لا يوجد وصف متاح' : 'No description available');
   const posterUrl = ad.content?.posterUrl || ad.posterUrl || '';
 
   return (
-    <Card className={styles.style59_1} dir="rtl">
+    <Card className={styles.style59_1} dir={isArabic ? "rtl" : "ltr"}>
       {posterUrl && (
         <div className={styles.style61_2}>
           <img src={posterUrl} alt={title} className={styles.style62_3} referrerPolicy="no-referrer" />
@@ -425,6 +426,7 @@ function PendingAdReviewCard({ ad, onApprove, onReject }: { ad: any; onApprove: 
 }
 
 export function PendingAdsAuditPanel() {
+    const { isArabic } = useDashboardLanguage();
     const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const { approveAd, rejectAd, ads, isLoading } = useAdminAds();
@@ -467,8 +469,8 @@ export function PendingAdsAuditPanel() {
     setIsScanning(true);
     setScanResults(null);
     toast({
-      title: "📡 بدء فحص الحملات الإعلانية",
-      description: "جاري مطابقة الحملات الإعلانية المودعة بالمعايير الرقابية..."
+      title: isArabic ? "📡 بدء فحص الحملات الإعلانية" : "📡 Scan Campaigns Started",
+      description: isArabic ? "جاري مطابقة الحملات الإعلانية المودعة بالمعايير الرقابية..." : "Verifying ad campaigns against safety policies..."
     });
 
     setTimeout(() => {
@@ -480,8 +482,8 @@ export function PendingAdsAuditPanel() {
         `🛡️ قرار الفحص: لا توجد مخالفات ميكانيكية أو بلاغات انتحال نشطة.`
       ]);
       toast({
-        title: "✅ اكتمل الفحص الأمني",
-        description: "تمت مراجعة ومطابقة كافة الحملات الإعلانية بنجاح."
+        title: isArabic ? "✅ اكتمل الفحص الأمني" : "✅ Security Scan Complete",
+        description: isArabic ? "تمت مراجعة ومطابقة كافة الحملات الإعلانية بنجاح." : "All ad campaigns reviewed and validated successfully."
       });
     }, 600);
   };
@@ -490,8 +492,8 @@ export function PendingAdsAuditPanel() {
     setInjectedThreats(prev => prev.filter(t => !t.resolved));
     setScanResults(null);
     toast({
-      title: "🧹 تنظيف السجلات المعقمة",
-      description: "تم مسح كافة الإخطارات البروتوكولية التي تمت تبرئتها وصيانتها."
+      title: isArabic ? "🧹 تنظيف السجلات المعقمة" : "🧹 Clean Audit Logs",
+      description: isArabic ? "تم مسح كافة الإخطارات البروتوكولية التي تمت تبرئتها وصيانتها." : "Cleared all resolved security protocol notices."
     });
   };
 
@@ -548,7 +550,7 @@ export function PendingAdsAuditPanel() {
             <span className={styles.style348_62}>{tAuto('key_7b8d3f39')}</span>
             <span className={styles.style349_63}>
               <Activity className={styles.style350_64} />
-              100% <span className={styles.style351_65}>مستقر</span>
+              100% <span className={styles.style351_65}>{isArabic ? "مستقر" : "Stable"}</span>
             </span>
           </div>
           <div className={styles.style354_66}>
@@ -766,6 +768,7 @@ export function PendingAdsAuditPanel() {
 }
 
 export function AdminPulseOverview() {
+    const { isArabic } = useDashboardLanguage();
     const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
   const [logs, setLogs] = useState<Array<{
@@ -797,8 +800,8 @@ export function AdminPulseOverview() {
 
         if (showToast) {
           toast({
-            title: "⚡ اكتمال التحديث اللحظي",
-            description: `تمت مزامنة بيانات الكباتن المعلنين (${data.stats.totalCaptains}) والمستخدمين (${data.stats.totalRiders}) مباشرة من قاعدة البيانات.`,
+            title: isArabic ? "⚡ اكتمال التحديث اللحظي" : "⚡ Real-time Sync Complete",
+            description: isArabic ? `تمت مزامنة بيانات الكباتن المعلنين (${data.stats.totalCaptains}) والمستخدمين (${data.stats.totalRiders}) مباشرة من قاعدة البيانات.` : `Synced ${data.stats.totalCaptains} captains and ${data.stats.totalRiders} users from DB.`,
           });
         }
       }
@@ -820,47 +823,47 @@ export function AdminPulseOverview() {
   const handleResolve = (id: string, message: string, actionName: string) => {
     setLogs(prev => prev.map(log => log.id === id ? { ...log, resolved: true } : log));
     toast({
-      title: "🛡️ معالجة السجل",
-      description: `تم تطبيق الإجراء: ${actionName} لحل "${message}".`
+      title: isArabic ? "🛡️ معالجة السجل" : "🛡️ Resolve Record",
+      description: isArabic ? `تم تطبيق الإجراء: ${actionName} لحل "${message}".` : `Action ${actionName} applied to resolve "${message}".`
     });
   };
 
   return (
-    <div className={styles.style789_151} dir="rtl">
+    <div className={styles.style789_151} dir={isArabic ? "rtl" : "ltr"}>
       {/* 🔮 Edge computing visual stats card banner */}
       <div className={styles.style791_152}>
         <Card className={styles.style792_153}>
           <CardHeader className={styles.style793_154}>
-            <CardDescription className={styles.style794_155}>الكباتن المعلنين المسجلين</CardDescription>
+            <CardDescription className={styles.style794_155}>{isArabic ? "الكباتن المعلنين المسجلين" : "Registered Advertiser Captains"}</CardDescription>
             <CardTitle className={styles.style795_156}>
-              {totalCaptains} كابتن معلن
+              {totalCaptains} {isArabic ? "كابتن معلن" : "Captains"}
             </CardTitle>
           </CardHeader>
           <CardContent className={styles.style799_157}>
-            <span className={styles.style800_158}><ArrowUpRight className={styles.style800_159} /> {activeCaptains} متصل</span>
-            <span>نشط الآن</span>
+            <span className={styles.style800_158}><ArrowUpRight className={styles.style800_159} /> {activeCaptains} {isArabic ? "متصل" : "online"}</span>
+            <span>{isArabic ? "نشط الآن" : "Active Now"}</span>
           </CardContent>
         </Card>
 
         <Card className={styles.style805_160}>
           <CardHeader className={styles.style806_161}>
-            <CardDescription className={styles.style807_162}>المستخدمين المسجلين</CardDescription>
-            <CardTitle className={styles.style808_163}>{totalRiders} مستخدم</CardTitle>
+            <CardDescription className={styles.style807_162}>{isArabic ? "المستخدمين المسجلين" : "Registered Users"}</CardDescription>
+            <CardTitle className={styles.style808_163}>{totalRiders} {isArabic ? "مستخدم" : "Users"}</CardTitle>
           </CardHeader>
           <CardContent className={styles.style810_164}>
-            <span className={styles.style811_165}>قاعدة المستخدمين</span>
-            <span>في المنظومة</span>
+            <span className={styles.style811_165}>{isArabic ? "قاعدة المستخدمين" : "User Base"}</span>
+            <span>{isArabic ? "في المنظومة" : "In System"}</span>
           </CardContent>
         </Card>
 
         <Card className={styles.style816_166}>
           <CardHeader className={styles.style817_167}>
-            <CardDescription className={styles.style818_168}>استقرار الرادار</CardDescription>
-            <CardTitle className={styles.style819_169}>100% مستقر</CardTitle>
+            <CardDescription className={styles.style818_168}>{isArabic ? "استقرار الرادار" : "Radar Stability"}</CardDescription>
+            <CardTitle className={styles.style819_169}>100% {isArabic ? "مستقر" : "Stable"}</CardTitle>
           </CardHeader>
           <CardContent className={styles.style821_170}>
-            <span className={styles.style822_171}>المعمارية الحافة</span>
-            <span>تعمل بكفاءة</span>
+            <span className={styles.style822_171}>{isArabic ? "المعمارية الحافة" : "Edge Architecture"}</span>
+            <span>{isArabic ? "تعمل بكفاءة" : "Operating Efficiently"}</span>
           </CardContent>
         </Card>
       </div>
@@ -915,7 +918,7 @@ export function AdminPulseOverview() {
               <circle cx="250" cy="50" r="3" fill="#14b8a6" />
             </svg>
             <div className={styles.style880_186}>
-              كافة خلايا H3 والنبضات الحافة تعمل في نطاق الأمان
+              {isArabic ? "كافة خلايا H3 والنبضات الحافة تعمل في نطاق الأمان" : "All H3 cells and edge pulses operating in safe zone"}
             </div>
           </div>
         </CardContent>
@@ -941,7 +944,7 @@ export function AdminPulseOverview() {
           {logs.length === 0 ? (
             <div className="py-8 text-center text-xs font-bold text-slate-500">
               <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              لا توجد بلاغات أو انحرافات مسجلة - كافة النبضات مستقرة بنسبة 100%.
+              {isArabic ? "لا توجد بلاغات أو انحرافات مسجلة - كافة النبضات مستقرة بنسبة 100%." : "No alerts or deviations recorded - all pulses 100% stable."}
             </div>
           ) : (
             logs.map((log) => (

@@ -337,7 +337,7 @@ export async function POST(req: Request) {
             const cur = rpcRes.currency || 'د.أ';
 
             const notifMsg = creditType === 'MINUTES'
-              ? `تمت الموافقة على إيصالك وتغذية حسابك بـ ${grantedMinutes} دقيقة طيران رادار.`
+              ? `تمت الموافقة على إيصالك وتغذية حسابك بـ ${grantedMinutes} دقيقة.`
               : `تمت الموافقة على إيصالك وإيداع ${creditedAmount} ${cur} في رصيد محفظتك.`;
 
             await sendCaptainNotification(
@@ -443,7 +443,7 @@ export async function POST(req: Request) {
             captainId,
             `notif_rcpt_app_${transactionId}`,
             'تم اعتماد إيصال الشحن بنجاح ⚡',
-            `تمت الموافقة على إيصالك وتغذية حسابك بـ ${grantedMins} دقيقة طيران رادار.`,
+            `تمت الموافقة على إيصالك وتغذية حسابك بـ ${grantedMins} دقيقة.`,
             'WALLET_CREDIT'
           );
 

@@ -552,7 +552,7 @@ export async function POST(req: Request) {
           id: `notif_topup_min_${userId}_${Date.now()}`,
           user_id: userId,
           title: 'شحن رصيد دقائق الرادار ⚡',
-          description: `تم شحن (${minutes}) دقيقة طيران رادار لحسابك بنجاح من قبل الإدارة. أصبحت الدقائق جاهزة للاستخدام الآن!`,
+          description: `تم شحن (${minutes}) دقيقة لحسابك بنجاح من قبل الإدارة. أصبحت الدقائق جاهزة للاستخدام الآن!`,
           type: 'admin_message',
           is_read: false,
           created_at: new Date().toISOString(),

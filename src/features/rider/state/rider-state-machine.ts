@@ -334,13 +334,24 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'SERVER_STATUS_COMPLETED':
       if (state.screen === 'RATING_MODAL') return state;
-      if (state.screen !== 'TRIP_ACTIVE' || !state.activeTrip) return state;
+      if (state.screen !== 'TRIP_ACTIVE' || !state.activeTrip) {
+        if (state.requestId) {
+          if (typeof window !== 'undefined') {
+            try {
+              window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+            } catch {}
+          }
+          return initialRiderMachineState;
+        }
+        return state;
+      }
       return {
         ...state,
         screen: 'RATING_MODAL',
         completedTrip: {
           ...state.activeTrip,
           status: String(action.row?.status || 'COMPLETED').toUpperCase(),
+          finalPrice: firstNumber(action.row?.final_fare, action.row?.final_price) ?? state.activeTrip.finalPrice,
         },
         activeTrip: null,
       };
@@ -436,7 +447,7 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       };
 
     case 'SUBMIT_RATING':
-      if (state.screen !== 'RATING_MODAL' || !state.completedTrip) return state;
+      if (state.screen !== 'RATING_MODAL') return state;
       if (typeof window !== 'undefined') {
         try {
           window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);

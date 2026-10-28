@@ -33,7 +33,7 @@ export const RadarGapLockdownKernel = {
   },
 
   /**
-   * 3. الصندوق الأسود للمشرف: الحذف القاطع وقطع صلاحيات طيران الحسابات
+   * 3. الصندوق الأسود للمشرف: الحذف القاطع وتجميد الحسابات
    */
   enforceAdminBlackBoxAction: function(
     captain: CaptainSovereignState,

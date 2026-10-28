@@ -37,18 +37,20 @@ const styles = {
 
 function TrackContent() {
   const searchParams = useSearchParams();
+  const langParam = searchParams.get('lang') || 'ar';
+  const isArabic = langParam !== 'en';
   const tripId = searchParams.get('trip') || 'LIVE';
-  const captainName = searchParams.get('c') || 'السائق';
+  const captainName = searchParams.get('c') || (isArabic ? 'السائق' : 'Captain');
   const plate = searchParams.get('p') || '';
   const vehicle = searchParams.get('v') || '';
-  const destination = searchParams.get('d') || 'وجهة الرحلة';
+  const destination = searchParams.get('d') || (isArabic ? 'وجهة الرحلة' : 'Trip Destination');
   const captainPhone = searchParams.get('ph') || '';
   const initialLat = parseFloat(searchParams.get('lat') || '31.9539');
   const initialLng = parseFloat(searchParams.get('lng') || '35.9106');
 
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: initialLat, lng: initialLng });
-  const [lastUpdated, setLastUpdated] = useState<string>('الآن');
-  const [tripStatus, setTripStatus] = useState<string>('قيد المتابعة الحية');
+  const [lastUpdated, setLastUpdated] = useState<string>(isArabic ? 'الآن' : 'Just now');
+  const [tripStatus, setTripStatus] = useState<string>(isArabic ? 'قيد المتابعة الحية' : 'Live Tracking Active');
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { mapRef, isMapReady } = useMaplibreInstance({
@@ -150,21 +152,21 @@ function TrackContent() {
   const mapsUrl = `https://maps.google.com/?q=${coords.lat},${coords.lng}`;
 
   return (
-    <div className={styles.root} dir="rtl">
+    <div className={styles.root} dir={isArabic ? "rtl" : "ltr"}>
       <header className={styles.header}>
         <div className={styles.headerBrand}>
           <Image src="/icons/logo-header.png" alt="Radar" width={585} height={152} priority className={styles.headerLogo} />
         </div>
         <div className={styles.livePill}>
           <span className={styles.liveDot} />
-          <span>تتبع مباشر للرحلة</span>
+          <span>{isArabic ? 'تتبع مباشر للرحلة' : 'Live Trip Tracking'}</span>
         </div>
       </header>
 
       <div className={styles.bannerAlert}>
         <div className={styles.bannerIconText}>
           <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />
-          <span>مشاركة مسار الرحلة الحية - يتحدث موقع المركبة على الخريطة بشكل فوري</span>
+          <span>{isArabic ? 'مشاركة مسار الرحلة الحية - يتحدث موقع المركبة على الخريطة بشكل فوري' : 'Live trip tracking share - Vehicle location updates in real-time'}</span>
         </div>
         <span className="text-[11px] text-amber-300 font-mono">#{tripId.slice(0, 8)}</span>
       </div>
@@ -178,37 +180,37 @@ function TrackContent() {
               <div className={styles.cardHeader}>
                 <h2 className={styles.cardTitle}>
                   <Car className="h-4 w-4 text-[#14B8A6]" />
-                  <span>بيانات الرحلة والمركبة</span>
+                  <span>{isArabic ? 'بيانات الرحلة والمركبة' : 'Trip & Vehicle Details'}</span>
                 </h2>
                 <span className={styles.cardBadge}>{tripStatus}</span>
               </div>
 
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}><User className="h-3.5 w-3.5" /> الكابتن</span>
+                <span className={styles.infoLabel}><User className="h-3.5 w-3.5" /> {isArabic ? "الكابتن" : "Captain"}</span>
                 <span className={styles.infoValue}>{captainName}</span>
               </div>
 
               {vehicle && (
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}><Car className="h-3.5 w-3.5" /> نوع المركبة</span>
+                  <span className={styles.infoLabel}><Car className="h-3.5 w-3.5" /> {isArabic ? "نوع المركبة" : "Vehicle"}</span>
                   <span className={styles.infoValue}>{vehicle}</span>
                 </div>
               )}
 
               {plate && (
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>🏷️ رقم اللوحة</span>
+                  <span className={styles.infoLabel}>{isArabic ? "🏷️ رقم اللوحة" : "🏷️ Plate Number"}</span>
                   <span className="font-mono font-black text-[#14F5D5] bg-[#14B8A6]/10 px-2 py-0.5 rounded border border-[#14B8A6]/20">{plate}</span>
                 </div>
               )}
 
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}><MapPin className="h-3.5 w-3.5 text-amber-400" /> الوجهة</span>
+                <span className={styles.infoLabel}><MapPin className="h-3.5 w-3.5 text-amber-400" /> {isArabic ? "الوجهة" : "Destination"}</span>
                 <span className={styles.infoValue}>{destination}</span>
               </div>
 
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}><RefreshCw className="h-3.5 w-3.5 text-emerald-400" /> آخر تحديث</span>
+                <span className={styles.infoLabel}><RefreshCw className="h-3.5 w-3.5 text-emerald-400" /> {isArabic ? "آخر تحديث" : "Last Update"}</span>
                 <span className="text-[11px] text-slate-400 font-mono">{lastUpdated}</span>
               </div>
             </div>
@@ -216,13 +218,13 @@ function TrackContent() {
             <div className={styles.actionGrid}>
               <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className={styles.mapsBtn}>
                 <ExternalLink className="h-4 w-4" />
-                <span>فتح في خرائط Google</span>
+                <span>{isArabic ? 'فتح في خرائط Google' : 'Open in Google Maps'}</span>
               </a>
 
               {captainPhone ? (
                 <a href={`tel:${captainPhone}`} className={styles.callCaptainBtn}>
                   <Phone className="h-4 w-4 text-emerald-400" />
-                  <span>اتصال بالسائق</span>
+                  <span>{isArabic ? 'اتصال بالسائق' : 'Call Captain'}</span>
                 </a>
               ) : (
                 <button
@@ -232,14 +234,14 @@ function TrackContent() {
                   }}
                   className={styles.callCaptainBtn}
                 >
-                  <span>نسخ رابط التتبع</span>
+                  <span>{isArabic ? 'نسخ رابط التتبع' : 'Copy Tracking Link'}</span>
                 </button>
               )}
             </div>
           </div>
 
           <p className={styles.footerNote}>
-            نظام رادار بينكم (bynkcom) الملاحي السيادي · جميع الحقوق محفوظة
+            {isArabic ? 'نظام رادار بينكم (bynkcom) الملاحي السيادي · جميع الحقوق محفوظة' : 'Bynkcom Sovereign Navigation Radar System · All Rights Reserved'}
           </p>
         </aside>
       </main>
@@ -247,16 +249,21 @@ function TrackContent() {
   );
 }
 
+function TrackFallback() {
+  const isArabic = typeof document !== 'undefined' ? document.documentElement.lang !== 'en' : true;
+  return (
+    <div className={styles.loadingRoot}>
+      <div className={styles.loadingSpinner} />
+      <p className="text-xs font-bold animate-pulse">
+        {isArabic ? "جاري تحميل خريطة التتبع المباشر..." : "Loading live tracking map..."}
+      </p>
+    </div>
+  );
+}
+
 export default function TrackPage() {
   return (
-    <Suspense
-      fallback={
-        <div className={styles.loadingRoot}>
-          <div className={styles.loadingSpinner} />
-          <p className="text-xs font-bold animate-pulse">جاري تحميل خريطة التتبع المباشر...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<TrackFallback />}>
       <TrackContent />
     </Suspense>
   );

@@ -37,6 +37,13 @@ export function RiderModals({
   setShowEmergencyContactDialog,
   onAddEmergencyNumber,
 }: RiderModalsProps) {
+  React.useEffect(() => {
+    if (state.screen === 'RATING_MODAL' && (!state.completedTrip?.captainId || !state.requestId || !userId)) {
+      dispatch({ type: 'SUBMIT_RATING' });
+      onTripFullyEnded();
+    }
+  }, [dispatch, onTripFullyEnded, state.completedTrip?.captainId, state.requestId, state.screen, userId]);
+
   return (
     <>
       {state.screen === 'RATING_MODAL' && state.completedTrip?.captainId && state.requestId && userId && (
