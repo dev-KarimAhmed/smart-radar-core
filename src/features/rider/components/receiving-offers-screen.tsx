@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Radio, ShieldCheck, Users, X } from 'lucide-react';
+import { MapPin, Radio, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getServerTime } from '@/lib/server-time';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -354,17 +354,24 @@ export function ReceivingOffersScreen({
                 );
               })}
             </div>
+
+            {/* Max search limit directly under timeline */}
+            <div className="flex items-center justify-center pt-0.5">
+              <span className="text-[10px] font-mono font-bold text-slate-400">
+                {isArabic ? 'الحد الأقصى: 4:00 د' : 'Max Search: 4:00m'}
+              </span>
+            </div>
           </div>
 
           {/* Step 5: Page 6 - Bottom Offer Count & [معاينة العروض] Radar-Themed Action Card */}
           <div className="relative z-10 mt-5 rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#091527] via-[#060D19] to-[#040814] p-3.5 sm:p-4 shadow-xl shadow-black/60 space-y-3">
             {/* Top Stat Row: Clean label & Live glowing pill badge */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]">
-                  <Users className="h-3.5 w-3.5 text-[#14F5D5]" />
+            <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <div className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]">
+                  <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[#14F5D5]" />
                 </div>
-                <span className="text-xs sm:text-sm font-bold text-slate-200 truncate">
+                <span className="text-[10px] sm:text-xs font-bold text-slate-200 truncate">
                   {isArabic ? 'عدد العروض القادمة من المعلنين' : 'Offers from advertisers'}
                 </span>
               </div>
@@ -372,7 +379,7 @@ export function ReceivingOffersScreen({
               {/* High-Tech Glowing Pill Badge - Never wraps */}
               <div
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-3 py-1 font-mono text-xs sm:text-sm font-black shrink-0 transition-all duration-300 select-none",
+                  "inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-2.5 sm:px-3 py-0.5 sm:py-1 font-mono text-[11px] sm:text-xs font-black shrink-0 transition-all duration-300 select-none",
                   state.offers.length > 0
                     ? "border border-[#14F5D5]/50 bg-[#14F5D5]/15 text-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.3)]"
                     : "border-white/10 bg-white/5 text-slate-400"
@@ -469,17 +476,6 @@ export function ReceivingOffersScreen({
                 </span>
               )}
             </button>
-          </div>
-
-          {/* Security ribbon */}
-          <div className="relative z-10 mt-3 flex items-center justify-between rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/5 px-3.5 py-2">
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#14F5D5]" />
-              <span>{isArabic ? 'رادار جغرافي فوري مشفّر' : 'Encrypted Geospatial Radar'}</span>
-            </div>
-            <span className="text-[10px] font-mono font-bold text-slate-400">
-              {isArabic ? 'الحد الأقصى: 4:00 د' : 'Max Search: 4:00m'}
-            </span>
           </div>
         </div>
 
