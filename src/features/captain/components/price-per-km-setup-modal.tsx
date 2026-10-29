@@ -228,7 +228,7 @@ export function PricePerKmSetupModal({
       setIsSaving(true);
       try {
         const result = await onSave({
-          baseFare: Number.isFinite(parsedBaseFare) && parsedBaseFare >= minBaseFare ? parsedBaseFare : minBaseFare,
+          baseFare: Number.isFinite(parsedBaseFare) && parsedBaseFare >= 0 ? parsedBaseFare : 0,
           pricePerKm: Number.isFinite(parsedPricePerKm) && parsedPricePerKm > 0 ? parsedPricePerKm : 0.25,
           pricePerMin: Number.isFinite(parsedPricePerMin) && parsedPricePerMin >= 0 ? parsedPricePerMin : 0.05,
           includedKm: Number.isFinite(parsedIncludedKm) && parsedIncludedKm >= 0 ? parsedIncludedKm : 0,
@@ -249,7 +249,7 @@ export function PricePerKmSetupModal({
       setIsSaving(true);
       try {
         const result = await onSave({
-          baseFare: Number.isFinite(parsedBaseFare) && parsedBaseFare >= minBaseFare ? parsedBaseFare : minBaseFare,
+          baseFare: Number.isFinite(parsedBaseFare) && parsedBaseFare >= 0 ? parsedBaseFare : 0,
           pricePerKm: Number.isFinite(parsedPricePerKm) && parsedPricePerKm > 0 ? parsedPricePerKm : 0.25,
           pricePerMin: Number.isFinite(parsedPricePerMin) && parsedPricePerMin >= 0 ? parsedPricePerMin : 0.05,
           includedKm: Number.isFinite(parsedIncludedKm) && parsedIncludedKm >= 0 ? parsedIncludedKm : 0,
@@ -266,9 +266,9 @@ export function PricePerKmSetupModal({
       return;
     }
 
-    if (!Number.isFinite(parsedBaseFare) || parsedBaseFare < minBaseFare) {
+    if (!Number.isFinite(parsedBaseFare) || parsedBaseFare < 0) {
       setIsShortDistancesOpen(true);
-      setShortDistancesError(t('tariffModalBaseFareTooLow', { min: minBaseFare.toFixed(2) }));
+      setShortDistancesError(isArabic ? 'يرجى إدخال قيمة صحيحة لفتحة العداد' : 'Please enter a valid base fare');
       return;
     }
 
@@ -494,11 +494,11 @@ export function PricePerKmSetupModal({
                   <input
                     type="number"
                     inputMode="decimal"
-                    min={minBaseFare}
-                    step="0.01"
+                    min="0"
+                    step="any"
                     value={baseFare}
                     onChange={(event) => setBaseFare(event.target.value)}
-                    placeholder={minBaseFare.toFixed(2)}
+                    placeholder="0.00"
                     disabled={isSaving}
                     className={styles.input}
                   />

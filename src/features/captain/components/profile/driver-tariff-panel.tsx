@@ -22,7 +22,7 @@ export function DriverTariffPanel({ state }: { state: any }) {
   return (
     <Panel icon={<Wallet className={styles.style439_63} />} title={t('tariffTitle')}>
           <EditableField
-            label={`${t('tariffBaseFare')} (${t('tariffMinimum', { min: minBaseFare.toFixed(2) })})`}
+            label={t('tariffBaseFare')}
             value={firstString(baseFare, t('notProvided'))}
             originalValue={firstString(savedSnapshotRef.current.baseFare, t('notProvided'))}
             isEditing={isFieldEditing('baseFare')}
@@ -36,8 +36,8 @@ export function DriverTariffPanel({ state }: { state: any }) {
               onChange={(event) => setBaseFare(event.target.value)}
               type="number"
               inputMode="decimal"
-              min={minBaseFare}
-              step="0.01"
+              min="0"
+              step="any"
               className={styles.editingInput}
             />
           </EditableField>

@@ -15,7 +15,6 @@ import {
   Lock,
   Smartphone,
   ExternalLink,
-  X,
   HelpCircle,
 } from 'lucide-react';
 import {
@@ -36,7 +35,6 @@ const styles = {
   headerIconWrap: 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5] border border-[#14B8A6]/30',
   title: 'text-xs sm:text-sm font-black text-white truncate',
   subtitle: 'text-[9.5px] text-slate-400 font-medium leading-none mt-0.5',
-  closeBadgeButton: 'flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white hover:text-white text-[11px] font-bold transition-all active:scale-95 cursor-pointer shadow-sm shrink-0',
   warningBanner: 'rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2',
   warningIcon: 'h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5',
   warningText: 'text-[9.5px] leading-relaxed text-amber-200/90 font-medium',
@@ -290,7 +288,7 @@ export function SystemPermissionsModal() {
           setIsOpen(false);
         }}
       >
-        {/* Header row with prominent close badge button */}
+        {/* Header row */}
         <div className={styles.headerRow}>
           <div className={styles.headerStart}>
             <div className={styles.headerIconWrap}>
@@ -305,19 +303,6 @@ export function SystemPermissionsModal() {
               </DialogDescription>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setHasUserDismissed(true);
-              setIsOpen(false);
-            }}
-            aria-label={isArabic ? 'إغلاق وتخطي' : 'Close and skip'}
-            className={styles.closeBadgeButton}
-          >
-            <X className="h-3 w-3" />
-            <span>{isArabic ? 'إغلاق' : 'Close'}</span>
-          </button>
         </div>
 
         {/* Insecure Context (HTTP on mobile) Warning */}
