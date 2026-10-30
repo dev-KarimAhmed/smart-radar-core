@@ -697,14 +697,19 @@ export function PersonalStep() {
         <div className={styles.style346_8}>
           <header className={styles.style347_9}>
             <div className={styles.style348_10}>
-              <Image
-                src="/icons/logo-header.png"
-                alt="Radar"
-                width={585}
-                height={152}
-                priority
-                className={styles.brandLogoImg}
-              />
+              <a
+                href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+                className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                <Image
+                  src="/icons/logo-header.png"
+                  alt="Radar"
+                  width={585}
+                  height={152}
+                  priority
+                  className={styles.brandLogoImg}
+                />
+              </a>
             </div>
             <p className={styles.style351_12}>
               {t.brand} · {roleName}

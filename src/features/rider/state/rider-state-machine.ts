@@ -374,9 +374,22 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       // A trip already accepted (or further along) that gets cancelled
       // is usually a captain cancellation. Auto-retry search for the rider.
       if (state.screen === 'TRIP_ACTIVE') {
+        const destination = state.destination || (state.activeTrip?.destinationLabel ? {
+          id: state.activeTrip.tripId,
+          label: state.activeTrip.destinationLabel,
+          governorate: '',
+          district: '',
+          coords: {
+            lat: (state.activeTrip as any).destinationLat ?? 0,
+            lng: (state.activeTrip as any).destinationLng ?? 0,
+          },
+          originCell: state.activeTrip.originCell,
+          destinationCell: state.activeTrip.destinationCell,
+        } : null);
+
         return {
           ...initialRiderMachineState,
-          destination: state.destination,
+          destination,
           screen: 'DESTINATION_SELECTION',
           requestCancelledAt: Date.now(),
           autoRetryRequested: true,

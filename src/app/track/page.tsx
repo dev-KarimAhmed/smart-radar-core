@@ -155,7 +155,12 @@ function TrackContent() {
     <div className={styles.root} dir={isArabic ? "rtl" : "ltr"}>
       <header className={styles.header}>
         <div className={styles.headerBrand}>
-          <Image src="/icons/logo-header.png" alt="Radar" width={585} height={152} priority className={styles.headerLogo} />
+          <a
+            href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+            className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+          >
+            <Image src="/icons/logo-header.png" alt="Radar" width={585} height={152} priority className={styles.headerLogo} />
+          </a>
         </div>
         <div className={styles.livePill}>
           <span className={styles.liveDot} />

@@ -94,14 +94,19 @@ function ConfirmContent() {
       <div className="w-full max-w-md bg-[#0D1424]/90 border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative z-10 text-center space-y-6">
         {/* Brand header */}
         <div className="flex items-center justify-center gap-2">
-          <Image
-            src="/icons/logo-header.png"
-            alt="بينكم - bynkcom"
-            width={180}
-            height={50}
-            priority
-            className="h-10 w-auto object-contain drop-shadow-[0_4px_20px_rgba(20,184,166,0.35)]"
-          />
+          <a
+            href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+            className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+          >
+            <Image
+              src="/icons/logo-header.png"
+              alt="بينكم - bynkcom"
+              width={180}
+              height={50}
+              priority
+              className="h-10 w-auto object-contain drop-shadow-[0_4px_20px_rgba(20,184,166,0.35)]"
+            />
+          </a>
         </div>
 
         {status === 'verifying' && (

@@ -43,10 +43,17 @@ export function useTripMutualCancellation({
     initialCancelRequestedBy || null
   );
 
+  const lastInitialRef = useRef(initialCancelRequestedBy);
   useEffect(() => {
-    if (initialCancelRequestedBy !== undefined) {
+    if (initialCancelRequestedBy === 'rider' || initialCancelRequestedBy === 'captain') {
       setPendingRequestFrom(initialCancelRequestedBy);
+    } else if (
+      initialCancelRequestedBy === null &&
+      (lastInitialRef.current === 'rider' || lastInitialRef.current === 'captain')
+    ) {
+      setPendingRequestFrom(null);
     }
+    lastInitialRef.current = initialCancelRequestedBy;
   }, [initialCancelRequestedBy]);
 
   const [isProcessing, setIsProcessing] = useState(false);

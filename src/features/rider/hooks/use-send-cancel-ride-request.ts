@@ -132,8 +132,8 @@ export function useSendCancelRideRequest(params: {
           ? liveStorageCount
           : 0;
 
-    // Only when retrying from an already-active offer search, fallback to 1 so retry doesn't stall:
-    if (state.screen === 'RECEIVING_OFFERS' && effectiveRiderCount < 1) {
+    // When retrying from an already-active offer search or after captain cancellation, fallback to 1 so retry doesn't stall:
+    if ((state.screen === 'RECEIVING_OFFERS' || state.autoRetryRequested) && effectiveRiderCount < 1) {
       effectiveRiderCount = 1;
     }
 
@@ -317,6 +317,11 @@ export function useSendCancelRideRequest(params: {
   ]);
 
   const handleCancelRideRequest = React.useCallback(async () => {
+    if (state.screen === 'TRIP_ACTIVE') {
+      dispatch({ type: 'REQUEST_CANCELLED' });
+      return;
+    }
+
     if (!state.requestId) {
       resetRideDraftState();
       dispatch({ type: 'RESET_TO_IDLE' });

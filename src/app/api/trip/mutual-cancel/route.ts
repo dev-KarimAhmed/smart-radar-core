@@ -66,15 +66,36 @@ export async function POST(req: Request) {
 
     // 2. Handle sub-actions: REQUEST, DECLINE, REVOKE
     if (action === 'REQUEST') {
-      const { data, error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
-        p_request_id: requestId,
-        p_role: role === 'captain' ? 'captain' : 'rider',
-        p_action: 'REQUEST',
-      });
+      let rpcSucceeded = false;
+      try {
+        const { error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
+          p_request_id: requestId,
+          p_role: role === 'captain' ? 'captain' : 'rider',
+          p_action: 'REQUEST',
+        });
+        if (!rpcErr) {
+          rpcSucceeded = true;
+        } else {
+          console.warn('[mutual-cancel] REQUEST RPC error, falling back to direct table update:', rpcErr);
+        }
+      } catch (err) {
+        console.warn('[mutual-cancel] REQUEST RPC exception, falling back to direct table update:', err);
+      }
 
-      if (rpcErr) {
-        console.error('[mutual-cancel] REQUEST error:', rpcErr);
-        return NextResponse.json({ success: false, error: 'request_failed', details: rpcErr.message }, { status: 500 });
+      if (!rpcSucceeded) {
+        const { error: directErr } = await supabaseAdmin
+          .from('ride_requests')
+          .update({
+            cancel_requested_by: role === 'captain' ? 'captain' : 'rider',
+            cancel_request_time: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', requestId);
+
+        if (directErr) {
+          console.error('[mutual-cancel] Direct update error:', directErr);
+          return NextResponse.json({ success: false, error: 'request_failed', details: directErr.message }, { status: 500 });
+        }
       }
 
       return NextResponse.json({
@@ -86,15 +107,36 @@ export async function POST(req: Request) {
     }
 
     if (action === 'DECLINE' || action === 'REVOKE') {
-      const { data, error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
-        p_request_id: requestId,
-        p_role: role,
-        p_action: action,
-      });
+      let rpcSucceeded = false;
+      try {
+        const { error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
+          p_request_id: requestId,
+          p_role: role,
+          p_action: action,
+        });
+        if (!rpcErr) {
+          rpcSucceeded = true;
+        } else {
+          console.warn(`[mutual-cancel] ${action} RPC error, falling back to direct table update:`, rpcErr);
+        }
+      } catch (err) {
+        console.warn(`[mutual-cancel] ${action} RPC exception, falling back to direct table update:`, err);
+      }
 
-      if (rpcErr) {
-        console.error(`[mutual-cancel] ${action} error:`, rpcErr);
-        return NextResponse.json({ success: false, error: `${action.toLowerCase()}_failed`, details: rpcErr.message }, { status: 500 });
+      if (!rpcSucceeded) {
+        const { error: directErr } = await supabaseAdmin
+          .from('ride_requests')
+          .update({
+            cancel_requested_by: null,
+            cancel_request_time: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', requestId);
+
+        if (directErr) {
+          console.error(`[mutual-cancel] ${action} direct update error:`, directErr);
+          return NextResponse.json({ success: false, error: `${action.toLowerCase()}_failed`, details: directErr.message }, { status: 500 });
+        }
       }
 
       return NextResponse.json({
@@ -106,13 +148,37 @@ export async function POST(req: Request) {
     }
 
     // 3. Action is ACCEPT: Mark ride_request as CANCELLED via mutual_cancel_ride_request RPC
-    const { data: cancelData, error: updateErr } = await supabaseAdmin.rpc('mutual_cancel_ride_request', {
-      p_request_id: requestId,
-    });
+    let cancelSucceeded = false;
+    try {
+      const { error: updateErr } = await supabaseAdmin.rpc('mutual_cancel_ride_request', {
+        p_request_id: requestId,
+      });
+      if (!updateErr) {
+        cancelSucceeded = true;
+      } else {
+        console.warn('[mutual-cancel] mutual_cancel_ride_request RPC error, falling back to direct update:', updateErr);
+      }
+    } catch (err) {
+      console.warn('[mutual-cancel] mutual_cancel_ride_request exception, falling back to direct update:', err);
+    }
 
-    if (updateErr) {
-      console.error('[mutual-cancel] update error:', updateErr);
-      return NextResponse.json({ success: false, error: 'cancel_failed', details: updateErr.message }, { status: 500 });
+    if (!cancelSucceeded) {
+      const nowIso = new Date().toISOString();
+      const { error: directErr } = await supabaseAdmin
+        .from('ride_requests')
+        .update({
+          status: 'CANCELLED',
+          cancelled_at: nowIso,
+          cancel_requested_by: null,
+          cancel_request_time: null,
+          updated_at: nowIso,
+        })
+        .eq('id', requestId);
+
+      if (directErr) {
+        console.error('[mutual-cancel] direct cancel update error:', directErr);
+        return NextResponse.json({ success: false, error: 'cancel_failed', details: directErr.message }, { status: 500 });
+      }
     }
 
     // Also clear cancel_requested_by on cancel

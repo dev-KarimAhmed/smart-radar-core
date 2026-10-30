@@ -246,14 +246,19 @@ export function RegisterRoute({
         <div className={styles.style178_8}>
           <header className={styles.style179_9}>
             <div className={styles.style180_10}>
-              <Image
-                src="/icons/logo-header.png"
-                alt="Radar"
-                width={585}
-                height={152}
-                priority
-                className={styles.brandLogoImg}
-              />
+              <a
+                href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+                className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                <Image
+                  src="/icons/logo-header.png"
+                  alt="Radar"
+                  width={585}
+                  height={152}
+                  priority
+                  className={styles.brandLogoImg}
+                />
+              </a>
             </div>
             <p className={styles.style183_12}>
               {t.brand} · {roleName || t.riderContext}

@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Navigation, Phone, Plus, ShieldCheck, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
+import { AdCardSkeleton } from './ad-card-skeleton';
 import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from '../services/ad-stage-scroll';
 import { filterAdsByAudience, readAdAudience, type AdAudience } from '../services/ad-audience';
 import { useAuth } from '@/hooks/use-auth';
@@ -623,14 +624,59 @@ export function AdStage({
 
   if (isLoadingAds) {
     return (
-      <div className={cn(styles.style384_1, heightClass, styles.style384_2)}>
-        <div className={styles.style385_3} />
-        <p className={styles.style386_4}>
-          {copy.loadingTitle}
-          <br />
-          <span className={styles.style389_5}>{copy.loadingSubtitle}</span>
-        </p>
-      </div>
+      <section
+        className={cn(
+          styles.style398_6,
+          heightClass,
+          isFullScreen ? styles.style400_7 : styles.style400_8
+        )}
+        dir={direction}
+        aria-busy="true"
+        aria-label={copy.loadingTitle}
+      >
+        <div
+          className={cn(styles.style446_18, isFullScreen && styles.style446_19)}
+          dir={adStageDirection}
+        >
+          {showNavigationShell && (
+            <>
+              <div
+                className={cn(styles.style457_20, 'opacity-20 pointer-events-none')}
+                aria-hidden="true"
+              >
+                <ChevronLeft className={styles.style463_23} />
+              </div>
+
+              <div
+                className={cn(styles.style472_24, 'opacity-20 pointer-events-none')}
+                aria-hidden="true"
+              >
+                <ChevronRight className={styles.style478_27} />
+              </div>
+            </>
+          )}
+
+          <div
+            className={cn(
+              styles.style490_28,
+              'justify-center px-6 sm:px-16 pointer-events-none'
+            )}
+          >
+            {/* Adjacent card preview on right (for RTL) */}
+            <div className={cn(styles.style497_31, 'hidden md:block opacity-25')}>
+              <AdCardSkeleton className={cardClassName} />
+            </div>
+            {/* Center prominent card */}
+            <div className={styles.style497_31}>
+              <AdCardSkeleton className={cardClassName} />
+            </div>
+            {/* Adjacent card preview on left (for RTL) */}
+            <div className={cn(styles.style497_31, 'hidden sm:block opacity-35')}>
+              <AdCardSkeleton className={cardClassName} />
+            </div>
+          </div>
+        </div>
+      </section>
     );
   }
 

@@ -88,14 +88,19 @@ export function CaptainHeader({
       <div className={styles.topRow}>
         <div className={styles.brandRow}>
           <div className={styles.logoWrap}>
-            <Image
-              src="/icons/logo-header.png"
-              alt="Radar"
-              width={110}
-              height={28}
-              priority
-              className={styles.logoImage}
-            />
+            <a
+              href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+              className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+            >
+              <Image
+                src="/icons/logo-header.png"
+                alt="Radar"
+                width={110}
+                height={28}
+                priority
+                className={styles.logoImage}
+              />
+            </a>
           </div>
           <div className={styles.marketWrapMobile}>
             <MarketStatusIndicator indicator={marketIndicator} size="compact" />

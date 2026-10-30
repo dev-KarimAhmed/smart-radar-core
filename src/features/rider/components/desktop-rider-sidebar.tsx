@@ -166,14 +166,19 @@ export function DesktopRiderSidebar({
     <aside aria-label={tAuto('key_5cbbdfd5')} className={styles.root} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Brand Header with Distinct Teal 'بينكم' Coloring */}
       <div className={styles.header}>
-        <Image
-          src="/icons/logo-header.png"
-          alt="بينكم"
-          width={120}
-          height={32}
-          priority
-          className={styles.brandLogo}
-        />
+        <a
+          href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+          className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+        >
+          <Image
+            src="/icons/logo-header.png"
+            alt="بينكم"
+            width={120}
+            height={32}
+            priority
+            className={styles.brandLogo}
+          />
+        </a>
         <h2 className={styles.brandTitle}>
           {isArabic ? (
             <>

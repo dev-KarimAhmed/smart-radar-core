@@ -94,10 +94,57 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
     onCancelPreview,
   } = props;
 
-  if (state.screen === 'DESTINATION_SELECTION') {
+  if (state.autoRetryRequested) {
     return (
       <>
-        <DestinationSelectionScreen
+        {state.screen === 'DESTINATION_SELECTION' ? (
+          <DestinationSelectionScreen
+            isArabic={isArabic}
+            language={language}
+            locationStatus={locationStatus}
+            geography={geography}
+            search={search}
+            mapPicker={mapPicker}
+            clipboard={clipboard}
+            fareAndRoute={fareAndRoute}
+            countryConfig={countryConfig}
+            currencyLabel={currencyLabel}
+            selectedDraftDestination={selectedDraftDestination}
+            selectedDestinationCoords={selectedDestinationCoords}
+            pinnedPlaceLabel={pinnedPlaceLabel}
+            isDestinationPinMoving={isDestinationPinMoving}
+            riderCount={tripCompletion.riderCount}
+            setRiderCount={tripCompletion.setRiderCount}
+            pricingPreference={tripCompletion.pricingPreference}
+            setPricingPreference={tripCompletion.setPricingPreference}
+            isSendingRideRequest={sendCancel.isSendingRideRequest}
+            isCaptainScanPreviewActive={isCaptainScanPreviewActive}
+            nearbyCaptainCount={captainPresence.mappedCaptains.length}
+            onGovernorateChange={onGovernorateChange}
+            onDistrictChange={onDistrictChange}
+            onSendRequest={(count) => sendCancel.handleSendRequest(count ?? tripCompletion.riderCount)}
+            onResetDraft={onResetDraft}
+            onCancelPreview={onCancelPreview}
+          />
+        ) : null}
+        <CaptainCancelledDialog
+          isArabic={isArabic}
+          open={true}
+          onRetry={() => {
+            dispatch({ type: 'CLEAR_AUTO_RETRY' });
+            void sendCancel.handleSendRequest(tripCompletion.riderCount || 1);
+          }}
+          onCancel={() => {
+            dispatch({ type: 'RESET_TO_IDLE' });
+          }}
+        />
+      </>
+    );
+  }
+
+  if (state.screen === 'DESTINATION_SELECTION') {
+    return (
+      <DestinationSelectionScreen
         isArabic={isArabic}
         language={language}
         locationStatus={locationStatus}
@@ -125,20 +172,6 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         onResetDraft={onResetDraft}
         onCancelPreview={onCancelPreview}
       />
-      {state.autoRetryRequested && (
-        <CaptainCancelledDialog
-          isArabic={isArabic}
-          open={true}
-          onRetry={() => {
-            dispatch({ type: 'CLEAR_AUTO_RETRY' });
-            void sendCancel.handleSendRequest();
-          }}
-          onCancel={() => {
-            dispatch({ type: 'RESET_TO_IDLE' });
-          }}
-        />
-      )}
-      </>
     );
   }
 
@@ -177,7 +210,9 @@ export function RiderActiveScreen(props: RiderActiveScreenProps) {
         currencyLabel={currencyLabel}
         isCancellingRideRequest={sendCancel.isCancellingRideRequest}
         onEmergencyWhatsapp={emergencyContact.handleEmergencyWhatsapp}
-        onCancelRideRequest={() => void sendCancel.handleCancelRideRequest()}
+        onCancelRideRequest={() => {
+          dispatch({ type: 'REQUEST_CANCELLED' });
+        }}
       />
     );
   }

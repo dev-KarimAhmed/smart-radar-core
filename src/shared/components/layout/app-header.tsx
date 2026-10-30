@@ -290,14 +290,19 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
           </div>
         ) : (
           <div className={styles.requestRideWrapper}>
-            <Image
-              src="/icons/logo-header.png"
-              alt="Radar"
-              width={585}
-              height={152}
-              priority
-              className={styles.headerCenterLogo}
-            />
+            <a
+              href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+              className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+            >
+              <Image
+                src="/icons/logo-header.png"
+                alt="Radar"
+                width={585}
+                height={152}
+                priority
+                className={styles.headerCenterLogo}
+              />
+            </a>
           </div>
         )}
 

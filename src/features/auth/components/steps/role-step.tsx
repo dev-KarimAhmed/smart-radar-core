@@ -303,14 +303,19 @@ export function RoleStep() {
       <section className={styles.style279_7}>
         <div className={styles.style280_8}>
           <div className={styles.style281_9}>
-            <Image
-              src="/icons/logo-header.png"
-              alt="Radar"
-              width={585}
-              height={152}
-              priority
-              className={styles.brandLogoImg}
-            />
+            <a
+              href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+              className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+            >
+              <Image
+                src="/icons/logo-header.png"
+                alt="Radar"
+                width={585}
+                height={152}
+                priority
+                className={styles.brandLogoImg}
+              />
+            </a>
           </div>
 
           <h1 className={styles.style285_11}>

@@ -502,10 +502,12 @@ export function ActiveTripTracker({
           <div className="space-y-3 rounded-2xl border-2 border-rose-500/50 bg-rose-950/40 p-4 shadow-xl">
             <div className="flex items-center gap-2 text-rose-300 font-black text-sm">
               <AlertOctagon className="h-5 w-5 text-rose-400 shrink-0" />
-              <span>المستخدم يطلب إلغاء هذه الرحلة!</span>
+              <span>{language === 'ar' ? 'المستخدم يطلب إلغاء هذه الرحلة!' : 'Rider requested trip cancellation!'}</span>
             </div>
             <p className="text-xs text-rose-100/90 leading-relaxed">
-              طلب المستخدم إلغاء الرحلة بالتوافق المشترك. هل توافق على إلغاء الرحلة؟
+              {language === 'ar'
+                ? 'طلب المستخدم إلغاء الرحلة بالتوافق المشترك. هل توافق على إلغاء الرحلة؟'
+                : 'The rider requested mutual cancellation. Do you agree to cancel?'}
             </p>
             <div className="flex gap-2.5 pt-1">
               <button
@@ -514,7 +516,9 @@ export function ActiveTripTracker({
                 onClick={mutualCancel.acceptCancel}
                 className="h-10 flex-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-black text-white transition cursor-pointer disabled:opacity-50"
               >
-                {mutualCancel.isProcessing || isCancelling ? 'جاري الإلغاء...' : 'موافق على الإلغاء'}
+                {mutualCancel.isProcessing || isCancelling
+                  ? (language === 'ar' ? 'جاري الإلغاء...' : 'Cancelling...')
+                  : (language === 'ar' ? 'موافق على الإلغاء' : 'Accept Cancel')}
               </button>
               <button
                 type="button"
@@ -522,7 +526,7 @@ export function ActiveTripTracker({
                 onClick={mutualCancel.declineCancel}
                 className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition cursor-pointer"
               >
-                رفض الإلغاء
+                {language === 'ar' ? 'رفض الإلغاء' : 'Decline'}
               </button>
             </div>
           </div>
@@ -530,10 +534,12 @@ export function ActiveTripTracker({
           <div className="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
             <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-sm">
               <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
-              <span>تم إرسال طلب إلغاء الرحلة... بانتظار موافقة المستخدم</span>
+              <span>{language === 'ar' ? 'تم إرسال طلب إلغاء الرحلة... بانتظار موافقة المستخدم' : 'Cancellation requested... waiting for rider'}</span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed">
-              يتطلب إلغاء الرحلة موافقة الطرفين. جاري انتظار رد المستخدم.
+              {language === 'ar'
+                ? 'يتطلب إلغاء الرحلة موافقة الطرفين. جاري انتظار رد المستخدم.'
+                : 'Cancellation requires mutual agreement. Waiting for rider response.'}
             </p>
             <button
               type="button"
@@ -541,7 +547,7 @@ export function ActiveTripTracker({
               onClick={mutualCancel.revokeCancel}
               className="h-9 px-4 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10"
             >
-              تراجع عن طلب الإلغاء
+              {language === 'ar' ? 'تراجع عن طلب الإلغاء' : 'Revoke Request'}
             </button>
           </div>
         ) : !isConfirmingCancel ? (
@@ -557,7 +563,9 @@ export function ActiveTripTracker({
         ) : (
           <div className={styles.cancelConfirmWrap}>
             <p className={styles.cancelConfirmText}>
-              يتطلب إلغاء الرحلة موافقة المستخدم. هل تود إرسال طلب الإلغاء؟
+              {language === 'ar'
+                ? 'يتطلب إلغاء الرحلة موافقة المستخدم. هل تود إرسال طلب الإلغاء؟'
+                : 'Cancelling requires mutual agreement. Send cancellation request?'}
             </p>
             <div className={styles.cancelConfirmActions}>
               <button
@@ -569,7 +577,7 @@ export function ActiveTripTracker({
                 }}
                 className={styles.cancelConfirmButton}
               >
-                إرسال طلب الإلغاء
+                {language === 'ar' ? 'إرسال طلب الإلغاء' : 'Send Request'}
               </button>
               <button
                 type="button"
