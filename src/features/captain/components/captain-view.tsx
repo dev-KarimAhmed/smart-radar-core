@@ -132,10 +132,17 @@ export function DriverViewTab() {
 
   const completeTrip = async () => {
     const trip = driverOps.activeRequest;
+    const riderId = trip?.riderId || driverOps.acceptedRider?.uid || '';
     const riderName = driverOps.acceptedRider?.name;
+    const requestId = trip?.id || '';
     const ok = await driverOps.endTrip();
     if (!ok) return;
-    dispatch({ type: 'TRIP_COMPLETED', completedTrip: trip ? { requestId: trip.id, riderId: trip.riderId, riderName } : undefined });
+    if (requestId && riderId) {
+      dispatch({
+        type: 'TRIP_COMPLETED',
+        completedTrip: { requestId, riderId, riderName },
+      });
+    }
   };
 
   return (

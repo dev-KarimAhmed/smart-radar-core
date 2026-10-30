@@ -331,7 +331,7 @@ export function HistoryRiderTrips({
                     </a>
 
                     <div className="flex items-center gap-2">
-                      {!hasReview && !trip.captainId && (
+                      {!hasReview && !blockedCaptainIdSet.has(trip.captainId || '') && (
                         <button
                           type="button"
                           onClick={() => setRatingTargetTrip(trip)}
@@ -342,15 +342,11 @@ export function HistoryRiderTrips({
                         </button>
                       )}
 
-                      {!hasReview && trip.captainId && !blockedCaptainIdSet.has(trip.captainId) && (
-                        <button
-                          type="button"
-                          onClick={() => setRatingTargetTrip(trip)}
-                          className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
-                        >
-                          <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
-                          <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن المعلن' : 'Rate Captain')}</span>
-                        </button>
+                      {hasReview && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-xl">
+                          <Star className="h-3 w-3 fill-emerald-400 text-emerald-400" />
+                          <span>{t('rated') || (isArabic ? 'تم التقييم' : 'Rated')}</span>
+                        </span>
                       )}
 
                       {trip.captainId && (

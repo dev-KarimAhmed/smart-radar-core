@@ -145,6 +145,9 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
             currencyLabel={currencyLabel}
             isArabic={isArabic}
             now={now}
+            tripReviews={tripReviews}
+            currentUserId={user?.uid}
+            onRatingSuccess={refreshReviews}
             t={t}
           />
 

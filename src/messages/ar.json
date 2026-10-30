@@ -2055,6 +2055,8 @@
     "active": "نشط",
     "pending": "قيد الانتظار",
     "linkedCaptainBadge": "كابتنك المعلن المعتمد (رابط الإحالة)",
+    "rateRider": "تقييم الراكب",
+    "rated": "تم التقييم",
     "removeFromFavorites": "إزالة من المفضلة",
     "noSavedCaptains": "لم تقم بحفظ أي كابتن معلن في المفضلة بعد"
   },

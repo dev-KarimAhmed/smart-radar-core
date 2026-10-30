@@ -2055,6 +2055,8 @@
     "active": "Active",
     "pending": "Pending",
     "linkedCaptainBadge": "Linked Captain (Referral)",
+    "rateRider": "Rate Rider",
+    "rated": "Rated",
     "removeFromFavorites": "Remove from favorites",
     "noSavedCaptains": "No favorite drivers saved yet"
   },

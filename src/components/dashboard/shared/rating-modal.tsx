@@ -361,13 +361,24 @@ export function RatingModal({
 
         <div className={styles.style285_24}>
           {!confirmBlock ? (
-            <Button
-              className={styles.style288_25}
-              disabled={isSubmitting || isBlocking}
-              onClick={handleSubmit}
-            >
-              {isSubmitting ? tAuto('ratingModal_submitting') : tAuto('ratingModal_submit')}
-            </Button>
+            <>
+              <Button
+                className={styles.style288_25}
+                disabled={isSubmitting || isBlocking}
+                onClick={handleSubmit}
+              >
+                {isSubmitting ? tAuto('ratingModal_submitting') : tAuto('ratingModal_submit')}
+              </Button>
+              <Button
+                variant="ghost"
+                type="button"
+                className="w-full text-slate-400 hover:text-white hover:bg-white/5 font-bold text-xs h-9 rounded-xl transition-all"
+                disabled={isSubmitting || isBlocking}
+                onClick={onClose}
+              >
+                {isArabic ? 'تخطي التقييم الآن' : 'Skip for now'}
+              </Button>
+            </>
           ) : null}
 
           {!confirmBlock ? (

@@ -121,10 +121,26 @@ export function DriverRatingModal({
         ),
       };
 
+      let resolvedCaptainId = captainId;
+      if (!resolvedCaptainId) {
+        const { data: authData } = await supabase.auth.getUser();
+        resolvedCaptainId = authData?.user?.id || '';
+      }
+
+      let resolvedRiderId = riderId;
+      if (!resolvedRiderId) {
+        const { data: tripData } = await supabase
+          .from('ride_requests')
+          .select('rider_id')
+          .eq('id', tripId)
+          .maybeSingle();
+        resolvedRiderId = tripData?.rider_id || '';
+      }
+
       const { error } = await supabase.from('reviews').insert({
         trip_id: tripId,
-        reviewer_id: captainId,
-        reviewee_id: riderId,
+        reviewer_id: resolvedCaptainId,
+        reviewee_id: resolvedRiderId,
         detailed_stars: detailedStarsPayload,
         comment: comment.trim() || null,
       });
@@ -260,13 +276,24 @@ export function DriverRatingModal({
 
         <div className={styles.actions}>
           {!confirmBlock ? (
-            <Button
-              className={styles.submitButton}
-              disabled={isSubmitting || isBlocking}
-              onClick={handleSubmit}
-            >
-              {isSubmitting ? copy.submitting : copy.submit}
-            </Button>
+            <>
+              <Button
+                className={styles.submitButton}
+                disabled={isSubmitting || isBlocking}
+                onClick={handleSubmit}
+              >
+                {isSubmitting ? copy.submitting : copy.submit}
+              </Button>
+              <Button
+                variant="ghost"
+                type="button"
+                className="w-full text-slate-400 hover:text-white hover:bg-white/5 font-bold text-xs h-9 rounded-xl transition-all"
+                disabled={isSubmitting || isBlocking}
+                onClick={onClose}
+              >
+                {isArabic ? 'تخطي التقييم الآن' : 'Skip for now'}
+              </Button>
+            </>
           ) : null}
 
           {!confirmBlock ? (

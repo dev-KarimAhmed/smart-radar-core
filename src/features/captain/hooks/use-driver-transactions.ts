@@ -636,6 +636,11 @@ export function useDriverTransactions(
     const startedAtMs = activeRequest.startedAtMs;
     const elapsedSec = startedAtMs ? Math.max(0, Math.floor((getServerTime() - startedAtMs) / 1000)) : 0;
     if (startedAtMs && elapsedSec < 3) {
+      toast({
+        title: 'يرجى الانتظار بضع ثوانٍ',
+        description: 'لا يمكن إنهاء الرحلة مباشرة فور بدئها',
+        variant: 'warning',
+      });
       return false;
     }
 
@@ -652,8 +657,11 @@ export function useDriverTransactions(
       await dexieDb.captainLedger.put({
         requestId: activeRequest.id,
         captainId,
-        riderId: activeRequest.riderId,
+        riderId: activeRequest.riderId || acceptedRider?.uid || '',
+        riderName: acceptedRider?.name || '',
+        riderPhone: acceptedRider?.phone || '',
         destination: activeRequest.dropoff || 'Destination',
+        pickup: activeRequest.pickupLabel || '',
         finalFare: Number(activeRequest.offerPrice || 0),
         completedAt: Date.now(),
         purgeAt: Date.now() + 72 * 60 * 60 * 1000,

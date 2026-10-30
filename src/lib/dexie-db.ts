@@ -68,6 +68,8 @@ export interface CaptainLedgerEntry {
   requestId: string;
   captainId: string;
   riderId?: string;
+  riderName?: string;
+  riderPhone?: string;
   destination: string;
   pickup?: string;
   finalFare: number;

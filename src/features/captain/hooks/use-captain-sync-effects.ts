@@ -29,6 +29,20 @@ export function useCaptainSyncEffects({
   t,
 }: CaptainSyncEffectsParams) {
   const knownRequestIdsRef = React.useRef<Set<string> | null>(null);
+  const lastActiveTripRef = React.useRef<{ requestId: string; riderId: string; riderName?: string } | null>(null);
+
+  React.useEffect(() => {
+    if (driverOps?.activeRequest?.id) {
+      const riderId = driverOps.activeRequest.riderId || driverOps.acceptedRider?.uid || '';
+      if (riderId) {
+        lastActiveTripRef.current = {
+          requestId: driverOps.activeRequest.id,
+          riderId,
+          riderName: driverOps.acceptedRider?.name,
+        };
+      }
+    }
+  }, [driverOps?.activeRequest, driverOps?.acceptedRider]);
 
   // Auto idle on network offline
   React.useEffect(() => {
@@ -51,8 +65,15 @@ export function useCaptainSyncEffects({
       dispatch({ type: 'SERVER_ACCEPTED', request: driverOps.activeRequest, step: syncedStep });
       return;
     }
-    if (state.screen === 'ACTIVE_TRIP') dispatch({ type: 'TRIP_COMPLETED' });
-  }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id, state.tripStep, dispatch]);
+    if (state.screen === 'ACTIVE_TRIP') {
+      const fallbackTrip = lastActiveTripRef.current || (state.selectedRequest?.id ? {
+        requestId: state.selectedRequest.id,
+        riderId: state.selectedRequest.riderId || driverOps?.acceptedRider?.uid || '',
+        riderName: driverOps?.acceptedRider?.name,
+      } : undefined);
+      dispatch({ type: 'TRIP_COMPLETED', completedTrip: fallbackTrip });
+    }
+  }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id, state.selectedRequest?.riderId, state.tripStep, dispatch]);
 
   // Sync pending offer state with driverOps
   React.useEffect(() => {

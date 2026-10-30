@@ -2,11 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, FileText, User, Clock, ChevronDown, Ban, ShieldCheck } from 'lucide-react';
+import { AlertCircle, FileText, User, Clock, ChevronDown, Ban, ShieldCheck, Star } from 'lucide-react';
 import { formatHistoryMoney } from './history-shared';
 import { cn } from '@/lib/utils';
 import { HistorySkeleton } from './history-skeleton';
 import { useBlockedRiders } from '@/features/captain/hooks/use-blocked-riders';
+import { DriverRatingModal } from '@/features/captain/components/driver-rating-modal';
+import { supabase } from '@/lib/supabase-client';
 
 const styles = {
   container: "space-y-6",
@@ -65,6 +67,9 @@ interface HistoryCaptainTripsProps {
   currencyLabel: string;
   isArabic: boolean;
   now: number;
+  tripReviews?: Record<string, any>;
+  currentUserId?: string;
+  onRatingSuccess?: (tripId: string) => void;
   t: any;
 }
 
@@ -74,14 +79,61 @@ export function HistoryCaptainTrips({
   currencyLabel,
   isArabic,
   now,
+  tripReviews = {},
+  currentUserId,
+  onRatingSuccess,
   t
 }: HistoryCaptainTripsProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [ratingTargetTrip, setRatingTargetTrip] = useState<any | null>(null);
   const activeCurrency = currencyLabel || (isArabic ? 'د.أ' : 'JOD');
 
   const { blockedRiders = [], handleBlockRider, handleUnblockRider } = useBlockedRiders(isArabic ? 'ar' : 'en');
   const blockedRiderIdSet = useMemo(() => new Set((blockedRiders || []).map((r) => r.id)), [blockedRiders]);
   const [confirmingBlockId, setConfirmingBlockId] = useState<string | null>(null);
+
+  const handleOpenRating = async (trip: any) => {
+    if (trip.riderId) {
+      setRatingTargetTrip(trip);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from('ride_requests')
+        .select('rider_id, profiles:rider_id(full_name)')
+        .eq('id', trip.tripId)
+        .maybeSingle();
+      if (data?.rider_id) {
+        setRatingTargetTrip({
+          ...trip,
+          riderId: data.rider_id,
+          riderName: (data.profiles as any)?.full_name || trip.riderName,
+        });
+        return;
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') console.error('Failed to resolve riderId:', err);
+    }
+    setRatingTargetTrip(trip);
+  };
+
+  const handleBlockRiderWithFallback = async (trip: any) => {
+    let targetRiderId = trip.riderId;
+    if (!targetRiderId) {
+      try {
+        const { data } = await supabase
+          .from('ride_requests')
+          .select('rider_id')
+          .eq('id', trip.tripId)
+          .maybeSingle();
+        targetRiderId = data?.rider_id;
+      } catch {}
+    }
+    if (targetRiderId) {
+      await handleBlockRider(targetRiderId);
+    }
+    setConfirmingBlockId(null);
+  };
 
   return (
     <div className={styles.container}>
@@ -153,6 +205,7 @@ export function HistoryCaptainTrips({
                 });
 
                 const isBlocked = trip.riderId ? blockedRiderIdSet.has(trip.riderId) : false;
+                const hasReview = Boolean(tripReviews[trip.tripId]);
 
                 return (
                   <div key={trip.tripId} className={styles.tripCard}>
@@ -212,14 +265,33 @@ export function HistoryCaptainTrips({
                       )}
                     </div>
 
-                    {/* Actions Row: Block / Unblock Rider */}
-                    {trip.riderId && (
+                    {/* Actions Row: Rating & Block / Unblock Rider */}
+                    {(trip.riderId || trip.tripId) && (
                       <div className="pt-2 flex items-center justify-between border-t border-white/5 gap-2 flex-wrap">
-                        <span className="text-[11px] font-medium text-slate-400">
-                          {isBlocked
-                            ? (isArabic ? 'هذا المستخدم محظور من رادارك' : 'Rider is blocked from radar')
-                            : ''}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {!hasReview && !isBlocked && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void handleOpenRating(trip)}
+                              className="h-8 px-3 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-bold text-[11px] active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
+                              <span>{t('rateRider') || (isArabic ? 'تقييم الراكب' : 'Rate Rider')}</span>
+                            </Button>
+                          )}
+                          {hasReview && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+                              <Star className="h-3 w-3 fill-emerald-400 text-emerald-400" />
+                              <span>{t('rated') || (isArabic ? 'تم التقييم' : 'Rated')}</span>
+                            </span>
+                          )}
+                          <span className="text-[11px] font-medium text-slate-400">
+                            {isBlocked
+                              ? (isArabic ? 'هذا المستخدم محظور من رادارك' : 'Rider is blocked from radar')
+                              : ''}
+                          </span>
+                        </div>
                         <div>
                           {isBlocked ? (
                             <Button
@@ -236,10 +308,7 @@ export function HistoryCaptainTrips({
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={async () => {
-                                  await handleBlockRider(trip.riderId);
-                                  setConfirmingBlockId(null);
-                                }}
+                                onClick={() => void handleBlockRiderWithFallback(trip)}
                                 className="h-8 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] cursor-pointer"
                               >
                                 {isArabic ? 'تأكيد الحظر' : 'Confirm'}
@@ -275,6 +344,23 @@ export function HistoryCaptainTrips({
         </CardContent>
         )}
       </Card>
+
+      {ratingTargetTrip && currentUserId && (
+        <DriverRatingModal
+          isOpen={Boolean(ratingTargetTrip)}
+          onClose={() => setRatingTargetTrip(null)}
+          language={isArabic ? 'ar' : 'en'}
+          tripId={ratingTargetTrip.tripId}
+          riderId={ratingTargetTrip.riderId}
+          captainId={currentUserId}
+          supabase={supabase}
+          riderName={ratingTargetTrip.riderName}
+          onSuccess={() => {
+            onRatingSuccess?.(ratingTargetTrip.tripId);
+            setRatingTargetTrip(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -374,15 +374,20 @@ export function useHistoryState() {
             const localMapped = localCaptainTrips.map(entry => {
               const cleanDest = (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير محدد') ? entry.destination : '';
               const cleanPick = (entry.pickup && entry.pickup !== 'موقعي الحالي') ? entry.pickup : '';
+              const riderId = entry.riderId || '';
               return {
                 id: entry.requestId,
+                request_id: entry.requestId,
+                rider_id: riderId,
+                riderId: riderId,
                 status: 'COMPLETED',
                 completed_at: new Date(entry.completedAt).toISOString(),
                 created_at: new Date(entry.completedAt).toISOString(),
                 final_fare: entry.finalFare,
                 rider: {
-                  full_name: isArabic ? 'مستخدم محلي' : 'Local Rider',
-                  phone: '',
+                  id: riderId,
+                  full_name: (entry as any).riderName || (isArabic ? 'مستخدم محلي' : 'Local Rider'),
+                  phone: (entry as any).riderPhone || '',
                   rating: 5.0
                 },
                 destination_address_ar: cleanDest,
@@ -390,6 +395,8 @@ export function useHistoryState() {
                 pickup_address_ar: cleanPick,
                 pickup_address: cleanPick,
                 metadata: {
+                  rider_id: riderId,
+                  riderId: riderId,
                   pickup_address_ar: cleanPick,
                   destination_address_ar: cleanDest
                 }
@@ -402,6 +409,35 @@ export function useHistoryState() {
                 fetchedData.push(item);
                 seenIds.add(item.id);
               }
+            }
+
+            // Enrich rider names for local trips if missing
+            const unpopulatedRiderIds = Array.from(new Set(
+              fetchedData
+                .filter(r => (r.rider_id || r.riderId) && (!r.rider?.full_name || r.rider.full_name === 'مستخدم محلي' || r.rider.full_name === 'Local Rider'))
+                .map(r => r.rider_id || r.riderId)
+                .filter(Boolean)
+            ));
+            if (unpopulatedRiderIds.length > 0) {
+              try {
+                const riderMap = await fetchRowsByIds('profiles', unpopulatedRiderIds);
+                fetchedData = fetchedData.map(item => {
+                  const targetRiderId = item.rider_id || item.riderId;
+                  if (targetRiderId && riderMap.has(targetRiderId)) {
+                    const prof = riderMap.get(targetRiderId);
+                    return {
+                      ...item,
+                      rider: {
+                        ...item.rider,
+                        id: targetRiderId,
+                        full_name: prof.full_name || item.rider?.full_name,
+                        phone: prof.phone || item.rider?.phone,
+                      }
+                    };
+                  }
+                  return item;
+                });
+              } catch {}
             }
           } else {
             const localRiderTrips = await dexieDb.riderTripLedger.toArray();
@@ -450,7 +486,10 @@ export function useHistoryState() {
 
         // 1.5 Fetch reviews for these trips to show detailed rating items
         try {
-          const tripIds = fetchedData.map(r => r.id).filter(Boolean);
+          const tripIds = Array.from(new Set([
+            ...fetchedData.map(r => r.id),
+            ...realTrips.map(r => r.id)
+          ])).filter(Boolean);
           if (tripIds.length > 0) {
             const { data: reviewsData, error: reviewsError } = await supabase
               .from('reviews')
@@ -460,7 +499,11 @@ export function useHistoryState() {
             if (!reviewsError && reviewsData && active) {
               const reviewsMap: Record<string, any> = {};
               reviewsData.forEach(rev => {
-                reviewsMap[rev.trip_id] = rev;
+                if (user?.uid && rev.reviewer_id === user.uid) {
+                  reviewsMap[rev.trip_id] = rev;
+                } else if (!user?.uid && !reviewsMap[rev.trip_id]) {
+                  reviewsMap[rev.trip_id] = rev;
+                }
               });
               setTripReviews(reviewsMap);
             }
@@ -730,7 +773,11 @@ export function useHistoryState() {
         if (!reviewsError && reviewsData) {
           const reviewsMap: Record<string, any> = {};
           reviewsData.forEach(rev => {
-            reviewsMap[rev.trip_id] = rev;
+            if (user?.uid && rev.reviewer_id === user.uid) {
+              reviewsMap[rev.trip_id] = rev;
+            } else if (!user?.uid && !reviewsMap[rev.trip_id]) {
+              reviewsMap[rev.trip_id] = rev;
+            }
           });
           setTripReviews(reviewsMap);
         }
@@ -738,7 +785,7 @@ export function useHistoryState() {
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab] refresh reviews failed', err);
     }
-  }, [realTrips]);
+  }, [realTrips, user?.uid]);
 
   return {
     favoriteCaptainIds,
