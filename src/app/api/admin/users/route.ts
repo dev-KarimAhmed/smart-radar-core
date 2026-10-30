@@ -1,7 +1,28 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller, hasAdminSectorAccess } from '@/lib/admin-auth-verifier';
-import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
+import { encodeNotificationPayload, resolveDynamicNotification } from '@/shared/utils/notification-i18n';
+
+async function insertDualNotification(item: {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  type: string;
+  is_read?: boolean;
+  created_at?: string;
+}) {
+  const dynamic = resolveDynamicNotification(item.title, item.description);
+  const encoded = dynamic.matched
+    ? encodeNotificationPayload(dynamic.titleAr, dynamic.descriptionAr, dynamic.titleEn, dynamic.descriptionEn)
+    : { title: item.title, description: item.description };
+
+  return supabaseAdmin.from('user_notifications').insert({
+    ...item,
+    title: encoded.title,
+    description: encoded.description,
+  });
+}
 
 export async function GET(req: Request) {
   const admin = await verifyAdminCaller(req);
@@ -443,7 +464,7 @@ export async function POST(req: Request) {
           notifType = 'urgent';
         }
 
-        await supabaseAdmin.from('user_notifications').insert({
+        await insertDualNotification({
           id: `notif_status_${userId}_${Date.now()}`,
           user_id: userId,
           title: notifTitle,
@@ -476,7 +497,7 @@ export async function POST(req: Request) {
 
         // Push notification to captain
         if (normStatus === 'APPROVED') {
-          await supabaseAdmin.from('user_notifications').insert({
+          await insertDualNotification({
             id: `notif_verif_${userId}_${Date.now()}`,
             user_id: userId,
             title: 'تهانينا يا كابتن معلن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
@@ -486,7 +507,7 @@ export async function POST(req: Request) {
             created_at: new Date().toISOString(),
           });
         } else if (normStatus === 'REJECTED') {
-          await supabaseAdmin.from('user_notifications').insert({
+          await insertDualNotification({
             id: `notif_verif_rej_${userId}_${Date.now()}`,
             user_id: userId,
             title: 'تنبيه: مراجعة وثائق الكابتن المعلن ⚠️',
@@ -548,7 +569,7 @@ export async function POST(req: Request) {
         }
 
         // Push real-time notification to the captain
-        await supabaseAdmin.from('user_notifications').insert({
+        await insertDualNotification({
           id: `notif_topup_min_${userId}_${Date.now()}`,
           user_id: userId,
           title: 'شحن رصيد دقائق الرادار ⚡',
@@ -591,7 +612,7 @@ export async function POST(req: Request) {
         if (error) throw error;
 
         // Push real-time notification to the captain
-        await supabaseAdmin.from('user_notifications').insert({
+        await insertDualNotification({
           id: `notif_adjust_bal_${userId}_${Date.now()}`,
           user_id: userId,
           title: 'إيداع نقدي في المحفظة 💰',
@@ -678,7 +699,7 @@ export async function POST(req: Request) {
         }
 
         // Push real-time notification to the user
-        await supabaseAdmin.from('user_notifications').insert({
+        await insertDualNotification({
           id: `notif_reset_penalties_${userId}_${Date.now()}`,
           user_id: userId,
           title: originalRole === 'CAPTAIN' || originalRole === 'DRIVER'
@@ -754,7 +775,7 @@ export async function POST(req: Request) {
         };
 
         // Push real-time notification to the captain
-        await supabaseAdmin.from('user_notifications').insert({
+        await insertDualNotification({
           id: `notif_tier_${userId}_${Date.now()}`,
           user_id: userId,
           title: `ترقية سيادية: أصبحت رتبتك ${tierNames[tier] || tier} 🏆`,
@@ -790,7 +811,7 @@ export async function POST(req: Request) {
           .in('status', ['ACCEPTED', 'ARRIVED', 'IN_PROGRESS', 'PICKED_UP', 'STARTED']);
 
         // Push real-time notification to the captain
-        await supabaseAdmin.from('user_notifications').insert({
+        await insertDualNotification({
           id: `notif_clear_trip_${userId}_${Date.now()}`,
           user_id: userId,
           title: 'فك تعليق الرحلة ⚡',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { encodeNotificationPayload, resolveDynamicNotification } from '@/shared/utils/notification-i18n';
 
 // Generate human-friendly voucher codes
 function generateVoucherCode(minutes: number): string {
@@ -15,11 +16,16 @@ function generateVoucherCode(minutes: number): string {
 async function sendCaptainNotification(userId: string, id: string, title: string, description: string, type: string) {
   try {
     const notifId = `${id}_${Date.now()}`;
+    const dynamic = resolveDynamicNotification(title, description);
+    const encoded = dynamic.matched
+      ? encodeNotificationPayload(dynamic.titleAr, dynamic.descriptionAr, dynamic.titleEn, dynamic.descriptionEn)
+      : { title, description };
+
     await supabaseAdmin.from('user_notifications').insert({
       id: notifId,
       user_id: userId,
-      title,
-      description,
+      title: encoded.title,
+      description: encoded.description,
       type,
       is_read: false,
       created_at: new Date().toISOString(),
