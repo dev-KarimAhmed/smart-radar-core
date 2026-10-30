@@ -93,7 +93,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
   const tRef = useTranslations('referral.notifications');
   const { user, isCaptain } = useAuth();
   const { isArabic, direction } = useDashboardLanguage();
-  const { notifications, hasUnread, markAllAsRead, markAsRead, deleteNotifications } = useNotifications();
+  const { notifications, hasUnread, markAllAsRead, markAsRead, deleteNotifications, clearAll } = useNotifications();
 
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -134,7 +134,11 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
   const handleDeleteSelected = async () => {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    await deleteNotifications(ids);
+    if (allSelected || ids.length === notifications.length) {
+      await clearAll();
+    } else {
+      await deleteNotifications(ids);
+    }
     setSelectedIds(new Set());
     setIsSelectMode(false);
   };

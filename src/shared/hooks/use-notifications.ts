@@ -173,6 +173,9 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// Track deleted notification IDs in current session to prevent resurrection
+const deletedNotificationIds = new Set<string>();
+
 let isGlobalFetching = false;
 let lastFetchTimestamp = 0;
 
@@ -200,14 +203,16 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
     if (currentStoreUserId !== targetUserId) return;
 
     const remoteItems: AppNotification[] = Array.isArray(data)
-      ? data.map((row: any) => ({
-          id: String(row.id),
-          title: String(row.title),
-          description: String(row.description),
-          timestamp: new Date(row.created_at).getTime(),
-          read: Boolean(row.is_read),
-          type: (row.type as AppNotification['type']) || 'system',
-        }))
+      ? data
+          .filter((row: any) => !deletedNotificationIds.has(String(row.id)))
+          .map((row: any) => ({
+            id: String(row.id),
+            title: String(row.title),
+            description: String(row.description),
+            timestamp: new Date(row.created_at).getTime(),
+            read: Boolean(row.is_read),
+            type: (row.type as AppNotification['type']) || 'system',
+          }))
       : [];
 
     const map = new Map<string, AppNotification>();
@@ -216,7 +221,7 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
     // Preserve any local items for this same user not yet in remote DB
     if (currentStoreUserId === targetUserId) {
       memoryNotifications.forEach((item) => {
-        if (!map.has(item.id)) {
+        if (!deletedNotificationIds.has(item.id) && !map.has(item.id)) {
           map.set(item.id, item);
         }
       });
@@ -444,20 +449,44 @@ export function useNotifications() {
     if (!idsToDelete || idsToDelete.length === 0) return;
     const targetUserId = userId || currentStoreUserId || getInitialUserId();
     const deleteSet = new Set(idsToDelete);
+    idsToDelete.forEach((id) => deletedNotificationIds.add(id));
     const updated = memoryNotifications.filter((n) => !deleteSet.has(n.id));
     updateStore(updated, targetUserId);
 
     if (!targetUserId) return;
 
     try {
-      const { error: rpcErr } = await supabase.rpc('delete_user_notifications', { p_ids: idsToDelete });
-      if (rpcErr) {
-        await supabase
-          .from('user_notifications')
-          .delete()
-          .in('id', idsToDelete)
-          .eq('user_id', targetUserId);
+      // 1. Authoritative backend API deletion (via service role to bypass RLS/session edge cases)
+      const session = (await supabase.auth.getSession()).data?.session;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
+
+      const apiPromise = fetch('/api/notifications', {
+        method: 'DELETE',
+        headers,
+        body: JSON.stringify({ ids: idsToDelete, userId: targetUserId }),
+      }).catch((err) => {
+        if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] API delete error:', err);
+      });
+
+      // 2. Client-side RPC & direct query as fast parallel paths
+      const rpcPromise = Promise.resolve(
+        supabase.rpc('delete_user_notifications', { p_ids: idsToDelete })
+      )
+        .then(async ({ data: count, error: rpcErr }) => {
+          if (rpcErr || count === 0) {
+            await supabase
+              .from('user_notifications')
+              .delete()
+              .in('id', idsToDelete)
+              .eq('user_id', targetUserId);
+          }
+        })
+        .catch(() => {});
+
+      await Promise.allSettled([apiPromise, rpcPromise]);
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] delete error:', err);
     }
@@ -466,15 +495,42 @@ export function useNotifications() {
   // Clear all
   const clearAll = useCallback(async () => {
     const targetUserId = userId || currentStoreUserId || getInitialUserId();
+    memoryNotifications.forEach((n) => deletedNotificationIds.add(n.id));
     updateStore([], targetUserId);
 
     if (!targetUserId) return;
 
     try {
-      await supabase
-        .from('user_notifications')
-        .delete()
-        .eq('user_id', targetUserId);
+      // 1. Authoritative backend API clear-all
+      const session = (await supabase.auth.getSession()).data?.session;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const apiPromise = fetch('/api/notifications', {
+        method: 'DELETE',
+        headers,
+        body: JSON.stringify({ all: true, userId: targetUserId }),
+      }).catch((err) => {
+        if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] API clearAll error:', err);
+      });
+
+      // 2. Client-side RPC & direct delete
+      const rpcPromise = Promise.resolve(
+        supabase.rpc('delete_all_user_notifications')
+      )
+        .then(async ({ data: count, error: rpcErr }) => {
+          if (rpcErr || count === 0) {
+            await supabase
+              .from('user_notifications')
+              .delete()
+              .eq('user_id', targetUserId);
+          }
+        })
+        .catch(() => {});
+
+      await Promise.allSettled([apiPromise, rpcPromise]);
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] clearAll exception:', err);
     }
