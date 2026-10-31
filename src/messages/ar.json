@@ -1984,6 +1984,29 @@
     "invalidEmergencyWhatsappDescription": "Invalid Emergency Whatsapp Description"
   },
   "historyTab": {
+    "tripNotifications": {
+      "title": "سجل إشعارات الحركات والتواصل",
+      "desc": "مدة الأرشيف 72 ساعة",
+      "markRead": "تعليم كمقروء",
+      "markAllRead": "تعليم الكل كمقروء",
+      "clear": "مسح",
+      "clearTitle": "مسح إشعارات الرحلات",
+      "emptyTitle": "لا توجد إشعارات رحلات أو عمليات حالياً",
+      "emptyDesc": "يتم أرشفة إشعارات قبول الرحلات وبدء المشاوير والعروض هنا تلقائياً وتُحذف كل 72 ساعة تماشياً مع البروتوكول السيادي.",
+      "badges": {
+        "trip": "رحلة",
+        "offer": "عرض",
+        "wallet": "محفظة",
+        "system": "نظام"
+      },
+      "time": {
+        "justNow": "الآن",
+        "minsAgo": "منذ {mins} دقيقة",
+        "hoursAgo": "منذ {hours} ساعة",
+        "daysAgo": "منذ {days} يوم"
+      },
+      "deleteTooltip": "حذف هذا الإشعار"
+    },
     "antiChatTitle": "وثيقة براءة الذمة ونقاء النظام (Anti-Chattiness & Zero-Chat Decree)",
     "antiChatDesc": "شهادة هندسية معتمدة تثبت خلو النظام تماماً من أي بروتوكولات دردشة مساعدة أو استهلاك عشوائي للباقة",
     "zeroChatTitle": "صفر تعقيد وصفر ثرثرة شبكية (Zero-Chat Mandate)",
@@ -2061,6 +2084,48 @@
     "rated": "تم التقييم",
     "removeFromFavorites": "إزالة من المفضلة",
     "noSavedCaptains": "لم تقم بحفظ أي كابتن معلن في المفضلة بعد"
+  },
+  "notificationsTab": {
+    "adminTitle": "إشعارات الإدارة",
+    "tripTitle": "سجل إشعارات الحركات والتواصل",
+    "generalTitle": "الإشعارات",
+    "cancel": "إلغاء",
+    "select": "تحديد",
+    "markAllRead": "تعليم الكل كمقروء",
+    "selectAll": "تحديد الكل",
+    "deselectAll": "إلغاء تحديد الكل",
+    "deleteSelected": "حذف المحدد ({count})",
+    "selectedCount": "(محدد {selected} من {total})",
+    "emptyAdmin": "لا توجد إشعارات أو رسائل من الإدارة حالياً",
+    "emptyTrip": "لا توجد إشعارات رحلات أو عمليات حالياً",
+    "emptyGeneral": "لا توجد إشعارات حالياً",
+    "backToRadar": "العودة للرادار",
+    "backToHome": "العودة للرئيسية",
+    "adNetworkPrefix": "شبكة ",
+    "adNetworkBrand": "بينكم",
+    "adNetworkSuffix": " للإعلان الرقمي",
+    "adNetworkWelcome": "ترحب بك",
+    "clickToView": "اضغط لعرض التفاصيل",
+    "clickToViewUnread": "اضغط لعرض التفاصيل وتعيين كمقروء",
+    "badges": {
+      "message": "رسالة",
+      "referral": "إحالة جديدة",
+      "adminMessage": "رسالة رسمية من الإدارة ✉️",
+      "referralInactivity": "تنبيه عدم نشاط راكب ⚠️",
+      "walletCredit": "إيداع وشحن رصيد 💰",
+      "depositConfirmed": "تأكيد إيداع الرصيد 💰",
+      "walletAlert": "تنبيه مالي ⚠️",
+      "warning": "تحذير هام ⚠️",
+      "urgent": "تنبيه عاجل 🚨",
+      "newReferralModal": "إحالة مستخدم جديد 👥",
+      "system": "إشعار من النظام 🔔"
+    },
+    "modal": {
+      "close": "إغلاق",
+      "delete": "حذف الإشعار",
+      "copied": "تم النسخ ✓",
+      "copy": "نسخ النص"
+    }
   },
   "adminTab": {
     "driverBlackbox": {

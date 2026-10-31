@@ -80,6 +80,7 @@ export interface NotificationsTabProps {
 
 export function NotificationsTab({ onClose, filterCategory }: NotificationsTabProps = {}) {
   const tRef = useTranslations('referral.notifications');
+  const tNotifs = useTranslations('notificationsTab');
   const { user, isCaptain } = useAuth();
   const { isArabic, direction } = useDashboardLanguage();
   const {
@@ -167,25 +168,16 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
               onClick={onClose}
               className="border-2 border-orange-500/80 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 text-orange-300 hover:text-white shadow-[0_0_15px_rgba(249,115,22,0.35)] text-xs sm:text-sm font-bold cursor-pointer transition-all active:scale-95"
             >
-              {isArabic ? (
-                <>
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                  <span>{isCaptain ? 'العودة للرادار' : 'العودة للرئيسية'}</span>
-                </>
-              ) : (
-                <>
-                  <ArrowLeft className="h-4 w-4 mr-1" />
-                  <span>{isCaptain ? 'Back to Radar' : 'Back to Home'}</span>
-                </>
-              )}
+              <ArrowRight className="h-4 w-4 rtl:ml-1 ltr:mr-1 ltr:rotate-180" />
+              <span>{isCaptain ? tNotifs('backToRadar') : tNotifs('backToHome')}</span>
             </Button>
           )}
           <h1 className={styles.title}>
             {effectiveCategory === 'admin'
-              ? (isArabic ? 'إشعارات الإدارة' : 'Admin Notifications')
+              ? tNotifs('adminTitle')
               : effectiveCategory === 'trip'
-              ? (isArabic ? 'سجل إشعارات الرحلات' : 'Trip Notifications Log')
-              : (isArabic ? 'الإشعارات' : 'Notifications')}
+              ? tNotifs('tripTitle')
+              : tNotifs('generalTitle')}
           </h1>
         </div>
 
@@ -199,12 +191,12 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
               {isSelectMode ? (
                 <>
                   <X className={styles.actionIcon} />
-                  <span>{isArabic ? 'إلغاء' : 'Cancel'}</span>
+                  <span>{tNotifs('cancel')}</span>
                 </>
               ) : (
                 <>
                   <ListChecks className={styles.actionIcon} />
-                  <span>{isArabic ? 'تحديد' : 'Select'}</span>
+                  <span>{tNotifs('select')}</span>
                 </>
               )}
             </Button>
@@ -222,7 +214,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
               className={styles.markAllBtn}
             >
               <Check className={styles.actionIcon} />
-              <span>{isArabic ? 'تعليم الكل كمقروء' : 'Mark all read'}</span>
+              <span>{tNotifs('markAllRead')}</span>
             </Button>
           )}
         </div>
@@ -236,19 +228,15 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
               <Bell className="h-4 w-4" />
             </div>
             <p className="text-sm font-black text-white">
-              {isArabic ? (
-                <>
-                  شبكة <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]">بينكم</span> للإعلان الرقمي
-                </>
-              ) : (
-                <>
-                  <span className="text-[#14F5D5] font-black">Bynkcom</span> Digital Ad Network
-                </>
-              )}
+              {tNotifs('adNetworkPrefix')}
+              <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]">
+                {tNotifs('adNetworkBrand')}
+              </span>
+              {tNotifs('adNetworkSuffix')}
             </p>
           </div>
           <span className="text-xs font-bold text-[#14B8A6]">
-            {isArabic ? 'ترحب بك' : 'Welcomes you'}
+            {tNotifs('adNetworkWelcome')}
           </span>
         </div>
         {/* Selection Bar in Select Mode */}
@@ -262,13 +250,11 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                 className={styles.selectAllBtn}
               >
                 {allSelected
-                  ? (isArabic ? 'إلغاء تحديد الكل' : 'Deselect all')
-                  : (isArabic ? 'تحديد الكل' : 'Select all')}
+                  ? tNotifs('deselectAll')
+                  : tNotifs('selectAll')}
               </Button>
               <span className={styles.selectionCount}>
-                {isArabic
-                  ? `(محدد ${selectedIds.size} من ${notifications.length})`
-                  : `(${selectedIds.size} of ${notifications.length} selected)`}
+                {tNotifs('selectedCount', { selected: selectedIds.size, total: notifications.length })}
               </span>
             </div>
 
@@ -284,7 +270,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
             >
               <Trash2 className={styles.actionIcon} />
               <span>
-                {isArabic ? `حذف المحدد (${selectedIds.size})` : `Delete (${selectedIds.size})`}
+                {tNotifs('deleteSelected', { count: selectedIds.size })}
               </span>
             </Button>
           </div>
@@ -295,10 +281,10 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
             <Bell className={styles.emptyIcon} />
             <p className={styles.emptyText}>
               {effectiveCategory === 'admin'
-                ? (isArabic ? 'لا توجد إشعارات أو رسائل من الإدارة حالياً' : 'No admin notifications')
+                ? tNotifs('emptyAdmin')
                 : effectiveCategory === 'trip'
-                ? (isArabic ? 'لا توجد إشعارات رحلات أو عمليات حالياً' : 'No trip notifications')
-                : (isArabic ? 'لا توجد إشعارات حالياً' : 'No notifications yet')}
+                ? tNotifs('emptyTrip')
+                : tNotifs('emptyGeneral')}
             </p>
           </div>
         ) : (
@@ -330,7 +316,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                     isSelectMode && isSelected && styles.itemSelected,
                     (isMessage || isReferralInactivity) && !item.read && 'border-r-2 border-amber-400 bg-amber-500/5 hover:bg-amber-500/10'
                   )}
-                  title={!item.read && !isSelectMode ? (isArabic ? 'اضغط لعرض التفاصيل وتعيين كمقروء' : 'Click to view details') : (isArabic ? 'اضغط لعرض التفاصيل' : 'Click to view')}
+                  title={!item.read && !isSelectMode ? tNotifs('clickToViewUnread') : tNotifs('clickToView')}
                 >
                   <div className={styles.itemRow}>
                     {isSelectMode && (
@@ -380,7 +366,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                         <div className="flex items-center gap-2 truncate">
                           {isMessage && (
                             <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/30">
-                              {isArabic ? 'رسالة' : 'Message'}
+                              {tNotifs('badges.message')}
                             </span>
                           )}
                           {isReferralInactivity && (
@@ -390,7 +376,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                           )}
                           {isReferral && (
                             <span className="shrink-0 rounded bg-[#14B8A6]/20 px-1.5 py-0.5 text-[10px] font-black text-[#14F5D5] border border-[#14B8A6]/30">
-                              {isArabic ? 'إحالة جديدة' : 'New Referral'}
+                              {tNotifs('badges.referral')}
                             </span>
                           )}
                           <h3
@@ -491,22 +477,22 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                       )}
                     >
                       {viewingNotification.type === 'admin_message' || viewingNotification.type === 'message'
-                        ? (isArabic ? 'رسالة رسمية من الإدارة ✉️' : 'Admin Message ✉️')
+                        ? tNotifs('badges.adminMessage')
                         : viewingNotification.type === 'referral_inactivity'
-                          ? (isArabic ? 'تنبيه عدم نشاط راكب ⚠️' : tRef('inactivityDetailTitle'))
+                          ? tNotifs('badges.referralInactivity')
                           : viewingNotification.type === 'WALLET_CREDIT'
-                            ? (isArabic ? 'إيداع وشحن رصيد 💰' : 'Wallet Credit 💰')
+                            ? tNotifs('badges.walletCredit')
                             : viewingNotification.type === 'deposit_confirmed'
-                              ? (isArabic ? 'تأكيد إيداع الرصيد 💰' : 'Deposit Confirmed 💰')
+                              ? tNotifs('badges.depositConfirmed')
                               : viewingNotification.type === 'WALLET_ALERT'
-                                ? (isArabic ? 'تنبيه مالي ⚠️' : 'Wallet Alert ⚠️')
+                                ? tNotifs('badges.walletAlert')
                                 : viewingNotification.type === 'warning'
-                                  ? (isArabic ? 'تحذير هام ⚠️' : 'Important Warning ⚠️')
+                                  ? tNotifs('badges.warning')
                                   : viewingNotification.type === 'urgent'
-                                    ? (isArabic ? 'تنبيه عاجل 🚨' : 'Urgent Alert 🚨')
+                                    ? tNotifs('badges.urgent')
                                     : viewingNotification.type === 'referral'
-                                      ? (isArabic ? 'إحالة مستخدم جديد 👥' : 'New Rider Referral 👥')
-                                      : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
+                                      ? tNotifs('badges.newReferralModal')
+                                      : tNotifs('badges.system')}
                     </span>
                     <p className="text-xs text-slate-400">
                       {formatReadableDateTime(viewingNotification.timestamp, isArabic).fullText}
@@ -517,8 +503,8 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                 <button
                   type="button"
                   onClick={() => setViewingNotification(null)}
-                  aria-label={isArabic ? 'إغلاق' : 'Close'}
-                  title={isArabic ? 'إغلاق' : 'Close'}
+                  aria-label={tNotifs('modal.close')}
+                  title={tNotifs('modal.close')}
                   className="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-400 hover:bg-white/10 hover:text-white transition cursor-pointer"
                 >
                   <X className="h-4 w-4" />
@@ -551,7 +537,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                   className="border-rose-500/30 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-xs sm:text-sm font-bold cursor-pointer inline-flex items-center gap-1.5"
                 >
                   <Trash2 className="h-4 w-4" />
-                  <span>{isArabic ? 'حذف الإشعار' : 'Delete'}</span>
+                  <span>{tNotifs('modal.delete')}</span>
                 </Button>
 
                 <div className="flex items-center gap-2">
@@ -566,7 +552,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                     className="border-white/10 text-slate-300 hover:bg-white/10 text-xs sm:text-sm font-bold cursor-pointer inline-flex items-center gap-1.5"
                   >
                     <Copy className="h-4 w-4" />
-                    <span>{copied ? (isArabic ? 'تم النسخ ✓' : 'Copied ✓') : (isArabic ? 'نسخ النص' : 'Copy')}</span>
+                    <span>{copied ? tNotifs('modal.copied') : tNotifs('modal.copy')}</span>
                   </Button>
 
                   <Button
@@ -574,7 +560,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                     onClick={() => setViewingNotification(null)}
                     className="bg-[#14B8A6] text-[#06111f] hover:bg-[#14F5D5] text-xs sm:text-sm font-black cursor-pointer px-4"
                   >
-                    {isArabic ? 'إغلاق' : 'Close'}
+                    {tNotifs('modal.close')}
                   </Button>
                 </div>
               </div>

@@ -1984,6 +1984,29 @@
     "rating": "Rating"
   },
   "historyTab": {
+    "tripNotifications": {
+      "title": "Movements & Communication Log",
+      "desc": "Archive duration: 72 hours",
+      "markRead": "Mark read",
+      "markAllRead": "Mark all read",
+      "clear": "Clear",
+      "clearTitle": "Clear trip notifications",
+      "emptyTitle": "No operational trip notifications yet",
+      "emptyDesc": "Operational ride and offer notifications are recorded here and purged automatically after 72 hours.",
+      "badges": {
+        "trip": "Trip",
+        "offer": "Offer",
+        "wallet": "Wallet",
+        "system": "System"
+      },
+      "time": {
+        "justNow": "just now",
+        "minsAgo": "{mins}m ago",
+        "hoursAgo": "{hours}h ago",
+        "daysAgo": "{days}d ago"
+      },
+      "deleteTooltip": "Delete notification"
+    },
     "antiChatTitle": "Purity & Anti-Chattiness Decree",
     "antiChatDesc": "Certified architectural proof that the system is free from backchannel chat protocols or excessive data consumption.",
     "zeroChatTitle": "Zero-Chat Mandate",
@@ -2061,6 +2084,48 @@
     "rated": "Rated",
     "removeFromFavorites": "Remove from favorites",
     "noSavedCaptains": "No favorite drivers saved yet"
+  },
+  "notificationsTab": {
+    "adminTitle": "Admin Notifications",
+    "tripTitle": "Movements & Communication Log",
+    "generalTitle": "Notifications",
+    "cancel": "Cancel",
+    "select": "Select",
+    "markAllRead": "Mark all read",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "deleteSelected": "Delete ({count})",
+    "selectedCount": "({selected} of {total} selected)",
+    "emptyAdmin": "No admin notifications",
+    "emptyTrip": "No operational trip notifications yet",
+    "emptyGeneral": "No notifications yet",
+    "backToRadar": "Back to Radar",
+    "backToHome": "Back to Home",
+    "adNetworkPrefix": "",
+    "adNetworkBrand": "Bynkcom",
+    "adNetworkSuffix": " Digital Ad Network",
+    "adNetworkWelcome": "Welcomes you",
+    "clickToView": "Click to view",
+    "clickToViewUnread": "Click to view details",
+    "badges": {
+      "message": "Message",
+      "referral": "New Referral",
+      "adminMessage": "Admin Message ✉️",
+      "referralInactivity": "Rider Inactivity Alert ⚠️",
+      "walletCredit": "Wallet Credit 💰",
+      "depositConfirmed": "Deposit Confirmed 💰",
+      "walletAlert": "Wallet Alert ⚠️",
+      "warning": "Important Warning ⚠️",
+      "urgent": "Urgent Alert 🚨",
+      "newReferralModal": "New Rider Referral 👥",
+      "system": "System Notification 🔔"
+    },
+    "modal": {
+      "close": "Close",
+      "delete": "Delete",
+      "copied": "Copied ✓",
+      "copy": "Copy"
+    }
   },
   "adminTab": {
     "driverBlackbox": {

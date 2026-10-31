@@ -8,6 +8,7 @@ import { BellRing, Clock, Trash2, ChevronDown, Car, Tag, Wallet, Radio, ShieldCh
 import { cn } from '@/lib/utils';
 import { useNotifications, type AppNotification } from '@/shared/hooks/use-notifications';
 import { useAuth } from '@/hooks/use-auth';
+import { useTranslations } from 'next-intl';
 import { parseNotificationContent } from '@/shared/utils/notification-i18n';
 import { formatReadableDateTime } from '@/shared/utils/date-format';
 
@@ -56,6 +57,7 @@ interface HistoryTripNotificationsProps {
 }
 
 export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsProps) {
+  const t = useTranslations('historyTab.tripNotifications');
   const { user } = useAuth();
   const { tripNotifications, tripUnreadCount, hasTripUnread, deleteNotifications, markAsRead } = useNotifications(user?.uid);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -63,17 +65,17 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
   const formatRelativeTime = (timestamp: number) => {
     try {
       const diff = Math.floor((Date.now() - timestamp) / 1000);
-      if (diff < 60) return isArabic ? 'الآن' : 'just now';
+      if (diff < 60) return t('time.justNow');
       if (diff < 3600) {
         const mins = Math.floor(diff / 60);
-        return isArabic ? `منذ ${mins} دقيقة` : `${mins}m ago`;
+        return t('time.minsAgo', { mins });
       }
       if (diff < 86400) {
         const hrs = Math.floor(diff / 3600);
-        return isArabic ? `منذ ${hrs} ساعة` : `${hrs}h ago`;
+        return t('time.hoursAgo', { hours: hrs });
       }
       const days = Math.floor(diff / 86400);
-      return isArabic ? `منذ ${days} يوم` : `${days}d ago`;
+      return t('time.daysAgo', { days });
     } catch {
       return '';
     }
@@ -86,7 +88,7 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
       return (
         <span className={cn(styles.badge, 'border-emerald-500/30 bg-emerald-950/40 text-emerald-300')}>
           <Car className="h-3 w-3" />
-          <span>{isArabic ? 'رحلة' : 'Trip'}</span>
+          <span>{t('badges.trip')}</span>
         </span>
       );
     }
@@ -94,7 +96,7 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
       return (
         <span className={cn(styles.badge, 'border-cyan-500/30 bg-cyan-950/40 text-cyan-300')}>
           <Tag className="h-3 w-3" />
-          <span>{isArabic ? 'عرض' : 'Offer'}</span>
+          <span>{t('badges.offer')}</span>
         </span>
       );
     }
@@ -102,14 +104,14 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
       return (
         <span className={cn(styles.badge, 'border-amber-500/30 bg-amber-950/40 text-amber-300')}>
           <Wallet className="h-3 w-3" />
-          <span>{isArabic ? 'محفظة' : 'Wallet'}</span>
+          <span>{t('badges.wallet')}</span>
         </span>
       );
     }
     return (
       <span className={cn(styles.badge, 'border-teal-500/30 bg-teal-950/40 text-[#14F5D5]')}>
         <Radio className="h-3 w-3" />
-        <span>{isArabic ? 'نظام' : 'System'}</span>
+        <span>{t('badges.system')}</span>
       </span>
     );
   };
@@ -157,12 +159,10 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
               </div>
               <div className={styles.titleBox}>
                 <CardTitle className={styles.title}>
-                  {isArabic ? 'سجل إشعارات الرحلات والنظام' : 'Trip & System Notifications'}
+                  {t('title')}
                 </CardTitle>
                 <CardDescription className={styles.desc}>
-                  {isArabic
-                    ? 'أرشيف إشعارات المشاوير والعروض وتحديثات النظام (خلال 72 ساعة)'
-                    : 'Log of trips, offers, and operational system notifications (72h)'}
+                  {t('desc')}
                 </CardDescription>
               </div>
             </div>
@@ -174,10 +174,10 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
                   size="sm"
                   onClick={handleMarkAllTripRead}
                   className="h-8 text-[11px] text-[#14F5D5] hover:bg-[#14B8A6]/20 gap-1 rounded-xl"
-                  title={isArabic ? 'تعليم الكل كمقروء' : 'Mark all read'}
+                  title={t('markAllRead')}
                 >
                   <Check className="h-3.5 w-3.5" />
-                  <span>{isArabic ? 'تعليم كمقروء' : 'Mark read'}</span>
+                  <span>{t('markRead')}</span>
                 </Button>
               )}
 
@@ -187,10 +187,10 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
                   size="sm"
                   onClick={handleClearAll}
                   className={styles.clearBtn}
-                  title={isArabic ? 'مسح إشعارات الرحلات' : 'Clear all'}
+                  title={t('clearTitle')}
                 >
                   <Trash2 className={styles.clearBtnIcon} />
-                  <span>{isArabic ? 'مسح' : 'Clear'}</span>
+                  <span>{t('clear')}</span>
                 </Button>
               )}
 
@@ -218,12 +218,10 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
             <div className={styles.emptyBox}>
               <ShieldCheck className={styles.emptyIcon} />
               <p className={styles.emptyTitle}>
-                {isArabic ? 'لا توجد إشعارات رحلات أو عمليات حالياً' : 'No operational trip notifications yet'}
+                {t('emptyTitle')}
               </p>
               <p className={styles.emptyDesc}>
-                {isArabic
-                  ? 'يتم أرشفة إشعارات قبول الرحلات وبدء المشاوير والعروض هنا تلقائياً وتُحذف كل 72 ساعة تماشياً مع البروتوكول السيادي.'
-                  : 'Operational ride and offer notifications are recorded here and purged automatically after 72 hours.'}
+                {t('emptyDesc')}
               </p>
             </div>
           ) : (
@@ -266,7 +264,7 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
                           type="button"
                           onClick={(e) => handleDeleteItem(e, item.id)}
                           className={styles.deleteBtn}
-                          title={isArabic ? 'حذف هذا الإشعار' : 'Delete notification'}
+                          title={t('deleteTooltip')}
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
