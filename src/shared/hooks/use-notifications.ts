@@ -107,7 +107,8 @@ export function switchStoreUser(newUserId: string | null): void {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          const filtered = parsed.filter((item) => !isNotificationExpired(item));
+          const userDeletedIds = getDeletedNotificationIds(newUserId);
+          const filtered = parsed.filter((item) => !isNotificationExpired(item) && !userDeletedIds.has(item.id));
           memoryNotifications = filtered;
           isStoreLoaded = true;
           notifyStoreListeners();
@@ -279,8 +280,37 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Track deleted notification IDs in current session to prevent resurrection
+// Track deleted notification IDs in current session and persistent storage to prevent resurrection
 const deletedNotificationIds = new Set<string>();
+
+export function getDeletedNotificationIds(userId: string | null): Set<string> {
+  const set = new Set<string>(deletedNotificationIds);
+  if (!userId || typeof window === 'undefined') return set;
+  try {
+    const raw = localStorage.getItem(`radar_deleted_notifs_${userId}`);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        arr.forEach((id) => set.add(String(id)));
+      }
+    }
+  } catch {}
+  return set;
+}
+
+export function persistDeletedNotificationIds(userId: string | null, ids: string[]): void {
+  if (!userId || typeof window === 'undefined' || ids.length === 0) return;
+  try {
+    const key = `radar_deleted_notifs_${userId}`;
+    const existing = getDeletedNotificationIds(userId);
+    ids.forEach((id) => {
+      deletedNotificationIds.add(id);
+      existing.add(id);
+    });
+    const arr = Array.from(existing).slice(-200);
+    localStorage.setItem(key, JSON.stringify(arr));
+  } catch {}
+}
 
 let isGlobalFetching = false;
 let lastFetchTimestamp = 0;
@@ -308,13 +338,14 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
     // If the active user changed while request was in-flight, discard response
     if (currentStoreUserId !== targetUserId) return;
 
+    const userDeletedIds = getDeletedNotificationIds(targetUserId);
     const expiredRemoteTripIds: string[] = [];
 
     const remoteItems: AppNotification[] = Array.isArray(data)
       ? data
           .filter((row: any) => {
             const notifId = String(row.id);
-            if (deletedNotificationIds.has(notifId)) return false;
+            if (deletedNotificationIds.has(notifId) || userDeletedIds.has(notifId)) return false;
             const ts = new Date(row.created_at).getTime();
             if ((row.type === 'trip' || row.type === 'offer') && now - ts > SEVENTY_TWO_HOURS_MS) {
               expiredRemoteTripIds.push(notifId);
@@ -343,7 +374,7 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
     // Preserve any local items for this same user not yet in remote DB
     if (currentStoreUserId === targetUserId) {
       memoryNotifications.forEach((item) => {
-        if (!deletedNotificationIds.has(item.id) && !isNotificationExpired(item) && !map.has(item.id)) {
+        if (!deletedNotificationIds.has(item.id) && !userDeletedIds.has(item.id) && !isNotificationExpired(item) && !map.has(item.id)) {
           map.set(item.id, item);
         }
       });
@@ -560,6 +591,7 @@ export function useNotifications(explicitUserId?: string | null) {
     const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
     const deleteSet = new Set(idsToDelete);
     idsToDelete.forEach((id) => deletedNotificationIds.add(id));
+    persistDeletedNotificationIds(targetUserId, idsToDelete);
     const updated = memoryNotifications.filter((n) => !deleteSet.has(n.id));
     updateStore(updated, targetUserId);
 
@@ -611,6 +643,7 @@ export function useNotifications(explicitUserId?: string | null) {
     const ids = memoryNotifications.map((n) => n.id);
 
     ids.forEach((id) => deletedNotificationIds.add(id));
+    persistDeletedNotificationIds(targetUserId, ids);
     updateStore([], targetUserId);
 
     try {
