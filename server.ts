@@ -814,8 +814,14 @@ async function startServer() {
     return nextHandler(req, res);
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '0.0.0.0', async () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
+    try {
+      const { initSovereign72hPurgeWorker } = await import('./src/server/cron/purge-72h-ledger');
+      initSovereign72hPurgeWorker();
+    } catch (err) {
+      console.error('[Purge Worker Init Error]:', err);
+    }
   });
 }
 

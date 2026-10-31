@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import { useNotifications } from '@/shared/hooks/use-notifications';
 
 const styles = {
   root: 'fixed bottom-0 left-0 right-0 z-50',
@@ -27,6 +28,7 @@ export function BottomNav() {
   const t = useTranslations('nav');
   const tErrors = useTranslations('errors');
   const tAuto = useTranslations('auto');
+  const { tripUnreadCount, hasTripUnread } = useNotifications();
   const isPassenger = user?.role === 'rider';
   const isCaptain = user?.role === 'driver';
   const [tripStatus, setTripStatus] = useState(() =>
@@ -80,9 +82,16 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               onClick={(event) => handleNavClick(event, item.href)}
-              className={cn(styles.item, isActive ? styles.itemActive : styles.itemIdle)}
+              className={cn(styles.item, isActive ? styles.itemActive : styles.itemIdle, 'relative')}
             >
-              <Icon className={cn(styles.icon, isActive && styles.iconActive)} />
+              <div className="relative inline-flex items-center justify-center">
+                <Icon className={cn(styles.icon, isActive && styles.iconActive)} />
+                {item.href === '#history' && hasTripUnread && (
+                  <span className="absolute -top-1 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse ring-1 ring-[#0A0F1D]">
+                    {tripUnreadCount > 99 ? '99+' : tripUnreadCount}
+                  </span>
+                )}
+              </div>
               <span className={styles.label}>{item.label}</span>
             </a>
           );

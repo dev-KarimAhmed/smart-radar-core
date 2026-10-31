@@ -51,6 +51,8 @@ export interface CaptainHeaderProps {
   isUpdatingStatus: boolean;
   unreadCount: number;
   hasUnread: boolean;
+  historyUnreadCount?: number;
+  hasHistoryUnread?: boolean;
   marketIndicator: any;
   onToggleStatus: () => void;
   onOpenNotifications: () => void;
@@ -70,6 +72,8 @@ export function CaptainHeader({
   isUpdatingStatus,
   unreadCount,
   hasUnread,
+  historyUnreadCount,
+  hasHistoryUnread,
   marketIndicator,
   onToggleStatus,
   onOpenNotifications,
@@ -193,6 +197,7 @@ export function CaptainHeader({
           onClick={onOpenHistory}
           label={t('history')}
           icon={<History className={styles.navBtnIcon} />}
+          badgeCount={hasHistoryUnread ? historyUnreadCount : undefined}
         />
         <NavButton
           active={screen === 'PROFILE'}
@@ -210,11 +215,13 @@ function NavButton({
   icon,
   label,
   onClick,
+  badgeCount,
 }: {
   active: boolean;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
+  badgeCount?: number;
 }) {
   return (
     <button
@@ -222,7 +229,14 @@ function NavButton({
       onClick={onClick}
       className={cn(styles.navBtn, active ? styles.navBtnActive : styles.navBtnIdle)}
     >
-      {icon}
+      <div className="relative inline-flex items-center justify-center">
+        {icon}
+        {Boolean(badgeCount && badgeCount > 0) && (
+          <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse ring-1 ring-white/30">
+            {badgeCount! > 99 ? '99+' : badgeCount}
+          </span>
+        )}
+      </div>
       <span className={styles.navBtnText}>{label}</span>
     </button>
   );

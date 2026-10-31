@@ -17,6 +17,31 @@ export interface AppNotification {
 }
 
 const LEGACY_STORAGE_KEY = 'radar_user_notifications_v1';
+export const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
+
+export function isNotificationExpired(item: { timestamp: number; type?: string }): boolean {
+  if (item.type === 'trip' || item.type === 'offer') {
+    return Date.now() - item.timestamp > SEVENTY_TWO_HOURS_MS;
+  }
+  return false;
+}
+
+export function isAdminNotification(item: { type?: string }): boolean {
+  if (!item || !item.type) return false;
+  const t = item.type.toLowerCase();
+  return (
+    t === 'admin_message' ||
+    t === 'admin' ||
+    t === 'warning' ||
+    t === 'urgent' ||
+    t === 'message' ||
+    t === 'admin_announcement'
+  );
+}
+
+export function isTripOrSystemNotification(item: { type?: string }): boolean {
+  return !isAdminNotification(item);
+}
 
 export function getNotificationStorageKey(userId: string | null): string | null {
   if (!userId) return null;
@@ -33,6 +58,13 @@ const storeListeners = new Set<() => void>();
 export function getInitialUserId(): string | null {
   if (typeof window === 'undefined') return null;
   try {
+    const rawMock =
+      window.localStorage.getItem('radar_sovereign_mock_user') ||
+      window.sessionStorage.getItem('radar_sovereign_mock_user');
+    if (rawMock) {
+      const parsedMock = JSON.parse(rawMock);
+      if (parsedMock?.uid) return String(parsedMock.uid);
+    }
     const raw =
       window.localStorage.getItem('radar_supabase_auth_session') ||
       window.sessionStorage.getItem('radar_supabase_auth_session');
@@ -75,9 +107,15 @@ export function switchStoreUser(newUserId: string | null): void {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          memoryNotifications = parsed;
+          const filtered = parsed.filter((item) => !isNotificationExpired(item));
+          memoryNotifications = filtered;
           isStoreLoaded = true;
           notifyStoreListeners();
+          if (filtered.length !== parsed.length && storageKey) {
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(filtered));
+            } catch {}
+          }
           return;
         }
       }
@@ -119,17 +157,85 @@ function notifyStoreListeners(): void {
 
 function updateStore(newItems: AppNotification[], targetUserId?: string | null): void {
   const uid = targetUserId || currentStoreUserId;
-  memoryNotifications = newItems;
+  const seenIds = new Set<string>();
+  const deduplicated: AppNotification[] = [];
+  for (const item of newItems) {
+    if (!seenIds.has(item.id) && !isNotificationExpired(item)) {
+      seenIds.add(item.id);
+      deduplicated.push(item);
+    }
+  }
+  memoryNotifications = deduplicated;
   isStoreLoaded = true;
   if (typeof window !== 'undefined' && uid) {
     try {
       const storageKey = getNotificationStorageKey(uid);
       if (storageKey) {
-        localStorage.setItem(storageKey, JSON.stringify(newItems));
+        localStorage.setItem(storageKey, JSON.stringify(deduplicated));
       }
     } catch {}
   }
   notifyStoreListeners();
+}
+
+let lastAddedNotificationHash = '';
+let lastAddedNotificationTimestamp = 0;
+
+export function addNotificationToStore(
+  item: Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean },
+  targetUserId?: string | null
+): void {
+  const uid = targetUserId || currentStoreUserId || getInitialUserId();
+  if (!uid) return;
+
+  const now = Date.now();
+  // Content hash deduplication: prevent identical rapid notifications within 1500ms
+  const hash = `${item.id || ''}::${item.title}::${item.description}::${item.type || 'system'}`;
+  if (hash === lastAddedNotificationHash && now - lastAddedNotificationTimestamp < 1500) {
+    return;
+  }
+  lastAddedNotificationHash = hash;
+  lastAddedNotificationTimestamp = now;
+
+  const notifId = item.id || `notif_${now}_${Math.random().toString(36).slice(2, 6)}`;
+  const newNotif: AppNotification = {
+    ...item,
+    id: notifId,
+    timestamp: now,
+    read: item.read ?? false,
+  };
+
+  const filtered = memoryNotifications.filter((n) => n.id !== notifId);
+  const updated = [newNotif, ...filtered].slice(0, 50);
+  updateStore(updated, uid);
+
+  void supabase.from('user_notifications').upsert({
+    id: newNotif.id,
+    user_id: uid,
+    title: newNotif.title,
+    description: newNotif.description,
+    type: newNotif.type || 'system',
+    is_read: newNotif.read,
+    created_at: new Date(newNotif.timestamp).toISOString(),
+  }, { onConflict: 'id' });
+}
+
+let isGlobalAppNotificationListenerBound = false;
+function bindGlobalAppNotificationListener(): void {
+  if (typeof window === 'undefined' || isGlobalAppNotificationListenerBound) return;
+  isGlobalAppNotificationListenerBound = true;
+
+  window.addEventListener('app-notification', (e: Event) => {
+    const detail = (e as CustomEvent<Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean }>).detail;
+    if (detail?.title) {
+      addNotificationToStore(detail);
+      playNotificationSound();
+    }
+  });
+}
+
+if (typeof window !== 'undefined') {
+  bindGlobalAppNotificationListener();
 }
 
 function subscribeStore(callback: () => void): () => void {
@@ -202,9 +308,20 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
     // If the active user changed while request was in-flight, discard response
     if (currentStoreUserId !== targetUserId) return;
 
+    const expiredRemoteTripIds: string[] = [];
+
     const remoteItems: AppNotification[] = Array.isArray(data)
       ? data
-          .filter((row: any) => !deletedNotificationIds.has(String(row.id)))
+          .filter((row: any) => {
+            const notifId = String(row.id);
+            if (deletedNotificationIds.has(notifId)) return false;
+            const ts = new Date(row.created_at).getTime();
+            if ((row.type === 'trip' || row.type === 'offer') && now - ts > SEVENTY_TWO_HOURS_MS) {
+              expiredRemoteTripIds.push(notifId);
+              return false;
+            }
+            return true;
+          })
           .map((row: any) => ({
             id: String(row.id),
             title: String(row.title),
@@ -215,13 +332,18 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
           }))
       : [];
 
+    if (expiredRemoteTripIds.length > 0) {
+      // In background, cleanly purge expired trip notifications from server
+      void supabase.from('user_notifications').delete().in('id', expiredRemoteTripIds);
+    }
+
     const map = new Map<string, AppNotification>();
     remoteItems.forEach((item) => map.set(item.id, item));
 
     // Preserve any local items for this same user not yet in remote DB
     if (currentStoreUserId === targetUserId) {
       memoryNotifications.forEach((item) => {
-        if (!deletedNotificationIds.has(item.id) && !map.has(item.id)) {
+        if (!deletedNotificationIds.has(item.id) && !isNotificationExpired(item) && !map.has(item.id)) {
           map.set(item.id, item);
         }
       });
@@ -231,6 +353,7 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
     // No hardcoded dummy welcome notifications inserted.
 
     const merged = Array.from(map.values())
+      .filter((item) => !isNotificationExpired(item))
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 50);
 
@@ -313,10 +436,19 @@ function setupRealtimeChannelIfNeeded(userId: string | null): void {
     .subscribe();
 }
 
-export function useNotifications() {
+export function useNotifications(explicitUserId?: string | null) {
   const notifications = useSyncExternalStore(subscribeStore, getSnapshot, getServerSnapshot);
-  const [userId, setUserId] = useState<string | null>(() => getInitialUserId());
+  const [userId, setUserId] = useState<string | null>(() => explicitUserId || getInitialUserId());
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (explicitUserId) {
+      setUserId(explicitUserId);
+      switchStoreUser(explicitUserId);
+      setupRealtimeChannelIfNeeded(explicitUserId);
+      void fetchRemoteNotificationsGlobal(explicitUserId);
+    }
+  }, [explicitUserId]);
 
   // Register latest toast caller
   useEffect(() => {
@@ -374,35 +506,13 @@ export function useNotifications() {
 
   // Add notification
   const addNotification = useCallback((item: Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean }) => {
-    const targetUserId = userId || currentStoreUserId || getInitialUserId();
-    if (!targetUserId) return;
-
-    const notifId = item.id || `notif_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const newNotif: AppNotification = {
-      ...item,
-      id: notifId,
-      timestamp: Date.now(),
-      read: item.read ?? false,
-    };
-
-    const filtered = memoryNotifications.filter((n) => n.id !== notifId);
-    const updated = [newNotif, ...filtered].slice(0, 50);
-    updateStore(updated, targetUserId);
-
-    void supabase.from('user_notifications').upsert({
-      id: newNotif.id,
-      user_id: targetUserId,
-      title: newNotif.title,
-      description: newNotif.description,
-      type: newNotif.type || 'system',
-      is_read: newNotif.read,
-      created_at: new Date(newNotif.timestamp).toISOString(),
-    }, { onConflict: 'id' });
-  }, [userId]);
+    const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
+    addNotificationToStore(item, targetUserId);
+  }, [userId, explicitUserId]);
 
   // Mark single notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
-    const targetUserId = userId || currentStoreUserId || getInitialUserId();
+    const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
     const updated = memoryNotifications.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
     updateStore(updated, targetUserId);
 
@@ -420,11 +530,11 @@ export function useNotifications() {
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] markAsRead sync error:', err);
     }
-  }, [userId]);
+  }, [userId, explicitUserId]);
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
-    const targetUserId = userId || currentStoreUserId || getInitialUserId();
+    const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
     const updated = memoryNotifications.map((n) => ({ ...n, read: true }));
     updateStore(updated, targetUserId);
 
@@ -442,18 +552,16 @@ export function useNotifications() {
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] markAllAsRead sync error:', err);
     }
-  }, [userId]);
+  }, [userId, explicitUserId]);
 
   // Delete specific notifications (single or bulk)
   const deleteNotifications = useCallback(async (idsToDelete: string[]) => {
     if (!idsToDelete || idsToDelete.length === 0) return;
-    const targetUserId = userId || currentStoreUserId || getInitialUserId();
+    const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
     const deleteSet = new Set(idsToDelete);
     idsToDelete.forEach((id) => deletedNotificationIds.add(id));
     const updated = memoryNotifications.filter((n) => !deleteSet.has(n.id));
     updateStore(updated, targetUserId);
-
-    if (!targetUserId) return;
 
     try {
       // 1. Authoritative backend API deletion (via service role to bypass RLS/session edge cases)
@@ -474,31 +582,36 @@ export function useNotifications() {
       // 2. Client-side RPC & direct query as fast parallel paths
       const rpcPromise = Promise.resolve(
         supabase.rpc('delete_user_notifications', { p_ids: idsToDelete })
-      )
-        .then(async ({ data: count, error: rpcErr }) => {
-          if (rpcErr || count === 0) {
-            await supabase
-              .from('user_notifications')
-              .delete()
-              .in('id', idsToDelete)
-              .eq('user_id', targetUserId);
-          }
-        })
-        .catch(() => {});
+      ).catch(() => null);
 
-      await Promise.allSettled([apiPromise, rpcPromise]);
+      const directPromise = (async () => {
+        try {
+          await supabase
+            .from('user_notifications')
+            .delete()
+            .in('id', idsToDelete);
+        } catch {}
+      })();
+
+      await Promise.allSettled([apiPromise, rpcPromise, directPromise]);
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] delete error:', err);
     }
-  }, [userId]);
+  }, [userId, explicitUserId]);
 
   // Clear all
-  const clearAll = useCallback(async () => {
-    const targetUserId = userId || currentStoreUserId || getInitialUserId();
-    memoryNotifications.forEach((n) => deletedNotificationIds.add(n.id));
-    updateStore([], targetUserId);
+  const clearAll = useCallback(async (idsToClear?: string[]) => {
+    // If specific IDs were specified, delegate directly to deleteNotifications to prevent cross-category wipeouts
+    if (idsToClear && idsToClear.length > 0) {
+      await deleteNotifications(idsToClear);
+      return;
+    }
 
-    if (!targetUserId) return;
+    const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
+    const ids = memoryNotifications.map((n) => n.id);
+
+    ids.forEach((id) => deletedNotificationIds.add(id));
+    updateStore([], targetUserId);
 
     try {
       // 1. Authoritative backend API clear-all
@@ -511,52 +624,63 @@ export function useNotifications() {
       const apiPromise = fetch('/api/notifications', {
         method: 'DELETE',
         headers,
-        body: JSON.stringify({ all: true, userId: targetUserId }),
+        body: JSON.stringify({
+          all: true,
+          userId: targetUserId,
+        }),
       }).catch((err) => {
         if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] API clearAll error:', err);
       });
 
-      // 2. Client-side RPC & direct delete
-      const rpcPromise = Promise.resolve(
-        supabase.rpc('delete_all_user_notifications')
-      )
-        .then(async ({ data: count, error: rpcErr }) => {
-          if (rpcErr || count === 0) {
+      // 2. Client-side RPC with IDs
+      const rpcPromise = ids.length > 0
+        ? Promise.resolve(supabase.rpc('delete_user_notifications', { p_ids: ids })).catch(() => null)
+        : Promise.resolve(null);
+
+      // 3. Client-side direct delete on table
+      const directPromise = (async () => {
+        try {
+          if (targetUserId) {
             await supabase
               .from('user_notifications')
               .delete()
               .eq('user_id', targetUserId);
           }
-        })
-        .catch(() => {});
+        } catch {}
+      })();
 
-      await Promise.allSettled([apiPromise, rpcPromise]);
+      await Promise.allSettled([apiPromise, rpcPromise, directPromise]);
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] clearAll exception:', err);
     }
-  }, [userId]);
+  }, [userId, explicitUserId, deleteNotifications]);
 
-  // Listen to global app-notification custom events
   useEffect(() => {
-    const handleEvent = (e: Event) => {
-      const detail = (e as CustomEvent<Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean }>).detail;
-      if (detail?.title) {
-        addNotification(detail);
-        playNotificationSound();
-      }
-    };
-
-    window.addEventListener('app-notification', handleEvent);
-    return () => window.removeEventListener('app-notification', handleEvent);
-  }, [addNotification]);
+    bindGlobalAppNotificationListener();
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const hasUnread = unreadCount > 0;
+
+  const adminNotifications = notifications.filter(isAdminNotification);
+  const tripNotifications = notifications.filter(isTripOrSystemNotification);
+
+  const adminUnreadCount = adminNotifications.filter((n) => !n.read).length;
+  const hasAdminUnread = adminUnreadCount > 0;
+
+  const tripUnreadCount = tripNotifications.filter((n) => !n.read).length;
+  const hasTripUnread = tripUnreadCount > 0;
 
   return {
     notifications,
     unreadCount,
     hasUnread,
+    adminNotifications,
+    adminUnreadCount,
+    hasAdminUnread,
+    tripNotifications,
+    tripUnreadCount,
+    hasTripUnread,
     markAsRead,
     markAllAsRead,
     addNotification,

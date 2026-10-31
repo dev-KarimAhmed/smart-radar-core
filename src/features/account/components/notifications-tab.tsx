@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNotifications, type AppNotification } from '@/shared/hooks/use-notifications';
 import { highlightBrand } from '@/shared/components/brand-highlight';
 import {
@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
+import { formatReadableDateTime, formatNotificationShortTime } from '@/shared/utils/date-format';
 import { parseNotificationContent } from '@/shared/utils/notification-i18n';
 
 const styles = {
@@ -69,31 +70,36 @@ const styles = {
 } as const;
 
 function formatNotificationTime(timestamp: number, isArabic: boolean): string {
-  try {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-
-    if (isToday) {
-      return date.toLocaleTimeString(isArabic ? 'ar-EG' : 'en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
-    return date.toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', {
-      month: 'numeric',
-      day: 'numeric',
-    });
-  } catch {
-    return '';
-  }
+  return formatNotificationShortTime(timestamp, isArabic);
 }
 
-export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
+export interface NotificationsTabProps {
+  onClose?: () => void;
+  filterCategory?: 'all' | 'admin' | 'trip';
+}
+
+export function NotificationsTab({ onClose, filterCategory }: NotificationsTabProps = {}) {
   const tRef = useTranslations('referral.notifications');
   const { user, isCaptain } = useAuth();
   const { isArabic, direction } = useDashboardLanguage();
-  const { notifications, hasUnread, markAllAsRead, markAsRead, deleteNotifications, clearAll } = useNotifications();
+  const {
+    notifications: allNotifications,
+    adminNotifications,
+    tripNotifications,
+    markAsRead,
+    deleteNotifications,
+    clearAll,
+  } = useNotifications(user?.uid);
+
+  const effectiveCategory = filterCategory ?? (isCaptain ? 'admin' : 'all');
+
+  const notifications: AppNotification[] = useMemo(() => {
+    if (effectiveCategory === 'admin') return adminNotifications;
+    if (effectiveCategory === 'trip') return tripNotifications;
+    return allNotifications;
+  }, [effectiveCategory, adminNotifications, tripNotifications, allNotifications]);
+
+  const hasUnread = notifications.some((n: AppNotification) => !n.read);
 
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -115,7 +121,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
     if (allSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(notifications.map((n) => n.id)));
+      setSelectedIds(new Set(notifications.map((n: AppNotification) => n.id)));
     }
   };
 
@@ -134,11 +140,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
   const handleDeleteSelected = async () => {
     if (selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-    if (allSelected || ids.length === notifications.length) {
-      await clearAll();
-    } else {
-      await deleteNotifications(ids);
-    }
+    await deleteNotifications(ids);
     setSelectedIds(new Set());
     setIsSelectMode(false);
   };
@@ -179,7 +181,11 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
             </Button>
           )}
           <h1 className={styles.title}>
-            {isArabic ? 'الإشعارات' : 'Notifications'}
+            {effectiveCategory === 'admin'
+              ? (isArabic ? 'إشعارات الإدارة' : 'Admin Notifications')
+              : effectiveCategory === 'trip'
+              ? (isArabic ? 'سجل إشعارات الرحلات' : 'Trip Notifications Log')
+              : (isArabic ? 'الإشعارات' : 'Notifications')}
           </h1>
         </div>
 
@@ -207,7 +213,12 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
           {!isSelectMode && hasUnread && (
             <Button
               variant='outline'
-              onClick={() => void markAllAsRead()}
+              onClick={async () => {
+                const unreadIds = notifications.filter((n: AppNotification) => !n.read).map((n: AppNotification) => n.id);
+                if (unreadIds.length > 0) {
+                  await Promise.all(unreadIds.map((id: string) => markAsRead(id)));
+                }
+              }}
               className={styles.markAllBtn}
             >
               <Check className={styles.actionIcon} />
@@ -283,12 +294,16 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
           <div className={styles.emptyState}>
             <Bell className={styles.emptyIcon} />
             <p className={styles.emptyText}>
-              {isArabic ? 'لا توجد إشعارات حالياً' : 'No notifications yet'}
+              {effectiveCategory === 'admin'
+                ? (isArabic ? 'لا توجد إشعارات أو رسائل من الإدارة حالياً' : 'No admin notifications')
+                : effectiveCategory === 'trip'
+                ? (isArabic ? 'لا توجد إشعارات رحلات أو عمليات حالياً' : 'No trip notifications')
+                : (isArabic ? 'لا توجد إشعارات حالياً' : 'No notifications yet')}
             </p>
           </div>
         ) : (
           <div className={styles.list}>
-            {notifications.map((item) => {
+            {notifications.map((item: AppNotification) => {
               const isSelected = selectedIds.has(item.id);
               const isMessage = item.type === 'admin_message' || item.type === 'message';
               const isWalletCredit = item.type === 'WALLET_CREDIT';
@@ -494,10 +509,7 @@ export function NotificationsTab({ onClose }: { onClose?: () => void } = {}) {
                                       : (isArabic ? 'إشعار من النظام 🔔' : 'System Notification 🔔')}
                     </span>
                     <p className="text-xs text-slate-400">
-                      {new Date(viewingNotification.timestamp).toLocaleString(isArabic ? 'ar-EG' : 'en-US', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
+                      {formatReadableDateTime(viewingNotification.timestamp, isArabic).fullText}
                     </p>
                   </div>
                 </div>

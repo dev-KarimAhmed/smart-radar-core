@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Activity, ShieldCheck, Trash2, Clock, Lock, Sliders, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HistorySkeleton } from './history-skeleton';
+import { formatReadableDateTime } from '@/shared/utils/date-format';
 
 const styles = {
   container: "space-y-6",
@@ -223,16 +224,7 @@ export function HistorySovereignLogs({
                 }
 
                 const messageText = log.message || log.details || log.event || '';
-                const logDate = new Date(log.timestamp);
-                const formattedDate = logDate.toLocaleDateString('ar-EG', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric'
-                });
-                const formattedTime = logDate.toLocaleTimeString('ar-EG', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                });
+                const { dateText, timeText } = formatReadableDateTime(log.timestamp, true);
 
                 return (
                   <div key={log.id} className={styles.logCard}>
@@ -243,9 +235,9 @@ export function HistorySovereignLogs({
                       </span>
                       <div className={styles.logDateTimeBox}>
                         <Clock className={styles.logClockIcon} />
-                        <span className={styles.logDateText}>{formattedDate}</span>
+                        <span className={styles.logDateText}>{dateText}</span>
                         <span className={styles.logSeparatorDot}>•</span>
-                        <span className={styles.logTimeText}>{formattedTime}</span>
+                        <span className={styles.logTimeText}>{timeText}</span>
                       </div>
                     </div>
                     {Boolean(messageText) && (

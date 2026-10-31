@@ -32,6 +32,7 @@ export type CaptainDashboardAction =
   | { type: 'CONFIRM_ARRIVAL' }
   | { type: 'START_TRIP' }
   | { type: 'TRIP_COMPLETED'; completedTrip?: CaptainCompletedTrip }
+  | { type: 'TRIP_CANCELLED' }
   | { type: 'RATING_DISMISSED' }
   | { type: 'RESET_TO_RADAR' };
 
@@ -123,6 +124,17 @@ export function captainDashboardReducer(
         submittedOfferRequestId: null,
         submittedOfferId: null,
         completedTrip: action.completedTrip || null,
+      };
+
+    case 'TRIP_CANCELLED':
+      return {
+        ...state,
+        screen: 'RADAR_MAP',
+        tripStep: 'IDLE',
+        selectedRequest: null,
+        submittedOfferRequestId: null,
+        submittedOfferId: null,
+        completedTrip: null,
       };
 
     case 'RATING_DISMISSED':

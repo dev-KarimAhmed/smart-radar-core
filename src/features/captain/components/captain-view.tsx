@@ -43,7 +43,7 @@ export function DriverViewTab() {
   const { toast } = useToast();
   const { language, direction, toggleLanguage } = useDashboardLanguage();
   const t = useTranslations('captainDashboard');
-  const { unreadCount, hasUnread } = useNotifications();
+  const { adminUnreadCount, hasAdminUnread, tripUnreadCount, hasTripUnread } = useNotifications();
   const driverOps = useDriverOperations();
   const wallet = useSovereignWallet(user);
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
@@ -147,8 +147,10 @@ export function DriverViewTab() {
           isOffline={isOffline}
           isReconnecting={isReconnecting}
           isUpdatingStatus={driverOps.isUpdatingStatus}
-          unreadCount={unreadCount}
-          hasUnread={hasUnread}
+          unreadCount={adminUnreadCount}
+          hasUnread={hasAdminUnread}
+          historyUnreadCount={tripUnreadCount}
+          hasHistoryUnread={hasTripUnread}
           marketIndicator={marketIndicator}
           onToggleStatus={() => void driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
           onOpenNotifications={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
@@ -233,6 +235,8 @@ export function DriverViewTab() {
 
       <CaptainBottomNav
         screen={screen}
+        historyUnreadCount={tripUnreadCount}
+        hasHistoryUnread={hasTripUnread}
         onSelectTab={(tab) => dispatch({ type: screen === tab ? 'OPEN_RADAR' : (`OPEN_${tab}` as any) })}
       />
     </div>

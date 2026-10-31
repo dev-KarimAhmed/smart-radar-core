@@ -167,10 +167,17 @@ export function useHistoryState() {
     async function fetchTripHistory() {
       // [ACT-SSOT-04] Offline-First / Cache-First: immediately read and render local Dexie trips
       try {
+        const cutoffMs = Date.now() - THREE_DAYS_MS;
         if (isCaptain) {
           const localCaptain = await dexieDb.captainLedger.toArray();
-          if (localCaptain.length > 0 && active) {
-            setRealTrips(localCaptain.map(entry => ({
+          const validCaptain = localCaptain.filter(entry => entry.completedAt >= cutoffMs);
+          const expiredCaptain = localCaptain.filter(entry => entry.completedAt < cutoffMs);
+          if (expiredCaptain.length > 0) {
+            void Promise.all(expiredCaptain.map(e => dexieDb.captainLedger.delete(e.requestId)));
+          }
+
+          if (validCaptain.length > 0 && active) {
+            setRealTrips(validCaptain.map(entry => ({
               id: entry.requestId,
               status: 'COMPLETED',
               completed_at: new Date(entry.completedAt).toISOString(),
@@ -185,8 +192,14 @@ export function useHistoryState() {
           }
         } else {
           const localRider = await dexieDb.riderTripLedger.toArray();
-          if (localRider.length > 0 && active) {
-            setRealTrips(localRider.map(entry => ({
+          const validRider = localRider.filter(entry => entry.timestamp >= cutoffMs);
+          const expiredRider = localRider.filter(entry => entry.timestamp < cutoffMs);
+          if (expiredRider.length > 0) {
+            void Promise.all(expiredRider.map(e => dexieDb.riderTripLedger.delete(e.tripId)));
+          }
+
+          if (validRider.length > 0 && active) {
+            setRealTrips(validRider.map(entry => ({
               id: entry.tripId,
               status: 'COMPLETED',
               completed_at: new Date(entry.timestamp).toISOString(),
@@ -369,8 +382,10 @@ export function useHistoryState() {
 
         // 2. Fetch and merge from Dexie local database for offline-first compliance (SC55)
         try {
+          const cutoffMs = Date.now() - THREE_DAYS_MS;
           if (isCaptain) {
-            const localCaptainTrips = await dexieDb.captainLedger.toArray();
+            const rawCaptainTrips = await dexieDb.captainLedger.toArray();
+            const localCaptainTrips = rawCaptainTrips.filter(entry => entry.completedAt >= cutoffMs);
             const localMapped = localCaptainTrips.map(entry => {
               const cleanDest = (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير محدد') ? entry.destination : '';
               const cleanPick = (entry.pickup && entry.pickup !== 'موقعي الحالي') ? entry.pickup : '';
@@ -440,7 +455,8 @@ export function useHistoryState() {
               } catch {}
             }
           } else {
-            const localRiderTrips = await dexieDb.riderTripLedger.toArray();
+            const rawRiderTrips = await dexieDb.riderTripLedger.toArray();
+            const localRiderTrips = rawRiderTrips.filter(entry => entry.timestamp >= cutoffMs);
             const localMapped = localRiderTrips.map(entry => ({
               id: entry.tripId,
               captain_id: entry.captainId,

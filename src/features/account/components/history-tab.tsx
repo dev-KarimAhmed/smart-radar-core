@@ -9,6 +9,7 @@ import { HistoryRiderTrips } from './history-tab/history-rider-trips';
 import { HistoryCaptainTrips } from './history-tab/history-captain-trips';
 import { HistoryFavoriteCaptains } from './history-tab/history-favorite-captains';
 import { HistorySovereignLogs } from './history-tab/history-sovereign-logs';
+import { HistoryTripNotifications } from './history-tab/history-trip-notifications';
 import { HistoryErrorExplorer } from './history-tab/history-error-explorer';
 import { BlockedCaptainsSection } from './profile-tab/blocked-captains-section';
 import { BlockedRidersSection } from '@/features/captain/components/profile/blocked-riders-section';
@@ -150,6 +151,8 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
             onRatingSuccess={refreshReviews}
             t={t}
           />
+
+          <HistoryTripNotifications isArabic={isArabic} t={t} />
 
           <HistoryFavoriteRiders user={user} isArabic={isArabic} />
 

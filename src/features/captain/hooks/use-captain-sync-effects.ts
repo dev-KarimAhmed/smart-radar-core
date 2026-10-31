@@ -66,12 +66,45 @@ export function useCaptainSyncEffects({
       return;
     }
     if (state.screen === 'ACTIVE_TRIP') {
-      const fallbackTrip = lastActiveTripRef.current || (state.selectedRequest?.id ? {
-        requestId: state.selectedRequest.id,
-        riderId: state.selectedRequest.riderId || driverOps?.acceptedRider?.uid || '',
-        riderName: driverOps?.acceptedRider?.name,
-      } : undefined);
-      dispatch({ type: 'TRIP_COMPLETED', completedTrip: fallbackTrip });
+      const targetRequestId = lastActiveTripRef.current?.requestId || state.selectedRequest?.id;
+      if (!targetRequestId) {
+        dispatch({ type: 'TRIP_CANCELLED' });
+        return;
+      }
+
+      let isCurrent = true;
+      void (async () => {
+        try {
+          const { data } = await supabase
+            .from('ride_requests')
+            .select('status')
+            .eq('id', targetRequestId)
+            .maybeSingle();
+
+          if (!isCurrent) return;
+
+          const serverStatus = String(data?.status || '').toUpperCase();
+          if (serverStatus === 'COMPLETED') {
+            const fallbackTrip = lastActiveTripRef.current || (state.selectedRequest?.id ? {
+              requestId: state.selectedRequest.id,
+              riderId: state.selectedRequest.riderId || driverOps?.acceptedRider?.uid || '',
+              riderName: driverOps?.acceptedRider?.name,
+            } : undefined);
+            dispatch({ type: 'TRIP_COMPLETED', completedTrip: fallbackTrip });
+          } else {
+            // Cancelled or any non-completed state: cleanly reset to radar with NO rating modal
+            dispatch({ type: 'TRIP_CANCELLED' });
+          }
+        } catch {
+          if (isCurrent) {
+            dispatch({ type: 'TRIP_CANCELLED' });
+          }
+        }
+      })();
+
+      return () => {
+        isCurrent = false;
+      };
     }
   }, [driverOps, driverOps?.activeRequest, state.screen, state.selectedRequest?.id, state.selectedRequest?.riderId, state.tripStep, dispatch]);
 

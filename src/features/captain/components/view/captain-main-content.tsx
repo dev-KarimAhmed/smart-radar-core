@@ -94,7 +94,10 @@ export function CaptainMainContent({
           onArrived={onConfirmArrival}
           onStartTrip={onStartTrip}
           onCompleteTrip={onCompleteTrip}
-          onCancelTrip={() => { void driverOps.cancelActiveTrip(); }}
+          onCancelTrip={() => {
+            void driverOps.cancelActiveTrip();
+            dispatch({ type: 'TRIP_CANCELLED' });
+          }}
         />
       ) : null}
 
@@ -154,7 +157,7 @@ export function CaptainMainContent({
 
       {screen === 'NOTIFICATIONS' ? (
         <div className={styles.notificationsWrap}>
-          <NotificationsScreen onClose={onOpenRadar} />
+          <NotificationsScreen onClose={onOpenRadar} filterCategory="admin" />
         </div>
       ) : null}
 

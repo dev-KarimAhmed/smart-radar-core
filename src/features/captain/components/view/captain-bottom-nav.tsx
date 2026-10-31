@@ -19,11 +19,15 @@ const styles = {
 
 export interface CaptainBottomNavProps {
   screen: CaptainScreen;
+  historyUnreadCount?: number;
+  hasHistoryUnread?: boolean;
   onSelectTab: (screen: 'WALLET' | 'HISTORY' | 'PROFILE') => void;
 }
 
 export function CaptainBottomNav({
   screen,
+  historyUnreadCount,
+  hasHistoryUnread,
   onSelectTab,
 }: CaptainBottomNavProps) {
   const t = useTranslations('captainDashboard');
@@ -46,6 +50,7 @@ export function CaptainBottomNav({
           onClick={() => onSelectTab('HISTORY')}
           icon={<History className={cn(styles.mobileBottomNavIcon, screen === 'HISTORY' && styles.mobileBottomNavIconActive)} />}
           label={t('history')}
+          badgeCount={hasHistoryUnread ? historyUnreadCount : undefined}
         />
         <BottomNavItem
           active={screen === 'PROFILE'}
@@ -63,19 +68,28 @@ function BottomNavItem({
   icon,
   label,
   onClick,
+  badgeCount,
 }: {
   active: boolean;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
+  badgeCount?: number;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(styles.mobileBottomNavItem, active ? styles.mobileBottomNavItemActive : styles.mobileBottomNavItemIdle)}
+      className={cn(styles.mobileBottomNavItem, active ? styles.mobileBottomNavItemActive : styles.mobileBottomNavItemIdle, 'relative')}
     >
-      {icon}
+      <div className="relative inline-flex items-center justify-center">
+        {icon}
+        {Boolean(badgeCount && badgeCount > 0) && (
+          <span className="absolute -top-1 -right-2.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse ring-1 ring-[#0A0F1D]">
+            {badgeCount! > 99 ? '99+' : badgeCount}
+          </span>
+        )}
+      </div>
       <span className={styles.mobileBottomNavLabel}>{label}</span>
     </button>
   );

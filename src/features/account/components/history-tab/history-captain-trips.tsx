@@ -9,6 +9,7 @@ import { HistorySkeleton } from './history-skeleton';
 import { useBlockedRiders } from '@/features/captain/hooks/use-blocked-riders';
 import { DriverRatingModal } from '@/features/captain/components/driver-rating-modal';
 import { supabase } from '@/lib/supabase-client';
+import { formatReadableDateTime } from '@/shared/utils/date-format';
 
 const styles = {
   container: "space-y-6",
@@ -193,16 +194,7 @@ export function HistoryCaptainTrips({
             <div className={styles.tripsList}>
               {captainHistoricalTrips.map((trip) => {
                 const timeAgo = Math.floor((now - trip.timestamp) / (1000 * 60 * 60));
-                const tripDate = new Date(trip.timestamp);
-                const formattedDate = tripDate.toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric'
-                });
-                const formattedTime = tripDate.toLocaleTimeString(isArabic ? 'ar-EG' : 'en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                });
+                const { dateText: formattedDate, timeText: formattedTime } = formatReadableDateTime(trip.timestamp, isArabic);
 
                 const isBlocked = trip.riderId ? blockedRiderIdSet.has(trip.riderId) : false;
                 const hasReview = Boolean(tripReviews[trip.tripId]);
