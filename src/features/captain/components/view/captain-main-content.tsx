@@ -117,6 +117,7 @@ export function CaptainMainContent({
           cancelCooldown={driverOps.cancelCooldown}
           requests={driverOps.requests}
           pendingOfferRequestId={driverOps.pendingOfferRequestId}
+          pendingOffersCount={driverOps.pendingOffersCount}
           onCancelOffer={driverOps.cancelOffer}
           isCancellingOffer={driverOps.isCancellingOffer}
           captainPricingMode={currentTariff?.pricingMode ?? null}

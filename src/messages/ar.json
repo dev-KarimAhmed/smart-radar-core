@@ -1734,6 +1734,8 @@
     "errorPendingOfferDesc": "انتظر رد المستخدم على عرضك الحالي قبل تقديم عرض جديد.",
     "offerSubmittedTitle": "تم إرسال العرض",
     "offerSubmittedDesc": "سنخبرك فور قبول المستخدم للعرض.",
+    "offerAdditionalSubmittedTitle": "تم إرسال العرض الإضافي",
+    "offerAdditionalSubmittedDesc": "تم إرسال عرضك الجديد للمستخدم بنجاح.",
     "offerCancelledTitle": "تم إلغاء العرض",
     "offerCancelledDesc": "تم إلغاء عرضك بنجاح والعودة لاستقبال الطلبات.",
     "offerCancelFailedTitle": "تعذر إلغاء العرض",

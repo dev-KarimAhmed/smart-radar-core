@@ -130,6 +130,7 @@ interface RadarMapViewProps {
   cancelCooldown?: CaptainCancelCooldownState;
   requests: Trip[];
   pendingOfferRequestId?: string | null;
+  pendingOffersCount?: Record<string, number>;
   onCancelOffer?: (tripId: string) => Promise<boolean | void>;
   isCancellingOffer?: boolean;
   captainPricingMode?: 'FREE' | 'APP' | 'TAXI' | null;
@@ -154,6 +155,7 @@ export function RadarMapView({
   cancelCooldown,
   requests,
   pendingOfferRequestId = null,
+  pendingOffersCount,
   onCancelOffer,
   isCancellingOffer = false,
   captainPricingMode = null,
@@ -177,6 +179,11 @@ export function RadarMapView({
     setCancellingRequestId(requestId);
     try {
       await onCancelOffer(requestId);
+      setLastSubmittedPrices((prev) => {
+        const next = { ...prev };
+        delete next[requestId];
+        return next;
+      });
     } finally {
       setCancellingRequestId(null);
     }
@@ -194,6 +201,7 @@ export function RadarMapView({
   const requestMarkersRef = React.useRef<maplibregl.Marker[]>([]);
   const [mapIssue, setMapIssue] = React.useState(false);
   const [directPrices, setDirectPrices] = React.useState<Record<string, string>>({});
+  const [lastSubmittedPrices, setLastSubmittedPrices] = React.useState<Record<string, number[]>>({});
   const [priceErrors, setPriceErrors] = React.useState<Record<string, boolean>>({});
   const [submittingRequestId, setSubmittingRequestId] = React.useState<string | null>(null);
 
@@ -202,7 +210,10 @@ export function RadarMapView({
     trip: Trip;
     price: number;
     pricingMode: 'FREE' | 'APP' | 'TAXI';
+    isAdditional: boolean;
+    previousPrice?: number;
   } | null>(null);
+  const [modalPrice, setModalPrice] = React.useState<string>('');
   const [waitSeconds, setWaitSeconds] = React.useState<string>('120');
 
   const handlePastePrice = React.useCallback(async (requestId: string) => {
@@ -258,27 +269,51 @@ export function RadarMapView({
       return;
     }
 
+    const modalTripId = request.id;
+    const modalHistory = lastSubmittedPrices[modalTripId];
+    const modalLastPrice = modalHistory && modalHistory.length > 0
+      ? modalHistory[modalHistory.length - 1]
+      : (directPrices[modalTripId] ? parseFloat(directPrices[modalTripId]) : undefined);
+
+    const isAdditionalOffer = Boolean(
+      (pendingOffersCount?.[modalTripId] || 0) > 0 ||
+      pendingOfferRequestId === modalTripId ||
+      (modalHistory && modalHistory.length > 0)
+    );
+
     setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
     setConfirmModalTrip({
       trip: request,
       price: priceNum,
       pricingMode: cardPricingMode,
+      isAdditional: isAdditionalOffer,
+      previousPrice: modalLastPrice,
     });
+    setModalPrice(priceNum.toFixed(2));
     setWaitSeconds('120');
-  }, [activeTariff, captainPricingMode, directPrices, isOfficeTaxi, subRole]);
+  }, [activeTariff, captainPricingMode, directPrices, isOfficeTaxi, lastSubmittedPrices, pendingOfferRequestId, pendingOffersCount, subRole]);
 
   const handleConfirmSubmitBid = React.useCallback(async () => {
     if (!confirmModalTrip || !onSubmitDirectBid) return;
-    const { trip, price, pricingMode } = confirmModalTrip;
+    const { trip, pricingMode } = confirmModalTrip;
+    const parsedPrice = parseFloat(modalPrice);
+    const finalPrice = !isNaN(parsedPrice) && parsedPrice > 0 ? parsedPrice : confirmModalTrip.price;
+    if (!finalPrice || finalPrice <= 0) return;
+
     setSubmittingRequestId(trip.id);
     try {
       const finalWaitSeconds = Math.max(30, Math.min(900, parseInt(waitSeconds, 10) || 120));
-      await onSubmitDirectBid(trip, price, finalWaitSeconds, pricingMode);
+      await onSubmitDirectBid(trip, finalPrice, finalWaitSeconds, pricingMode);
+      setDirectPrices((prev) => ({ ...prev, [trip.id]: finalPrice.toFixed(2) }));
+      setLastSubmittedPrices((prev) => ({
+        ...prev,
+        [trip.id]: [...(prev[trip.id] || []), finalPrice],
+      }));
       setConfirmModalTrip(null);
     } finally {
       setSubmittingRequestId(null);
     }
-  }, [confirmModalTrip, onSubmitDirectBid, waitSeconds]);
+  }, [confirmModalTrip, modalPrice, onSubmitDirectBid, waitSeconds]);
 
   const sortedRequests = React.useMemo(() => {
     if (!pendingOfferRequestId || !requests.length) return requests;
@@ -437,8 +472,13 @@ export function RadarMapView({
           ) : (
             <div className={styles.style217_31}>
               {sortedRequests.map((request) => {
-                const isOwnPendingOffer = pendingOfferRequestId === request.id;
-                const isBlockedByOtherPendingOffer = Boolean(pendingOfferRequestId) && !isOwnPendingOffer;
+                const offerCount = pendingOffersCount?.[request.id] ?? (pendingOfferRequestId === request.id ? 1 : 0);
+                const isOwnPendingOffer = offerCount > 0;
+                const isBlockedByOtherPendingOffer = false;
+                const requestSubmittedPrices = lastSubmittedPrices[request.id];
+                const lastSubmittedPrice = requestSubmittedPrices && requestSubmittedPrices.length > 0
+                  ? requestSubmittedPrices[requestSubmittedPrices.length - 1]
+                  : undefined;
                 const isTaxiMode = isOfficeTaxi || request.pricingPreference === 'TAXI';
                 const isAppMode = !isTaxiMode && (captainPricingMode === 'APP' || request.pricingPreference === 'APP');
                 const isIndependentMode = !isTaxiMode && !isAppMode && (subRole === 'independent' || subRole === 'المستقل');
@@ -640,79 +680,101 @@ export function RadarMapView({
                           />
                         </div>
 
-                        {/* PRICING INPUT / DISPLAY ON THE CARD */}
+                        {/* PRICING INPUT / DISPLAY ON THE CARD (Visible for first offer) */}
                         {!isOwnPendingOffer && (
                           <div className="mt-3.5 pt-3 border-t border-slate-800/80">
-                            {/* CASE 1: Smart App Mode (Uber etc.) - Input readOnly + Paste button only */}
-                            {isAppMode && (
-                              <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
-                                <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                                  <span className={styles.appPriceCardBadge}>
-                                    📱 {copy.appModeBadge}
-                                  </span>
-                                  <span className={styles.appPriceCardNotice}>
-                                    {copy.appModeInputNotice}
-                                  </span>
-                                </div>
-
-                                <div className={styles.appPriceInputRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                                  <div className={styles.appPriceInputGroup} dir="ltr">
-                                    <input
-                                      type="text"
-                                      inputMode="decimal"
-                                      placeholder="0.00"
-                                      disabled={isBlockedByOtherPendingOffer}
-                                      value={directPrices[request.id] ?? ''}
-                                      onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.]/g, '');
-                                        const parts = val.split('.');
-                                        const cleanVal = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
-                                        setDirectPrices((prev) => ({ ...prev, [request.id]: cleanVal }));
-                                        if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
-                                      }}
-                                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                                      className={cn(
-                                        styles.appPriceInputField,
-                                        'text-amber-300 font-mono font-black',
-                                        isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
-                                      )}
-                                      dir="ltr"
-                                    />
-                                    <span className={styles.appPriceCurrencyBadge}>{currency}</span>
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => void handlePastePrice(request.id)}
-                                    disabled={isBlockedByOtherPendingOffer}
-                                    className={styles.appPricePasteBtn}
-                                    title={copy.pastePrice}
-                                    dir={language === 'ar' ? 'rtl' : 'ltr'}
-                                  >
-                                    <ClipboardPaste className={styles.appPricePasteIcon} />
-                                    <span>{copy.paste}</span>
-                                  </button>
-                                </div>
-
-                                {priceErrors[request.id] ? (
-                                  <p className={styles.appPriceInputError}>{copy.appModePriceRequired}</p>
-                                ) : null}
+                          {/* CASE 1: Smart App Mode (Uber etc.) - Input readOnly + Paste button only */}
+                          {isAppMode && (
+                            <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
+                              <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <span className={styles.appPriceCardBadge}>
+                                  📱 {copy.appModeBadge}
+                                </span>
+                                <span className={styles.appPriceCardNotice}>
+                                  {copy.appModeInputNotice}
+                                </span>
                               </div>
-                            )}
 
-                            {/* CASE 2: Independent Mode (مستقل) - Stepper + Input directly on card */}
-                            {isIndependentMode && (
-                              <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
-                                <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                                  <span className={styles.appPriceCardBadge}>
-                                    💼 {copy.independentBadge}
+                              {lastSubmittedPrice != null && (
+                                <div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs">
+                                  <span className="font-bold text-slate-300">
+                                    {copy.previousOfferPrice}
                                   </span>
-                                  <span className={styles.appPriceCardNotice}>
-                                    {copy.independentNotice}
+                                  <span className="font-mono font-black text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-lg px-2.5 py-0.5 text-xs">
+                                    {formatLocalizedNumber(lastSubmittedPrice.toFixed(2), language)} {currency}
                                   </span>
                                 </div>
+                              )}
 
-                                <div className="flex items-center gap-1.5 sm:gap-2 pt-1 w-full" dir="ltr">
+                              <div className={styles.appPriceInputRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <div className={styles.appPriceInputGroup} dir="ltr">
+                                  <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0.00"
+                                    disabled={isBlockedByOtherPendingOffer}
+                                    value={directPrices[request.id] ?? ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value.replace(/[^0-9.]/g, '');
+                                      const parts = val.split('.');
+                                      const cleanVal = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                                      setDirectPrices((prev) => ({ ...prev, [request.id]: cleanVal }));
+                                      if (priceErrors[request.id]) setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
+                                    }}
+                                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                                    className={cn(
+                                      styles.appPriceInputField,
+                                      'text-amber-300 font-mono font-black',
+                                      isBlockedByOtherPendingOffer ? styles.appPriceInputDisabled : '',
+                                    )}
+                                    dir="ltr"
+                                  />
+                                  <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => void handlePastePrice(request.id)}
+                                  disabled={isBlockedByOtherPendingOffer}
+                                  className={styles.appPricePasteBtn}
+                                  title={copy.pastePrice}
+                                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                                >
+                                  <ClipboardPaste className={styles.appPricePasteIcon} />
+                                  <span>{copy.paste}</span>
+                                </button>
+                              </div>
+
+                              {priceErrors[request.id] ? (
+                                <p className={styles.appPriceInputError}>{copy.appModePriceRequired}</p>
+                              ) : null}
+                            </div>
+                          )}
+
+                          {/* CASE 2: Independent Mode (مستقل) - Stepper + Input directly on card */}
+                          {isIndependentMode && (
+                            <div className={styles.appPriceCard} onClick={(e) => e.stopPropagation()}>
+                              <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                                <span className={styles.appPriceCardBadge}>
+                                  💼 {copy.independentBadge}
+                                </span>
+                                <span className={styles.appPriceCardNotice}>
+                                  {copy.independentNotice}
+                                </span>
+                              </div>
+
+                              {lastSubmittedPrice != null && (
+                                <div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs">
+                                  <span className="font-bold text-slate-300">
+                                    {copy.previousOfferPrice}
+                                  </span>
+                                  <span className="font-mono font-black text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-lg px-2.5 py-0.5 text-xs">
+                                    {formatLocalizedNumber(lastSubmittedPrice.toFixed(2), language)} {currency}
+                                  </span>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-1.5 sm:gap-2 pt-1 w-full" dir="ltr">
                                   <button
                                     type="button"
                                     disabled={isBlockedByOtherPendingOffer}
@@ -805,6 +867,17 @@ export function RadarMapView({
                                     </button>
                                   )}
                                 </div>
+
+                                {lastSubmittedPrice != null && (
+                                  <div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs">
+                                    <span className="font-bold text-slate-300">
+                                      {copy.previousOfferPrice}
+                                    </span>
+                                    <span className="font-mono font-black text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-lg px-2.5 py-0.5 text-xs">
+                                      {formatLocalizedNumber(lastSubmittedPrice.toFixed(2), language)} {currency}
+                                    </span>
+                                  </div>
+                                )}
 
                                 <div className="flex items-center gap-1.5 sm:gap-2 pt-1 w-full" dir="ltr">
                                   <button
@@ -932,28 +1005,78 @@ export function RadarMapView({
                           </div>
                         ) : null}
 
-                        {/* Submit Offer Button */}
-                        {!isOwnPendingOffer ? (
-                          <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                        {/* IF OFFER PENDING: Show Status Banner with Last Price Info */}
+                        {isOwnPendingOffer ? (
+                          <div className="mt-3 flex flex-col gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 p-2.5 text-xs text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={styles.ownPendingPulseWrap}>
+                                  <span className={styles.ownPendingPing} />
+                                  <span className={styles.ownPendingDot} />
+                                </span>
+                                <Clock className={styles.ownPendingIcon} />
+                                <span className={styles.ownPendingText}>
+                                  {offerCount > 1
+                                    ? copy.ownPendingOffersCount.replace('{count}', String(offerCount))
+                                    : copy.ownPendingOffer}
+                                </span>
+                              </div>
+                              {lastSubmittedPrice != null && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300 shrink-0">
+                                  {language === 'ar' ? `آخر عرض: ${lastSubmittedPrice.toFixed(2)} ${currency}` : `Last: ${lastSubmittedPrice.toFixed(2)} ${currency}`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {/* Submit Offer & Action Buttons */}
+                        <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          <button
+                            type="button"
+                            onClick={() => handleInitiateOffer(request)}
+                            disabled={isSubmittingThisRequest}
+                            className={cn(
+                              styles.style232_40,
+                              isSubmittingThisRequest ? styles.pendingOfferDisabled : '',
+                              isDumpingCrimson ? '!border-rose-500/80' : isDumpingAmber ? '!border-amber-500/80' : '',
+                              isOwnPendingOffer ? '!border-amber-400/60 !bg-gradient-to-r !from-amber-500/25 !via-emerald-500/20 !to-[#14B8A6]/25 !text-amber-200' : '',
+                            )}
+                            dir={language === 'ar' ? 'rtl' : 'ltr'}
+                          >
+                            {isSubmittingThisRequest ? (
+                              <Loader2 className={styles.submitSpinner} />
+                            ) : isOwnPendingOffer ? (
+                              <Plus className={styles.style233_41} />
+                            ) : (
+                              <Route className={styles.style233_41} />
+                            )}
+                            <span className="truncate">
+                              {isOwnPendingOffer ? copy.submitAnotherOffer : copy.submitDirect}
+                            </span>
+                          </button>
+
+                          {isOwnPendingOffer && onCancelOffer ? (
                             <button
                               type="button"
-                              onClick={() => handleInitiateOffer(request)}
-                              disabled={isBlockedByOtherPendingOffer || isSubmittingThisRequest}
-                              title={isBlockedByOtherPendingOffer ? copy.blockedPendingOfferHint : undefined}
-                              className={cn(
-                                styles.style232_40,
-                                (isBlockedByOtherPendingOffer || isSubmittingThisRequest) ? styles.pendingOfferDisabled : '',
-                                isDumpingCrimson ? '!border-rose-500/80' : isDumpingAmber ? '!border-amber-500/80' : '',
-                              )}
+                              onClick={() => void handleCancelOffer(request.id)}
+                              disabled={Boolean(cancellingRequestId) || isCancellingOffer}
+                              className={cn(styles.style236_42, "!border-rose-500/40 !bg-rose-500/10 !text-rose-300 hover:!bg-rose-500/20")}
+                              title={copy.cancelOfferTitle}
                               dir={language === 'ar' ? 'rtl' : 'ltr'}
                             >
-                              {isSubmittingThisRequest ? (
-                                <Loader2 className={styles.submitSpinner} />
+                              {cancellingRequestId === request.id || isCancellingOffer ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
-                                <Route className={styles.style233_41} />
+                                <X className="h-4 w-4" />
                               )}
-                              <span className="truncate">{copy.submitDirect}</span>
+                              <span className="truncate">
+                                {cancellingRequestId === request.id || isCancellingOffer
+                                  ? copy.cancellingOffer
+                                  : (offerCount > 1 ? copy.cancelOffers : copy.cancelOffer)}
+                              </span>
                             </button>
+                          ) : (
                             <button
                               type="button"
                               onClick={() => onIgnoreRequest(request.id)}
@@ -962,41 +1085,10 @@ export function RadarMapView({
                             >
                               {copy.ignore}
                             </button>
-                          </div>
-                        ) : null}
+                          )}
+                        </div>
                       </div>
                     )}
-
-                    {/* IF OFFER PENDING: Show Status Banner and Full Width Cancel Button */}
-                    {isOwnPendingOffer ? (
-                      <div className={styles.ownPendingRow} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                        <div className={styles.ownPendingBadge} title={copy.ownPendingOfferDesc}>
-                          <span className={styles.ownPendingPulseWrap}>
-                            <span className={styles.ownPendingPing} />
-                            <span className={styles.ownPendingDot} />
-                          </span>
-                          <Clock className={styles.ownPendingIcon} />
-                          <span className={styles.ownPendingText}>{copy.ownPendingOffer}</span>
-                        </div>
-                        {onCancelOffer && (
-                          <button
-                            type="button"
-                            onClick={() => void handleCancelOffer(request.id)}
-                            disabled={Boolean(cancellingRequestId) || isCancellingOffer}
-                            className={styles.cancelOfferBtnFull}
-                            title={copy.cancelOfferTitle}
-                            dir={language === 'ar' ? 'rtl' : 'ltr'}
-                          >
-                            {cancellingRequestId === request.id || isCancellingOffer ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <X className="h-4 w-4 stroke-[2.5]" />
-                            )}
-                            <span>{cancellingRequestId === request.id || isCancellingOffer ? copy.cancellingOffer : copy.cancelOffer}</span>
-                          </button>
-                        )}
-                      </div>
-                    ) : null}
                   </article>
                 );
               })}
@@ -1015,9 +1107,17 @@ export function RadarMapView({
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
               <div>
-                <span className="text-xs font-black text-[#14B8A6]">{copy.confirmOfferTitle}</span>
+                <span className="text-xs font-black text-[#14B8A6]">
+                  {confirmModalTrip.isAdditional
+                    ? copy.confirmAdditionalOfferTitle
+                    : copy.confirmOfferTitle}
+                </span>
                 <h3 className="text-lg font-black text-white mt-0.5">{confirmModalTrip.trip.dropoff || copy.destination}</h3>
-                <p className="text-xs text-slate-400 mt-0.5">{copy.confirmOfferSubtitle}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {confirmModalTrip.isAdditional
+                    ? (language === 'ar' ? 'حدد تسعيرة العرض الجديد وثواني الانتظار للمستخدم' : 'Set your new offer fare and wait seconds')
+                    : copy.confirmOfferSubtitle}
+                </p>
               </div>
               <button
                 type="button"
@@ -1027,6 +1127,101 @@ export function RadarMapView({
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {/* Price Setting Box - ONLY shown when submitting a SECOND/ADDITIONAL offer */}
+            {confirmModalTrip.isAdditional && (() => {
+              const modalTripId = confirmModalTrip.trip.id;
+              const modalHistory = lastSubmittedPrices[modalTripId];
+              const modalLastPrice = confirmModalTrip.previousPrice ?? (modalHistory && modalHistory.length > 0 ? modalHistory[modalHistory.length - 1] : undefined);
+              const modalPriceNum = parseFloat(modalPrice) || 0;
+              const baseMarketPrice = confirmModalTrip.trip.offerPrice != null && confirmModalTrip.trip.offerPrice > 0 ? confirmModalTrip.trip.offerPrice : null;
+              const modalBrake = (baseMarketPrice && baseMarketPrice > 0 && modalPriceNum > 0)
+                ? RadarAntiCheatKernel.enforceMarketBrakes(modalPriceNum, baseMarketPrice)
+                : { status: 'NORMAL' as const };
+              const isCrimson = confirmModalTrip.pricingMode !== 'TAXI' && (modalBrake.status === 'CRIMSON_BLOCK' || (Boolean(baseMarketPrice) && modalPriceNum > 0 && modalPriceNum < (baseMarketPrice! * 0.85)));
+
+              return (
+                <div className={styles.appPriceCard} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                  <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                    <span className={styles.appPriceCardBadge}>
+                      {confirmModalTrip.pricingMode === 'APP' ? `📱 ${copy.appModeBadge}` : `💼 ${copy.independentBadge}`}
+                    </span>
+                    <span className={styles.appPriceCardNotice}>
+                      {copy.independentNotice}
+                    </span>
+                  </div>
+
+                  {modalLastPrice != null && (
+                    <div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs">
+                      <span className="font-bold text-slate-300">
+                        {copy.previousOfferPrice}
+                      </span>
+                      <span className="font-mono font-black text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-lg px-2.5 py-0.5 text-xs">
+                        {formatLocalizedNumber(modalLastPrice.toFixed(2), language)} {currency}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Stepper + Input exactly like first-time offer */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 pt-1 w-full" dir="ltr">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentNum = parseFloat(modalPrice) || confirmModalTrip.price || 0;
+                        const nextVal = Math.max(0.1, Math.round((currentNum - 0.5) * 100) / 100);
+                        setModalPrice(nextVal.toFixed(2));
+                      }}
+                      className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+
+                    <div
+                      className={cn(
+                        styles.appPriceInputGroup,
+                        'min-w-0 flex-1',
+                        isCrimson ? '!border-rose-500/80 !bg-rose-950/40' : '',
+                      )}
+                      dir="ltr"
+                    >
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.1"
+                        value={modalPrice}
+                        onChange={(e) => setModalPrice(e.target.value)}
+                        placeholder={confirmModalTrip.price.toFixed(2)}
+                        className={cn(
+                          styles.appPriceInputField,
+                          'font-mono font-black text-center text-base',
+                          isCrimson ? '!text-rose-300' : '',
+                        )}
+                        dir="ltr"
+                      />
+                      <span className={styles.appPriceCurrencyBadge}>{currency}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentNum = parseFloat(modalPrice) || confirmModalTrip.price || 0;
+                        const nextVal = Math.round((currentNum + 0.5) * 100) / 100;
+                        setModalPrice(nextVal.toFixed(2));
+                      }}
+                      className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {isCrimson && (
+                    <p className="text-[11px] font-bold text-rose-400 text-center pt-0.5">
+                      {copy.dumpingCrimsonMsg}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
 
 
@@ -1083,7 +1278,11 @@ export function RadarMapView({
                 ) : (
                   <CheckCircle2 className="h-4 w-4" />
                 )}
-                <span>{copy.confirmBid}</span>
+                <span>
+                  {confirmModalTrip.isAdditional
+                    ? copy.confirmAdditionalBid
+                    : copy.confirmBid}
+                </span>
               </button>
               <button
                 type="button"
@@ -1277,6 +1476,11 @@ const radarCopy = {
     pricingPreference: 'طريقة التسعير',
     openBid: 'تقديم عرض',
     submitDirect: 'تقديم عرض',
+    submitAnotherOffer: 'تقديم عرض آخر',
+    confirmAdditionalOfferTitle: 'تأكيد تقديم عرض إضافي',
+    confirmAdditionalBid: 'تأكيد وتقديم العرض الإضافي',
+    ownPendingOffersCount: 'عروضك قيد الانتظار ({count} عروض)',
+    cancelOffers: 'إلغاء العروض',
     pendingOfferHint: 'لديك عرض قيد الانتظار، انتظر رد المستخدم أولاً.',
     blockedPendingOfferHint: 'لديك عرض قيد الانتظار لطلب آخر — انتظر رد المستخدم للمتابعة',
     ownPendingOffer: 'عرضك قيد الانتظار',
@@ -1314,6 +1518,7 @@ const radarCopy = {
     dumpingCrimsonMsg: '🛑 تنبيه: السعر أقل من سعر السوق بأكثر من 15% (سعر محروق قد يؤثر على تقييمك ورتبتك).',
     upperWarnMsg: '⚠️ تنبيه: السعر أعلى من النطاق المعتمد (+15% فما فوق).',
     applyFloorBtn: 'تطبيق الحد الأدنى المسموح به',
+    previousOfferPrice: 'سعر العرض السابق:',
   },
   en: {
     title: 'Captain radar',
@@ -1347,6 +1552,11 @@ const radarCopy = {
     pricingPreference: 'Pricing Mode',
     openBid: 'Submit bid',
     submitDirect: 'Submit offer',
+    submitAnotherOffer: 'Submit another offer',
+    confirmAdditionalOfferTitle: 'Confirm Additional Offer',
+    confirmAdditionalBid: 'Confirm & submit additional offer',
+    ownPendingOffersCount: 'Your offers are pending ({count} offers)',
+    cancelOffers: 'Cancel offers',
     pendingOfferHint: 'You have a pending offer — wait for the rider to respond first.',
     blockedPendingOfferHint: 'You have a pending offer on another trip — wait for rider response',
     ownPendingOffer: 'Offer pending',
@@ -1384,5 +1594,6 @@ const radarCopy = {
     dumpingCrimsonMsg: '🛑 Warning: Price is more than 15% below market average (may affect your evaluation and rating).',
     upperWarnMsg: '⚠️ Warning: Price exceeds allowed band (+15% or above).',
     applyFloorBtn: 'Apply minimum allowed price',
+    previousOfferPrice: 'Previous offer price:',
   },
 } as const;

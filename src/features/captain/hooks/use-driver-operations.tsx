@@ -25,6 +25,7 @@ interface DriverOpsContextType {
   acceptedRider: RiderUser | null;
   handshakeAt: number | null;
   pendingOfferRequestId: string | null;
+  pendingOffersCount?: Record<string, number>;
   isDormancyWarningVisible: boolean;
   resetDormancyTimer: () => void;
   submitOffer: (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => Promise<boolean>;
@@ -132,6 +133,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     acceptedRider,
     handshakeAt,
     pendingOfferRequestId,
+    pendingOffersCount,
     submitOffer: rawSubmitOffer,
     isSubmittingOffer,
     cancelOffer: rawCancelOffer,
@@ -208,6 +210,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     acceptedRider,
     handshakeAt,
     pendingOfferRequestId,
+    pendingOffersCount,
     isDormancyWarningVisible,
     isUpdatingStatus,
     resetDormancyTimer,
@@ -259,6 +262,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     endTrip,
     handshakeAt,
     pendingOfferRequestId,
+    pendingOffersCount,
     isCancellingOffer,
     isCancellingTrip,
     isDisconnectionLockActive,

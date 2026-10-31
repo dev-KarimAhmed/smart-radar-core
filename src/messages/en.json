@@ -1734,6 +1734,8 @@
     "errorPendingOfferDesc": "Wait for the rider to respond to your current offer before making a new one.",
     "offerSubmittedTitle": "Offer submitted",
     "offerSubmittedDesc": "We will notify you as soon as the rider accepts the offer.",
+    "offerAdditionalSubmittedTitle": "Additional offer submitted",
+    "offerAdditionalSubmittedDesc": "Your new offer was successfully sent to the rider.",
     "offerCancelledTitle": "Offer cancelled",
     "offerCancelledDesc": "Your offer was cancelled successfully and you are ready for new requests.",
     "offerCancelFailedTitle": "Failed to cancel offer",

@@ -70,7 +70,8 @@ export function useDriverTransactions(
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
   const [pendingOfferRequestId, setPendingOfferRequestId] = useState<string | null>(null);
-  const pendingOfferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingOffersCount, setPendingOffersCount] = useState<Record<string, number>>({});
+  const pendingOfferTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [isCancellingOffer, setIsCancellingOffer] = useState(false);
   const [isUpdatingTripStep, setIsUpdatingTripStep] = useState(false);
@@ -88,12 +89,24 @@ export function useDriverTransactions(
 
   const captainId = user?.uid || '';
 
-  const clearPendingOffer = useCallback(() => {
-    if (pendingOfferTimeoutRef.current) {
-      clearTimeout(pendingOfferTimeoutRef.current);
-      pendingOfferTimeoutRef.current = null;
+  const clearPendingOffer = useCallback((tripId?: string | null) => {
+    if (tripId) {
+      if (pendingOfferTimeoutsRef.current[tripId]) {
+        clearTimeout(pendingOfferTimeoutsRef.current[tripId]);
+        delete pendingOfferTimeoutsRef.current[tripId];
+      }
+      setPendingOffersCount((prev) => {
+        const next = { ...prev };
+        delete next[tripId];
+        return next;
+      });
+      setPendingOfferRequestId((curr) => (curr === tripId ? null : curr));
+    } else {
+      Object.values(pendingOfferTimeoutsRef.current).forEach((t) => clearTimeout(t));
+      pendingOfferTimeoutsRef.current = {};
+      setPendingOffersCount({});
+      setPendingOfferRequestId(null);
     }
-    setPendingOfferRequestId(null);
   }, []);
 
   useEffect(() => {
@@ -220,7 +233,8 @@ export function useDriverTransactions(
 
   useEffect(() => {
     return () => {
-      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
+      Object.values(pendingOfferTimeoutsRef.current).forEach((t) => clearTimeout(t));
+      pendingOfferTimeoutsRef.current = {};
     };
   }, []);
 
@@ -424,15 +438,6 @@ export function useDriverTransactions(
       return false;
     }
 
-    if (pendingOfferRequestId && pendingOfferRequestId !== payload.tripId) {
-      toast({
-        variant: 'destructive',
-        title: t('errorPendingOfferTitle'),
-        description: t('errorPendingOfferDesc'),
-      });
-      return false;
-    }
-
     if (submittingRef.current) return false;
     submittingRef.current = true;
     setIsSubmittingOffer(true);
@@ -447,19 +452,28 @@ export function useDriverTransactions(
 
       if (error) throw error;
 
-      // The card for this request stays visible on the radar (in a "pending"
-      // state, per the UI layer) instead of being hidden like an ignored
-      // request — the captain should still see their own submitted bid.
-      // Cleared after exactly `waitSeconds` — the same window the rider's
-      // offer countdown uses — so the captain is freed to bid again the
-      // moment the offer disappears from the rider's screen, not blocked
-      // for some unrelated fixed duration.
+      const isAdditional = (pendingOffersCount[payload.tripId] || 0) > 0;
+      setPendingOffersCount((prev) => ({
+        ...prev,
+        [payload.tripId]: (prev[payload.tripId] || 0) + 1,
+      }));
       setPendingOfferRequestId(payload.tripId);
-      if (pendingOfferTimeoutRef.current) clearTimeout(pendingOfferTimeoutRef.current);
-      pendingOfferTimeoutRef.current = setTimeout(() => setPendingOfferRequestId(null), payload.waitSeconds * 1000);
+
+      if (pendingOfferTimeoutsRef.current[payload.tripId]) {
+        clearTimeout(pendingOfferTimeoutsRef.current[payload.tripId]);
+      }
+      pendingOfferTimeoutsRef.current[payload.tripId] = setTimeout(() => {
+        setPendingOffersCount((prev) => {
+          const next = { ...prev };
+          delete next[payload.tripId];
+          return next;
+        });
+        setPendingOfferRequestId((curr) => (curr === payload.tripId ? null : curr));
+      }, payload.waitSeconds * 1000);
+
       toast({
-        title: t('offerSubmittedTitle'),
-      description: t('offerSubmittedDesc'),
+        title: isAdditional ? t('offerAdditionalSubmittedTitle') : t('offerSubmittedTitle'),
+        description: isAdditional ? t('offerAdditionalSubmittedDesc') : t('offerSubmittedDesc'),
       });
       return true;
     } catch (error) {
@@ -473,7 +487,7 @@ export function useDriverTransactions(
       submittingRef.current = false;
       setIsSubmittingOffer(false);
     }
-  }, [captainId, pendingOfferRequestId, toast]);
+  }, [captainId, pendingOffersCount, toast, t]);
 
   const cancelOffer = useCallback(async (tripId?: string | null) => {
     const targetRequestId = tripId || pendingOfferRequestId;
@@ -505,7 +519,7 @@ export function useDriverTransactions(
             title: t('offerAlreadyAcceptedTitle'),
             description: t('offerAlreadyAcceptedDesc'),
           });
-          clearPendingOffer();
+          clearPendingOffer(targetRequestId);
           return false;
         }
 
@@ -529,7 +543,7 @@ export function useDriverTransactions(
               title: t('offerAlreadyAcceptedTitle'),
               description: t('offerAlreadyAcceptedDesc'),
             });
-            clearPendingOffer();
+            clearPendingOffer(targetRequestId);
             return false;
           }
           // Direct delete as last-mile fallback
@@ -541,8 +555,8 @@ export function useDriverTransactions(
         }
       }
 
-      // 3. Clear local pending state
-      clearPendingOffer();
+      // 3. Clear local pending state for this target request
+      clearPendingOffer(targetRequestId);
 
       toast({
         title: t('offerCancelledTitle'),
@@ -822,6 +836,7 @@ export function useDriverTransactions(
     acceptedRider,
     handshakeAt,
     pendingOfferRequestId,
+    pendingOffersCount,
     submitOffer,
     isSubmittingOffer,
     cancelOffer,
@@ -853,6 +868,7 @@ export function useDriverTransactions(
     isUpdatingTripStep,
     markArrivedAtPickup,
     pendingOfferRequestId,
+    pendingOffersCount,
     rateAndFinishTrip,
     requestWeeklyReport,
     startTrip,

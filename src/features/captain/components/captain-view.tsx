@@ -111,19 +111,11 @@ export function DriverViewTab() {
   };
 
   const submitDirectBid = async (request: Trip, price: number, waitSeconds = 120, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
-    if (driverOps.pendingOfferRequestId && driverOps.pendingOfferRequestId !== request.id) {
-      toast({ variant: 'destructive', title: t('pendingOfferToastTitle'), description: t('pendingOfferToastBody') });
-      return;
-    }
     const ok = await driverOps.submitOffer({ tripId: request.id, offerPrice: price, waitSeconds, pricingMode });
     if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: request.id });
   };
 
   const selectRequest = (request: Trip, initialPrice?: string | number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
-    if (driverOps.pendingOfferRequestId && driverOps.pendingOfferRequestId !== request.id) {
-      toast({ variant: 'destructive', title: t('pendingOfferToastTitle'), description: t('pendingOfferToastBody') });
-      return;
-    }
     const parsed = initialPrice ? parseFloat(String(initialPrice)) : null;
     setPrefilledOfferPrice(parsed && !isNaN(parsed) && parsed > 0 ? parsed : null);
     setPrefilledPricingMode(pricingMode ?? null);
