@@ -225,21 +225,46 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
     }
   }
 
-  // فحص حتمي أحادي الجلسة (Single Session Gate):
-  // إذا كان الحساب مفتوحاً بالفعل ونشطاً على جهاز آخر، يتم منع تسجيل الدخول فوراً
-  const inUse = await checkAccountInUseByPhone(supabase, validation.phone, currentDeviceId);
-  if (inUse) {
-    throw new Error('account_in_use:الحساب قيد الاستخدام حالياً على جهاز آخر.');
-  }
-
-  setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
-
-  const { data, error } = await supabase.auth.signInWithPassword({
+  // Attempt 1: Direct phone login
+  let signInRes = await supabase.auth.signInWithPassword({
     phone: validation.phone,
     password: input.password,
   });
 
-  if (error) throw error;
+  // Attempt 2 Fallback: If phone login fails, check if the user registered with an email
+  // (e.g. Supabase instance email-primary configuration or phone formatting variant in auth)
+  if (signInRes.error) {
+    const isCredentialsOrPhoneErr =
+      (signInRes.error as any).code === 'invalid_credentials' ||
+      (signInRes.error.message || '').toLowerCase().includes('invalid login') ||
+      (signInRes.error.message || '').toLowerCase().includes('invalid credentials') ||
+      (signInRes.error.message || '').toLowerCase().includes('phone');
+
+    if (isCredentialsOrPhoneErr) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('phone', validation.phone)
+          .maybeSingle();
+
+        if (profile?.email && profile.email.includes('@')) {
+          const emailSignInRes = await supabase.auth.signInWithPassword({
+            email: profile.email.trim().toLowerCase(),
+            password: input.password,
+          });
+          if (!emailSignInRes.error && emailSignInRes.data?.user) {
+            signInRes = emailSignInRes;
+          }
+        }
+      } catch (fallbackErr) {
+        // Fallback check failed, proceed with original error
+      }
+    }
+  }
+
+  if (signInRes.error) throw signInRes.error;
+  const data = signInRes.data;
 
   // Grandfathering: Accounts created before the email verification rollout (or legacy phone-only accounts)
   // are permanently exempt from email confirmation blocking to prevent existing users from being locked out.

@@ -926,7 +926,7 @@ function normalizePhoneForCountry(
   country: SupabaseCountryRow | null,
   tAuto?: (key: string) => string,
 ) {
-  const trimmed = rawPhone.trim();
+  let trimmed = rawPhone.trim().replace(/[\s()-]/g, '');
   const getMsg = (key: string, fallback: string) => {
     try {
       return tAuto ? tAuto(key) : fallback;
@@ -939,21 +939,57 @@ function normalizePhoneForCountry(
     return { ok: false as const, message: getMsg('key_9a6b40b6', 'اكتب رقم الهاتف.') };
   }
 
+  // Handle 00 international prefix -> +
+  if (trimmed.startsWith('00')) {
+    trimmed = '+' + trimmed.slice(2);
+  }
+
   const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
 
   try {
-    const parsed = parsePhoneNumberFromString(trimmed, isoCode || undefined);
+    // Strategy 1: Parse with given country ISO code if provided
+    let parsed = parsePhoneNumberFromString(trimmed, isoCode || undefined);
+
+    // Strategy 2: If invalid or unparsed, try parsing as a standalone international number
     if (!parsed || !parsed.isValid()) {
+      const parsedIntl = parsePhoneNumberFromString(trimmed);
+      if (parsedIntl && parsedIntl.isValid()) {
+        parsed = parsedIntl;
+      }
+    }
+
+    // Strategy 3: If still invalid and no + prefix, try fallback to common regional countries (JO, EG, SA)
+    if (!parsed || !parsed.isValid()) {
+      if (!trimmed.startsWith('+')) {
+        for (const fallbackIso of ['JO', 'EG', 'SA'] as CountryCode[]) {
+          if (fallbackIso === isoCode) continue;
+          const candidate = parsePhoneNumberFromString(trimmed, fallbackIso);
+          if (candidate && candidate.isValid()) {
+            parsed = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    // Strategy 4: If starts with + and has 8-15 digits, accept directly
+    if (!parsed || !parsed.isValid()) {
+      if (/^\+[1-9]\d{7,14}$/.test(trimmed)) {
+        return { ok: true as const, phone: trimmed };
+      }
       return {
         ok: false as const,
         message: isoCode
           ? getMsg('key_9812501b', 'رقم الهاتف غير صحيح لهذه الدولة، اكتبه بالنسق المحلي أو الدولي.')
-          : getMsg('key_af6d7dd9', 'اختر الدولة أولاً حتى نتحقق من رقم الهاتف.'),
+          : getMsg('key_af6d7dd9', 'اختر الدولة أولاً أو اكتب الرقم بالصيغة الدولية (+962 أو +20).'),
       };
     }
 
     return { ok: true as const, phone: parsed.number };
   } catch {
+    if (/^\+[1-9]\d{7,14}$/.test(trimmed)) {
+      return { ok: true as const, phone: trimmed };
+    }
     return { ok: false as const, message: getMsg('key_286d6c55', 'رقم الهاتف غير صحيح.') };
   }
 }

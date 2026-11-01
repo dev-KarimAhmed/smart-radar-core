@@ -138,7 +138,7 @@ export function RadarRequestCard({
               isIndependentMode={isIndependentMode}
               isRadarFreeMode={isRadarFreeMode}
               isTaxiMode={isTaxiMode}
-              isBlockedByOtherPendingOffer={false}
+              isBlockedByOtherPendingOffer={isOwnPendingOffer}
               lastSubmittedPrice={lastSubmittedPrice}
               directPrice={directPrice}
               defaultPriceValue={defaultPriceValue}
@@ -166,14 +166,12 @@ export function RadarRequestCard({
                   </span>
                   <Clock className={styles.ownPendingIcon} />
                   <span className={styles.ownPendingText}>
-                    {offerCount > 1
-                      ? copy.ownPendingOffersCount.replace('{count}', String(offerCount))
-                      : copy.ownPendingOffer}
+                    {copy.ownPendingOffer}
                   </span>
                 </div>
                 {lastSubmittedPrice != null && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300 shrink-0">
-                    {language === 'ar' ? `آخر عرض: ${lastSubmittedPrice.toFixed(2)} ${currency}` : `Last: ${lastSubmittedPrice.toFixed(2)} ${currency}`}
+                    {language === 'ar' ? `السعر المقدم: ${lastSubmittedPrice.toFixed(2)} ${currency}` : `Offered: ${lastSubmittedPrice.toFixed(2)} ${currency}`}
                   </span>
                 )}
               </div>
@@ -181,59 +179,58 @@ export function RadarRequestCard({
           )}
 
           <div className={styles.style231_39} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-            <button
-              type="button"
-              onClick={() => onInitiateOffer(request)}
-              disabled={isSubmitting}
-              className={cn(
-                styles.style232_40,
-                isSubmitting ? styles.pendingOfferDisabled : '',
-                isDumpingCrimson ? '!border-rose-500/80' : isDumpingAmber ? '!border-amber-500/80' : '',
-                isOwnPendingOffer ? '!border-amber-400/60 !bg-gradient-to-r !from-amber-500/25 !via-emerald-500/20 !to-[#14B8A6]/25 !text-amber-200' : '',
-              )}
-              dir={language === 'ar' ? 'rtl' : 'ltr'}
-            >
-              {isSubmitting ? (
-                <Loader2 className={styles.submitSpinner} />
-              ) : isOwnPendingOffer ? (
-                <Plus className={styles.style233_41} />
-              ) : (
-                <Route className={styles.style233_41} />
-              )}
-              <span className="truncate">
-                {isOwnPendingOffer ? copy.submitAnotherOffer : copy.submitDirect}
-              </span>
-            </button>
-
-            {isOwnPendingOffer && onCancelOffer ? (
-              <button
-                type="button"
-                onClick={() => void onCancelOffer(request.id)}
-                disabled={isCancelling}
-                className={cn(styles.style236_42, "!border-rose-500/40 !bg-rose-500/10 !text-rose-300 hover:!bg-rose-500/20")}
-                title={copy.cancelOfferTitle}
-                dir={language === 'ar' ? 'rtl' : 'ltr'}
-              >
-                {isCancelling ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <X className="h-4 w-4" />
-                )}
-                <span className="truncate">
-                  {isCancelling
-                    ? copy.cancellingOffer
-                    : (offerCount > 1 ? copy.cancelOffers : copy.cancelOffer)}
-                </span>
-              </button>
+            {isOwnPendingOffer ? (
+              onCancelOffer ? (
+                <button
+                  type="button"
+                  onClick={() => void onCancelOffer(request.id)}
+                  disabled={isCancelling}
+                  className={styles.cancelOfferBtnFull}
+                  title={copy.cancelOfferTitle}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                >
+                  {isCancelling ? (
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  ) : (
+                    <X className="h-4 w-4 shrink-0" />
+                  )}
+                  <span className="truncate">
+                    {isCancelling ? copy.cancellingOffer : copy.cancelOffer}
+                  </span>
+                </button>
+              ) : null
             ) : (
-              <button
-                type="button"
-                onClick={() => onIgnoreRequest(request.id)}
-                className={styles.style236_42}
-                dir={language === 'ar' ? 'rtl' : 'ltr'}
-              >
-                {copy.ignore}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => onInitiateOffer(request)}
+                  disabled={isSubmitting}
+                  className={cn(
+                    styles.style232_40,
+                    isSubmitting ? styles.pendingOfferDisabled : '',
+                    isDumpingCrimson ? '!border-rose-500/80' : isDumpingAmber ? '!border-amber-500/80' : '',
+                  )}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className={styles.submitSpinner} />
+                  ) : (
+                    <Route className={styles.style233_41} />
+                  )}
+                  <span className="truncate">
+                    {copy.submitDirect}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onIgnoreRequest(request.id)}
+                  className={styles.style236_42}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                >
+                  {copy.ignore}
+                </button>
+              </>
             )}
           </div>
         </div>

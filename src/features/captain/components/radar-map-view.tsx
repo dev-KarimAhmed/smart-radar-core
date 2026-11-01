@@ -105,13 +105,15 @@ export function RadarMapView({
   }, []);
 
   const sortedRequests = React.useMemo(() => {
-    if (!pendingOfferRequestId || !requests.length) return requests;
+    if (!requests.length) return requests;
     return [...requests].sort((a, b) => {
-      if (a.id === pendingOfferRequestId) return -1;
-      if (b.id === pendingOfferRequestId) return 1;
+      const aPending = (pendingOffersCount?.[a.id] || 0) > 0 || a.id === pendingOfferRequestId;
+      const bPending = (pendingOffersCount?.[b.id] || 0) > 0 || b.id === pendingOfferRequestId;
+      if (aPending && !bPending) return -1;
+      if (!aPending && bPending) return 1;
       return 0;
     });
-  }, [requests, pendingOfferRequestId]);
+  }, [requests, pendingOffersCount, pendingOfferRequestId]);
 
   return (
     <section className={styles.style144_1}>

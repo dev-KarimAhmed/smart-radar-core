@@ -81,29 +81,25 @@ export function useRadarOfferFlow({
       return;
     }
 
-    const modalTripId = request.id;
-    const modalHistory = lastSubmittedPrices[modalTripId];
-    const modalLastPrice = modalHistory && modalHistory.length > 0
-      ? modalHistory[modalHistory.length - 1]
-      : (directPrices[modalTripId] ? parseFloat(directPrices[modalTripId]) : undefined);
-
-    const isAdditionalOffer = Boolean(
-      (pendingOffersCount?.[modalTripId] || 0) > 0 ||
-      pendingOfferRequestId === modalTripId ||
-      (modalHistory && modalHistory.length > 0)
+    // Do not allow multiple offers to the same passenger
+    const alreadyHasOffer = Boolean(
+      (pendingOffersCount?.[request.id] || 0) > 0 ||
+      pendingOfferRequestId === request.id
     );
+    if (alreadyHasOffer) {
+      return;
+    }
 
     setPriceErrors((prev) => ({ ...prev, [request.id]: false }));
     setConfirmModalTrip({
       trip: request,
       price: priceNum,
       pricingMode: cardPricingMode,
-      isAdditional: isAdditionalOffer,
-      previousPrice: modalLastPrice,
+      isAdditional: false,
     });
     setModalPrice(priceNum.toFixed(2));
     setWaitSeconds('120');
-  }, [activeTariff, captainPricingMode, directPrices, isOfficeTaxi, lastSubmittedPrices, pendingOfferRequestId, pendingOffersCount]);
+  }, [activeTariff, captainPricingMode, directPrices, isOfficeTaxi, pendingOfferRequestId, pendingOffersCount]);
 
   const handleConfirmSubmitBid = React.useCallback(async () => {
     if (!confirmModalTrip || !onSubmitDirectBid) return;

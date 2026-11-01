@@ -85,7 +85,7 @@ export function RadarRequestsQueue({
         ) : (
           <div className={styles.style217_31}>
             {sortedRequests.map((request) => {
-              const offerCount = pendingOffersCount?.[request.id] ?? (pendingOfferRequestId === request.id ? 1 : 0);
+              const offerCount = (pendingOffersCount?.[request.id] || 0) > 0 || pendingOfferRequestId === request.id ? 1 : 0;
               const requestSubmittedPrices = lastSubmittedPrices[request.id];
               const lastSubmittedPrice = requestSubmittedPrices && requestSubmittedPrices.length > 0
                 ? requestSubmittedPrices[requestSubmittedPrices.length - 1]

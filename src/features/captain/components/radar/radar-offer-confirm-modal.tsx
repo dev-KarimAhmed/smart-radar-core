@@ -56,15 +56,11 @@ export function RadarOfferConfirmModal({
         <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
           <div>
             <span className="text-xs font-black text-[#14B8A6]">
-              {confirmModalTrip.isAdditional
-                ? copy.confirmAdditionalOfferTitle
-                : copy.confirmOfferTitle}
+              {copy.confirmOfferTitle}
             </span>
             <h3 className="text-lg font-black text-white mt-0.5">{confirmModalTrip.trip.dropoff || copy.destination}</h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              {confirmModalTrip.isAdditional
-                ? (language === 'ar' ? 'حدد تسعيرة العرض الجديد وثواني الانتظار للمستخدم' : 'Set your new offer fare and wait seconds')
-                : copy.confirmOfferSubtitle}
+              {copy.confirmOfferSubtitle}
             </p>
           </div>
           <button
@@ -76,88 +72,13 @@ export function RadarOfferConfirmModal({
           </button>
         </div>
 
-        {/* Price Setting Box - ONLY shown when submitting a SECOND/ADDITIONAL offer */}
-        {confirmModalTrip.isAdditional && (
-          <div className={styles.appPriceCard} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-            <div className={styles.appPriceCardHeader} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-              <span className={styles.appPriceCardBadge}>
-                {confirmModalTrip.pricingMode === 'APP' ? `📱 ${copy.appModeBadge}` : `💼 ${copy.independentBadge}`}
-              </span>
-              <span className={styles.appPriceCardNotice}>
-                {copy.independentNotice}
-              </span>
-            </div>
-
-            {modalLastPrice != null && (
-              <div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs">
-                <span className="font-bold text-slate-300">
-                  {copy.previousOfferPrice}
-                </span>
-                <span className="font-mono font-black text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-lg px-2.5 py-0.5 text-xs">
-                  {formatLocalizedNumber(modalLastPrice.toFixed(2), language)} {currency}
-                </span>
-              </div>
-            )}
-
-            {/* Stepper + Input */}
-            <div className="flex items-center gap-1.5 sm:gap-2 pt-1 w-full" dir="ltr">
-              <button
-                type="button"
-                onClick={() => {
-                  const currentNum = parseFloat(modalPrice) || confirmModalTrip.price || 0;
-                  const nextVal = Math.max(0.1, Math.round((currentNum - 0.5) * 100) / 100);
-                  setModalPrice(nextVal.toFixed(2));
-                }}
-                className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer shadow-sm"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-
-              <div
-                className={cn(
-                  styles.appPriceInputGroup,
-                  'min-w-0 flex-1',
-                  isCrimson ? '!border-rose-500/80 !bg-rose-950/40' : '',
-                )}
-                dir="ltr"
-              >
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.1"
-                  value={modalPrice}
-                  onChange={(e) => setModalPrice(e.target.value)}
-                  placeholder={confirmModalTrip.price.toFixed(2)}
-                  className={cn(
-                    styles.appPriceInputField,
-                    'font-mono font-black text-center text-base',
-                    isCrimson ? '!text-rose-300' : '',
-                  )}
-                  dir="ltr"
-                />
-                <span className={styles.appPriceCurrencyBadge}>{currency}</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const currentNum = parseFloat(modalPrice) || confirmModalTrip.price || 0;
-                  const nextVal = Math.round((currentNum + 0.5) * 100) / 100;
-                  setModalPrice(nextVal.toFixed(2));
-                }}
-                className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all cursor-pointer shadow-sm"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-
-            {isCrimson && (
-              <p className="text-[11px] font-bold text-rose-400 text-center pt-0.5">
-                {copy.dumpingCrimsonMsg}
-              </p>
-            )}
-          </div>
-        )}
+        {/* Offered Price Summary */}
+        <div className="flex items-center justify-between rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-3">
+          <span className="text-xs font-bold text-slate-300">{copy.offerPriceLabel}:</span>
+          <span className="font-mono text-base font-black text-[#14F5D5]">
+            {formatLocalizedNumber(Number(modalPrice || confirmModalTrip.price).toFixed(2), language)} {currency}
+          </span>
+        </div>
 
         {/* Wait Seconds Box */}
         <div className="space-y-2">
@@ -213,9 +134,7 @@ export function RadarOfferConfirmModal({
               <CheckCircle2 className="h-4 w-4" />
             )}
             <span>
-              {confirmModalTrip.isAdditional
-                ? copy.confirmAdditionalBid
-                : copy.confirmBid}
+              {copy.confirmBid}
             </span>
           </button>
           <button

@@ -7,11 +7,19 @@ import {
 } from './supabase-auth';
 
 assert.equal(normalizeInternationalPhone('+962 79 000 0000'), '+962790000000');
+assert.equal(normalizeInternationalPhone('00962 79 000 0000'), '+962790000000');
+assert.equal(normalizeInternationalPhone('00201000000000'), '+201000000000');
 assert.equal(validatePhoneAndPassword('+962790000000', '123').ok, false);
+assert.equal(validatePhoneAndPassword('00962790000000', '123456').ok, true);
 
 assert.equal(
-  mapSupabaseAuthError({ code: 'phone_exists', message: 'User already registered' }),
-  'رقم الهاتف مسجل بالفعل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.',
+  mapSupabaseAuthError({ message: 'role_mismatch:CAPTAIN:RIDER' }),
+  'هذا الحساب مسجل كـ كابتن (سائق). يرجى تسجيل الدخول من بوابة الكباتن.',
+);
+
+assert.equal(
+  mapSupabaseAuthError({ message: 'role_mismatch:RIDER:CAPTAIN' }),
+  'هذا الحساب مسجل كـ راكب. يرجى تسجيل الدخول من بوابة الركاب.',
 );
 
 assert.equal(

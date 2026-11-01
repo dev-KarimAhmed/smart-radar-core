@@ -563,9 +563,13 @@ export function ActiveTripTracker({
         ) : (
           <div className={styles.cancelConfirmWrap}>
             <p className={styles.cancelConfirmText}>
-              {language === 'ar'
-                ? 'يتطلب إلغاء الرحلة موافقة المستخدم. هل تود إرسال طلب الإلغاء؟'
-                : 'Cancelling requires mutual agreement. Send cancellation request?'}
+              {step === 'STARTED'
+                ? (language === 'ar'
+                    ? 'الرحلة جارية حالياً ويتطلب إلغاؤها موافقة الراكب. هل تود إرسال طلب إلغاء بالتوافق؟'
+                    : 'Trip is in progress and requires mutual agreement. Send cancellation request?')
+                : (language === 'ar'
+                    ? 'هل أنت متأكد من رغبتك في إلغاء الرحلة قبل بدئها؟'
+                    : 'Are you sure you want to cancel the trip before it starts?')}
             </p>
             <div className={styles.cancelConfirmActions}>
               <button
@@ -573,11 +577,17 @@ export function ActiveTripTracker({
                 disabled={isCancelling || mutualCancel.isProcessing}
                 onClick={async () => {
                   setIsConfirmingCancel(false);
-                  await mutualCancel.requestCancel();
+                  if (step === 'STARTED') {
+                    await mutualCancel.requestCancel();
+                  } else {
+                    await onCancelTrip();
+                  }
                 }}
                 className={styles.cancelConfirmButton}
               >
-                {language === 'ar' ? 'إرسال طلب الإلغاء' : 'Send Request'}
+                {step === 'STARTED'
+                  ? (language === 'ar' ? 'إرسال طلب الإلغاء' : 'Send Request')
+                  : (language === 'ar' ? 'تأكيد إلغاء الرحلة' : 'Confirm Cancel')}
               </button>
               <button
                 type="button"

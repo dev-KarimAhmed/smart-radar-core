@@ -100,7 +100,13 @@ export function useDriverTransactions(
         delete next[tripId];
         return next;
       });
-      setPendingOfferRequestId((curr) => (curr === tripId ? null : curr));
+      setPendingOfferRequestId((curr) => {
+        if (curr === tripId) {
+          const remaining = Object.keys(pendingOfferTimeoutsRef.current).filter((id) => id !== tripId);
+          return remaining[0] || null;
+        }
+        return curr;
+      });
     } else {
       Object.values(pendingOfferTimeoutsRef.current).forEach((t) => clearTimeout(t));
       pendingOfferTimeoutsRef.current = {};
@@ -115,63 +121,6 @@ export function useDriverTransactions(
     }
   }, [driverStatus, clearPendingOffer]);
 
-  // Checks whether the captain's pending offer request is still active on the radar.
-  // If the rider cancels the trip, accepts an offer, or the request expires from captain_radar_requests,
-  // clears the pending state so the captain can bid on other requests.
-  useEffect(() => {
-    if (!pendingOfferRequestId || !captainId) return;
-    let isCancelled = false;
-
-    const checkStillPending = async () => {
-      // 1. Check if the rider accepted this captain's offer directly on ride_requests
-      const { data: myAccepted } = await supabase
-        .from('ride_requests')
-        .select('id, status, accepted_captain_id')
-        .eq('id', pendingOfferRequestId)
-        .eq('accepted_captain_id', captainId)
-        .maybeSingle();
-
-      if (isCancelled) return;
-
-      if (myAccepted && String(myAccepted.status || '').toUpperCase() === 'ACCEPTED') {
-        clearPendingOffer();
-        try {
-          await loadAcceptedRequest(pendingOfferRequestId);
-        } catch (e) {
-          if (process.env.NODE_ENV !== 'production') console.warn('[Driver transactions] loadAcceptedRequest error:', e);
-        }
-        return;
-      }
-
-      // 2. If not accepted by this captain, check if still pending in the open radar
-      const { data, error } = await supabase
-        .from('captain_radar_requests')
-        .select('id, created_at')
-        .eq('id', pendingOfferRequestId)
-        .maybeSingle();
-
-      if (isCancelled) return;
-
-      if (error || !data) {
-        clearPendingOffer();
-        return;
-      }
-
-      const row = data as Record<string, unknown>;
-      const createdAt = row.created_at ? new Date(row.created_at as string).getTime() : 0;
-      if (createdAt > 0 && Date.now() - createdAt > 240_000) {
-        clearPendingOffer();
-      }
-    };
-
-    const intervalId = window.setInterval(() => void checkStillPending(), 3_000);
-    void checkStillPending();
-
-    return () => {
-      isCancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [pendingOfferRequestId, captainId, clearPendingOffer]);
 
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
@@ -230,6 +179,76 @@ export function useDriverTransactions(
       }
     }
   }, [clearPendingOffer, setDriverStatus]);
+
+  // Checks whether any of the captain's pending offer requests are still active on the radar or accepted.
+  // Supports multiple concurrent offers to different riders.
+  useEffect(() => {
+    const pendingTripIds = Object.keys(pendingOffersCount);
+    if (pendingTripIds.length === 0 || !captainId) return;
+    let isCancelled = false;
+
+    const checkStillPending = async () => {
+      // 1. Check if ANY rider accepted this captain's offer directly on ride_requests
+      const { data: acceptedRows } = await supabase
+        .from('ride_requests')
+        .select('id, status, accepted_captain_id')
+        .in('id', pendingTripIds)
+        .eq('accepted_captain_id', captainId);
+
+      if (isCancelled) return;
+
+      const myAccepted = (acceptedRows || []).find(
+        (r: any) => String(r.status || '').toUpperCase() === 'ACCEPTED'
+      );
+
+      if (myAccepted?.id) {
+        const acceptedId = String(myAccepted.id);
+        clearPendingOffer();
+        try {
+          await loadAcceptedRequest(acceptedId);
+        } catch (e) {
+          if (process.env.NODE_ENV !== 'production') console.warn('[Driver transactions] loadAcceptedRequest error:', e);
+        }
+        return;
+      }
+
+      // 2. If not accepted, check which requests are still active in captain_radar_requests
+      const { data: radarRows, error } = await supabase
+        .from('captain_radar_requests')
+        .select('id, created_at')
+        .in('id', pendingTripIds);
+
+      if (isCancelled) return;
+
+      if (error) return;
+
+      const activeMap = new Map<string, number>();
+      for (const row of (radarRows || []) as any[]) {
+        const createdAt = row.created_at ? new Date(row.created_at).getTime() : 0;
+        activeMap.set(String(row.id), createdAt);
+      }
+
+      for (const tripId of pendingTripIds) {
+        if (!activeMap.has(tripId)) {
+          // Trip is no longer in open radar -> clear only this trip
+          clearPendingOffer(tripId);
+        } else {
+          const createdAt = activeMap.get(tripId) || 0;
+          if (createdAt > 0 && Date.now() - createdAt > 240_000) {
+            clearPendingOffer(tripId);
+          }
+        }
+      }
+    };
+
+    const intervalId = window.setInterval(() => void checkStillPending(), 3_000);
+    void checkStillPending();
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [pendingOffersCount, captainId, clearPendingOffer, loadAcceptedRequest]);
 
   useEffect(() => {
     return () => {
@@ -438,6 +457,15 @@ export function useDriverTransactions(
       return false;
     }
 
+    if ((pendingOffersCount[payload.tripId] || 0) > 0) {
+      toast({
+        variant: 'destructive',
+        title: t('errorDuplicateOfferTitle'),
+        description: t('errorDuplicateOfferDesc'),
+      });
+      return false;
+    }
+
     if (submittingRef.current) return false;
     submittingRef.current = true;
     setIsSubmittingOffer(true);
@@ -452,10 +480,9 @@ export function useDriverTransactions(
 
       if (error) throw error;
 
-      const isAdditional = (pendingOffersCount[payload.tripId] || 0) > 0;
       setPendingOffersCount((prev) => ({
         ...prev,
-        [payload.tripId]: (prev[payload.tripId] || 0) + 1,
+        [payload.tripId]: 1,
       }));
       setPendingOfferRequestId(payload.tripId);
 
@@ -463,17 +490,12 @@ export function useDriverTransactions(
         clearTimeout(pendingOfferTimeoutsRef.current[payload.tripId]);
       }
       pendingOfferTimeoutsRef.current[payload.tripId] = setTimeout(() => {
-        setPendingOffersCount((prev) => {
-          const next = { ...prev };
-          delete next[payload.tripId];
-          return next;
-        });
-        setPendingOfferRequestId((curr) => (curr === payload.tripId ? null : curr));
+        clearPendingOffer(payload.tripId);
       }, payload.waitSeconds * 1000);
 
       toast({
-        title: isAdditional ? t('offerAdditionalSubmittedTitle') : t('offerSubmittedTitle'),
-        description: isAdditional ? t('offerAdditionalSubmittedDesc') : t('offerSubmittedDesc'),
+        title: t('offerSubmittedTitle'),
+        description: t('offerSubmittedDesc'),
       });
       return true;
     } catch (error) {

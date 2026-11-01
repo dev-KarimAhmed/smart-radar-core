@@ -59,7 +59,11 @@ export interface RiderAuthMetadata {
 }
 
 export function normalizeInternationalPhone(phone: string) {
-  return phone.trim().replace(/[\s()-]/g, '');
+  let cleaned = phone.trim().replace(/[\s()-]/g, '');
+  if (cleaned.startsWith('00')) {
+    cleaned = '+' + cleaned.slice(2);
+  }
+  return cleaned;
 }
 
 export function validatePhoneAndPassword(phone: string, password: string) {
@@ -133,10 +137,10 @@ export function isInvalidPhoneOrPasswordError(error: unknown) {
   const code = `${authError?.code || ''}`.toLowerCase();
 
   const isInvalidCredentials =
-    code.includes('invalid_credentials') ||
+    (code.includes('invalid_credentials') ||
     message.includes('invalid login') ||
-    message.includes('invalid credentials') ||
-    message.includes('role_mismatch');
+    message.includes('invalid credentials')) &&
+    !message.includes('role_mismatch');
 
   return isInvalidCredentials && !code.includes('otp') && !message.includes('token');
 }
@@ -326,8 +330,15 @@ export function mapSupabaseAuthError(error: unknown) {
     return 'رقم الهاتف غير صحيح. اكتبه مع رمز الدولة مثل +962 أو +20.';
   }
 
-  if (fullText.startsWith('role_mismatch:')) {
-    return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+  if (fullText.startsWith('role_mismatch:') || message.startsWith('role_mismatch:')) {
+    const parts = (message.startsWith('role_mismatch:') ? message : fullText).split(':');
+    const actualRole = parts[1]?.toUpperCase() || '';
+    if (actualRole === 'CAPTAIN') {
+      return 'هذا الحساب مسجل كـ كابتن (سائق). يرجى تسجيل الدخول من بوابة الكباتن.';
+    } else if (actualRole === 'RIDER') {
+      return 'هذا الحساب مسجل كـ راكب. يرجى تسجيل الدخول من بوابة الركاب.';
+    }
+    return 'هذا الحساب مسجل بنوع مستخدم مختلف عن البوابة الحالية.';
   }
 
   if (error instanceof Error && error.message && /[\u0600-\u06FF]/.test(error.message)) return error.message;

@@ -23,6 +23,8 @@ import type { RiderActiveTrip } from '../state/rider-state-machine';
 import type { TripCountdown } from '@/shared/services/trip-countdown';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase-client';
 import { CaptainTripAdsViewer } from './captain-trip-ads-viewer';
 
 export interface TripActiveScreenProps {
@@ -73,6 +75,48 @@ export function TripActiveScreen({
     initialCancelRequestedBy: activeTrip.cancel_requested_by,
     onCancelledConfirmed: onCancelRideRequest,
   });
+
+  const { toast } = useToast();
+  const [isConfirmingDirectCancel, setIsConfirmingDirectCancel] = React.useState(false);
+  const [isDirectCancelling, setIsDirectCancelling] = React.useState(false);
+
+  const handleDirectCancelRider = React.useCallback(async () => {
+    setIsDirectCancelling(true);
+    try {
+      let cancelled = false;
+      try {
+        const { error } = await supabase.rpc('cancel_ride_request', { p_request_id: activeTrip.tripId });
+        if (!error) cancelled = true;
+      } catch {}
+
+      if (!cancelled) {
+        await fetch('/api/trip/mutual-cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requestId: activeTrip.tripId,
+            action: 'ACCEPT',
+            cancelledByRole: 'rider',
+          }),
+        });
+      }
+
+      toast({
+        title: isArabic ? 'تم إلغاء الرحلة' : 'Trip Cancelled',
+        description: isArabic ? 'تم إلغاء الرحلة بنجاح قبل بدئها.' : 'Trip cancelled successfully before start.',
+      });
+      onCancelRideRequest?.();
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'فشل الإلغاء' : 'Cancellation Failed',
+        description: isArabic ? 'تعذر إلغاء الرحلة، يرجى المحاولة مجدداً.' : 'Could not cancel trip, please try again.',
+      });
+    } finally {
+      setIsDirectCancelling(false);
+      setIsConfirmingDirectCancel(false);
+    }
+  }, [activeTrip.tripId, isArabic, onCancelRideRequest, toast]);
 
   const serialNumber = activeTrip.captain?.serial_number
     || (activeTrip.captain as any)?.serial
@@ -350,15 +394,45 @@ export function TripActiveScreen({
             </button>
           </div>
         ) : !tripHasStarted ? (
-          <button
-            type="button"
-            onClick={() => void mutualCancel.requestCancel()}
-            disabled={isCancellingRideRequest || mutualCancel.isProcessing}
-            className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 font-black text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shadow-md shadow-rose-500/10"
-          >
-            <X className="h-4 w-4 text-rose-400" />
-            <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة ×' : 'Request Trip Cancellation ×')}</span>
-          </button>
+          !isConfirmingDirectCancel ? (
+            <button
+              type="button"
+              onClick={() => setIsConfirmingDirectCancel(true)}
+              disabled={isCancellingRideRequest || isDirectCancelling}
+              className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 font-black text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shadow-md shadow-rose-500/10"
+            >
+              <X className="h-4 w-4 text-rose-400" />
+              <span>{isArabic ? 'إلغاء الرحلة ×' : 'Cancel Trip ×'}</span>
+            </button>
+          ) : (
+            <div className="space-y-3 rounded-2xl border border-rose-500/30 bg-rose-950/30 p-4 text-center">
+              <p className="text-xs text-rose-200 font-bold leading-relaxed">
+                {isArabic
+                  ? 'هل أنت متأكد من رغبتك في إلغاء الرحلة؟'
+                  : 'Are you sure you want to cancel the trip?'}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={isDirectCancelling}
+                  onClick={handleDirectCancelRider}
+                  className="h-10 flex-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-black text-white transition cursor-pointer disabled:opacity-50"
+                >
+                  {isDirectCancelling
+                    ? (isArabic ? 'جاري الإلغاء...' : 'Cancelling...')
+                    : (isArabic ? 'تأكيد الإلغاء' : 'Confirm Cancel')}
+                </button>
+                <button
+                  type="button"
+                  disabled={isDirectCancelling}
+                  onClick={() => setIsConfirmingDirectCancel(false)}
+                  className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition cursor-pointer"
+                >
+                  {isArabic ? 'تراجع' : 'Back'}
+                </button>
+              </div>
+            </div>
+          )
         ) : (
           <div className="space-y-2.5">
             <button

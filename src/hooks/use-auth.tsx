@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import type { User as SovereignUser } from '@/core/types';
 import { useRouter } from 'next/navigation';
@@ -166,6 +166,20 @@ function AuthContent({ children }: { children: ReactNode }) {
         if (session?.user) {
           setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
         } else if (_event === 'SIGNED_OUT') {
+          // If the phone just woke up from sleep or is temporarily offline, token auto-refresh
+          // can transiently fail before LTE/Wi-Fi reassociates. Check if durable storage still has a session.
+          const hasStored = hasStoredSupabaseAuthSession();
+          const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+          if (hasStored || isOffline) {
+            // Keep current user state intact and attempt a quiet background session refresh
+            void supabase.auth.getSession().then(({ data }) => {
+              if (data?.session?.user && mounted) {
+                cacheSupabaseSession(data.session);
+                setUser(buildUserFromSupabaseAuth(data.session.user) as SovereignUser);
+              }
+            }).catch(() => {});
+            return;
+          }
           setUser(null);
           void import('@/shared/hooks/use-notifications').then(({ clearNotificationMemoryStore }) => {
             clearNotificationMemoryStore();
@@ -173,7 +187,36 @@ function AuthContent({ children }: { children: ReactNode }) {
         }
         finishBootstrap();
       });
-      unsubscribe = () => subscription.subscription.unsubscribe();
+
+      // Silently re-check session when device wakes up or network recovers
+      const handleWakeOrOnline = () => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+        if (hasStoredSupabaseAuthSession()) {
+          void supabase.auth.getSession().then(({ data }) => {
+            if (data?.session?.user && mounted) {
+              cacheSupabaseSession(data.session);
+              setUser(buildUserFromSupabaseAuth(data.session.user) as SovereignUser);
+            }
+          }).catch(() => {});
+        }
+      };
+
+      if (typeof window !== 'undefined') {
+        window.addEventListener('online', handleWakeOrOnline);
+      }
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', handleWakeOrOnline);
+      }
+
+      unsubscribe = () => {
+        subscription.subscription.unsubscribe();
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('online', handleWakeOrOnline);
+        }
+        if (typeof document !== 'undefined') {
+          document.removeEventListener('visibilitychange', handleWakeOrOnline);
+        }
+      };
     }).catch(() => {
       if (!mounted) return;
       if (!user && !getInitialUserFromCache()) {
@@ -190,7 +233,7 @@ function AuthContent({ children }: { children: ReactNode }) {
     };
   }, []);
 
-    const forceKickout = useCallback(async () => {
+  const forceKickout = useCallback(async () => {
     const preservedLanguage =
       typeof window !== 'undefined' ? window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) : null;
     try {
@@ -225,6 +268,11 @@ function AuthContent({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const forceKickoutRef = useRef(forceKickout);
+  useEffect(() => {
+    forceKickoutRef.current = forceKickout;
+  });
+
   useEffect(() => {
     if (!user?.uid) return;
     let isMounted = true;
@@ -235,10 +283,16 @@ function AuthContent({ children }: { children: ReactNode }) {
 
     let deviceId = '';
     if (typeof window !== 'undefined') {
-      deviceId = window.localStorage.getItem('radar_device_id') || '';
-      if (!deviceId) {
-        deviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
-        window.localStorage.setItem('radar_device_id', deviceId);
+      try {
+        deviceId = window.localStorage.getItem('radar_device_id') || '';
+        if (!deviceId) {
+          deviceId = typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : (Date.now() + '-' + Math.random().toString(36).slice(2));
+          window.localStorage.setItem('radar_device_id', deviceId);
+        }
+      } catch {
+        deviceId = 'device-' + user.uid;
       }
     }
     
@@ -251,7 +305,7 @@ function AuthContent({ children }: { children: ReactNode }) {
 
       const handleCheckActive = (payload: any, ch: any) => {
         const foreignDeviceId = payload.payload?.deviceId;
-        if (foreignDeviceId && foreignDeviceId !== deviceId) {
+        if (foreignDeviceId && deviceId && foreignDeviceId !== deviceId) {
           ch.send({
             type: 'broadcast',
             event: 'session_active',
@@ -262,29 +316,21 @@ function AuthContent({ children }: { children: ReactNode }) {
 
       const handleForeignTakeover = (payload: any) => {
         const foreignDeviceId = payload.payload?.deviceId;
-        if (foreignDeviceId && foreignDeviceId !== deviceId) {
+        if (foreignDeviceId && deviceId && foreignDeviceId !== deviceId) {
           toast({
             variant: 'destructive',
             title: 'تم تسجيل الدخول من جهاز آخر',
             description: 'تم تسجيل الدخول إلى هذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.',
             duration: 10000,
           });
-          void forceKickout();
+          void forceKickoutRef.current();
         }
       };
 
       channel = supabase.channel('user-session-' + user.uid);
       channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
       channel.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
-      channel.subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') {
-          channel.send({
-            type: 'broadcast',
-            event: 'session_takeover',
-            payload: { deviceId },
-          });
-        }
-      });
+      channel.subscribe();
 
       if (phoneDigits) {
         channelPhoneDigits = supabase.channel('user-session-phone-' + phoneDigits);
@@ -319,7 +365,7 @@ function AuthContent({ children }: { children: ReactNode }) {
         } catch {}
       });
     };
-  }, [user?.uid, user?.phone, (user as any)?.email, toast, forceKickout]);
+  }, [user?.uid, user?.phone, (user as any)?.email, toast]);
 
   // Keep preferred_language in profiles synced with active device/user language choice
   useEffect(() => {

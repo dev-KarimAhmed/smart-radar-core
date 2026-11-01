@@ -1732,6 +1732,8 @@
     "errorInvalidWaitTimeDesc": "Select how many seconds the offer will appear (minimum {min} seconds) and try again.",
     "errorPendingOfferTitle": "You have a pending offer",
     "errorPendingOfferDesc": "Wait for the rider to respond to your current offer before making a new one.",
+    "errorDuplicateOfferTitle": "Offer already submitted to this rider",
+    "errorDuplicateOfferDesc": "You have already submitted an offer to this rider. You can cancel it first to change it, or submit offers to other riders.",
     "offerSubmittedTitle": "Offer submitted",
     "offerSubmittedDesc": "We will notify you as soon as the rider accepts the offer.",
     "offerAdditionalSubmittedTitle": "Additional offer submitted",
