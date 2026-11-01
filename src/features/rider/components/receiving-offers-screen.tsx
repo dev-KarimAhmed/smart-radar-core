@@ -91,18 +91,36 @@ export function ReceivingOffersScreen({
   const seconds = remainingSeconds % 60;
   const formattedCountdown = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-  // Step 5: Page 6 - User can click [اكتفي افتح] to reveal offers early, or system auto-reveals after 4 mins
+  // Filter active offers whose validity countdown hasn't expired
+  const activeOffers = React.useMemo(() => {
+    return state.offers.filter((offer) => {
+      const offerId = offer.id || offer.driverId;
+      const firstSeen = firstSeenAtRef.current?.get(offerId);
+      const countdown = getOfferCountdown(offer, firstSeen, now);
+      return !countdown.isExpired;
+    });
+  }, [firstSeenAtRef, now, state.offers]);
+
+  // Step 5: Page 6 - User can click [معاينة العروض] to reveal offers early, or system auto-reveals after 4 mins
   const [isOffersListRevealed, setIsOffersListRevealed] = React.useState(false);
 
-  // Auto-reveal if 4 minutes finish and offers exist
+  // Auto-reveal if 4 minutes finish and active offers exist
   React.useEffect(() => {
-    if (remainingSeconds === 0 && state.offers.length > 0) {
+    if (remainingSeconds === 0 && activeOffers.length > 0) {
       setIsOffersListRevealed(true);
     }
-  }, [remainingSeconds, state.offers.length]);
+  }, [remainingSeconds, activeOffers.length]);
 
-  const showOffersList = isOffersListRevealed || (remainingSeconds === 0 && state.offers.length > 0);
-  const isSearchTimedOutWithoutOffers = remainingSeconds === 0 && state.offers.length === 0;
+  // If user opened offers list (or it was auto-opened) but all offers expired while search time remains:
+  // smoothly collapse back to the radar scanning screen
+  React.useEffect(() => {
+    if (isOffersListRevealed && activeOffers.length === 0) {
+      setIsOffersListRevealed(false);
+    }
+  }, [isOffersListRevealed, activeOffers.length]);
+
+  const showOffersList = (isOffersListRevealed && activeOffers.length > 0) || (remainingSeconds === 0 && activeOffers.length > 0);
+  const isSearchTimedOutWithoutOffers = remainingSeconds === 0 && activeOffers.length === 0;
 
   const stages = React.useMemo(() => {
     return isArabic
@@ -230,7 +248,7 @@ export function ReceivingOffersScreen({
                 {isArabic ? 'اختار العرض المناسب' : t('offers.chooseCaptain')}
               </h2>
               <p className="mt-1 text-xs text-[#14F5D5] font-bold">
-                {isArabic ? `انتظر العروض / ${state.offers.length} إلى 9` : 'Choose the best offer to start your trip'}
+                {isArabic ? `انتظر العروض / ${activeOffers.length} إلى 9` : 'Choose the best offer to start your trip'}
               </p>
             </div>
 
@@ -273,7 +291,7 @@ export function ReceivingOffersScreen({
                 {isArabic ? 'طلبك ظاهر لدى الكباتن المعلنين' : t('request.visibleTitle')}
               </h2>
               <p className="mt-0.5 text-xs text-[#14F5D5] font-bold leading-relaxed">
-                {isArabic ? `انتظر العروض / ${state.offers.length} إلى 9` : t('offers.waitingDescription')}
+                {isArabic ? `انتظر العروض / ${activeOffers.length} إلى 9` : t('offers.waitingDescription')}
               </p>
             </div>
 
@@ -380,13 +398,13 @@ export function ReceivingOffersScreen({
               <div
                 className={cn(
                   "inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-2.5 sm:px-3 py-0.5 sm:py-1 font-mono text-[11px] sm:text-xs font-black shrink-0 transition-all duration-300 select-none",
-                  state.offers.length > 0
+                  activeOffers.length > 0
                     ? "border border-[#14F5D5]/50 bg-[#14F5D5]/15 text-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.3)]"
                     : "border-white/10 bg-white/5 text-slate-400"
                 )}
               >
                 <span className="relative flex h-2 w-2 shrink-0">
-                  {state.offers.length > 0 ? (
+                  {activeOffers.length > 0 ? (
                     <>
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
@@ -396,12 +414,12 @@ export function ReceivingOffersScreen({
                   )}
                 </span>
                 <span className="whitespace-nowrap">
-                  {state.offers.length}{' '}
+                  {activeOffers.length}{' '}
                   {isArabic
-                    ? state.offers.length === 1
+                    ? activeOffers.length === 1
                       ? 'كابتن'
                       : 'كباتن'
-                    : state.offers.length === 1
+                    : activeOffers.length === 1
                     ? 'Captain'
                     : 'Captains'}
                 </span>
@@ -412,20 +430,20 @@ export function ReceivingOffersScreen({
             <button
               type="button"
               onClick={() => {
-                if (state.offers.length > 0) {
+                if (activeOffers.length > 0) {
                   setIsOffersListRevealed(true);
                 }
               }}
-              disabled={state.offers.length === 0}
+              disabled={activeOffers.length === 0}
               className={cn(
                 "relative group overflow-hidden w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-black text-xs sm:text-sm transition-all duration-300 select-none",
-                state.offers.length > 0
+                activeOffers.length > 0
                   ? "border border-[#14F5D5] bg-gradient-to-r from-[#0E2238] via-[#0A1A2E] to-[#05101E] text-white shadow-[0_0_24px_rgba(20,245,213,0.4)] hover:shadow-[0_0_32px_rgba(20,245,213,0.65)] hover:border-[#14F5D5] hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
                   : "border border-white/10 bg-[#060D19]/80 text-slate-400 opacity-60 cursor-not-allowed shadow-none"
               )}
             >
               {/* Animated Radar Pulse Rings (when offers available) */}
-              {state.offers.length > 0 && (
+              {activeOffers.length > 0 && (
                 <>
                   <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#14F5D5]/15 via-[#14B8A6]/10 to-transparent" />
                   <span className="pointer-events-none absolute -inset-1 rounded-xl border border-[#14F5D5]/40 animate-pulse" />
@@ -434,7 +452,7 @@ export function ReceivingOffersScreen({
 
               {/* Radar Icon squircle with concentric ripple rings matching image 2 */}
               <div className="relative flex h-7 w-7 items-center justify-center shrink-0">
-                {state.offers.length > 0 ? (
+                {activeOffers.length > 0 ? (
                   <>
                     <span className="absolute inset-0 rounded-full border border-[#14F5D5]/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
                     <span className="absolute -inset-1 rounded-full border border-[#14F5D5]/20 animate-pulse" />
@@ -443,7 +461,7 @@ export function ReceivingOffersScreen({
                 <div
                   className={cn(
                     "relative flex h-6 w-6 items-center justify-center rounded-lg border transition-colors",
-                    state.offers.length > 0
+                    activeOffers.length > 0
                       ? "border-[#14F5D5]/60 bg-[#14B8A6]/20 text-[#14F5D5] shadow-[0_0_10px_rgba(20,245,213,0.4)]"
                       : "border-white/10 bg-white/5 text-slate-500"
                   )}
@@ -451,7 +469,7 @@ export function ReceivingOffersScreen({
                   <Radio
                     className={cn(
                       "h-3.5 w-3.5",
-                      state.offers.length > 0 && "animate-pulse text-[#14F5D5]"
+                      activeOffers.length > 0 && "animate-pulse text-[#14F5D5]"
                     )}
                   />
                 </div>
@@ -461,7 +479,7 @@ export function ReceivingOffersScreen({
               <span
                 className={cn(
                   "relative z-10 font-black tracking-wide whitespace-nowrap",
-                  state.offers.length > 0
+                  activeOffers.length > 0
                     ? "text-white drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]"
                     : "text-slate-400"
                 )}
@@ -470,9 +488,9 @@ export function ReceivingOffersScreen({
               </span>
 
               {/* Offer Count Badge inside button */}
-              {state.offers.length > 0 && (
+              {activeOffers.length > 0 && (
                 <span className="relative z-10 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#14F5D5] px-1.5 text-[11px] font-black text-[#040C17] font-mono shadow-[0_0_10px_rgba(20,245,213,0.5)]">
-                  {state.offers.length}
+                  {activeOffers.length}
                 </span>
               )}
             </button>
@@ -497,7 +515,7 @@ export function ReceivingOffersScreen({
     ) : (
         <div className="space-y-4">
           <div className={styles.offerList}>
-            {state.offers.map((offer) => {
+            {activeOffers.map((offer) => {
               const { offer: captainOffer, isPreferred } = buildCaptainOfferFromOffer(
                 offer,
                 {

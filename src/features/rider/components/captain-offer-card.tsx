@@ -47,6 +47,11 @@ function CaptainOfferCardBase({
   onToggleExpand,
   onAccept,
 }: CaptainOfferCardProps) {
+  // Never render an offer whose validity countdown has expired
+  if (countdown?.isExpired) {
+    return null;
+  }
+
   const t = useTranslations('Rider.CaptainOfferCard');
   const locale = useLocale();
   const isArabic = locale === 'ar';

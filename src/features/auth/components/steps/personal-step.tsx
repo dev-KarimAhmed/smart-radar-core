@@ -1030,23 +1030,7 @@ export function PersonalStep() {
                 : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
             </button>
 
-            {/* Kept as a way to chase a queued request, not as the mechanism itself. */}
-            <div className={styles.style851_145}>
-              <a
-                href={buildSupportWhatsappUrl(resetPhone, isArabic ? tAuto('key_6d7db928') : 'Unspecified')}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.style856_146}
-              >
-                {isArabic ? tAuto('key_06b63e55') : 'Follow up on WhatsApp'}
-              </a>
-              <a
-                href={buildSupportTelUrl()}
-                className={styles.style862_147}
-              >
-                {isArabic ? tAuto('key_f2064d83') : 'Call support'}
-              </a>
-            </div>
+
           </div>
         </DialogContent>
       </Dialog>

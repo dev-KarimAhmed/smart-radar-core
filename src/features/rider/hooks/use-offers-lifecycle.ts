@@ -16,6 +16,7 @@ import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/r
 import { fetchFavoriteCaptainIds } from '@/features/account/services/favorite-captains';
 import { getOfferCountdown } from '../services/offer-countdown';
 import { playNotificationSound } from '@/shared/utils/notification-sound';
+import { getServerTime } from '@/lib/server-time';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
 const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minute (240s) search window
@@ -65,9 +66,18 @@ export function useOffersLifecycle(
       // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى تفرز حسب: الفئة، المفضلين، الرتبة، السعر
       const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
 
-      const nowTs = Date.now();
+      const nowTs = getServerTime();
       let hasNewOffer = false;
-      for (const offer of sortedOffers) {
+
+      // Filter out offers that have already expired
+      const nonExpiredOffers = sortedOffers.filter((offer) => {
+        const offerId = offer.id || offer.driverId;
+        const firstSeen = firstSeenAtRef.current.get(offerId);
+        if (firstSeen === undefined) return true;
+        return !getOfferCountdown(offer, firstSeen, nowTs).isExpired;
+      });
+
+      for (const offer of nonExpiredOffers) {
         const offerId = offer.id || offer.driverId;
         if (offerId && !firstSeenAtRef.current.has(offerId)) {
           firstSeenAtRef.current.set(offerId, nowTs);
@@ -107,7 +117,7 @@ export function useOffersLifecycle(
       }
 
       setPreferredCaptainIds(favoriteIds);
-      dispatch({ type: 'RECEIVE_OFFERS', offers: sortedOffers });
+      dispatch({ type: 'RECEIVE_OFFERS', offers: nonExpiredOffers });
     } catch (error) {
       if (isActive && !isActive()) return;
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
@@ -158,7 +168,7 @@ export function useOffersLifecycle(
     if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) return;
 
     const pruneExpiredOffers = () => {
-      const now = Date.now();
+      const now = getServerTime();
       const stillActive = state.offers.filter((offer) => {
         const offerId = offer.id || offer.driverId;
         return !getOfferCountdown(offer, firstSeenAtRef.current.get(offerId), now).isExpired;
@@ -173,10 +183,19 @@ export function useOffersLifecycle(
   }, [dispatch, state.offers, state.screen]);
 
   React.useEffect(() => {
-    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.offers.length > 0 || state.requestCancelledAt) return;
+    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
-    const startedAt = state.requestStartedAt ?? Date.now();
-    const elapsed = Date.now() - startedAt;
+    const now = getServerTime();
+    const hasActiveOffers = state.offers.some((offer) => {
+      const offerId = offer.id || offer.driverId;
+      const firstSeen = firstSeenAtRef.current.get(offerId);
+      return !getOfferCountdown(offer, firstSeen, now).isExpired;
+    });
+
+    if (hasActiveOffers) return;
+
+    const startedAt = state.requestStartedAt ?? getServerTime();
+    const elapsed = getServerTime() - startedAt;
     const remainingMs = Math.max(0, OFFER_TIMEOUT_MS - elapsed);
 
     const timeoutId = window.setTimeout(() => {
