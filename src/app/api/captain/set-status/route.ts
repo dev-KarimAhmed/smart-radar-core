@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
 
 export async function POST(req: Request) {
   try {
@@ -69,6 +70,11 @@ export async function POST(req: Request) {
 
     // 4. Ensure wallet account has future expiration so other legacy checks don't complain
     if (requestedStatus === 'active') {
+      // Ensure welcome hours if brand new captain
+      try {
+        await grantNewCaptainWelcomeCredit(uid);
+      } catch {}
+
       const farFuture = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
       await supabaseAdmin
         .from('wallet_accounts')

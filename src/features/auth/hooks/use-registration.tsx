@@ -737,6 +737,22 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             console.error('[Captain Profile Insert Error]', profileError);
             throw new Error(profileError.message || tAuto('key_643f2795'));
           }
+
+          // Trigger sovereign welcome flight hours credit for new captain
+          try {
+            const token = (signUpResult as any)?.session?.access_token;
+            if (token) {
+              void fetch('/api/captain/welcome-credit', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              }).catch((err) => console.warn('[Welcome Credit Hook] Async error:', err));
+            }
+          } catch (e) {
+            console.warn('[Welcome Credit Trigger]', e);
+          }
         }
       }
 

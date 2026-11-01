@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
 
 export async function POST(req: Request) {
   try {
@@ -133,6 +134,15 @@ export async function POST(req: Request) {
         { success: false, error: updateErr.message || 'تعذر تأكيد الحساب في النظام.' },
         { status: 500 }
       );
+    }
+
+    // Grant welcome hours if captain (in case not credited at registration)
+    if (authUser.user_metadata?.role === 'CAPTAIN' || authUser.user_metadata?.role === 'DRIVER') {
+      try {
+        await grantNewCaptainWelcomeCredit(authUser.id);
+      } catch (creditErr) {
+        console.warn('[Verify Code] Welcome credit error:', creditErr);
+      }
     }
 
     // Sync profiles table if needed

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendAccountConfirmationEmail } from '@/server/services/email-service';
 import { getAppOrigin } from '@/lib/utils';
+import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
 
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -206,6 +207,15 @@ export async function POST(req: Request) {
     }
 
     const userId = newUser.user.id;
+
+    // Automatically grant sovereign welcome hours if captain
+    if (userRole === 'CAPTAIN') {
+      try {
+        await grantNewCaptainWelcomeCredit(userId);
+      } catch (creditErr) {
+        console.warn('[Registration API] Welcome credit error:', creditErr);
+      }
+    }
 
     // 5. Generate official confirmation link from Supabase Auth
     const reqOrigin = req.headers.get('origin') || req.headers.get('x-forwarded-host')

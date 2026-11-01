@@ -214,7 +214,7 @@ export function useSovereignWallet(user: User | null) {
       }
 
       try {
-        const [{ data: walletData, error: walletError }, { data: txData, error: txError }] = await Promise.all([
+        const [{ data: initialWallet, error: walletError }, { data: txData, error: txError }] = await Promise.all([
           supabase
             .from('wallet_accounts')
             .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,time_bundle_expires_at')
@@ -230,6 +230,41 @@ export function useSovereignWallet(user: User | null) {
         if (walletError) throw walletError;
         if (txError) throw txError;
         if (!active) return;
+
+        let walletData = initialWallet;
+        const currentMins = Number(walletData?.paid_minutes_remaining || 0);
+        const hasWelcomePkg = (walletData?.active_package_name || '').includes('ترحيبية');
+
+        // Sovereign auto-claim: If newly registered captain has 0 minutes and never received welcome credit
+        if (!hasWelcomePkg && currentMins === 0) {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData?.session?.access_token;
+            if (token) {
+              const claimRes = await fetch('/api/captain/welcome-credit', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              const claimJson = await claimRes.json();
+              if (claimJson?.granted && active) {
+                const { data: refreshedWallet } = await supabase
+                  .from('wallet_accounts')
+                  .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,time_bundle_expires_at')
+                  .eq('profile_id', userId)
+                  .maybeSingle();
+
+                if (refreshedWallet && active) {
+                  walletData = refreshedWallet;
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[Wallet] Auto-claim welcome credit notice:', e);
+          }
+        }
 
         const transactions = Array.isArray(txData) ? txData.map(t => mapWalletTransactionRow(t, tAuto)) : [];
         setServerWallet(mapWalletAccountRow(walletData as Record<string, any> | null, transactions));
