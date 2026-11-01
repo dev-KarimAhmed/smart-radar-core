@@ -37,7 +37,7 @@ function playSystemNotificationSound() {
   } catch {}
 }
 
-export function useDriverRadar(user: User | null, driverStatus: string) {
+export function useDriverRadar(user: User | null, driverStatus: string, pendingTripIds?: string[]) {
   const t = useTranslations('captainDashboard');
   // Keep the GPS watch running while 'busy' too (not just 'active') — the
   // captain's live position still needs to update during an active trip for
@@ -48,6 +48,10 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
   const [radarLockMessage, setRadarLockMessage] = useState('');
   const [cancelCooldown, setCancelCooldown] = useState<CaptainCancelCooldownState>(() => getCaptainCancelCooldown());
   const previousRequestIdsRef = useRef<Set<string>>(new Set());
+  const pendingTripIdsRef = useRef<string[]>(pendingTripIds || []);
+  useEffect(() => {
+    pendingTripIdsRef.current = pendingTripIds || [];
+  }, [pendingTripIds]);
   const [profileAnchor, setProfileAnchor] = useState<RadarLocation | null>(null);
   const [rejectedTripIds, setRejectedTripIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -186,6 +190,7 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
 
     const earliestCreatedAt = new Date(Date.now() - MAX_RADAR_REQUEST_AGE_MS).toISOString();
+    const activePendingTripIds = pendingTripIdsRef.current;
 
     const { data, error } = await supabase
       .from('captain_radar_requests')
@@ -196,6 +201,27 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
       .order('created_at', { ascending: false })
       .limit(50);
 
+    let allRows = Array.isArray(data) ? [...data] : [];
+
+    // Also fetch any requests that this captain has an active pending offer on!
+    if (activePendingTripIds && activePendingTripIds.length > 0) {
+      const { data: pendingRows } = await supabase
+        .from('captain_radar_requests')
+        .select('*')
+        .eq('status', 'PENDING')
+        .in('id', activePendingTripIds);
+
+      if (pendingRows && Array.isArray(pendingRows)) {
+        const existingIds = new Set(allRows.map((r: any) => r.id));
+        for (const pRow of pendingRows) {
+          if (!existingIds.has(pRow.id)) {
+            allRows.push(pRow);
+            existingIds.add(pRow.id);
+          }
+        }
+      }
+    }
+
     if (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver radar] request fetch failed:', error);
       setRadarLockMessage(tRef.current('radarRequestsLoadFailed'));
@@ -204,13 +230,15 @@ export function useDriverRadar(user: User | null, driverStatus: string) {
     }
 
     const now = Date.now();
-    const mappedRequests = Array.isArray(data)
-      ? (data.map(mapRideRequestToTrip).filter(Boolean) as Trip[])
+    const mappedRequests = Array.isArray(allRows)
+      ? (allRows.map(mapRideRequestToTrip).filter(Boolean) as Trip[])
       : [];
 
     const rankedRequests = mappedRequests
-      // 1. Strict age filter: trip must be created within last 4 minutes (never show old zombie trips)
+      // 1. Strict age filter: fresh requests (< 4 mins) OR requests where captain has an active pending offer
       .filter((request) => {
+        const isPendingOffer = Boolean(activePendingTripIds && activePendingTripIds.includes(request.id));
+        if (isPendingOffer) return true; // Keep captain's active bids visible while rider reviews!
         const createdMs = request.createdAt ? new Date(request.createdAt).getTime() : 0;
         return createdMs > 0 && (now - createdMs) <= MAX_RADAR_REQUEST_AGE_MS;
       })

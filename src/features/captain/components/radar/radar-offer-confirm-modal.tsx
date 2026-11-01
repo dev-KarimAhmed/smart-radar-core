@@ -99,8 +99,8 @@ export function RadarOfferConfirmModal({
                 const num = parseInt(waitSeconds, 10);
                 if (isNaN(num) || num < 30) {
                   setWaitSeconds('30');
-                } else if (num > 900) {
-                  setWaitSeconds('900');
+                } else if (num > 180) {
+                  setWaitSeconds('180');
                 } else {
                   setWaitSeconds(String(num));
                 }

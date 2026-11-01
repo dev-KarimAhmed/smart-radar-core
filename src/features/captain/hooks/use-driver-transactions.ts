@@ -17,7 +17,7 @@ type RideRequestRow = Record<string, unknown>;
 
 export const MIN_OFFER_WAIT_SECONDS = 5;
 export const DEFAULT_OFFER_WAIT_SECONDS = 120;
-export const MAX_OFFER_WAIT_SECONDS = Number.POSITIVE_INFINITY;
+export const MAX_OFFER_WAIT_SECONDS = 180;
 
 /**
  * submit_ride_offer refuses out-of-band prices server-side, so these are reachable even
@@ -232,11 +232,6 @@ export function useDriverTransactions(
         if (!activeMap.has(tripId)) {
           // Trip is no longer in open radar -> clear only this trip
           clearPendingOffer(tripId);
-        } else {
-          const createdAt = activeMap.get(tripId) || 0;
-          if (createdAt > 0 && Date.now() - createdAt > 240_000) {
-            clearPendingOffer(tripId);
-          }
         }
       }
     };
@@ -429,89 +424,7 @@ export function useDriverTransactions(
     };
   }, [captainId, loadAcceptedRequest]);
 
-  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
-    if (!captainId) {
-      toast({
-        variant: 'destructive',
-        title: t('errorSubmitFailedTitle'),
-        description: t('errorAuthRequiredDesc'),
-      });
-      return false;
-    }
-
-    if (!Number.isFinite(payload.offerPrice) || payload.offerPrice <= 0) {
-      toast({
-        variant: 'destructive',
-        title: t('errorInvalidPriceTitle'),
-        description: t('errorInvalidPriceDesc'),
-      });
-      return false;
-    }
-
-    if (!Number.isInteger(payload.waitSeconds) || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS) {
-      toast({
-        variant: 'destructive',
-        title: t('errorInvalidWaitTimeTitle'),
-        description: t('errorInvalidWaitTimeDesc', { min: MIN_OFFER_WAIT_SECONDS }),
-      });
-      return false;
-    }
-
-    if ((pendingOffersCount[payload.tripId] || 0) > 0) {
-      toast({
-        variant: 'destructive',
-        title: t('errorDuplicateOfferTitle'),
-        description: t('errorDuplicateOfferDesc'),
-      });
-      return false;
-    }
-
-    if (submittingRef.current) return false;
-    submittingRef.current = true;
-    setIsSubmittingOffer(true);
-
-    try {
-      const { error } = await supabase.rpc('submit_ride_offer', {
-        p_request_id: payload.tripId,
-        p_offer_price: Number(payload.offerPrice),
-        p_wait_seconds: payload.waitSeconds,
-        p_pricing_mode: payload.pricingMode || 'FREE',
-      });
-
-      if (error) throw error;
-
-      setPendingOffersCount((prev) => ({
-        ...prev,
-        [payload.tripId]: 1,
-      }));
-      setPendingOfferRequestId(payload.tripId);
-
-      if (pendingOfferTimeoutsRef.current[payload.tripId]) {
-        clearTimeout(pendingOfferTimeoutsRef.current[payload.tripId]);
-      }
-      pendingOfferTimeoutsRef.current[payload.tripId] = setTimeout(() => {
-        clearPendingOffer(payload.tripId);
-      }, payload.waitSeconds * 1000);
-
-      toast({
-        title: t('offerSubmittedTitle'),
-        description: t('offerSubmittedDesc'),
-      });
-      return true;
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] offer submit failed:', error);
-      toast({
-        variant: 'destructive',
-        ...describeOfferSubmitError((error as { message?: string })?.message, t),
-      });
-      return false;
-    } finally {
-      submittingRef.current = false;
-      setIsSubmittingOffer(false);
-    }
-  }, [captainId, pendingOffersCount, toast, t]);
-
-  const cancelOffer = useCallback(async (tripId?: string | null) => {
+  const cancelOffer = useCallback(async (tripId?: string | null, silent = false) => {
     const targetRequestId = tripId || pendingOfferRequestId;
     if (!targetRequestId || !captainId) return false;
     if (cancellingOfferRef.current) return false;
@@ -598,6 +511,90 @@ export function useDriverTransactions(
       setIsCancellingOffer(false);
     }
   }, [captainId, clearPendingOffer, pendingOfferRequestId, t, toast]);
+
+  const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
+    if (!captainId) {
+      toast({
+        variant: 'destructive',
+        title: t('errorSubmitFailedTitle'),
+        description: t('errorAuthRequiredDesc'),
+      });
+      return false;
+    }
+
+    if (!Number.isFinite(payload.offerPrice) || payload.offerPrice <= 0) {
+      toast({
+        variant: 'destructive',
+        title: t('errorInvalidPriceTitle'),
+        description: t('errorInvalidPriceDesc'),
+      });
+      return false;
+    }
+
+    if (!Number.isInteger(payload.waitSeconds) || payload.waitSeconds < MIN_OFFER_WAIT_SECONDS) {
+      toast({
+        variant: 'destructive',
+        title: t('errorInvalidWaitTimeTitle'),
+        description: t('errorInvalidWaitTimeDesc', { min: MIN_OFFER_WAIT_SECONDS }),
+      });
+      return false;
+    }
+
+    if ((pendingOffersCount[payload.tripId] || 0) > 0) {
+      toast({
+        variant: 'destructive',
+        title: t('errorDuplicateOfferTitle'),
+        description: t('errorDuplicateOfferDesc'),
+      });
+      return false;
+    }
+
+    if (submittingRef.current) return false;
+    submittingRef.current = true;
+    setIsSubmittingOffer(true);
+
+    try {
+      const { error } = await supabase.rpc('submit_ride_offer', {
+        p_request_id: payload.tripId,
+        p_offer_price: Number(payload.offerPrice),
+        p_wait_seconds: Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, payload.waitSeconds)),
+        p_pricing_mode: payload.pricingMode || 'FREE',
+      });
+
+      if (error) throw error;
+
+      setPendingOffersCount((prev) => ({
+        ...prev,
+        [payload.tripId]: 1,
+      }));
+      setPendingOfferRequestId(payload.tripId);
+
+      if (pendingOfferTimeoutsRef.current[payload.tripId]) {
+        clearTimeout(pendingOfferTimeoutsRef.current[payload.tripId]);
+      }
+      pendingOfferTimeoutsRef.current[payload.tripId] = setTimeout(() => {
+        void cancelOffer(payload.tripId, true);
+      }, Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, payload.waitSeconds)) * 1000);
+
+      toast({
+        title: t('offerSubmittedTitle'),
+        description: t('offerSubmittedDesc'),
+      });
+      return true;
+    } catch (error) {
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] offer submit failed:', error);
+      toast({
+        variant: 'destructive',
+        ...describeOfferSubmitError((error as { message?: string })?.message, t),
+      });
+      return false;
+    } finally {
+      submittingRef.current = false;
+      setIsSubmittingOffer(false);
+    }
+  }, [cancelOffer, captainId, pendingOffersCount, toast, t]);
+
+
 
   const markArrivedAtPickup = useCallback(async () => {
     if (!activeRequest?.id || updatingStepRef.current) return false;

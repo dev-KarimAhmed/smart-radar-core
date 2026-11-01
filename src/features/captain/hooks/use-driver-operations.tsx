@@ -100,35 +100,6 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   }, [rawToggleDriverStatus]);
 
   const {
-    driverLocation,
-    requests,
-    rejectRequest: rawRejectRequest,
-    rejectedTripIds,
-    driverSpeed,
-    currentDistrict,
-    currentH3Cell,
-    isDisconnectionLockActive,
-    radarLockMessage,
-    cancelCooldown,
-  } = useDriverRadar(user, driverStatus);
-
-  useCaptainLocationPulse({
-    user,
-    driverStatus,
-    location: driverLocation,
-  });
-
-  useCaptainRadarMinuteConsumption({
-    user,
-    driverStatus,
-    onBundleExhausted: () => setDriverStatus('idle'),
-  });
-
-  const rejectRequest = useCallback((tripId: string) => {
-    rawRejectRequest(tripId);
-  }, [rawRejectRequest]);
-
-  const {
     activeRequest,
     acceptedRider,
     handshakeAt,
@@ -150,6 +121,39 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     requestWeeklyReport: rawRequestWeeklyReport,
     isRequestingReport,
   } = useDriverTransactions(user, setDriverStatus, driverStatus);
+
+  const pendingTripIds = useMemo(() => {
+    return Object.keys(pendingOffersCount || {});
+  }, [pendingOffersCount]);
+
+  const {
+    driverLocation,
+    requests,
+    rejectRequest: rawRejectRequest,
+    rejectedTripIds,
+    driverSpeed,
+    currentDistrict,
+    currentH3Cell,
+    isDisconnectionLockActive,
+    radarLockMessage,
+    cancelCooldown,
+  } = useDriverRadar(user, driverStatus, pendingTripIds);
+
+  useCaptainLocationPulse({
+    user,
+    driverStatus,
+    location: driverLocation,
+  });
+
+  useCaptainRadarMinuteConsumption({
+    user,
+    driverStatus,
+    onBundleExhausted: () => setDriverStatus('idle'),
+  });
+
+  const rejectRequest = useCallback((tripId: string) => {
+    rawRejectRequest(tripId);
+  }, [rawRejectRequest]);
 
   const submitOffer = useCallback(async (payload: { tripId: string; offerPrice: number; waitSeconds: number; pricingMode?: 'FREE' | 'APP' | 'TAXI' }) => {
     return rawSubmitOffer(payload);

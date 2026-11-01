@@ -315,6 +315,8 @@ export function BiddingOfferStepper({
                 const val = Number(waitSecondsInput);
                 if (!Number.isFinite(val) || val < MIN_OFFER_WAIT_SECONDS) {
                   setWaitSecondsInput(String(DEFAULT_OFFER_WAIT_SECONDS));
+                } else if (val > MAX_OFFER_WAIT_SECONDS) {
+                  setWaitSecondsInput(String(MAX_OFFER_WAIT_SECONDS));
                 }
               }}
               className={styles.durationInput}

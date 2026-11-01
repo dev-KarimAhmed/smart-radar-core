@@ -185,34 +185,72 @@ export function useOffersLifecycle(
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
+    const startedAt = state.requestStartedAt ?? getServerTime();
+    const elapsed = getServerTime() - startedAt;
+    const remainingSearchMs = Math.max(0, OFFER_TIMEOUT_MS - elapsed);
+
+    // If 4-minute search is still in progress, schedule check for when the 4 minutes complete
+    if (remainingSearchMs > 0) {
+      const timeoutId = window.setTimeout(() => {
+        const now = getServerTime();
+        const hasActiveOffers = state.offers.some((offer) => {
+          const offerId = offer.id || offer.driverId;
+          const firstSeen = firstSeenAtRef.current.get(offerId);
+          return !getOfferCountdown(offer, firstSeen, now).isExpired;
+        });
+
+        // If no active offers remain at minute 4: cancel request immediately
+        if (!hasActiveOffers) {
+          cancelRideRequest(supabase, state.requestId!)
+            .catch(() => {})
+            .finally(() => {
+              dispatch({ type: 'REQUEST_CANCELLED' });
+            });
+        }
+      }, remainingSearchMs);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    // 4 minutes have already finished. Check if any offers are STILL running:
     const now = getServerTime();
-    const hasActiveOffers = state.offers.some((offer) => {
+    const activeOffers = state.offers.filter((offer) => {
       const offerId = offer.id || offer.driverId;
       const firstSeen = firstSeenAtRef.current.get(offerId);
       return !getOfferCountdown(offer, firstSeen, now).isExpired;
     });
 
-    if (hasActiveOffers) return;
+    // If all offer timers have ended (or no offers arrived): cancel request immediately
+    if (activeOffers.length === 0) {
+      cancelRideRequest(supabase, state.requestId!)
+        .catch(() => {})
+        .finally(() => {
+          dispatch({ type: 'REQUEST_CANCELLED' });
+        });
+      return;
+    }
 
-    const startedAt = state.requestStartedAt ?? getServerTime();
-    const elapsed = getServerTime() - startedAt;
-    const remainingMs = Math.max(0, OFFER_TIMEOUT_MS - elapsed);
+    // If drivers are STILL running their timers past the 4 minutes:
+    // Wait for the longest remaining offer timer before cancelling
+    const latestRemainingMs = Math.max(
+      ...activeOffers.map((offer) => {
+        const offerId = offer.id || offer.driverId;
+        const firstSeen = firstSeenAtRef.current.get(offerId);
+        const cd = getOfferCountdown(offer, firstSeen, now);
+        return cd.remainingSeconds * 1000;
+      })
+    );
 
     const timeoutId = window.setTimeout(() => {
       cancelRideRequest(supabase, state.requestId!)
-        .catch(() => { })
+        .catch(() => {})
         .finally(() => {
-          // toast({
-          //   variant: 'destructive',
-          //   title: 'لا يتوفر سائقين الان',
-          //   description: 'جرب تاني',
-          // });
           dispatch({ type: 'REQUEST_CANCELLED' });
         });
-    }, remainingMs);
+    }, Math.max(500, latestRemainingMs));
 
     return () => window.clearTimeout(timeoutId);
-  }, [dispatch, state.offers.length, state.requestCancelledAt, state.requestId, state.requestStartedAt, state.screen, toast]);
+  }, [dispatch, state.offers, state.requestCancelledAt, state.requestId, state.requestStartedAt, state.screen]);
 
   // Resync offers immediately when the rider returns to the app (e.g. from answering a call or WhatsApp message)
   React.useEffect(() => {

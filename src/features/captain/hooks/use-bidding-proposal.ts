@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase-client';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
 import { useCaptainProfessionalAd } from './use-captain-professional-ad';
 import { usePricePerKmSetup } from './use-price-per-km-setup';
-import { DEFAULT_OFFER_WAIT_SECONDS, MIN_OFFER_WAIT_SECONDS } from './use-driver-transactions';
+import { DEFAULT_OFFER_WAIT_SECONDS, MIN_OFFER_WAIT_SECONDS, MAX_OFFER_WAIT_SECONDS } from './use-driver-transactions';
 import { estimateHaversineDistanceKm } from '../services/ride-location';
 import { estimatePickupMinutes } from '@/shared/services/trip-duration';
 import {
@@ -97,7 +97,8 @@ export function useBiddingProposal({
   const [waitSecondsInput, setWaitSecondsInput] = React.useState(String(DEFAULT_OFFER_WAIT_SECONDS));
   const parsedWaitSeconds = Number(waitSecondsInput);
   const isWaitSecondsValid = Number.isInteger(parsedWaitSeconds)
-    && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS;
+    && parsedWaitSeconds >= MIN_OFFER_WAIT_SECONDS
+    && parsedWaitSeconds <= MAX_OFFER_WAIT_SECONDS;
 
   const [quote, setQuote] = React.useState<CaptainOfferQuote | null>(null);
 
