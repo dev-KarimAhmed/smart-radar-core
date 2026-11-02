@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase-client';
 import { firstDisplayString, normalizeWhatsappContact } from '../services/rider-view-format';
 
 export interface EmergencyContactTripContext {
+  captainId?: string | null;
   captainName?: string;
   captainPhone?: string;
   captainSerial?: string;
@@ -54,6 +55,7 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
   const t = useTranslations('riderView');
   const [emergencyWhatsappContact, setEmergencyWhatsappContact] = React.useState('');
   const [showEmergencyContactDialog, setShowEmergencyContactDialog] = React.useState(false);
+  const [showConsentDialog, setShowConsentDialog] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
@@ -99,7 +101,13 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
     window.location.hash = '#profile';
   }, []);
 
-  const handleEmergencyWhatsapp = React.useCallback(async () => {
+  const handleEmergencyWhatsapp = React.useCallback(() => {
+    setShowConsentDialog(true);
+  }, []);
+
+  const handleConfirmConsent = React.useCallback(async () => {
+    setShowConsentDialog(false);
+
     const whatsapp = normalizeWhatsappContact(emergencyWhatsappContact);
     if (!whatsapp) {
       setShowEmergencyContactDialog(true);
@@ -159,6 +167,47 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
       description: t('emergency.sosToastDescription'),
     });
 
+    // 1. Notify Captain at the exact same time
+    if (tripContext.requestId) {
+      void fetch('/api/trip/share-tracking-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: tripContext.requestId,
+          captainId: tripContext.captainId || null,
+        }),
+      }).catch((err) => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[useEmergencyContact] Failed to notify captain:', err);
+        }
+      });
+
+      // 2. Broadcast on realtime channel for instant on-screen badge
+      try {
+        const channelName = `trip-tracking-${tripContext.requestId}`;
+        const channel = supabase.channel(channelName, {
+          config: { broadcast: { ack: false } },
+        });
+        channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            void channel.send({
+              type: 'broadcast',
+              event: 'RIDER_TRACKING_ACTIVE',
+              payload: {
+                requestId: tripContext.requestId,
+                timestamp: Date.now(),
+              },
+            });
+          }
+        });
+      } catch (bErr) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[useEmergencyContact] realtime broadcast error:', bErr);
+        }
+      }
+    }
+
+    // 3. Open WhatsApp
     const encodedMessage = encodeURIComponent(fullMessage);
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsapp}&text=${encodedMessage}`;
     if (typeof window !== 'undefined') {
@@ -173,6 +222,9 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
     emergencyWhatsappContact,
     showEmergencyContactDialog,
     setShowEmergencyContactDialog,
+    showConsentDialog,
+    setShowConsentDialog,
+    handleConfirmConsent,
     handleAddEmergencyContact,
     handleEmergencyWhatsapp,
   };

@@ -19,7 +19,7 @@ assert.equal(
 
 assert.equal(
   mapSupabaseAuthError({ message: 'role_mismatch:RIDER:CAPTAIN' }),
-  'هذا الحساب مسجل كـ راكب. يرجى تسجيل الدخول من بوابة الركاب.',
+  'رقم الهاتف أو كلمة المرور غير صحيحة.',
 );
 
 assert.equal(

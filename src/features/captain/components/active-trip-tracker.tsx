@@ -13,6 +13,7 @@ import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
 import { getServerTime } from '@/lib/server-time';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
 import { isMapsLink } from '@/shared/services/google-maps-location';
+import { supabase } from '@/lib/supabase-client';
 
 // MapLibre GL touches browser-only APIs at import time, so this must load
 // client-side only — same reason RadarMapView is dynamic-imported in
@@ -78,6 +79,12 @@ const styles = {
   cancelConfirmActions: "flex gap-2.5",
   cancelConfirmButton: "h-10 flex-1 rounded-lg bg-red-600 text-xs font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-55",
   cancelBackButton: "h-10 flex-1 rounded-lg border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10",
+  trackingNotice: "mt-4 flex items-center gap-3 rounded-2xl border border-red-500/30 bg-red-950/40 p-4 text-xs font-bold text-red-200 shadow-lg",
+  trackingNoticeIconWrap: "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/20 text-red-400",
+  trackingNoticeIcon: "h-5 w-5 animate-pulse",
+  trackingNoticeContent: "flex-1 min-w-0",
+  trackingNoticeTitle: "font-black text-sm text-white",
+  trackingNoticeBody: "text-xs text-red-300/80 mt-0.5",
 } as const;
 
 
@@ -254,6 +261,25 @@ export function ActiveTripTracker({
     onStartTrip();
   };
 
+  const [riderTrackingActive, setRiderTrackingActive] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!request?.id) return;
+    const channelName = `trip-tracking-${request.id}`;
+    const channel = supabase.channel(channelName, {
+      config: { broadcast: { ack: false } },
+    });
+    channel
+      .on('broadcast', { event: 'RIDER_TRACKING_ACTIVE' }, () => {
+        setRiderTrackingActive(true);
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [request?.id]);
+
   const mutualCancel = useTripMutualCancellation({
     requestId: request.id,
     role: 'captain',
@@ -312,6 +338,25 @@ export function ActiveTripTracker({
           ) : null}
         </div>
       </div>
+
+      {/* Rider Tracking Notice: ينبثق عند مشاركة الراكب لمسير الرحلة ويتوقف مع انتهاء الخدمة */}
+      {riderTrackingActive && (
+        <div className={styles.trackingNotice}>
+          <div className={styles.trackingNoticeIconWrap}>
+            <ShieldAlert className={styles.trackingNoticeIcon} />
+          </div>
+          <div className={styles.trackingNoticeContent}>
+            <p className={styles.trackingNoticeTitle}>
+              {language === 'ar' ? 'مشاركة مسير الرحلة مع الأقارب' : 'Trip Journey Tracking Active'}
+            </p>
+            <p className={styles.trackingNoticeBody}>
+              {language === 'ar'
+                ? 'المستخدم فعل زر تتبع هاتفه مع الأقارب، ويتوقف مع انتهاء الخدمة.'
+                : 'The passenger has activated live tracking with relatives, which stops when the service ends.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Rendezvous Card (كارد موقع الالتقاء): Visible ONLY when ACCEPTED; disappears immediately when arrived */}
       {step === 'ACCEPTED' && (

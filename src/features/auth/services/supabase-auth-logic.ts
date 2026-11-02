@@ -336,9 +336,9 @@ export function mapSupabaseAuthError(error: unknown) {
     if (actualRole === 'CAPTAIN') {
       return 'هذا الحساب مسجل كـ كابتن (سائق). يرجى تسجيل الدخول من بوابة الكباتن.';
     } else if (actualRole === 'RIDER') {
-      return 'هذا الحساب مسجل كـ راكب. يرجى تسجيل الدخول من بوابة الركاب.';
+      return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
     }
-    return 'هذا الحساب مسجل بنوع مستخدم مختلف عن البوابة الحالية.';
+    return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
   }
 
   if (error instanceof Error && error.message && /[\u0600-\u06FF]/.test(error.message)) return error.message;

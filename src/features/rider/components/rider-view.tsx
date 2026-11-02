@@ -69,6 +69,7 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
   const geolocation = useRiderGeolocation(language, getCountryDefaultCenter(countryConfig));
   const captainPresence = useCaptainPresence(user?.uid, activeCountryId, geolocation.riderH3Cell);
   const emergencyContact = useEmergencyContact(user?.uid, {
+    captainId: state.activeTrip?.captainId || (state.activeTrip?.captain as any)?.id || undefined,
     captainName:
       (state.activeTrip?.captain?.nickname ||
       state.activeTrip?.captain?.full_name ||
@@ -355,6 +356,9 @@ export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: 
         showEmergencyContactDialog={emergencyContact.showEmergencyContactDialog}
         setShowEmergencyContactDialog={emergencyContact.setShowEmergencyContactDialog}
         onAddEmergencyNumber={emergencyContact.handleAddEmergencyContact}
+        showConsentDialog={emergencyContact.showConsentDialog}
+        setShowConsentDialog={emergencyContact.setShowConsentDialog}
+        onConfirmConsent={emergencyContact.handleConfirmConsent}
       />
     </>
   );

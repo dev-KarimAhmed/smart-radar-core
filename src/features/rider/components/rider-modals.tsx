@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabase-client';
 import type { RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import { toCaptainOfferRank } from '../services/rider-offer-fields';
 import { EmergencyContactDialog } from './emergency-contact-dialog';
+import { EmergencyConsentDialog } from './emergency-consent-dialog';
 
-// Pure composition component — both children own their full styling; every
+// Pure composition component — children own their styling; every
 // .tsx file must still declare a styles object per this repo's convention.
 const styles = {} as const;
 
@@ -22,9 +23,12 @@ export interface RiderModalsProps {
   showEmergencyContactDialog: boolean;
   setShowEmergencyContactDialog: (open: boolean) => void;
   onAddEmergencyNumber: () => void;
+  showConsentDialog?: boolean;
+  setShowConsentDialog?: (open: boolean) => void;
+  onConfirmConsent?: () => void;
 }
 
-/** The rating modal (shown after a trip completes) and the emergency-contact dialog. */
+/** The rating modal (shown after a trip completes), emergency-contact dialog, and tracking consent dialog. */
 export function RiderModals({
   isArabic,
   state,
@@ -36,6 +40,9 @@ export function RiderModals({
   showEmergencyContactDialog,
   setShowEmergencyContactDialog,
   onAddEmergencyNumber,
+  showConsentDialog = false,
+  setShowConsentDialog,
+  onConfirmConsent,
 }: RiderModalsProps) {
   React.useEffect(() => {
     if (state.screen === 'RATING_MODAL' && (!state.completedTrip?.captainId || !state.requestId || !userId)) {
@@ -80,6 +87,15 @@ export function RiderModals({
         onOpenChange={setShowEmergencyContactDialog}
         onAddNumber={onAddEmergencyNumber}
       />
+
+      {setShowConsentDialog && onConfirmConsent && (
+        <EmergencyConsentDialog
+          isArabic={isArabic}
+          open={showConsentDialog}
+          onOpenChange={setShowConsentDialog}
+          onConfirm={onConfirmConsent}
+        />
+      )}
     </>
   );
 }

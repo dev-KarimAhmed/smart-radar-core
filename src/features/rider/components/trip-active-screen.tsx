@@ -438,7 +438,7 @@ export function TripActiveScreen({
             <button
               type="button"
               onClick={onEmergencyWhatsapp}
-              className="w-full flex items-center justify-center gap-2 h-12 bg-red-600/90 hover:bg-red-500 text-white font-black text-sm py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-red-600/25"
+              className="w-full flex items-center justify-center gap-2 h-12 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-sm py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-red-600/30 border border-red-500/40"
             >
               <ShieldCheck className="h-5 w-5 animate-pulse" />
               <span>{t('emergency.sosButton')}</span>
