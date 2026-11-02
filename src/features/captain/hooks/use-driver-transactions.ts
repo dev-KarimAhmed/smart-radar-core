@@ -10,7 +10,7 @@ import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } fr
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
 import { toEpochMs } from '@/shared/services/trip-countdown';
 import { getServerTime } from '@/lib/server-time';
-import { setCaptainCancelCooldown, clearCaptainCancelCooldown, calculateRemainingCooldown } from '../services/captain-cancel-cooldown';
+import { setCaptainCancelCooldown, clearCaptainCancelCooldown, calculateRemainingCooldown, getCaptainCancelCooldown } from '../services/captain-cancel-cooldown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -67,6 +67,10 @@ export function useDriverTransactions(
   const { toast } = useToast();
   const t = useTranslations('transactions');
   const [activeRequest, setActiveReq] = useState<Trip | null>(null);
+  const activeReqRef = useRef<Trip | null>(null);
+  useEffect(() => {
+    activeReqRef.current = activeRequest;
+  }, [activeRequest]);
   const [acceptedRider, setAcceptedRider] = useState<User | null>(null);
   const [handshakeAt, setHandshakeAt] = useState<number | null>(null);
   const [pendingOfferRequestId, setPendingOfferRequestId] = useState<string | null>(null);
@@ -121,6 +125,44 @@ export function useDriverTransactions(
     }
   }, [driverStatus, clearPendingOffer]);
 
+
+  const applyCancellationCooldownFromRequest = useCallback(
+    (row?: RideRequestRow | null, fallbackReq?: Trip | null) => {
+      const targetReq = fallbackReq || activeReqRef.current;
+      const tripMinutes = Math.max(
+        1,
+        Number(row?.estimated_duration_minutes || targetReq?.estimatedDurationMinutes || targetReq?.estimatedTime) > 0
+          ? Math.round(Number(row?.estimated_duration_minutes || targetReq?.estimatedDurationMinutes || targetReq?.estimatedTime))
+          : Number(row?.estimated_distance_km || targetReq?.estimatedDistance) > 0
+            ? Math.max(5, Math.round(Number(row?.estimated_distance_km || targetReq?.estimatedDistance) * 2.5))
+            : 20
+      );
+
+      const cancellationTime = (row?.cancelled_at || row?.updated_at || getServerTime()) as string | number | Date;
+      const startedAt = (row?.started_at as string | undefined) || targetReq?.startedAtMs;
+      const acceptedAt = (row?.accepted_at as string | undefined) || targetReq?.acceptedAtMs;
+      const arrivedAt = (row?.arrived_at as string | undefined) || targetReq?.arrivedAtMs;
+      const pickupEta = (row?.pickup_eta_minutes as number | undefined) ?? targetReq?.pickup_eta_minutes;
+
+      const { remainingMinutes, remainingSeconds, scheduledEndTimeMs } = calculateRemainingCooldown({
+        totalTripMinutes: tripMinutes,
+        startedAtMs: startedAt,
+        acceptedAtMs: acceptedAt,
+        arrivedAtMs: arrivedAt,
+        pickupEtaMinutes: pickupEta,
+        cancellationTime,
+      });
+
+      if (remainingSeconds > 0) {
+        setCaptainCancelCooldown(remainingMinutes, remainingSeconds, scheduledEndTimeMs);
+      } else {
+        clearCaptainCancelCooldown();
+      }
+
+      return { remainingMinutes, remainingSeconds, scheduledEndTimeMs };
+    },
+    []
+  );
 
   const cleanUpAndReset = useCallback(() => {
     setActiveReq(null);
@@ -270,13 +312,16 @@ export function useDriverTransactions(
       const status = String(row.status || '').toUpperCase();
 
       if (status === 'COMPLETED' || status === 'CANCELLED') {
-        if (status === 'CANCELLED' && selfCancelledTripId.current !== activeRequest.id) {
-          toast({
-            title: t('tripCancelledTitle'),
-            description: t('tripCancelledDesc'),
-            variant: 'warning',
-            duration: 12000,
-          });
+        if (status === 'CANCELLED') {
+          applyCancellationCooldownFromRequest(row, activeRequest);
+          if (selfCancelledTripId.current !== activeRequest.id) {
+            toast({
+              title: t('tripCancelledTitle'),
+              description: t('tripCancelledDesc'),
+              variant: 'warning',
+              duration: 12000,
+            });
+          }
         }
         cleanUpAndReset();
         return;
@@ -321,13 +366,16 @@ export function useDriverTransactions(
 
           const status = String(row.status || '').toUpperCase();
           if (status === 'COMPLETED' || status === 'CANCELLED') {
-            if (status === 'CANCELLED' && selfCancelledTripId.current !== activeRequest.id) {
-              toast({
-                title: t('tripCancelledTitle'),
-                description: t('tripCancelledDesc'),
-                variant: 'warning',
-                duration: 12000,
-              });
+            if (status === 'CANCELLED') {
+              applyCancellationCooldownFromRequest(row, activeRequest);
+              if (selfCancelledTripId.current !== activeRequest.id) {
+                toast({
+                  title: t('tripCancelledTitle'),
+                  description: t('tripCancelledDesc'),
+                  variant: 'warning',
+                  duration: 12000,
+                });
+              }
             }
             cleanUpAndReset();
             return;
@@ -379,7 +427,7 @@ export function useDriverTransactions(
     return () => {
       void channel.unsubscribe();
     };
-  }, [captainId, loadAcceptedRequest]);
+  }, [captainId, loadAcceptedRequest, applyCancellationCooldownFromRequest]);
 
   // Resync on mount/reload — `activeRequest` otherwise only ever populates via
   // the realtime channel above (a live "offer accepted" event), so a reload
@@ -400,7 +448,28 @@ export function useDriverTransactions(
         .limit(1)
         .maybeSingle();
 
-      if (isCancelled || error || !data) return;
+      if (isCancelled || error) return;
+
+      if (!data) {
+        // No active trip found on server. Check if the most recent cancelled trip still has an active freeze window!
+        try {
+          const { data: cancelledRow } = await supabase
+            .from('ride_requests')
+            .select('id, status, started_at, accepted_at, arrived_at, pickup_eta_minutes, estimated_duration_minutes, estimated_distance_km, cancelled_at, updated_at')
+            .eq('accepted_captain_id', captainId)
+            .eq('status', 'CANCELLED')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!isCancelled && cancelledRow) {
+            applyCancellationCooldownFromRequest(cancelledRow as RideRequestRow, null);
+          }
+        } catch (cooldownSyncErr) {
+          if (process.env.NODE_ENV !== 'production') console.warn('[Driver transactions] cooldown resync failed:', cooldownSyncErr);
+        }
+        return;
+      }
 
       const row = data as Record<string, unknown>;
       const requestId = String(row.id || '');
@@ -545,6 +614,16 @@ export function useDriverTransactions(
         variant: 'destructive',
         title: t('errorDuplicateOfferTitle'),
         description: t('errorDuplicateOfferDesc'),
+      });
+      return false;
+    }
+
+    const liveCooldown = getCaptainCancelCooldown();
+    if (liveCooldown.isActive) {
+      toast({
+        variant: 'destructive',
+        title: t('cooldownActiveTitle') || 'الرادار غير متاح مؤقتاً',
+        description: t('cooldownActiveDesc') || 'يرجى الانتظار، الرادار في وضع التهدئة.',
       });
       return false;
     }
@@ -749,27 +828,7 @@ export function useDriverTransactions(
     selfCancelledTripId.current = tripId;
     
     // Set radar lockout equal to the REMAINING duration of the cancelled trip (not the full duration)
-    const tripMinutes = Math.max(
-      1,
-      Number(activeRequest.estimatedTime) > 0
-        ? Math.round(Number(activeRequest.estimatedTime))
-        : Number(activeRequest.estimatedDistance) > 0
-          ? Math.max(5, Math.round(Number(activeRequest.estimatedDistance) * 2.5))
-          : 20
-    );
-    const { remainingMinutes, remainingSeconds, scheduledEndTimeMs } = calculateRemainingCooldown({
-      totalTripMinutes: tripMinutes,
-      startedAtMs: activeRequest.startedAtMs,
-      acceptedAtMs: activeRequest.acceptedAtMs,
-      arrivedAtMs: activeRequest.arrivedAtMs,
-      pickupEtaMinutes: activeRequest.pickup_eta_minutes,
-      cancellationTime: getServerTime(),
-    });
-    if (remainingSeconds > 0) {
-      setCaptainCancelCooldown(remainingMinutes, remainingSeconds, scheduledEndTimeMs);
-    } else {
-      clearCaptainCancelCooldown();
-    }
+    applyCancellationCooldownFromRequest(null, activeRequest);
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {
@@ -942,6 +1001,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
       : undefined,
     estimatedDistance: estimatedDistance ?? undefined,
     estimatedTime: estimatedTime ?? undefined,
+    estimatedDurationMinutes: toNumber(row.estimated_duration_minutes) ?? estimatedTime ?? undefined,
     pickup_eta_minutes: pickupEtaMinutes ?? undefined,
     offerPrice: toNumber(row.final_fare) ?? toNumber(row.offered_fare) ?? toNumber(row.offer_price) ?? toNumber(row.server_estimated_fare) ?? undefined,
     createdAt: String(row.created_at || ''),

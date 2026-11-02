@@ -119,6 +119,7 @@ export interface Trip {
   dropoff?: string;
   dropoffCoords?: { lat: number; lng: number; };
   estimatedTime?: number;
+  estimatedDurationMinutes?: number;
   acceptedAtMs?: number;
   arrivedAtMs?: number;
   startedAtMs?: number;

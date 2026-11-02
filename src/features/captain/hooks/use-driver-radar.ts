@@ -69,9 +69,21 @@ export function useDriverRadar(user: User | null, driverStatus: string, pendingT
     };
     window.addEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
     window.addEventListener('storage', handleCooldownChange);
+
+    const interval = window.setInterval(() => {
+      const live = getCaptainCancelCooldown();
+      setCancelCooldown((prev) => {
+        if (prev.isActive !== live.isActive || prev.remainingSeconds !== live.remainingSeconds) {
+          return live;
+        }
+        return prev;
+      });
+    }, 1000);
+
     return () => {
       window.removeEventListener('captain-cancel-cooldown-changed', handleCooldownChange);
       window.removeEventListener('storage', handleCooldownChange);
+      window.clearInterval(interval);
     };
   }, []);
 
@@ -170,6 +182,13 @@ export function useDriverRadar(user: User | null, driverStatus: string, pendingT
   const fetchPendingRequests = useCallback(async () => {
     const status = driverStatusRef.current;
     if (status !== 'active') {
+      setRawRequests([]);
+      setRadarLockMessage('');
+      return;
+    }
+
+    const liveCooldown = getCaptainCancelCooldown();
+    if (liveCooldown.isActive) {
       setRawRequests([]);
       setRadarLockMessage('');
       return;
@@ -406,10 +425,8 @@ export function useDriverRadar(user: User | null, driverStatus: string, pendingT
   }, []);
 
   const requests = useMemo(() => {
-    if (cancelCooldown.isActive) {
-      const live = getCaptainCancelCooldown();
-      if (live.isActive) return [];
-    }
+    const live = getCaptainCancelCooldown();
+    if (live.isActive || cancelCooldown.isActive) return [];
     return rawRequests.filter((request) => !rejectedTripIds.includes(request.id));
   }, [cancelCooldown.isActive, rawRequests, rejectedTripIds]);
 
