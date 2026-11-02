@@ -64,30 +64,6 @@ export function CaptainBanners({
 
   return (
     <>
-      {cancelCooldown?.isActive ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/90 via-rose-900/70 to-rose-950/90 p-3.5 shadow-lg shadow-rose-950/30 backdrop-blur-md">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <span className="relative flex h-3 w-3 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.9)]" />
-            </span>
-            <div className="flex flex-col min-w-0">
-              <span className="font-black text-white text-xs sm:text-sm">
-                {direction === 'rtl' ? 'الرادار معلق مؤقتاً (فترة تجميد بعد الإلغاء)' : 'Radar is temporarily frozen (Cancellation Cooldown)'}
-              </span>
-              <span className="text-[11px] text-rose-200/80 leading-tight">
-                {direction === 'rtl'
-                  ? 'تم حظر استقبال الطلبات للمدة المتبقية من الرحلة الملغاة — سيعود الرادار للعمل تلقائياً فور انتهاء العداد'
-                  : 'Radar is frozen for the remaining duration of the cancelled trip — it will resume automatically'}
-              </span>
-            </div>
-          </div>
-          <div className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-950/80 px-3.5 py-1.5 font-mono text-base font-black text-rose-200 shadow-inner">
-            <Clock className="h-4 w-4 text-rose-400 animate-pulse" />
-            <span>{formatSecondsToMMSS(cancelCooldown.remainingSeconds)}</span>
-          </div>
-        </div>
-      ) : null}
       {hasActiveRequest && screen !== 'ACTIVE_TRIP' ? (
         <div className={styles.activeTripBanner}>
           <div className={styles.activeTripText}>
