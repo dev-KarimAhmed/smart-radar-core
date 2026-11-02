@@ -10,18 +10,71 @@ export interface CaptainCancelCooldownState {
 }
 
 /**
- * Sets a lockout period for the captain on the radar equal to the cancelled trip duration.
- * During this cooldown, the captain receives NO trip offers on their radar.
+ * Calculates remaining trip duration in minutes and seconds.
+ * If trip was started, deducts elapsed time (now - startedAtMs) from total estimated duration.
+ * If trip was not started yet, returns the full estimated trip duration.
+ *
+ * Example: 60-minute trip cancelled halfway (30 min elapsed) -> 30 min remaining cooldown.
  */
-export function setCaptainCancelCooldown(durationMinutes: number) {
+export function calculateRemainingCooldown(
+  totalTripMinutes: number,
+  startedAtMs?: number | null,
+  nowMs: number = Date.now()
+): { remainingMinutes: number; remainingSeconds: number; elapsedSeconds: number } {
+  const totalMinutes = Math.max(1, Math.round(Number(totalTripMinutes) || 20));
+  const totalSeconds = totalMinutes * 60;
+
+  if (!startedAtMs || startedAtMs <= 0 || nowMs < startedAtMs) {
+    return {
+      remainingMinutes: totalMinutes,
+      remainingSeconds: totalSeconds,
+      elapsedSeconds: 0,
+    };
+  }
+
+  const elapsedSeconds = Math.max(0, Math.floor((nowMs - startedAtMs) / 1000));
+  const remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
+  const remainingMinutes = remainingSeconds > 0 ? Math.ceil(remainingSeconds / 60) : 0;
+
+  return {
+    remainingMinutes,
+    remainingSeconds,
+    elapsedSeconds,
+  };
+}
+
+/**
+ * Sets a lockout period for the captain on the radar equal to the remaining cancelled trip duration.
+ * During this cooldown, the captain receives NO trip offers on their radar.
+ * If duration is 0 or less, automatically clears any existing cooldown.
+ */
+export function setCaptainCancelCooldown(durationMinutes: number, durationSeconds?: number) {
   if (typeof window === 'undefined') return;
-  const numMinutes = Number(durationMinutes);
-  const ms = numMinutes > 0 && numMinutes < 1
-    ? Math.max(5000, Math.round(numMinutes * 60 * 1000))
-    : Math.max(1, Math.round(numMinutes || 20)) * 60 * 1000;
-  const effectiveMinutes = numMinutes > 0 && numMinutes < 1
-    ? 1
-    : Math.max(1, Math.round(numMinutes || 20));
+
+  let ms: number;
+  let effectiveMinutes: number;
+
+  if (typeof durationSeconds === 'number') {
+    if (durationSeconds <= 0) {
+      clearCaptainCancelCooldown();
+      return;
+    }
+    ms = Math.round(durationSeconds * 1000);
+    effectiveMinutes = Math.max(1, Math.ceil(durationSeconds / 60));
+  } else {
+    const numMinutes = Number(durationMinutes);
+    if (!Number.isFinite(numMinutes) || numMinutes <= 0) {
+      clearCaptainCancelCooldown();
+      return;
+    }
+    ms = numMinutes > 0 && numMinutes < 1
+      ? Math.max(5000, Math.round(numMinutes * 60 * 1000))
+      : Math.max(1, Math.round(numMinutes)) * 60 * 1000;
+    effectiveMinutes = numMinutes > 0 && numMinutes < 1
+      ? 1
+      : Math.max(1, Math.round(numMinutes));
+  }
+
   const until = Date.now() + ms;
   try {
     localStorage.setItem(STORAGE_KEY_UNTIL, String(until));
@@ -96,4 +149,3 @@ export function formatSecondsToMMSS(totalSeconds: number): string {
   }
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
-

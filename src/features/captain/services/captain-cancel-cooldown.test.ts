@@ -4,6 +4,7 @@ import {
   setCaptainCancelCooldown,
   getCaptainCancelCooldown,
   clearCaptainCancelCooldown,
+  calculateRemainingCooldown,
   formatSecondsToMMSS,
 } from './captain-cancel-cooldown';
 
@@ -56,6 +57,48 @@ test('clearing captain cancel cooldown resets immediately', () => {
   assert.equal(getCaptainCancelCooldown().isActive, false);
 });
 
+test('calculateRemainingCooldown: full duration when trip has not started', () => {
+  const res = calculateRemainingCooldown(60, null);
+  assert.equal(res.remainingMinutes, 60);
+  assert.equal(res.remainingSeconds, 3600);
+  assert.equal(res.elapsedSeconds, 0);
+});
+
+test('calculateRemainingCooldown: freezes ONLY remaining duration when cancelled halfway (e.g. 60 min trip, 30 min elapsed -> 30 min cooldown)', () => {
+  const now = Date.now();
+  const startedAt = now - 30 * 60 * 1000; // 30 minutes ago
+  const res = calculateRemainingCooldown(60, startedAt, now);
+  assert.equal(res.remainingMinutes, 30);
+  assert.equal(res.remainingSeconds, 1800);
+  assert.equal(res.elapsedSeconds, 1800);
+});
+
+test('calculateRemainingCooldown: freezes 10 min remaining when 50 min elapsed on 60 min trip', () => {
+  const now = Date.now();
+  const startedAt = now - 50 * 60 * 1000; // 50 minutes ago
+  const res = calculateRemainingCooldown(60, startedAt, now);
+  assert.equal(res.remainingMinutes, 10);
+  assert.equal(res.remainingSeconds, 600);
+  assert.equal(res.elapsedSeconds, 3000);
+});
+
+test('calculateRemainingCooldown: zero cooldown if trip exceeded estimated duration before cancel', () => {
+  const now = Date.now();
+  const startedAt = now - 25 * 60 * 1000; // 25 minutes ago on a 20 min trip
+  const res = calculateRemainingCooldown(20, startedAt, now);
+  assert.equal(res.remainingMinutes, 0);
+  assert.equal(res.remainingSeconds, 0);
+  assert.equal(res.elapsedSeconds, 1500);
+});
+
+test('setCaptainCancelCooldown with 0 minutes or 0 seconds clears cooldown', () => {
+  setCaptainCancelCooldown(20);
+  assert.equal(getCaptainCancelCooldown().isActive, true);
+
+  setCaptainCancelCooldown(0, 0);
+  assert.equal(getCaptainCancelCooldown().isActive, false);
+});
+
 test('formatSecondsToMMSS correctly formats minutes and seconds', () => {
   assert.equal(formatSecondsToMMSS(0), '0:00');
   assert.equal(formatSecondsToMMSS(45), '0:45');
@@ -63,4 +106,3 @@ test('formatSecondsToMMSS correctly formats minutes and seconds', () => {
   assert.equal(formatSecondsToMMSS(1199), '19:59');
   assert.equal(formatSecondsToMMSS(3665), '1:01:05');
 });
-

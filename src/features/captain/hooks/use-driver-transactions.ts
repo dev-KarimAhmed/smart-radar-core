@@ -10,7 +10,7 @@ import { buildGoogleMapsUrl, isValidCoordinatePair, normalizeExternalMapUrl } fr
 import { generateWeeklyReport, type CaptainRankName } from '../services/captain-rank';
 import { toEpochMs } from '@/shared/services/trip-countdown';
 import { getServerTime } from '@/lib/server-time';
-import { setCaptainCancelCooldown, clearCaptainCancelCooldown } from '../services/captain-cancel-cooldown';
+import { setCaptainCancelCooldown, clearCaptainCancelCooldown, calculateRemainingCooldown } from '../services/captain-cancel-cooldown';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -748,7 +748,7 @@ export function useDriverTransactions(
     const tripId = activeRequest.id;
     selfCancelledTripId.current = tripId;
     
-    // Set radar lockout equal to the estimated duration of the cancelled trip (e.g. 20 min)
+    // Set radar lockout equal to the REMAINING duration of the cancelled trip (not the full duration)
     const tripMinutes = Math.max(
       1,
       Number(activeRequest.estimatedTime) > 0
@@ -757,7 +757,16 @@ export function useDriverTransactions(
           ? Math.max(5, Math.round(Number(activeRequest.estimatedDistance) * 2.5))
           : 20
     );
-    setCaptainCancelCooldown(tripMinutes);
+    const { remainingMinutes, remainingSeconds } = calculateRemainingCooldown(
+      tripMinutes,
+      activeRequest.startedAtMs,
+      getServerTime()
+    );
+    if (remainingSeconds > 0) {
+      setCaptainCancelCooldown(remainingMinutes, remainingSeconds);
+    } else {
+      clearCaptainCancelCooldown();
+    }
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {

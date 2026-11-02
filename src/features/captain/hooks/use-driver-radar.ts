@@ -157,6 +157,8 @@ export function useDriverRadar(user: User | null, driverStatus: string, pendingT
 
     const cooldown = getCaptainCancelCooldown();
     if (cooldown.isActive) {
+      // Silent shadow-freeze: captain must not know they are frozen
+      setRadarLockMessage('');
       return false;
     }
 

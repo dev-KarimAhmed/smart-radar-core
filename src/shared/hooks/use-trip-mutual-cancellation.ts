@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
-import { setCaptainCancelCooldown } from '@/features/captain/services/captain-cancel-cooldown';
+import {
+  setCaptainCancelCooldown,
+  clearCaptainCancelCooldown,
+  calculateRemainingCooldown,
+} from '@/features/captain/services/captain-cancel-cooldown';
 
 export interface UseTripMutualCancellationProps {
   requestId?: string;
