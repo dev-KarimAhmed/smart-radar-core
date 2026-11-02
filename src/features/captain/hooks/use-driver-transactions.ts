@@ -393,7 +393,7 @@ export function useDriverTransactions(
     (async () => {
       const { data, error } = await supabase
         .from('ride_requests')
-        .select('id, created_at, updated_at')
+        .select('id, created_at, updated_at, started_at')
         .eq('accepted_captain_id', captainId)
         .not('status', 'in', '("COMPLETED","CANCELLED")')
         .order('updated_at', { ascending: false })
@@ -406,9 +406,9 @@ export function useDriverTransactions(
       const requestId = String(row.id || '');
       if (!requestId) return;
 
-      // Ignore ancient abandoned trips from previous days/sessions (> 12 hours)
-      const lastTouch = new Date((row.updated_at || row.created_at || 0) as string).getTime();
-      if (lastTouch > 0 && Date.now() - lastTouch > 12 * 60 * 60 * 1000) {
+      // Ignore ancient abandoned trips from previous days/sessions (> 4 hours, matching MAX_CHARGEABLE_MINUTES)
+      const lastTouch = new Date((row.started_at || row.updated_at || row.created_at || 0) as string).getTime();
+      if (lastTouch > 0 && Date.now() - lastTouch > 4 * 60 * 60 * 1000) {
         return;
       }
 

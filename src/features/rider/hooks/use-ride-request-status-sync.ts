@@ -123,6 +123,20 @@ export function useRideRequestStatusSync(params: {
         return;
       }
 
+      // Stale active trip guard: ignore and auto-close abandoned trips from previous sessions (> 4 hours, matching MAX_CHARGEABLE_MINUTES)
+      const lastTouch = new Date((row.started_at || row.updated_at || row.created_at || 0) as string).getTime();
+      if (lastTouch > 0 && Date.now() - lastTouch > 4 * 60 * 60 * 1000) {
+        try {
+          await fetch('/api/trip/mutual-cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId, action: 'ACCEPT', role: 'rider' }),
+          });
+        } catch {}
+        dispatch({ type: 'RESET_TO_IDLE' });
+        return;
+      }
+
       let offers: Offer[] = [];
       try {
         offers = await fetchRideOffers(supabase, requestId);
