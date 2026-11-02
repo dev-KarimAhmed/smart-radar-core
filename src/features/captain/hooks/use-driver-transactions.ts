@@ -757,13 +757,16 @@ export function useDriverTransactions(
           ? Math.max(5, Math.round(Number(activeRequest.estimatedDistance) * 2.5))
           : 20
     );
-    const { remainingMinutes, remainingSeconds } = calculateRemainingCooldown(
-      tripMinutes,
-      activeRequest.startedAtMs,
-      getServerTime()
-    );
+    const { remainingMinutes, remainingSeconds, scheduledEndTimeMs } = calculateRemainingCooldown({
+      totalTripMinutes: tripMinutes,
+      startedAtMs: activeRequest.startedAtMs,
+      acceptedAtMs: activeRequest.acceptedAtMs,
+      arrivedAtMs: activeRequest.arrivedAtMs,
+      pickupEtaMinutes: activeRequest.pickup_eta_minutes,
+      cancellationTime: getServerTime(),
+    });
     if (remainingSeconds > 0) {
-      setCaptainCancelCooldown(remainingMinutes, remainingSeconds);
+      setCaptainCancelCooldown(remainingMinutes, remainingSeconds, scheduledEndTimeMs);
     } else {
       clearCaptainCancelCooldown();
     }

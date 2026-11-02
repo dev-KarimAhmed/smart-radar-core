@@ -6,6 +6,7 @@ import {
   clearCaptainCancelCooldown,
   calculateRemainingCooldown,
   formatSecondsToMMSS,
+  toEpochMs,
 } from './captain-cancel-cooldown';
 
 // Mock localStorage for test environment
@@ -29,7 +30,6 @@ test('captain cancel cooldown starts inactive when no record exists', () => {
 
 test('captain cancel cooldown activates for specified trip duration', () => {
   storage.clear();
-  // 20 minute trip
   setCaptainCancelCooldown(20);
   const state = getCaptainCancelCooldown();
   assert.equal(state.isActive, true);
@@ -39,7 +39,6 @@ test('captain cancel cooldown activates for specified trip duration', () => {
 
 test('captain cancel cooldown auto-expires when timestamp has elapsed', () => {
   storage.clear();
-  // Set expired timestamp in the past
   storage.set('radar_captain_cancel_cooldown_until', String(Date.now() - 5000));
   storage.set('radar_captain_cancel_cooldown_minutes', '20');
 
@@ -57,46 +56,206 @@ test('clearing captain cancel cooldown resets immediately', () => {
   assert.equal(getCaptainCancelCooldown().isActive, false);
 });
 
-test('calculateRemainingCooldown: full duration when trip has not started', () => {
-  const res = calculateRemainingCooldown(60, null);
-  assert.equal(res.remainingMinutes, 60);
-  assert.equal(res.remainingSeconds, 3600);
-  assert.equal(res.elapsedSeconds, 0);
+// =========================================================================
+// REQUIREMENT 1 & USER EXAMPLE:
+// - Trip duration: 60 minutes.
+// - Trip starts at 10:00 AM.
+// - Trip gets cancelled at 10:30 AM.
+// - Elapsed time: 30 minutes.
+// - Remaining time: 30 minutes.
+// - Freeze duration must be 30 minutes only, not 60 minutes.
+// =========================================================================
+test('calculateRemainingCooldown: exact user example (60 min trip, cancelled after 30 min -> 30 min freeze)', () => {
+  const startTime = new Date('2026-11-02T10:00:00.000Z').getTime();
+  const cancellationTime = new Date('2026-11-02T10:30:00.000Z').getTime();
+  const tripDurationMinutes = 60;
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: tripDurationMinutes,
+    startedAtMs: startTime,
+    cancellationTime,
+  });
+
+  assert.equal(result.remainingMinutes, 30);
+  assert.equal(result.remainingSeconds, 1800);
+  assert.equal(result.elapsedSeconds, 1800);
+  assert.equal(result.freezeDurationMs, 30 * 60 * 1000);
+  assert.equal(result.scheduledEndTimeMs, new Date('2026-11-02T11:00:00.000Z').getTime());
 });
 
-test('calculateRemainingCooldown: freezes ONLY remaining duration when cancelled halfway (e.g. 60 min trip, 30 min elapsed -> 30 min cooldown)', () => {
+// =========================================================================
+// REQUIREMENT 2: Do not use the original trip duration as the freeze duration
+// =========================================================================
+test('calculateRemainingCooldown: does not use original duration (60 min trip, cancelled after 50 min -> 10 min freeze)', () => {
+  const startTime = new Date('2026-11-02T10:00:00.000Z').getTime();
+  const cancellationTime = new Date('2026-11-02T10:50:00.000Z').getTime();
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: 60,
+    startedAtMs: startTime,
+    cancellationTime,
+  });
+
+  assert.equal(result.remainingMinutes, 10);
+  assert.equal(result.remainingSeconds, 600);
+  assert.equal(result.elapsedSeconds, 3000);
+  assert.notEqual(result.remainingMinutes, 60);
+});
+
+// =========================================================================
+// REQUIREMENT 3: If cancelled before it starts, calculate remaining time until scheduled trip end time
+// =========================================================================
+test('calculateRemainingCooldown: cancelled before start with acceptedAt and pickupEta (60 min trip, 10 min ETA, cancelled 20 min in -> 50 min freeze)', () => {
+  const acceptedAt = new Date('2026-11-02T10:00:00.000Z').getTime();
+  // Scheduled trip end = 10:00 AM + 10 min pickup + 60 min trip = 11:10 AM
+  const pickupEtaMinutes = 10;
+  const cancellationTime = new Date('2026-11-02T10:20:00.000Z').getTime(); // cancelled before start
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: 60,
+    startedAtMs: null,
+    acceptedAtMs: acceptedAt,
+    pickupEtaMinutes,
+    cancellationTime,
+  });
+
+  // Remaining = 11:10 AM - 10:20 AM = 50 minutes
+  assert.equal(result.remainingMinutes, 50);
+  assert.equal(result.remainingSeconds, 3000);
+  assert.equal(result.freezeDurationMs, 50 * 60 * 1000);
+  assert.equal(result.scheduledEndTimeMs, new Date('2026-11-02T11:10:00.000Z').getTime());
+});
+
+test('calculateRemainingCooldown: cancelled before start when captain has arrived at pickup (40 min trip, cancelled 10 min after arrival -> 30 min freeze)', () => {
+  const arrivedAt = new Date('2026-11-02T10:10:00.000Z').getTime();
+  // Scheduled trip end = 10:10 AM + 40 min trip = 10:50 AM
+  const cancellationTime = new Date('2026-11-02T10:20:00.000Z').getTime();
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: 40,
+    startedAtMs: null,
+    arrivedAtMs: arrivedAt,
+    cancellationTime,
+  });
+
+  // Remaining = 10:50 AM - 10:20 AM = 30 minutes
+  assert.equal(result.remainingMinutes, 30);
+  assert.equal(result.remainingSeconds, 1800);
+  assert.equal(result.freezeDurationMs, 30 * 60 * 1000);
+  assert.equal(result.scheduledEndTimeMs, new Date('2026-11-02T10:50:00.000Z').getTime());
+});
+
+// =========================================================================
+// REQUIREMENT 4: If cancelled after scheduled end time, freeze duration should be zero
+// =========================================================================
+test('calculateRemainingCooldown: zero freeze if cancelled after scheduled end time on active trip', () => {
+  const startTime = new Date('2026-11-02T10:00:00.000Z').getTime();
+  // Scheduled end: 11:00 AM. Cancelled at 11:05 AM (overdue by 5 min)
+  const cancellationTime = new Date('2026-11-02T11:05:00.000Z').getTime();
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: 60,
+    startedAtMs: startTime,
+    cancellationTime,
+  });
+
+  assert.equal(result.remainingMinutes, 0);
+  assert.equal(result.remainingSeconds, 0);
+  assert.equal(result.freezeDurationMs, 0);
+});
+
+test('calculateRemainingCooldown: zero freeze if cancelled before start but after scheduled end time', () => {
+  const acceptedAt = new Date('2026-11-02T10:00:00.000Z').getTime();
+  // Scheduled end: 10:00 AM + 30 min = 10:30 AM. Cancelled at 10:45 AM
+  const cancellationTime = new Date('2026-11-02T10:45:00.000Z').getTime();
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: 30,
+    startedAtMs: null,
+    acceptedAtMs: acceptedAt,
+    cancellationTime,
+  });
+
+  assert.equal(result.remainingMinutes, 0);
+  assert.equal(result.remainingSeconds, 0);
+  assert.equal(result.freezeDurationMs, 0);
+});
+
+// =========================================================================
+// REQUIREMENT 5: Ensure captain's freeze period is updated correctly with calculated remaining duration
+// =========================================================================
+test('setCaptainCancelCooldown correctly locks captain for remaining duration using scheduledEndTimeMs', () => {
+  storage.clear();
   const now = Date.now();
-  const startedAt = now - 30 * 60 * 1000; // 30 minutes ago
-  const res = calculateRemainingCooldown(60, startedAt, now);
-  assert.equal(res.remainingMinutes, 30);
-  assert.equal(res.remainingSeconds, 1800);
-  assert.equal(res.elapsedSeconds, 1800);
+  const targetEnd = now + 25 * 60 * 1000; // 25 minutes from now
+
+  setCaptainCancelCooldown(25, 1500, targetEnd);
+  const state = getCaptainCancelCooldown();
+
+  assert.equal(state.isActive, true);
+  assert.equal(state.totalMinutes, 25);
+  assert.ok(state.remainingSeconds > 24 * 60 && state.remainingSeconds <= 25 * 60);
 });
 
-test('calculateRemainingCooldown: freezes 10 min remaining when 50 min elapsed on 60 min trip', () => {
-  const now = Date.now();
-  const startedAt = now - 50 * 60 * 1000; // 50 minutes ago
-  const res = calculateRemainingCooldown(60, startedAt, now);
-  assert.equal(res.remainingMinutes, 10);
-  assert.equal(res.remainingSeconds, 600);
-  assert.equal(res.elapsedSeconds, 3000);
-});
-
-test('calculateRemainingCooldown: zero cooldown if trip exceeded estimated duration before cancel', () => {
-  const now = Date.now();
-  const startedAt = now - 25 * 60 * 1000; // 25 minutes ago on a 20 min trip
-  const res = calculateRemainingCooldown(20, startedAt, now);
-  assert.equal(res.remainingMinutes, 0);
-  assert.equal(res.remainingSeconds, 0);
-  assert.equal(res.elapsedSeconds, 1500);
-});
-
-test('setCaptainCancelCooldown with 0 minutes or 0 seconds clears cooldown', () => {
+test('setCaptainCancelCooldown with 0 minutes or 0 seconds clears cooldown immediately', () => {
   setCaptainCancelCooldown(20);
   assert.equal(getCaptainCancelCooldown().isActive, true);
 
   setCaptainCancelCooldown(0, 0);
   assert.equal(getCaptainCancelCooldown().isActive, false);
+});
+
+test('setCaptainCancelCooldown with past target timestamp clears cooldown', () => {
+  setCaptainCancelCooldown(20);
+  assert.equal(getCaptainCancelCooldown().isActive, true);
+
+  setCaptainCancelCooldown(0, 0, Date.now() - 1000);
+  assert.equal(getCaptainCancelCooldown().isActive, false);
+});
+
+// =========================================================================
+// REQUIREMENT 6: Handle timezone and date-time consistency properly
+// =========================================================================
+test('calculateRemainingCooldown: timezone consistency across ISO strings, Date objects, and epoch ms', () => {
+  // 10:00 UTC represented with +03:00 timezone (13:00 +03:00) vs UTC string vs Date object
+  const startIsoWithOffset = '2026-11-02T13:00:00.000+03:00';
+  const cancelIsoWithDiffOffset = '2026-11-02T10:30:00.000Z'; // 30 minutes later in UTC
+
+  const res1 = calculateRemainingCooldown({
+    totalTripMinutes: 60,
+    startedAtMs: startIsoWithOffset,
+    cancellationTime: cancelIsoWithDiffOffset,
+  });
+
+  const res2 = calculateRemainingCooldown({
+    totalTripMinutes: 60,
+    startedAtMs: new Date(startIsoWithOffset),
+    cancellationTime: new Date(cancelIsoWithDiffOffset),
+  });
+
+  const res3 = calculateRemainingCooldown({
+    totalTripMinutes: 60,
+    startedAtMs: toEpochMs(startIsoWithOffset),
+    cancellationTime: toEpochMs(cancelIsoWithDiffOffset),
+  });
+
+  assert.equal(res1.remainingMinutes, 30);
+  assert.equal(res1.remainingSeconds, 1800);
+  assert.equal(res1.remainingSeconds, res2.remainingSeconds);
+  assert.equal(res1.remainingSeconds, res3.remainingSeconds);
+  assert.equal(res1.scheduledEndTimeMs, res2.scheduledEndTimeMs);
+});
+
+// =========================================================================
+// BACKWARD COMPATIBILITY: Positional parameters support
+// =========================================================================
+test('calculateRemainingCooldown: backward compatible positional parameters', () => {
+  const now = Date.now();
+  const startedAt = now - 30 * 60 * 1000;
+  const res = calculateRemainingCooldown(60, startedAt, now);
+
+  assert.equal(res.remainingMinutes, 30);
+  assert.equal(res.remainingSeconds, 1800);
 });
 
 test('formatSecondsToMMSS correctly formats minutes and seconds', () => {

@@ -13,6 +13,11 @@ export interface UseTripMutualCancellationProps {
   requestId?: string;
   role: 'rider' | 'captain';
   tripDurationMinutes?: number;
+  startedAtMs?: number | string | Date | null;
+  acceptedAtMs?: number | string | Date | null;
+  arrivedAtMs?: number | string | Date | null;
+  pickupEtaMinutes?: number | null;
+  scheduledEndTime?: number | string | Date | null;
   initialCancelRequestedBy?: 'rider' | 'captain' | null;
   onCancelledConfirmed?: () => Promise<void> | void;
 }
@@ -39,6 +44,11 @@ export function useTripMutualCancellation({
   requestId,
   role,
   tripDurationMinutes = 20,
+  startedAtMs = null,
+  acceptedAtMs = null,
+  arrivedAtMs = null,
+  pickupEtaMinutes = null,
+  scheduledEndTime = null,
   initialCancelRequestedBy = null,
   onCancelledConfirmed,
 }: UseTripMutualCancellationProps): UseTripMutualCancellationReturn {
@@ -78,6 +88,50 @@ export function useTripMutualCancellation({
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
+
+  const startedAtMsRef = useRef(startedAtMs);
+  useEffect(() => {
+    startedAtMsRef.current = startedAtMs;
+  }, [startedAtMs]);
+
+  const acceptedAtMsRef = useRef(acceptedAtMs);
+  useEffect(() => {
+    acceptedAtMsRef.current = acceptedAtMs;
+  }, [acceptedAtMs]);
+
+  const arrivedAtMsRef = useRef(arrivedAtMs);
+  useEffect(() => {
+    arrivedAtMsRef.current = arrivedAtMs;
+  }, [arrivedAtMs]);
+
+  const pickupEtaMinutesRef = useRef(pickupEtaMinutes);
+  useEffect(() => {
+    pickupEtaMinutesRef.current = pickupEtaMinutes;
+  }, [pickupEtaMinutes]);
+
+  const scheduledEndTimeRef = useRef(scheduledEndTime);
+  useEffect(() => {
+    scheduledEndTimeRef.current = scheduledEndTime;
+  }, [scheduledEndTime]);
+
+  const applyCaptainFreeze = useCallback((durationMins?: number) => {
+    if (role !== 'captain') return;
+    const duration = durationMins && durationMins > 0 ? durationMins : durationMinutesRef.current;
+    const { remainingMinutes, remainingSeconds, scheduledEndTimeMs } = calculateRemainingCooldown({
+      totalTripMinutes: duration,
+      startedAtMs: startedAtMsRef.current,
+      acceptedAtMs: acceptedAtMsRef.current,
+      arrivedAtMs: arrivedAtMsRef.current,
+      pickupEtaMinutes: pickupEtaMinutesRef.current,
+      scheduledEndTime: scheduledEndTimeRef.current,
+      cancellationTime: Date.now(),
+    });
+    if (remainingSeconds > 0) {
+      setCaptainCancelCooldown(remainingMinutes, remainingSeconds, scheduledEndTimeMs);
+    } else {
+      clearCaptainCancelCooldown();
+    }
+  }, [role]);
 
   // Initial and periodic sync with server database (SSOT)
   const syncServerStatus = useCallback(async (targetId: string) => {
@@ -175,8 +229,7 @@ export function useTripMutualCancellation({
         setPendingRequestFrom(null);
         if (role === 'captain') {
           const payloadMinutes = Number(payload.payload?.tripDurationMinutes);
-          const finalMinutes = payloadMinutes > 0 ? payloadMinutes : durationMinutesRef.current;
-          setCaptainCancelCooldown(finalMinutes);
+          applyCaptainFreeze(payloadMinutes > 0 ? payloadMinutes : undefined);
         }
         try {
           if (onCancelledConfirmedRef.current) {
@@ -199,6 +252,9 @@ export function useTripMutualCancellation({
           const status = String(newRow.status || '').toUpperCase();
           if (status === 'CANCELLED' || status === 'COMPLETED') {
             setPendingRequestFrom(null);
+            if (status === 'CANCELLED' && role === 'captain') {
+              applyCaptainFreeze();
+            }
             return;
           }
 
@@ -278,9 +334,9 @@ export function useTripMutualCancellation({
     const duration = durationMinutesRef.current;
 
     try {
-      // 1. If captain, activate cooldown immediately for the cancelled trip's duration
+      // 1. If captain, activate freeze equal to REMAINING trip duration
       if (role === 'captain') {
-        setCaptainCancelCooldown(duration);
+        applyCaptainFreeze(duration);
       }
 
       // 2. Broadcast agreement to other party

@@ -284,6 +284,10 @@ export function ActiveTripTracker({
     requestId: request.id,
     role: 'captain',
     tripDurationMinutes,
+    startedAtMs: request.startedAtMs,
+    acceptedAtMs: request.acceptedAtMs,
+    arrivedAtMs: request.arrivedAtMs,
+    pickupEtaMinutes: request.pickup_eta_minutes,
     initialCancelRequestedBy: request.cancel_requested_by,
     onCancelledConfirmed: onCancelTrip,
   });
