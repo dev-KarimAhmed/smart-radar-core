@@ -1,6 +1,9 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import type { Trip } from '@/core/types';
+import type { CaptainCancelCooldownState } from '../../services/captain-cancel-cooldown';
+import { formatSecondsToMMSS } from '../../services/captain-cancel-cooldown';
+import { cn } from '@/lib/utils';
 import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
 import { styles } from './radar-map.styles';
 import {
@@ -14,6 +17,7 @@ interface RadarMapCanvasProps {
   language: 'ar' | 'en';
   isActive: boolean;
   radarLockMessage?: string;
+  cancelCooldown?: CaptainCancelCooldownState;
   totalMinutes: number;
   isMapReady: boolean;
   mapIssue: boolean;
@@ -28,6 +32,7 @@ export function RadarMapCanvas({
   language,
   isActive,
   radarLockMessage,
+  cancelCooldown,
   totalMinutes,
   isMapReady,
   mapIssue,
@@ -64,12 +69,22 @@ export function RadarMapCanvas({
       <div className={styles.style168_10}>
         <div>
           <p className={styles.style170_11}>{copy.title}</p>
-          <p className={styles.style171_12}>{isActive && !radarLockMessage ? copy.online : copy.offline}</p>
+          <p className={cn(styles.style171_12, cancelCooldown?.isActive && 'text-rose-400 font-bold')}>
+            {cancelCooldown?.isActive
+              ? copy.radarFrozenTitle
+              : isActive && !radarLockMessage
+                ? copy.online
+                : copy.offline}
+          </p>
         </div>
         <div className={styles.style173_13}>
-          <span className={styles.style174_14}>
-            <Clock className={styles.style175_15} />
-            {radarLockMessage ? copy.locked : `${copy.remaining}: ${formatMinutes(totalMinutes, language)}`}
+          <span className={cn(styles.style174_14, cancelCooldown?.isActive && 'border-rose-500/40 bg-rose-500/15 text-rose-300 font-mono font-bold')}>
+            <Clock className={cn(styles.style175_15, cancelCooldown?.isActive && 'text-rose-400 animate-pulse')} />
+            {cancelCooldown?.isActive
+              ? `${copy.cooldownRemaining}: ${formatSecondsToMMSS(cancelCooldown.remainingSeconds)}`
+              : radarLockMessage
+                ? copy.locked
+                : `${copy.remaining}: ${formatMinutes(totalMinutes, language)}`}
           </span>
         </div>
       </div>

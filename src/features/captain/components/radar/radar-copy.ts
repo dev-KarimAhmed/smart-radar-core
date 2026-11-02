@@ -74,6 +74,10 @@ export const radarCopy = {
     upperWarnMsg: '⚠️ تنبيه: السعر أعلى من النطاق المعتمد (+15% فما فوق).',
     applyFloorBtn: 'تطبيق الحد الأدنى المسموح به',
     previousOfferPrice: 'سعر العرض السابق:',
+    radarFrozenTitle: 'الرادار معلق (تجميد مؤقت)',
+    cooldownTitle: 'فترة تجميد بعد إلغاء الرحلة',
+    cooldownBody: 'تم تعليق استقبال الطلبات للمدة المتبقية من الرحلة الملغاة. سيعود الرادار للعمل تلقائياً فور انتهاء العداد.',
+    cooldownRemaining: 'المتبقي',
   },
   en: {
     title: 'Captain radar',
@@ -150,6 +154,10 @@ export const radarCopy = {
     upperWarnMsg: '⚠️ Warning: Price exceeds allowed band (+15% or above).',
     applyFloorBtn: 'Apply minimum allowed price',
     previousOfferPrice: 'Previous offer price:',
+    radarFrozenTitle: 'Radar Frozen (Cooldown)',
+    cooldownTitle: 'Cancellation Cooldown',
+    cooldownBody: 'Radar is temporarily frozen for the remaining duration of the cancelled trip. It will resume automatically once the timer ends.',
+    cooldownRemaining: 'Remaining',
   },
 } as const;
 

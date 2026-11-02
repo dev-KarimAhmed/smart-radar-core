@@ -25,6 +25,7 @@ export function RadarMapView({
   bonusMinutes,
   currency = 'JOD',
   radarLockMessage,
+  cancelCooldown,
   requests,
   pendingOfferRequestId = null,
   pendingOffersCount,
@@ -121,6 +122,7 @@ export function RadarMapView({
         language={language}
         isActive={isActive}
         radarLockMessage={radarLockMessage}
+        cancelCooldown={cancelCooldown}
         totalMinutes={totalMinutes}
         isMapReady={isMapReady}
         mapIssue={mapIssue}

@@ -168,6 +168,7 @@ export function DriverViewTab() {
           isDormancyWarningVisible={driverOps.isDormancyWarningVisible}
           isOffline={isOffline}
           isReconnecting={isReconnecting}
+          cancelCooldown={driverOps.cancelCooldown}
           pendingOfferRequestId={driverOps.pendingOfferRequestId}
           isCancellingOffer={driverOps.isCancellingOffer}
           onCancelOffer={driverOps.cancelOffer}
