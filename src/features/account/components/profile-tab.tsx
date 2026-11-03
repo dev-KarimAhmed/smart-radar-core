@@ -25,7 +25,14 @@ export function ProfileTab() {
             {state.t('pleaseLogin')}
           </CardContent>
         </Card>
-      </div>
+        <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={state.isArabic}
+        isLoading={state.isSaving}
+      />
+    </div>
     );
   }
 
@@ -95,12 +102,33 @@ export function ProfileTab() {
       <div className="relative py-2 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#14B8A6]/25" />
-        </div>
+          <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={state.isArabic}
+        isLoading={state.isSaving}
+      />
+    </div>
         <div className="relative flex items-center gap-2 rounded-full border border-[#14B8A6]/30 bg-[#0B0F19] px-4 py-1.5 text-xs font-black text-[#14F5D5] shadow-lg shadow-[#14B8A6]/10">
           <ShieldCheck className="h-4 w-4 text-[#14F5D5]" />
           <span>{state.isArabic ? 'الأمان وكلمة المرور' : 'Security & Password'}</span>
-        </div>
-      </div>
+          <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={state.isArabic}
+        isLoading={state.isSaving}
+      />
+    </div>
+        <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={state.isArabic}
+        isLoading={state.isSaving}
+      />
+    </div>
 
       {/* 4. Security & Password Section */}
       <RiderSecuritySection />
@@ -115,7 +143,21 @@ export function ProfileTab() {
           <LogOut className="h-4.5 w-4.5 text-white" />
           <span>{state.t('logout')}</span>
         </Button>
-      </div>
+        <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={state.isArabic}
+        isLoading={state.isSaving}
+      />
+      <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={state.isArabic}
+        isLoading={state.isSaving}
+      />
+    </div>
       <LegalDataAccuracyModal
         isOpen={state.showAccuracyModal}
         onConfirm={state.confirmSaveProfile}
