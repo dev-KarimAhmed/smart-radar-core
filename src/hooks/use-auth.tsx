@@ -28,7 +28,7 @@ function getInitialUserFromCache(): SovereignUser | null {
     const rawMock =
       window.localStorage.getItem('radar_sovereign_mock_user') ||
       window.sessionStorage.getItem('radar_sovereign_mock_user');
-    if (rawMock) {
+    if (process.env.NODE_ENV !== 'production' && rawMock) {
       const parsedMock = JSON.parse(rawMock);
       if (parsedMock && (parsedMock.role === 'admin' || parsedMock.adminRank === 'GENERAL_ADMIN')) {
         return parsedMock as SovereignUser;
@@ -97,9 +97,9 @@ function AuthContent({ children }: { children: ReactNode }) {
       const isRecoveryIntent =
         hash.includes('type=recovery') ||
         hash.includes('access_token=') ||
-        hash.includes('error=') ||
+        (hash.includes('error=') && (hash.includes('recovery') || hash.includes('otp'))) ||
         search.includes('type=recovery') ||
-        search.includes('error=');
+        (search.includes('error=') && search.includes('recovery'));
 
       if (isRecoveryIntent) {
         window.location.replace('/reset-password' + search + hash);

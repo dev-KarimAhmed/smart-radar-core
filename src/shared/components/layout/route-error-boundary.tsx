@@ -62,7 +62,7 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
                 ? 'نواجه مشكلة مؤقتة في تحميل هذا الجزء. يرجى إعادة المحاولة مرة أخرى، وبقية الخدمات تعمل بشكل طبيعي.'
                 : 'We are experiencing a temporary issue loading this section. Please try again; all other services remain operational.'}
             </p>
-            {this.state.error && (
+            {process.env.NODE_ENV !== 'production' && this.state.error && (
               <div className="mt-4 p-3 bg-black/80 rounded-xl text-left font-mono text-xs text-red-300 overflow-auto max-h-60 whitespace-pre-wrap select-all border border-red-500/30">
                 <p className="font-bold text-red-400 mb-1">{this.state.error.name}: {this.state.error.message}</p>
                 <p className="text-[10px] text-slate-400">{this.state.error.stack}</p>

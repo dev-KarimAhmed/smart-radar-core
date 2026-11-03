@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendAccountConfirmationEmail } from '@/server/services/email-service';
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Generate new 6-digit OTP code & 15-minute expiration
-    const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const newOtpCode = crypto.randomInt(100000, 1000000).toString();
     const newOtpExpiresAt = Date.now() + 15 * 60 * 1000;
 
     const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {

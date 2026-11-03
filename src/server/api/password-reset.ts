@@ -194,7 +194,14 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       });
     }
 
-    let targetEmail = isEmailValid ? claimedEmail : (user.email || claimedEmail);
+    if (user.email && isEmailValid && claimedEmail !== user.email.toLowerCase()) {
+      return res.status(400).json({
+        success: false,
+        error: 'البريد الإلكتروني المدخل لا يتطابق مع البريد المسجل لهذا الحساب.',
+      });
+    }
+
+    const targetEmail = user.email || (isEmailValid ? claimedEmail : null);
 
     if (!targetEmail) {
       return res.status(400).json({

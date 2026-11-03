@@ -538,7 +538,7 @@ export function PersonalStep() {
         setEmailError(lang === 'ar' ? 'البريد الإلكتروني مطلوب لتفعيل الحساب' : 'Email is required for verification');
         return;
       }
-      const emailRegex = /^[^s@]+@[^s@]+.[^s@]+$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(cleanEmail)) {
         setEmailError(lang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Invalid email format');
         return;

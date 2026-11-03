@@ -38,7 +38,7 @@ export function parseAuthLocation(pathname: string): AuthLocation {
     if (isAuthRole(second)) return { view: 'login', role: second };
   }
 
-  if (first === 'register' && isAuthRole(second)) {
+  if (first === 'register' && isAuthRole(second) && second !== 'admin') {
     return { view: 'register', role: second };
   }
 
