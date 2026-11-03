@@ -10,6 +10,7 @@ import { ProfileHeaderCard } from './profile-tab/profile-header-card';
 import { ProfileFormSection } from './profile-tab/profile-form-section';
 import { RiderSecuritySection } from './profile-tab/rider-security-section';
 import { LinkedCaptainCard } from '@/features/referral/components/linked-captain-card';
+import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 import { useTranslations } from "next-intl";
 
 export function ProfileTab() {
@@ -115,6 +116,13 @@ export function ProfileTab() {
           <span>{state.t('logout')}</span>
         </Button>
       </div>
+      <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={state.isArabic}
+        isLoading={state.isSaving}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { DriverAccountPanel } from './profile/driver-account-panel';
 import { DriverVehiclePanel } from './profile/driver-vehicle-panel';
 import { DriverTariffPanel } from './profile/driver-tariff-panel';
 import { DriverReferralCard } from '@/features/referral/components/driver-referral-card';
+import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 
 interface DriverProfileTabProps {
   user: User | null;
@@ -206,6 +207,13 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
           <DriverTariffPanel state={state} />
         </div>
       </div>
+      <LegalDataAccuracyModal
+        isOpen={state.showAccuracyModal}
+        onConfirm={state.confirmSaveProfile}
+        onClose={state.cancelSaveProfile}
+        isArabic={language === 'ar'}
+        isLoading={state.isSaving}
+      />
     </section>
   );
 }

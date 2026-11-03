@@ -603,7 +603,13 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   };
 
   const isFieldEditing = (key: string) => editingFields.has(key);
-  const handleFieldSave = () => void saveProfile();
+  const [showAccuracyModal, setShowAccuracyModal] = React.useState(false);
+  const handleFieldSave = () => setShowAccuracyModal(true);
+  const confirmSaveProfile = () => {
+    setShowAccuracyModal(false);
+    void saveProfile();
+  };
+  const cancelSaveProfile = () => setShowAccuracyModal(false);
 
   return {
     profile, fullName, setFullName, nickname, setNickname, phone, setPhone,
@@ -615,7 +621,8 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     baseFare, setBaseFare, pricePerKm, setPricePerKm, pricePerMin, setPricePerMin,
     includedKm, setIncludedKm, minBaseFare, tariffError, affiliationType, setAffiliationType, isTaxi,
     isSaving, isFieldEditing, startEditingField, stopEditingField, savedSnapshotRef,
-    isLoadingProfile, profileLoadFailed, setProfileReloadToken, handleFieldSave, tier
+    isLoadingProfile, profileLoadFailed, setProfileReloadToken, handleFieldSave, tier,
+    showAccuracyModal, confirmSaveProfile, cancelSaveProfile
   };
 }
 

@@ -9,6 +9,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
 import { mapSupabaseAuthError, signUpCaptainWithPhone, signInRiderWithPhone, verifyEmailOtpCode, type CaptainProfileMetadata } from '@/features/auth/contract';
 import type { AffiliationType } from '@/core/types';
+import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 import { CaptainPersonalStep, type CaptainPersonalValues } from './captain-personal-step';
 import { CaptainAffiliationStep } from './captain-affiliation-step';
 import { CaptainVehicleStep, type CaptainVehicleValues } from './captain-vehicle-step';
@@ -85,6 +86,7 @@ export function CaptainOnboarding() {
   const { isArabic, setLanguage } = useDashboardLanguage();
   const [isHydrated, setIsHydrated] = React.useState(false);
   const [step, setStep] = React.useState<OnboardingStep>(1);
+  const [showAccuracyModal, setShowAccuracyModal] = React.useState(false);
   const [personal, setPersonal] = React.useState<CaptainPersonalValues>(emptyPersonal);
   const [rememberMe, setRememberMe] = React.useState<boolean>(readStoredRememberMe);
   const [affiliation, setAffiliation] = React.useState<AffiliationType | null>(null);
@@ -409,7 +411,7 @@ export function CaptainOnboarding() {
     return (
       <main className={styles.hydrationShell} aria-busy="true">
         <div className={styles.hydrationSpinner} aria-hidden="true" />
-      </main>
+    </main>
     );
   }
 
@@ -471,7 +473,7 @@ export function CaptainOnboarding() {
               // drivingLicenseFile={drivingLicenseFile}
               // onDrivingLicenseFileChange={setDrivingLicenseFile}
               onBack={() => setStep(2)}
-              onSubmit={() => void submitCaptainRegistration()}
+              onSubmit={() => setShowAccuracyModal(true)}
               isSubmitting={isSubmitting}
               country={personal.countryIso}
             />
@@ -581,6 +583,16 @@ export function CaptainOnboarding() {
           </button>
         </div>
       </section>
+      <LegalDataAccuracyModal
+        isOpen={showAccuracyModal}
+        onConfirm={() => {
+          setShowAccuracyModal(false);
+          void submitCaptainRegistration();
+        }}
+        onClose={() => setShowAccuracyModal(false)}
+        isArabic={isArabic}
+        isLoading={isSubmitting}
+      />
     </main>
   );
 }

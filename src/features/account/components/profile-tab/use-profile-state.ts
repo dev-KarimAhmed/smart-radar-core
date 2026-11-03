@@ -33,6 +33,7 @@ export function useProfileState() {
   const [isLoadingGovernorates, setIsLoadingGovernorates] = useState(false);
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showAccuracyModal, setShowAccuracyModal] = useState(false);
 
   const selectedCountry = useMemo(
     () => countries.find((country) => String(country.id) === countryId) || null,
@@ -238,6 +239,18 @@ export function useProfileState() {
       return;
     }
 
+    setShowAccuracyModal(true);
+  };
+
+  const confirmSaveProfile = async () => {
+    setShowAccuracyModal(false);
+    if (!user?.uid) return;
+
+    const nextCountryId = Number(countryId);
+    const nextGovernorateId = Number(governorateId);
+    const nextDistrictId = Number(districtId);
+    const normalizedEmergencyWhatsapp = normalizeInternationalPhone(emergencyWhatsappContact);
+
     setIsSaving(true);
     try {
       const payload = {
@@ -312,6 +325,9 @@ export function useProfileState() {
     selectedDistrict,
     handleCountryChange,
     handleGovernorateChange,
-    handleSubmit
+    handleSubmit,
+    showAccuracyModal,
+    confirmSaveProfile,
+    cancelSaveProfile: () => setShowAccuracyModal(false),
   };
 }

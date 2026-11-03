@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 import { useRegistration } from '../../hooks/use-registration';
 import { requestPasswordRecovery } from '../../services/password-recovery';
 import { navigateAuth } from '@/lib/auth-routing';
@@ -472,6 +473,7 @@ export function PersonalStep() {
   const [otpInput, setOtpInput] = useState('');
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showAccuracyModal, setShowAccuracyModal] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
   const [resetEmail, setResetEmail] = useState('');
@@ -544,7 +546,16 @@ export function PersonalStep() {
         return;
       }
     }
+    if (authMode === 'register') {
+      setShowAccuracyModal(true);
+      return;
+    }
     handlePersonalSubmit(e);
+  };
+
+  const handleConfirmAccuracy = () => {
+    setShowAccuracyModal(false);
+    handlePersonalSubmit({ preventDefault: () => {} } as React.FormEvent);
   };
 
   const currentLang = lang as Lang;
@@ -672,7 +683,7 @@ export function PersonalStep() {
             </div>
           </div>
         </div>
-      </main>
+    </main>
     );
   }
 
@@ -1048,6 +1059,13 @@ export function PersonalStep() {
           ))}
         </div>
       </div>
+      <LegalDataAccuracyModal
+        isOpen={showAccuracyModal}
+        onConfirm={handleConfirmAccuracy}
+        onClose={() => setShowAccuracyModal(false)}
+        isArabic={isArabic}
+        isLoading={isSubmitting}
+      />
     </main>
   );
 }
