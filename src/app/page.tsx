@@ -33,10 +33,10 @@ export default function HomePage() {
     ((window.location.hash &&
       (window.location.hash.includes('type=recovery') ||
        window.location.hash.includes('access_token=') ||
-       window.location.hash.includes('error='))) ||
+       (window.location.hash.includes('error=') && (window.location.hash.includes('recovery') || window.location.hash.includes('otp'))))) ||
      (window.location.search &&
       (window.location.search.includes('type=recovery') ||
-       window.location.search.includes('error='))));
+       (window.location.search.includes('error=') && window.location.search.includes('recovery')))));
 
   const isRedirecting = !isRecoveryIntent && !!user && (
     user.role === 'driver' ||
@@ -66,9 +66,9 @@ export default function HomePage() {
       if (
         hash.includes('type=recovery') ||
         hash.includes('access_token=') ||
-        hash.includes('error=') ||
+        (hash.includes('error=') && (hash.includes('recovery') || hash.includes('otp'))) ||
         search.includes('type=recovery') ||
-        search.includes('error=')
+        (search.includes('error=') && search.includes('recovery'))
       ) {
         window.location.replace(`/reset-password${search}${hash}`);
         return;
@@ -115,7 +115,7 @@ export default function HomePage() {
       if (user?.role === 'delegate') return isArabic ? 'جاري فتح منصة المندوب...' : 'Opening Delegate Portal...';
     }
     return tAuto('key_7588d11e');
-  }, [isRedirecting, user?.role, tAuto]);
+  }, [isRedirecting, user?.role, tAuto, isArabic]);
 
   if (loading || isRedirecting) {
     const directTarget =

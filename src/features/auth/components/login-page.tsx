@@ -184,10 +184,10 @@ function LoginOrchestrator() {
         
         {/* Logo */}
         <div className={styles.style137_5} onClick={handleLogoTap}>
-          <a
-            href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
-            className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
-          >
+          <div className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity">
+
+
+
             <Image
               src="/icons/logo-header.png"
               alt="Radar"
@@ -196,7 +196,7 @@ function LoginOrchestrator() {
               priority
               className={styles.logoImage}
             />
-          </a>
+          </div>
         </div>
 
         {/* Step title */}

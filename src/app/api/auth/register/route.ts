@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendAccountConfirmationEmail } from '@/server/services/email-service';
@@ -125,12 +126,12 @@ export async function POST(req: Request) {
     }
 
     // 3. Generate 6-digit OTP code (valid for 15 minutes)
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
     const otpExpiresAt = Date.now() + 15 * 60 * 1000;
 
     // 4. Build metadata
     const isEgypt = countryId === 2 || normalizedPhone.startsWith('+20');
-    const userRole = (role === 'DRIVER' ? 'CAPTAIN' : role) as 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN';
+    const userRole: 'RIDER' | 'CAPTAIN' = (role === 'DRIVER' || role === 'CAPTAIN') ? 'CAPTAIN' : 'RIDER';
 
     const userMetadata: Record<string, unknown> = {
       role: userRole,
