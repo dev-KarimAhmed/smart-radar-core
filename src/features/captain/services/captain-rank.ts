@@ -7,10 +7,11 @@
  * `generateWeeklyReport` / `enforceEmergencyDescent` trio. These helpers only call it.
  */
 
-export type CaptainRankName = 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
+export type CaptainRankName = 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
 
 /** Mirrors SOVEREIGN_CONSTANTS.RANKING_RULES — kept here only for display/preview. */
 export const CAPTAIN_RANK_RULES: Record<CaptainRankName, { minRating: number; minHearts: number }> = {
+  DIAMOND: { minRating: 4.9, minHearts: 100 },
   PLATINUM: { minRating: 4.8, minHearts: 50 },
   GOLD: { minRating: 4.5, minHearts: 20 },
   BRONZE: { minRating: 4.0, minHearts: 0 },

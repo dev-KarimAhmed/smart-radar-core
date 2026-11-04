@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import { Resend } from 'resend';
+import { formatContractDate } from './contract-pdf-service';
 
 function getResendClient(): Resend | null {
   let apiKey = '';
@@ -227,6 +228,108 @@ export async function sendAccountConfirmationEmail(params: {
     return { success: true, id: data?.id };
   } catch (err) {
     console.error('[resend] Exception sending confirmation email:', err);
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+
+export async function sendCaptainContractEmail(params: {
+  to: string;
+  captainName: string;
+  pdfBuffer: Buffer;
+  contractHash: string;
+  acceptedAt: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  const resend = getResendClient();
+  if (!resend) {
+    return { success: false, error: 'RESEND_API_KEY is not configured or invalid' };
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'بينكم - bynkcom <noreply@bynkcom.com>';
+  const formattedDate = formatContractDate(params.acceptedAt);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: 'وثيقة عقد اشتراك الكابتن المعلن المعتمدة | شبكة بينكم للإعلان الرقمي',
+      attachments: [
+        {
+          filename: 'Bynkcom_Captain_Advertiser_Contract.pdf',
+          content: params.pdfBuffer,
+        },
+      ],
+      html: `
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>وثيقة عقد اشتراك الكابتن المعلن المعتمدة</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #070B14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #E2E8F0;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #070B14; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #0D1424; border: 1px solid rgba(20, 184, 166, 0.3); border-radius: 24px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);">
+          <tr>
+            <td style="padding: 36px 32px 24px 32px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.06); background: linear-gradient(180deg, rgba(20, 184, 166, 0.12) 0%, rgba(13, 20, 36, 0) 100%);">
+              <div style="display: inline-block; background: rgba(20, 184, 166, 0.15); border: 1px solid rgba(20, 184, 166, 0.35); border-radius: 16px; padding: 12px 28px;">
+                <span style="font-size: 20px; font-weight: 900; color: #14F5D5; letter-spacing: 0.5px;">⚡ شبكة بينكم للإعلان الرقمي</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 32px 24px 32px; text-align: right;" dir="rtl">
+              <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #FFFFFF;">وثيقة عقد اشتراك الكابتن المعلن المعتمدة</h2>
+              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.8; color: #94A3B8;">
+                مرحباً بك كابتن <strong style="color: #F8FAFC;">${params.captainName || "المعلن"}</strong>،<br>
+                نحيطك علماً بأنه قد تم توثيق اشتراكك واعتماد صفتك التعاقدية كـ <strong style="color: #14F5D5;">«كابتن معلن مستقل»</strong> في شبكة بينكم للإعلان الرقمي بنجاح، وتأكيد موافقتك على وثيقة الشروط والخصوصية الموحدة.
+              </p>
+              
+              <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 18px 20px; margin: 20px 0;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748B;">الختم الرقمي المشفر للوثيقة (SHA-256):</p>
+                <code style="display: block; font-size: 11px; color: #14F5D5; word-break: break-all; font-family: monospace;">${params.contractHash}</code>
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #94A3B8;">تاريخ الاعتماد والسريان: ${formattedDate}</p>
+              </div>
+
+              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.8; color: #CBD5E1;">
+                📄 <strong>نسختك الرسمية المعتمدة بصيغة PDF مرفقة مع هذا البريد الإلكتروني.</strong><br>
+                كما تم حفظ نسخة مطابقة دائمة في ملفك الشخصي داخل المنصة لتمكينك من الاطلاع عليها أو تنزيلها أو طباعتها في أي وقت وفق أحكام المادة (5) من الوثيقة.
+              </p>
+
+              <div style="background: rgba(20, 184, 166, 0.08); border-left: 3px solid #14B8A6; padding: 12px 16px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-size: 13px; color: #2DD4BF; line-height: 1.6;">
+                  تذكير قانوني: منصة بينكم هي شبكة إعلانات رقمية تفاعلية ولا تتقاضى أي نسبة أو عمولة (0%) من أجور المعاملات المستقلة.
+                </p>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 24px 32px; background-color: rgba(0, 0, 0, 0.2); text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.06);">
+              <p style="margin: 0; font-size: 12px; color: #475569;">
+                السجل الإلكتروني الرسمي | شبكة بينكم للإعلان الرقمي &copy; 2026
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `,
+    });
+
+    if (error) {
+      console.error('[resend] Captain contract email send error:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.info(`[resend] Captain contract email delivered to ${params.to}, ID: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err) {
+    console.error('[resend] Exception sending contract email:', err);
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }

@@ -1,6 +1,6 @@
 {
   "appTitle": "بينكم - bynkcom",
-  "appDescription": "منصة بينكم - bynkcom لخدمات النقل والإعلان",
+  "appDescription": "شبكة بينكم للإعلان الرقمي - منصة تقنية تفاعلية وبث إعلانات ذكية",
   "meta": {
     "appName": "بينكم - bynkcom",
     "language": "اللغة",
@@ -841,7 +841,7 @@
       "sosToastTitle": "طوارئ وتتبع الرحلة",
       "sosToastDescription": "تم نسخ رابط تتبع الرحلة لمشاركته بأمان.",
       "confirmTitle": "مشاركة مسير الرحلة مع الأقارب",
-      "consentText": "أقر بأنني قرأت التنبيه وأوافق على مشاركة رابط تتبع هاتفي على مسؤوليتي الشخصية، وأن تفعيله وإغلاقه بعلمي وموافقتي.",
+      "consentText": "أقر بأنني قرأت التنبيه وأوافق على مشاركة رابط تتبع هاتفي على مسؤوليتي الشخصية، وأن تفعيله وإغلاقه بعلمي وموافقتي، مع علمي بأن التتبع لحظي وفوري وينتهي كلياً بمجرد إغلاق الرحلة دون حفظ أي مسار جغرافي في النظام.",
       "confirmSendBtn": "موافق وإرسال الرابط",
       "cancelBtn": "إلغاء",
       "captainNotificationTitle": "مشاركة تتبع مسير الرحلة",
@@ -887,7 +887,7 @@
   "captainOnboarding": {
     "brand": "بينكم - bynkcom · حساب السائق",
     "title": "إنشاء حساب سائق",
-    "subtitle": "أدخل بياناتك مرة واحدة، ثم ابدأ باستقبال طلبات الرحلات.",
+    "subtitle": "انضم كمعلن مستقل في شبكة بينكم للإعلان الرقمي، واستفد من بث إعلاناتك واستقبال العروض بصفر عمولة.",
     "languageButton": "English",
     "stepOf": "الخطوة {step} من 3",
     "steps": {
@@ -1908,7 +1908,8 @@
     "selectOffer": "اختر هذا العرض",
     "captainsOffers": "عروض السائقون",
     "offersCountText": "{count} سائق قريب أرسل لك عرضاً.",
-    "cancelRequest": "إلغاء الطلب"
+    "cancelRequest": "إلغاء الطلب",
+    "rankDiamond": "ماسي (Diamond)"
   },
   "riderMap": {
     "activeCaptains": "السائقين المتاحون",
@@ -4446,7 +4447,8 @@
     "welcomeHoursApplySuccessToast": "تم منح الرصيد الترحيبي لـ {count} كابتن بنجاح",
     "welcomeHoursQuickPresets": "باقات سريعة:",
     "welcomeHoursDaysPresets": "فترات صلاحية سريعة:",
-    "welcomeHoursRetroConfirm": "هل أنت متأكد من منح رصيد ترحيبي ({hours} ساعة) لجميع الكباتن المسجلين حالياً والذين رصيدهم 0 دقيقة؟"
+    "welcomeHoursRetroConfirm": "هل أنت متأكد من منح رصيد ترحيبي ({hours} ساعة) لجميع الكباتن المسجلين حالياً والذين رصيدهم 0 دقيقة؟",
+    "rankDiamond": "ماسي (Diamond)"
   },
   "adminWallet": {
     "totalCashBalance": "إجمالي الرصيد النقدي",
@@ -4719,5 +4721,6 @@
     "speedSlowLabel": "بطيء",
     "speedNormalLabel": "متزن",
     "speedFastLabel": "سريع ⚡"
-  }
+  },
+  "rankDiamond": "الرتبة الماسية (Diamond)"
 }

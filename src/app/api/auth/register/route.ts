@@ -1,7 +1,8 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { sendAccountConfirmationEmail } from '@/server/services/email-service';
+import { sendAccountConfirmationEmail, sendCaptainContractEmail } from '@/server/services/email-service';
+import { saveCaptainContract } from '@/server/services/contract-pdf-service';
 import { getAppOrigin } from '@/lib/utils';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
 
@@ -215,6 +216,36 @@ export async function POST(req: Request) {
         await grantNewCaptainWelcomeCredit(userId);
       } catch (creditErr) {
         console.warn('[Registration API] Welcome credit error:', creditErr);
+      }
+
+      // Generate official PDF contract & email it to the captain (Article 5 Section 4)
+      try {
+        const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
+        const contractRes = await saveCaptainContract({
+          captainId: userId,
+          fullName,
+          phone: normalizedPhone,
+          email: rawEmail,
+          nationalIdNumber: captainProfile?.national_id_number,
+          licenseNumber: captainProfile?.license_number,
+          plateNumber: captainProfile?.plate_number,
+          vehicleMake: captainProfile?.make || captainProfile?.vehicle_brand,
+          vehicleModel: captainProfile?.model || captainProfile?.vehicle_model,
+          vehicleYear: captainProfile?.year || captainProfile?.vehicle_year,
+          governorate: captainProfile?.governorate,
+          district: captainProfile?.district,
+          ipAddress: clientIp,
+        });
+
+        await sendCaptainContractEmail({
+          to: rawEmail,
+          captainName: fullName,
+          pdfBuffer: contractRes.pdfBuffer,
+          contractHash: contractRes.contractHash,
+          acceptedAt: contractRes.acceptedAt,
+        });
+      } catch (contractErr) {
+        console.warn('[Registration API] Captain contract generation note:', contractErr);
       }
     }
 

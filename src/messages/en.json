@@ -1908,7 +1908,8 @@
     "selectOffer": "Select this offer",
     "captainsOffers": "Captains' Offers",
     "offersCountText": "{count} nearby captains sent you an offer.",
-    "cancelRequest": "Cancel Request"
+    "cancelRequest": "Cancel Request",
+    "rankDiamond": "Diamond"
   },
   "riderMap": {
     "activeCaptains": "Active captains",
@@ -4446,7 +4447,8 @@
     "welcomeHoursApplySuccessToast": "Welcome credit granted to {count} captains successfully",
     "welcomeHoursQuickPresets": "Quick Presets:",
     "welcomeHoursDaysPresets": "Quick Validity:",
-    "welcomeHoursRetroConfirm": "Are you sure you want to grant welcome credit ({hours} hours) to all existing captains who currently have 0 minutes balance?"
+    "welcomeHoursRetroConfirm": "Are you sure you want to grant welcome credit ({hours} hours) to all existing captains who currently have 0 minutes balance?",
+    "rankDiamond": "Diamond"
   },
   "adminWallet": {
     "totalCashBalance": "Total Cash Balance",
@@ -4719,5 +4721,6 @@
     "speedSlowLabel": "Slow",
     "speedNormalLabel": "Normal",
     "speedFastLabel": "Fast ⚡"
-  }
+  },
+  "rankDiamond": "Diamond Rank"
 }
