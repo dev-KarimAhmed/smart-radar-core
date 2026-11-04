@@ -35,7 +35,11 @@ export async function GET(req: Request) {
         .download(storagePath);
 
       if (!fileErr && fileData) {
-        fileBuffer = Buffer.from(await fileData.arrayBuffer());
+        const candidateBuf = Buffer.from(await fileData.arrayBuffer());
+        // Ensure file is from the updated 2-page spacious engine with embedded Cairo typography (> 600KB)
+        if (candidateBuf.length >= 600000) {
+          fileBuffer = candidateBuf;
+        }
       }
     }
 
@@ -76,14 +80,16 @@ export async function GET(req: Request) {
     }
 
     const shortId = captainId.slice(0, 8).toUpperCase();
-    return new Response(fileBuffer, {
+    return new Response(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': isDownload
           ? `attachment; filename="Bynkcom_Captain_Contract_${shortId}.pdf"`
           : 'inline',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (err) {

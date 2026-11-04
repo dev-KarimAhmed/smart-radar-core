@@ -48,6 +48,31 @@ function ContractContent() {
 
   const [data, setData] = useState<ContractViewData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!data?.captainId) return;
+    try {
+      setDownloading(true);
+      const timestamp = Date.now();
+      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(data.captainId)}&download=true&fresh=true&_t=${timestamp}`;
+      const res = await fetch(downloadUrl, { cache: 'no-store' });
+      if (!res.ok) throw new Error('فشل تنزيل ملف العقد');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Bynkcom_Captain_Contract_${data.captainId.slice(0, 8).toUpperCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      window.location.href = `/api/captain/contract?captainId=${encodeURIComponent(data.captainId)}&download=true&fresh=true&_t=${Date.now()}`;
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -182,11 +207,21 @@ function ContractContent() {
 
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => window.print()}
+            onClick={() => void handleDownloadPdf()}
+            disabled={downloading}
             className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#04140F] font-black text-xs sm:text-sm py-2 px-4 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-2 cursor-pointer"
           >
-            <Printer className="h-4 w-4" />
-            طباعة / حفظ كـ PDF
+            <Download className="h-4 w-4" />
+            {downloading ? 'جاري التحميل...' : 'تحميل نسخة PDF'}
+          </Button>
+
+          <Button
+            onClick={() => window.print()}
+            variant="outline"
+            className="border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white font-bold text-xs sm:text-sm py-2 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+          >
+            <Printer className="h-4 w-4 text-slate-300" />
+            طباعة
           </Button>
         </div>
       </header>
@@ -223,99 +258,143 @@ function ContractContent() {
 
           {/* Section 1: Captain Identity & Electronic Registry */}
           <section className="mb-6 rounded-2xl border border-white/10 bg-[#0F172A]/70 p-5 print:border-gray-300 print:bg-white">
-            <h2 className="text-sm font-black text-teal-300 print:text-black mb-4 flex items-center gap-2 border-b border-white/5 pb-2 print:border-gray-200">
+            <h2 className="text-sm sm:text-base font-black text-teal-300 print:text-black mb-4 flex items-center gap-2 border-b border-white/5 pb-2 print:border-gray-200">
               <FileText className="h-4 w-4 text-[#14F5D5] print:text-black" />
               أولاً: بيانات الكابتن المعلن المتعاقد (السجل الإلكتروني الرسمي)
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
-              <div className="flex justify-between py-1.5 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600">الاسم الرباعي:</span>
-                <strong className="text-white print:text-black">{data.fullName}</strong>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-xs sm:text-sm">
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200 sm:col-span-2">
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">الاسم الرباعي:</span>
+                <strong className="text-white print:text-black text-left">{data.fullName}</strong>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600">رقم الهاتف:</span>
-                <span className="text-white print:text-black font-mono" dir="ltr">{data.phone}</span>
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200">
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">رقم الهاتف:</span>
+                <span className="text-white print:text-black font-mono text-left" dir="ltr">{data.phone}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600">البريد الإلكتروني:</span>
-                <span className="text-white print:text-black font-mono" dir="ltr">{data.email}</span>
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200">
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">الرقم الوطني / الهوية:</span>
+                <span className="text-white print:text-black font-mono text-left">{data.nationalIdNumber}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600">الرقم الوطني / الهوية:</span>
-                <span className="text-white print:text-black font-mono">{data.nationalIdNumber}</span>
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200 sm:col-span-2">
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">البريد الإلكتروني:</span>
+                <span className="text-white print:text-black font-mono text-left" dir="ltr">{data.email}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600">رخصة القيادة:</span>
-                <span className="text-white print:text-black font-mono">{data.licenseNumber}</span>
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200">
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">رخصة القيادة:</span>
+                <span className="text-white print:text-black font-mono text-left">{data.licenseNumber}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600">المركبة واللوحة:</span>
-                <span className="text-white print:text-black">
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200">
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">بيانات المركبة واللوحة:</span>
+                <span className="text-white print:text-black text-left">
                   {data.vehicleMake} {data.vehicleModel} ({data.plateNumber})
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 print:border-gray-200 sm:col-span-2">
-                <span className="text-slate-400 print:text-gray-600">النطاق الجغرافي:</span>
-                <span className="text-white print:text-black">{data.governorate} - {data.district}</span>
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200 sm:col-span-2">
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">النطاق الجغرافي المعتمد:</span>
+                <span className="text-white print:text-black text-left">{data.governorate} - {data.district}</span>
               </div>
             </div>
           </section>
 
-          {/* Section 2: Core Foundational Principles */}
-          <section className="mb-6 rounded-2xl border border-white/10 bg-[#0F172A]/70 p-5 print:border-gray-300 print:bg-white text-xs sm:text-sm leading-relaxed space-y-3">
-            <h2 className="text-sm font-black text-teal-300 print:text-black mb-3 flex items-center gap-2 border-b border-white/5 pb-2 print:border-gray-200">
+          {/* Section 2: Core Foundational Principles - 9 Sovereign Clauses */}
+          <section className="mb-6 rounded-2xl border border-white/10 bg-[#0F172A]/70 p-5 sm:p-6 print:border-gray-300 print:bg-white text-xs sm:text-sm leading-relaxed space-y-4">
+            <h2 className="text-sm sm:text-base font-black text-teal-300 print:text-black mb-4 flex items-center gap-2 border-b border-white/5 pb-2 print:border-gray-200">
               <ShieldCheck className="h-4 w-4 text-[#14F5D5] print:text-black" />
-              ثانياً: البنود والضوابط القانونية والتأسيسية الحاكمة
+              ثانياً: الضوابط والاشتراطات التأسيسية المعتمدة (المواد الحاكمة من وثيقة الشروط الموحدة)
             </h2>
 
-            <ol className="space-y-2 list-decimal list-inside text-slate-300 print:text-gray-800">
-              <li>
-                <strong className="text-white print:text-black">طبيعة العلاقة واستقلال الكابتن:</strong> يزاول الكابتن نشاطه كمعلن فرد مستقل لحسابه الخاص، وتعد مركبته وسيلة إعلانية مستقلة يديرها بإرادته الحرة دون نشوء عقد عمل أو وكالة أو تبعية تشغيلية للشبكة.
-              </li>
-              <li>
-                <strong className="text-white print:text-black">نطاق دور الشبكة وصفر عمولة (0%):</strong> تقتصر شبكة بينكم على توفير البنية التقنية ومساحة الإعلان الرقمية عبر تطبيق ويب تقدمي (PWA)، ولا تقدم خدمات نقل أو توصيل، ولا تتقاضى أي عمولة أو نسبة من أجور الرحلات والمعاملات المستقلة.
-              </li>
-              <li>
-                <strong className="text-white print:text-black">مؤشر السوق الاسترشادي:</strong> يعد مؤشر التسعير معلومة إحصائية استرشادية غير ملزمة مبنية على بيانات مجمعة لمساعدة الكابتن في اتخاذ قراراته التجارية، ولا يعد تسعيرة جبرية.
-              </li>
-              <li>
-                <strong className="text-white print:text-black">استخدام موارد الجهاز:</strong> يمنح الكابتن موافقة إلكترونية صريحة على استخدام الموقع الجغرافي والإنترنت والشاشة بالقدر الضروري فقط لتقديم الخدمات الإعلانية.
-              </li>
-              <li>
-                <strong className="text-white print:text-black">ضابط انتهاء التتبع الفوري (الخدمة 11):</strong> خدمة مشاركة التتبع لحظية ومؤقتة للأقارب، وتنتهي كلياً وفوراً بمجرد إغلاق الرحلة، ويحظر قطعياً حفظ أي مسارات أو نقاط جغرافية في النظام بعد انتهائها.
-              </li>
-              <li>
-                <strong className="text-white print:text-black">سياسة إسقاط الأجل ومسح السجلات (72 ساعة):</strong> تخضع سجلات الرحلات لمسح وتطهير آلي كل 72 ساعة حتمية من السيرفرات حمايةً للخصوصية التامة.
-              </li>
-              <li>
-                <strong className="text-white print:text-black">التوثيق والأرشفة وحفظ نسخ PDF:</strong> يوثق قبول الكابتن في السجل الإلكتروني المعتمد، وتُحفظ نسخة العقد الرسمية بصيغة PDF بملفه الشخصي وتُرسل لبريده الإلكتروني مع إثبات الختم المشفر.
-              </li>
-            </ol>
+            <div className="space-y-3.5 text-slate-300 print:text-gray-800 leading-loose">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">1</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">صفة الكابتن:</strong> يزاول الكابتن نشاطه كمعلن مستقل لحسابه الخاص، وتعد المركبة وسيلة إعلانية شخصية له، ولا ينشأ أي عقد عمل أو تبعية مع الشبكة بأي شكل.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">2</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">طبيعة الشبكة:</strong> شبكة بينكم منصة تقنية للإعلانات الرقمية والتسويق، ولا تقدم أي خدمات نقل أو توجيه أو توصيل ركاب إطلاقاً.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">3</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">صفر عمولة (0%):</strong> لا تتقاضى الشبكة أي عمولة أو نسبة مئوية من أجور الرحلات أو الصفقات المباشرة بين الكابتن والمستخدمين في أي وقت.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">4</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">مؤشر السوق الاسترشادي:</strong> مؤشر إحصائي استرشادي غير إلزامي محسوب محلياً، ولا يعد بأي حال تسعيرة إجبارية على الكابتن.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">5</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">أذونات موارد الجهاز:</strong> يمنح الكابتن إذناً صريحاً ومحدداً للموقع والإنترنت والشاشة بالقدر الضروري لتشغيل التطبيق وبث الإعلانات فقط.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">6</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">زر مشاركة التتبع المباشر:</strong> ميزة تتبع لحظية طارئة تنتهي فورياً بإغلاق الرحلة، دون حفظ أي مسار أو سجل في خوادم النظام حفاظاً على السرية.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">7</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">إسقاط الأجل ومسح السجلات (72 ساعة):</strong> تخضع سجلات التحركات لمسح وتطهير آلي دوري كل 72 ساعة حتمية لحماية الخصوصية المطلقة.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">8</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">نظام الرتب الخمسة:</strong> يخضع الكابتن للتصنيف الآلي المعتمد (برونزي، فضي، ذهبي، بلاتيني، ماسي) حسب ساعات التواجد وجودة الأداء والتقييم.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 print:border-none print:p-0">
+                <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-teal-500/15 text-[#14F5D5] font-black text-xs border border-teal-500/30 print:text-black">9</span>
+                <p className="text-slate-300 print:text-black leading-relaxed">
+                  <strong className="text-white print:text-black font-bold">التدقيق الآلي للإعلانات:</strong> تخضع كافة المواد الإعلانية للفرز المسبق بالذكاء الاصطناعي لضمان الامتثال للقوانين والآداب العامة وسيادة القانون.
+                </p>
+              </div>
+            </div>
           </section>
 
           {/* Section 3: Digital Cryptographic Seal & Verification */}
-          <section className="rounded-2xl border border-teal-500/30 bg-[#070B14] p-5 print:border-gray-400 print:bg-white text-xs">
-            <h2 className="text-sm font-black text-teal-300 print:text-black mb-3 flex items-center gap-2">
+          <section className="rounded-2xl border border-teal-500/30 bg-[#070B14] p-5 sm:p-6 print:border-gray-400 print:bg-white text-xs sm:text-sm">
+            <h2 className="text-sm sm:text-base font-black text-teal-300 print:text-black mb-3 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-[#14F5D5] print:text-black" />
               ثالثاً: الختم الرقمي المشفر والتوثيق الإلكتروني المعتمد
             </h2>
 
-            <div className="space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5">
                 <span className="text-slate-400 print:text-gray-600">تاريخ ووقت التوثيق والاعتماد:</span>
-                <strong className="text-white print:text-black">{data.acceptedAt}</strong>
+                <strong className="text-[#14F5D5] print:text-black">{data.acceptedAt}</strong>
               </div>
 
-              <div className="flex flex-col gap-1 pt-2">
+              <div className="flex flex-col gap-1.5 pt-1">
                 <span className="text-slate-400 print:text-gray-600">بصمة التشفير الرقمية السيادية (SHA-256 Sovereign Hash):</span>
-                <code className="text-[11px] text-teal-300 font-mono bg-white/5 p-2 rounded-xl break-all print:bg-gray-100 print:text-black border border-white/5 print:border-gray-300">
+                <code className="text-xs sm:text-sm text-teal-300 font-mono bg-white/5 p-3 rounded-xl break-all print:bg-gray-100 print:text-black border border-white/5 print:border-gray-300 font-bold tracking-wider">
                   {data.contractHash}
                 </code>
               </div>
 
-              <div className="pt-3 border-t border-white/5 print:border-gray-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 print:text-gray-600 gap-2">
-                <p>تم استخراج وتوثيق هذه الوثيقة إلكترونياً من شبكة بينكم للإعلان الرقمي بموجب قانون المعاملات الإلكترونية.</p>
+              <div className="pt-3 border-t border-white/5 print:border-gray-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 print:text-gray-600 gap-2">
+                <p className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="text-sm">✓</span>
+                  تم توثيق وقبول الشروط إلكترونياً وحفظ السجل التعاقدي بموجب قانون المعاملات الإلكترونية.
+                </p>
                 <span className="text-[#14F5D5] font-bold print:text-black">bynkcom MEDIA SMART © 2026</span>
               </div>
             </div>

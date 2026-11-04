@@ -57,7 +57,6 @@ export function formatContractDate(dateInput?: string | Date | number): string {
 export function buildCaptainContractHtml(data: CaptainContractData, contractHash: string): string {
   const serial = 'BYNK-CAP-' + data.captainId.slice(0, 8).toUpperCase();
   const dateFormatted = formatContractDate(data.acceptedAt);
-
   const version = data.contractVersion || 'V1.0-Unified';
 
   return `<!DOCTYPE html>
@@ -70,7 +69,7 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
     
     @page {
       size: A4 portrait;
-      margin: 8mm;
+      margin: 8mm 10mm;
     }
     
     * {
@@ -84,23 +83,33 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
       background-color: #070B14;
       color: #F8FAFC;
       margin: 0;
-      padding: 16px;
-      line-height: 1.5;
+      padding: 0;
+      line-height: 1.6;
     }
 
-    .contract-card {
-      border: 1.5px solid rgba(20, 184, 166, 0.45);
-      border-radius: 20px;
-      padding: 24px 28px;
+    .contract-page {
       background: #0B0F19;
+      border: 1.5px solid rgba(20, 184, 166, 0.45);
+      border-radius: 18px;
+      padding: 22px 26px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      page-break-after: always;
+      min-height: 275mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .contract-page:last-child {
+      page-break-after: avoid;
     }
 
     .header-table {
       width: 100%;
       border-bottom: 1.5px solid rgba(20, 184, 166, 0.25);
-      padding-bottom: 16px;
-      margin-bottom: 18px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .badge-sovereign {
@@ -110,29 +119,30 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
       color: #14F5D5;
       padding: 3px 12px;
       border-radius: 9999px;
-      font-size: 10.5px;
+      font-size: 11.5px;
       font-weight: 800;
       margin-bottom: 6px;
     }
 
     .brand-title {
       color: #14F5D5;
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 900;
       margin: 0;
       letter-spacing: -0.5px;
+      line-height: 1.25;
     }
 
     .sub-title {
-      color: #94A3B8;
-      font-size: 12.5px;
+      color: #CBD5E1;
+      font-size: 14px;
       font-weight: 700;
       margin-top: 4px;
     }
 
     .serial-box {
       background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
       padding: 10px 14px;
       text-align: left;
@@ -140,16 +150,17 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
 
     .serial-code {
       font-family: monospace;
-      font-size: 13.5px;
+      font-size: 15px;
       font-weight: 900;
       color: #14F5D5;
       direction: ltr;
       display: block;
+      margin-top: 2px;
     }
 
     .status-active {
       color: #10B981;
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 800;
       margin-top: 3px;
     }
@@ -158,192 +169,276 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
       background: rgba(15, 23, 42, 0.65);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 14px;
-      padding: 16px 20px;
-      margin-bottom: 16px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
     }
 
     .section-title {
-      font-size: 12.5px;
+      font-size: 15.5px;
       font-weight: 900;
       color: #14F5D5;
       margin-top: 0;
       margin-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1.5px solid rgba(20, 184, 166, 0.2);
       padding-bottom: 6px;
     }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px 24px;
-      font-size: 11.5px;
+    .info-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      font-size: 13.5px;
     }
 
-    .field-row {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      padding-bottom: 4px;
+    .info-table tr {
+      background: rgba(255, 255, 255, 0.025);
     }
 
-    .field-label {
+    .info-table td {
+      padding: 8px 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .info-table td:first-child {
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .info-table td:last-child {
+      border-left: 1px solid rgba(255, 255, 255, 0.06);
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+
+    .lbl {
       color: #94A3B8;
-    }
-
-    .field-val {
       font-weight: 700;
-      color: #F8FAFC;
+      white-space: nowrap;
+      width: 130px;
+      font-size: 13px;
     }
 
-    .field-val-ltr {
+    .val {
+      color: #F8FAFC;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .val-ltr {
       font-family: monospace;
       direction: ltr;
-      font-weight: 700;
       color: #38BDF8;
+      font-weight: 800;
+      text-align: right;
+      font-size: 13.5px;
     }
 
     .clause-item {
       display: flex;
-      gap: 8px;
-      margin-bottom: 7.5px;
-      font-size: 10.5px;
+      gap: 12px;
+      margin-bottom: 13px;
+      font-size: 14.5px;
       color: #CBD5E1;
-      line-height: 1.45;
+      line-height: 1.65;
+      text-align: justify;
     }
 
     .clause-num {
       color: #14F5D5;
       font-weight: 900;
       flex-shrink: 0;
-      min-width: 16px;
+      min-width: 20px;
+      font-size: 15px;
+    }
+
+    .clause-item b {
+      color: #F8FAFC;
+      font-weight: 800;
     }
 
     .footer-box {
       background: rgba(20, 184, 166, 0.06);
-      border: 1px solid rgba(20, 184, 166, 0.22);
-      border-radius: 14px;
-      padding: 14px 18px;
-      font-size: 10px;
+      border: 1px solid rgba(20, 184, 166, 0.25);
+      border-radius: 16px;
+      padding: 18px 22px;
+      font-size: 13.5px;
     }
 
     .hash-code {
       font-family: monospace;
-      font-size: 9.5px;
+      font-size: 12px;
       color: #14F5D5;
       direction: ltr;
       word-break: break-all;
       display: block;
-      margin-top: 4px;
+      margin-top: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(20, 184, 166, 0.2);
+    }
+
+    .page-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 10px;
+      margin-top: 14px;
+      font-size: 11.5px;
+      color: #64748B;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <div class="contract-card">
-    <table class="header-table">
-      <tr>
-        <td style="vertical-align: top;">
-          <div class="badge-sovereign">وثيقة رسمية معتمدة · قانون المعاملات الإلكترونية</div>
-          <h1 class="brand-title">شبكة بينكم للإعلان الرقمي</h1>
-          <div class="sub-title">وثيقة عقد اشتراك الكابتن المعلن - النسخة النهائية الموحدة ${version}</div>
-        </td>
-        <td style="vertical-align: top; width: 200px;">
-          <div class="serial-box">
-            <div style="font-size: 10px; color: #94A3B8;">رقم الوثيقة والسجل:</div>
-            <span class="serial-code">${serial}</span>
-            <div class="status-active">● معتمد وساري المفعول</div>
-          </div>
-        </td>
-      </tr>
-    </table>
+  <!-- PAGE 1 -->
+  <div class="contract-page">
+    <div>
+      <table class="header-table">
+        <tr>
+          <td style="vertical-align: top;">
+            <div class="badge-sovereign">وثيقة رسمية معتمدة · قانون المعاملات الإلكترونية</div>
+            <h1 class="brand-title">شبكة بينكم للإعلان الرقمي</h1>
+            <div class="sub-title">وثيقة عقد اشتراك الكابتن المعلن - النسخة النهائية الموحدة ${version}</div>
+          </td>
+          <td style="vertical-align: top; width: 230px;">
+            <div class="serial-box">
+              <div style="font-size: 11px; color: #94A3B8;">رقم الوثيقة والسجل:</div>
+              <span class="serial-code">${serial}</span>
+              <div class="status-active">● معتمد وساري المفعول</div>
+            </div>
+          </td>
+        </tr>
+      </table>
 
-    <!-- Section 1: Captain Information -->
-    <div class="section-box">
-      <div class="section-title">أولاً: بيانات الكابتن المعلن المتعاقد (السجل الإلكتروني الرسمي)</div>
-      <div class="grid-2">
-        <div class="field-row">
-          <span class="field-label">الاسم الرباعي:</span>
-          <span class="field-val">${data.fullName}</span>
+      <!-- Section 1: Captain Information -->
+      <div class="section-box">
+        <div class="section-title">أولاً: بيانات الكابتن المعلن المتعاقد (السجل الإلكتروني الرسمي)</div>
+        <table class="info-table">
+          <tr>
+            <td class="lbl">الاسم الرباعي:</td>
+            <td class="val" colspan="3">${data.fullName}</td>
+          </tr>
+          <tr>
+            <td class="lbl">رقم الهاتف:</td>
+            <td class="val-ltr">${data.phone}</td>
+            <td class="lbl" style="border-right: 1px solid rgba(255, 255, 255, 0.06);">الرقم الوطني / الهوية:</td>
+            <td class="val">${data.nationalIdNumber || 'تم التحقق'}</td>
+          </tr>
+          <tr>
+            <td class="lbl">البريد الإلكتروني:</td>
+            <td class="val-ltr" colspan="3">${data.email}</td>
+          </tr>
+          <tr>
+            <td class="lbl">رخصة القيادة:</td>
+            <td class="val">${data.licenseNumber || 'تم التحقق'}</td>
+            <td class="lbl" style="border-right: 1px solid rgba(255, 255, 255, 0.06);">بيانات المركبة واللوحة:</td>
+            <td class="val">${data.vehicleMake || ''} ${data.vehicleModel || ''} (${data.plateNumber || 'مرخصة'})</td>
+          </tr>
+          <tr>
+            <td class="lbl">النطاق الجغرافي:</td>
+            <td class="val" colspan="3">${data.governorate || 'الأردن'} - ${data.district || 'المركزي'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Section 2: Articles 1 to 4 -->
+      <div class="section-box" style="margin-bottom: 0;">
+        <div class="section-title">ثانياً: الضوابط والاشتراطات التأسيسية المعتمدة (المواد الحاكمة من وثيقة الشروط الموحدة)</div>
+        
+        <div class="clause-item">
+          <span class="clause-num">1.</span>
+          <span><b>صفة الكابتن:</b> يزاول الكابتن نشاطه كمعلن مستقل لحسابه الخاص، وتعد المركبة وسيلة إعلانية شخصية له، ولا ينشأ أي عقد عمل أو تبعية مع الشبكة بأي شكل.</span>
         </div>
-        <div class="field-row">
-          <span class="field-label">رقم الهاتف:</span>
-          <span class="field-val-ltr">${data.phone}</span>
+        <div class="clause-item">
+          <span class="clause-num">2.</span>
+          <span><b>طبيعة الشبكة:</b> شبكة بينكم منصة تقنية للإعلانات الرقمية والتسويق، ولا تقدم أي خدمات نقل أو توجيه أو توصيل ركاب إطلاقاً.</span>
         </div>
-        <div class="field-row">
-          <span class="field-label">البريد الإلكتروني:</span>
-          <span class="field-val-ltr">${data.email}</span>
+        <div class="clause-item">
+          <span class="clause-num">3.</span>
+          <span><b>صفر عمولة (0%):</b> لا تتقاضى الشبكة أي عمولة أو نسبة مئوية من أجور الرحلات أو الصفقات المباشرة بين الكابتن والمستخدمين في أي وقت.</span>
         </div>
-        <div class="field-row">
-          <span class="field-label">الرقم الوطني / الهوية:</span>
-          <span class="field-val">${data.nationalIdNumber || 'تم التحقق'}</span>
-        </div>
-        <div class="field-row">
-          <span class="field-label">رخصة القيادة:</span>
-          <span class="field-val">${data.licenseNumber || 'تم التحقق'}</span>
-        </div>
-        <div class="field-row">
-          <span class="field-label">بيانات المركبة واللوحة:</span>
-          <span class="field-val">${data.vehicleMake || ''} ${data.vehicleModel || ''} (${data.plateNumber || 'مرخصة'})</span>
-        </div>
-        <div class="field-row" style="grid-column: span 2;">
-          <span class="field-label">النطاق الجغرافي:</span>
-          <span class="field-val">${data.governorate || 'الأردن'} - ${data.district || 'المركزي'}</span>
+        <div class="clause-item" style="margin-bottom: 0;">
+          <span class="clause-num">4.</span>
+          <span><b>مؤشر السوق الاسترشادي:</b> مؤشر إحصائي استرشادي غير إلزامي محسوب محلياً، ولا يعد بأي حال تسعيرة إجبارية على الكابتن.</span>
         </div>
       </div>
     </div>
 
-    <!-- Section 2: Unified Articles Summary -->
-    <div class="section-box">
-      <div class="section-title">ثانياً: الضوابط والاشتراطات التأسيسية المعتمدة (المواد الحاكمة من وثيقة الشروط الموحدة)</div>
-      
-      <div class="clause-item">
-        <span class="clause-num">1.</span>
-        <span><b>صفة الكابتن:</b> يزاول الكابتن نشاطه كمعلن مستقل لحسابه الخاص، والمركبة وسيلة إعلانية شخصية له، ولا ينشأ أي عقد عمل أو تبعية مع الشبكة.</span>
+    <div class="page-footer">
+      <span>شبكة بينكم للإعلان الرقمي · عقد اشتراك الكابتن المعلن الموحد</span>
+      <span>الصفحة 1 من 2</span>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="contract-page">
+    <div>
+      <table class="header-table">
+        <tr>
+          <td style="vertical-align: top;">
+            <h2 class="brand-title" style="font-size: 22px;">شبكة بينكم للإعلان الرقمي</h2>
+            <div class="sub-title" style="font-size: 13.5px;">تابع: الضوابط التأسيسية والختم الرقمي المعتمد للعقد</div>
+          </td>
+          <td style="vertical-align: top; width: 230px; text-align: left;">
+            <div style="font-size: 12.5px; color: #94A3B8;">رقم الوثيقة: <span style="color: #14F5D5; font-family: monospace; direction: ltr; display: inline-block; font-weight: 900;">${serial}</span></div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Section 2 Continued: Articles 5 to 9 -->
+      <div class="section-box">
+        <div class="section-title">تابع ثانياً: المواد والاشتراطات التشغيلية المعتمدة</div>
+
+        <div class="clause-item">
+          <span class="clause-num">5.</span>
+          <span><b>أذونات موارد الجهاز:</b> يمنح الكابتن إذناً صريحاً ومحدداً للموقع والإنترنت والشاشة بالقدر الضروري لتشغيل التطبيق وبث الإعلانات فقط.</span>
+        </div>
+        <div class="clause-item">
+          <span class="clause-num">6.</span>
+          <span><b>زر مشاركة التتبع المباشر:</b> ميزة تتبع لحظية طارئة تنتهي فورياً بإغلاق الرحلة، دون حفظ أي مسار أو سجل في خوادم النظام حفاظاً على السرية.</span>
+        </div>
+        <div class="clause-item">
+          <span class="clause-num">7.</span>
+          <span><b>إسقاط الأجل ومسح السجلات (72 ساعة):</b> تخضع سجلات التحركات لمسح وتطهير آلي دوري كل 72 ساعة حتمية لحماية الخصوصية المطلقة.</span>
+        </div>
+        <div class="clause-item">
+          <span class="clause-num">8.</span>
+          <span><b>نظام الرتب الخمسة:</b> يخضع الكابتن للتصنيف الآلي المعتمد (برونزي، فضي، ذهبي، بلاتيني، ماسي) حسب ساعات التواجد وجودة الأداء والتقييم.</span>
+        </div>
+        <div class="clause-item" style="margin-bottom: 0;">
+          <span class="clause-num">9.</span>
+          <span><b>التدقيق الآلي للإعلانات:</b> تخضع كافة المواد الإعلانية للفرز المسبق بالذكاء الاصطناعي لضمان الامتثال للقوانين والآداب العامة وسيادة القانون.</span>
+        </div>
       </div>
-      <div class="clause-item">
-        <span class="clause-num">2.</span>
-        <span><b>طبيعة الشبكة:</b> شبكة بينكم منصة تقنية للإعلانات الرقمية والتسويق، ولا تقدم أي خدمات نقل أو توجيه أو توصيل ركاب.</span>
-      </div>
-      <div class="clause-item">
-        <span class="clause-num">3.</span>
-        <span><b>صفر عمولة (0%):</b> لا تتقاضى الشبكة أي عمولة أو نسبة مئوية من أجور الرحلات أو الصفقات المباشرة بين الكابتن والمستخدمين.</span>
-      </div>
-      <div class="clause-item">
-        <span class="clause-num">4.</span>
-        <span><b>مؤشر السوق الاسترشادي:</b> مؤشر إحصائي استرشادي غير إلزامي محسوب محلياً، ولا يعد بأي حال تسعيرة إجبارية على الكابتن.</span>
-      </div>
-      <div class="clause-item">
-        <span class="clause-num">5.</span>
-        <span><b>أذونات موارد الجهاز:</b> يمنح الكابتن إذناً صريحاً ومحدداً للموقع والإنترنت والشاشة بالقدر الضروري لتشغيل التطبيق وبث الإعلانات فقط.</span>
-      </div>
-      <div class="clause-item">
-        <span class="clause-num">6.</span>
-        <span><b>زر مشاركة التتبع المباشر:</b> ميزة تتبع لحظية طارئة تنتهي فورياً بإغلاق الرحلة، دون حفظ أي مسار أو سجل في خوادم النظام.</span>
-      </div>
-      <div class="clause-item">
-        <span class="clause-num">7.</span>
-        <span><b>إسقاط الأجل ومسح السجلات (72 ساعة):</b> تخضع سجلات التحركات لمسح وتطهير آلي دوري كل 72 ساعة حتمية لحماية الخصوصية.</span>
-      </div>
-      <div class="clause-item">
-        <span class="clause-num">8.</span>
-        <span><b>نظام الرتب الخمسة:</b> يخضع الكابتن للتصنيف الآلي المعتمد (برونزي، فضي، ذهبي، بلاتيني، ماسي) حسب ساعات التواجد وجودة الأداء.</span>
-      </div>
-      <div class="clause-item">
-        <span class="clause-num">9.</span>
-        <span><b>التدقيق الآلي للإعلانات:</b> تخضع كافة المواد الإعلانية للفرز المسبق بالذكاء الاصطناعي لضمان الامتثال للقوانين والآداب العامة.</span>
+
+      <!-- Section 3: Digital Seal & Signature -->
+      <div class="footer-box">
+        <div class="section-title" style="margin-bottom: 10px; border-bottom: none; padding-bottom: 0;">
+          ثالثاً: الختم والتوقيع الرقمي المعتمد (المادة 5 - قانون المعاملات الإلكترونية)
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+          <span style="color: #CBD5E1; font-size: 13px;"><b>حالة التوثيق:</b> معتمد وسجل رسمي نافذ بموجب القانون</span>
+          <span style="color: #94A3B8; font-size: 13px;"><b>تاريخ وساعة التوثيق:</b> <span style="color: #14F5D5; font-weight: 800;">${dateFormatted}</span></span>
+        </div>
+
+        <div style="color: #94A3B8; font-size: 12px; font-weight: 600; margin-bottom: 4px;">بصمة التشفير الرقمية السيادية للعقد (SHA-256):</div>
+        <span class="hash-code">${contractHash}</span>
+        
+        <div style="color: #10B981; font-size: 12.5px; margin-top: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 16px;">✓</span>
+          <span>تم توثيق وقبول الشروط إلكترونياً وحفظ السجل التعاقدي بموجب القوانين والأنظمة المرعية في المملكة.</span>
+        </div>
       </div>
     </div>
 
-    <!-- Section 3: Digital Seal & Signature -->
-    <div class="footer-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span style="font-weight: 900; color: #14F5D5;">ثالثاً: الختم والتوقيع الرقمي المعتمد (المادة 5 - قانون المعاملات الإلكترونية)</span>
-        <span style="color: #94A3B8;">تاريخ التوثيق: ${dateFormatted}</span>
-      </div>
-      <div style="color: #94A3B8; font-size: 9.5px;">بصمة التشفير الرقمية للعقد (SHA-256):</div>
-      <span class="hash-code">${contractHash}</span>
-      <div style="color: #10B981; font-size: 9.5px; margin-top: 6px; font-weight: 700;">
-        ✓ تم توثيق وقبول الشروط إلكترونياً وحفظ السجل التعاقدي بموجب القوانين والأنظمة المرعية.
-      </div>
+    <div class="page-footer">
+      <span>شبكة بينكم للإعلان الرقمي · عقد اشتراك الكابتن المعلن الموحد</span>
+      <span>الصفحة 2 من 2</span>
     </div>
   </div>
 </body>
@@ -398,11 +493,12 @@ export async function generateCaptainContractPdf(data: CaptainContractData): Pro
     });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
+    await page.setContent(html, { waitUntil: 'networkidle' });
+    await page.evaluate(() => document.fonts.ready);
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '8mm', bottom: '8mm', left: '8mm', right: '8mm' },
+      margin: { top: '0mm', bottom: '0mm', left: '0mm', right: '0mm' },
     });
 
     await browser.close();

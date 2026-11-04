@@ -66,8 +66,9 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
 
     try {
       setIsDownloadingPdf(true);
-      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true`;
-      const res = await fetch(downloadUrl);
+      const timestamp = Date.now();
+      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true&fresh=true&_t=${timestamp}`;
+      const res = await fetch(downloadUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error('فشل تحميل وثيقة العقد');
 
       const blob = await res.blob();
@@ -84,7 +85,7 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
       // Fallback: silent hidden iframe (avoids opening new tab)
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-      iframe.src = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true`;
+      iframe.src = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true&fresh=true&_t=${Date.now()}`;
       document.body.appendChild(iframe);
       setTimeout(() => {
         if (document.body.contains(iframe)) {
@@ -195,7 +196,7 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
         readOnly={true}
-        captainId={captainId}
+        captainId={captainId || user?.id || state?.profile?.id}
         isArabic={true}
       />
     </>

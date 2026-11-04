@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, FileText, CheckCircle2, X, Download, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, FileText, CheckCircle2, X, Download, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +23,34 @@ export function CaptainUnifiedTermsModal({
   captainId,
 }: CaptainUnifiedTermsModalProps) {
   const [hasAgreed, setHasAgreed] = useState(readOnly);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!captainId) return;
+    try {
+      setIsDownloading(true);
+      const timestamp = Date.now();
+      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(captainId)}&download=true&fresh=true&_t=${timestamp}`;
+      const response = await fetch(downloadUrl, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error('فشل جلب ملف العقد');
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const tempLink = document.createElement('a');
+      tempLink.href = blobUrl;
+      tempLink.download = `bynkcom_contract_${captainId}.pdf`;
+      document.body.appendChild(tempLink);
+      tempLink.click();
+      document.body.removeChild(tempLink);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Error downloading contract PDF in background:', err);
+      window.location.href = `/api/captain/contract?captainId=${encodeURIComponent(captainId)}&download=true&fresh=true&_t=${Date.now()}`;
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // Lock background scroll
   useEffect(() => {
@@ -159,65 +187,78 @@ export function CaptainUnifiedTermsModal({
         </div>
 
         {/* Modal Footer / Acceptance Controls */}
-        <div className="border-t border-white/10 px-6 py-4 bg-[#161F30]/90 backdrop-blur-xl flex flex-col gap-3">
-          {!readOnly && (
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={hasAgreed}
-                onChange={(e) => setHasAgreed(e.target.checked)}
-                className="mt-1 h-5 w-5 rounded-md border-white/20 bg-slate-800 text-[#14B8A6] focus:ring-[#14B8A6] focus:ring-offset-0 cursor-pointer"
-              />
-              <span className="text-xs sm:text-sm font-semibold text-slate-200 group-hover:text-white transition">
-                أقر بأنني اطلعت ووافقت بصفتي كابتناً معلناً على كافة بنود وثيقة الشروط والخصوصية الموحدة لشبكة بينكم للإعلان الرقمي، وأطلب تفعيل خدمة التوثيق والأرشفة واستلام نسخة العقد بصيغة PDF.
-              </span>
-            </label>
-          )}
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            {captainId && (
-              <a
-                href={`/captain/contract?captainId=${captainId}&autoprint=true`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-200 hover:border-[#14B8A6] hover:text-white transition"
-              >
-                <Download className="h-4 w-4 text-[#14F5D5]" />
-                تحميل نسخة PDF
-              </a>
+        {(!readOnly || captainId) && (
+          <div className="border-t border-white/10 px-6 py-4 bg-[#161F30]/90 backdrop-blur-xl flex flex-col gap-3">
+            {!readOnly && (
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={hasAgreed}
+                  onChange={(e) => setHasAgreed(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded-md border-white/20 bg-slate-800 text-[#14B8A6] focus:ring-[#14B8A6] focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-xs sm:text-sm font-semibold text-slate-200 group-hover:text-white transition">
+                  أقر بأنني اطلعت ووافقت بصفتي كابتناً معلناً على كافة بنود وثيقة الشروط والخصوصية الموحدة لشبكة بينكم للإعلان الرقمي، وأطلب تفعيل خدمة التوثيق والأرشفة واستلام نسخة العقد بصيغة PDF.
+                </span>
+              </label>
             )}
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold py-2.5 px-4"
-            >
-              {readOnly ? 'إغلاق' : 'رجوع'}
-            </Button>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              {captainId && (
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadPdf()}
+                  disabled={isDownloading}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:border-[#14B8A6] hover:bg-white/10 px-4 py-2.5 text-xs font-bold text-slate-200 hover:text-white transition cursor-pointer"
+                >
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-[#14F5D5]" />
+                      جاري التنزيل...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 text-[#14F5D5]" />
+                      تحميل نسخة PDF
+                    </>
+                  )}
+                </button>
+              )}
 
-            {!readOnly && onAccept && (
-              <Button
-                type="button"
-                disabled={!hasAgreed}
-                onClick={() => {
-                  if (hasAgreed) {
-                    onAccept();
-                    onClose();
-                  }
-                }}
-                className={cn(
-                  'rounded-xl text-xs sm:text-sm font-black py-2.5 px-6 transition-all',
-                  hasAgreed
-                    ? 'bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#04140F] shadow-lg shadow-[#14B8A6]/25 cursor-pointer'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                )}
-              >
-                موافق وتأكيد الاشتراك ⚡
-              </Button>
-            )}
+              {!readOnly && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold py-2.5 px-4"
+                >
+                  رجوع
+                </Button>
+              )}
+
+              {!readOnly && onAccept && (
+                <Button
+                  type="button"
+                  disabled={!hasAgreed}
+                  onClick={() => {
+                    if (hasAgreed) {
+                      onAccept();
+                      onClose();
+                    }
+                  }}
+                  className={cn(
+                    'rounded-xl text-xs sm:text-sm font-black py-2.5 px-6 transition-all',
+                    hasAgreed
+                      ? 'bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#04140F] shadow-lg shadow-[#14B8A6]/25 cursor-pointer'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  )}
+                >
+                  موافق وتأكيد الاشتراك ⚡
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
