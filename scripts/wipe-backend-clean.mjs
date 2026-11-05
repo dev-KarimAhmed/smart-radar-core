@@ -98,11 +98,20 @@ async function runWipe() {
   const { error: errPwReqs } = await supabase.from('password_reset_requests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   console.log('  - password_reset_requests deleted:', errPwReqs ? errPwReqs.message : 'SUCCESS');
 
-  const { error: errPwAudit } = await supabase.from('password_reset_audit').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const { error: errPwAudit } = await supabase.from('password_reset_audit').delete().gte('id', 0);
   console.log('  - password_reset_audit deleted:', errPwAudit ? errPwAudit.message : 'SUCCESS');
+
+  const { error: errNotifs } = await supabase.from('user_notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  console.log('  - user_notifications deleted:', errNotifs ? errNotifs.message : 'SUCCESS');
+
+  const { error: errAdFavs } = await supabase.from('ad_favorites').delete().neq('user_id', '00000000-0000-0000-0000-000000000000');
+  console.log('  - ad_favorites deleted:', errAdFavs ? errAdFavs.message : 'SUCCESS');
 
   // STEP 3: FINANCIAL DATA
   console.log('\n[Step 3] Wiping Wallet transactions & accounts...');
+
+  const { error: errVouchers } = await supabase.from('wallet_vouchers').delete().neq('code', '__NON_EXISTENT__');
+  console.log('  - wallet_vouchers deleted:', errVouchers ? errVouchers.message : 'SUCCESS');
 
   const { error: errTx } = await supabase.from('wallet_transactions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   console.log('  - wallet_transactions deleted:', errTx ? errTx.message : 'SUCCESS');
@@ -163,8 +172,11 @@ async function runWipe() {
     'user_blocks',
     'rider_favorite_captains',
     'captain_locations',
+    'user_notifications',
+    'ad_favorites',
     'password_reset_requests',
     'password_reset_audit',
+    'wallet_vouchers',
     'wallet_transactions',
     'wallet_accounts',
     'captain_profiles',

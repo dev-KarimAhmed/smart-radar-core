@@ -132,11 +132,27 @@ function AuthContent({ children }: { children: ReactNode }) {
       if (!mounted) return;
 
       if (hadStoredSession) {
-        void supabase.auth.getSession().then(({ data }) => {
+        void supabase.auth.getSession().then(({ data: sessionData }) => {
           if (!mounted) return;
-          cacheSupabaseSession(data.session);
-          if (data.session?.user) {
-            setUser(buildUserFromSupabaseAuth(data.session.user) as SovereignUser);
+          const session = sessionData.session;
+          if (session?.user) {
+            cacheSupabaseSession(session);
+            setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
+
+            // Verify with server to immediately detect deleted/purged accounts
+            void supabase.auth.getUser().then(({ data: userData, error: userError }) => {
+              if (!mounted) return;
+              if (userError || !userData?.user) {
+                clearSupabaseSessionCache();
+                purgeTransientFrontendCache();
+                if (typeof window !== 'undefined') {
+                  window.localStorage.removeItem('radar_sovereign_mock_user');
+                  window.sessionStorage.removeItem('radar_sovereign_mock_user');
+                }
+                setUser(null);
+                void supabase.auth.signOut().catch(() => {});
+              }
+            }).catch(() => {});
           } else if (!cachedUser) {
             setUser(null);
           }
