@@ -129,38 +129,38 @@ export function ReceivingOffersScreen({
           {
             index: 0,
             radiusKm: 0.5,
-            title: 'رصد النطاق فائق القرب (0.5 كم)',
+            title: 'رصد النطاق الأولي',
             description: isExpandingCaptainSearch
               ? 'جاري توسيع النطاق للبحث عن المزيد من الكباتن المتاحين...'
-              : 'جاري مسح ومطابقة أقرب الكباتن المتواجدين في محيطك المباشر (0.5 كم)',
+              : 'جاري مسح ومطابقة أقرب الكباتن المتواجدين في محيطك المباشر',
             badge: '0.5 كم',
           },
           {
             index: 1,
             radiusKm: 1.0,
-            title: 'توسيع نطاق البحث (1 كم)',
-            description: 'تم توسيع نطاق الرادار للبحث عن الكباتن المتاحين ضمن نطاق 1 كم',
+            title: 'توسيع نطاق البحث',
+            description: 'تم توسيع نطاق الرادار للبحث عن الكباتن المتاحين في المحيط المجاور',
             badge: '1 كم',
           },
           {
             index: 2,
             radiusKm: 1.5,
-            title: 'توسيع نطاق البحث (1.5 كم)',
-            description: 'تم توسيع نطاق المسح ليشمل الكباتن في المنطقة والمحيط المجاور (1.5 كم)',
+            title: 'توسيع نطاق التغطية',
+            description: 'تم توسيع دائرة المسح لتأكيد توفر كابتن مناسب لرحلتك',
             badge: '1.5 كم',
           },
           {
             index: 3,
             radiusKm: 2.0,
-            title: 'توسيع نطاق التغطية (2 كم)',
-            description: 'تم توسيع التغطية الجغرافية لتشمل الكباتن ضمن نطاق 2 كم',
+            title: 'مسح محيط المنطقة',
+            description: 'بث الطلب لكافة الكباتن المتاحين في المنطقة لتلقي العروض',
             badge: '2 كم',
           },
           {
             index: 4,
             radiusKm: 2.5,
-            title: 'أقصى نطاق مسح جغرافي (2.5 كم)',
-            description: 'المسح الأقصى لطلبك يشمل كامل نطاق القطاع الجغرافي (2.5 كم) لتأكيد كابتن لرحلتك',
+            title: 'أقصى نطاق مسح جغرافي',
+            description: 'المسح النهائي الشامل لضمان وصول عروض لك قبل انتهاء الوقت',
             badge: '2.5 كم',
           },
         ]
@@ -168,38 +168,38 @@ export function ReceivingOffersScreen({
           {
             index: 0,
             radiusKm: 0.5,
-            title: 'Scanning Immediate Range (0.5 km)',
+            title: 'Scanning Initial Range',
             description: isExpandingCaptainSearch
               ? 'Expanding coverage to find more nearby available captains...'
-              : 'Scanning and matching the nearest available captains in your immediate area (0.5 km)',
+              : 'Scanning and matching the nearest available captains in your immediate area',
             badge: '0.5 km',
           },
           {
             index: 1,
             radiusKm: 1.0,
-            title: 'Expanding Search Range (1 km)',
-            description: 'Radar coverage expanded to include available captains within 1 km',
+            title: 'Expanding Search Range',
+            description: 'Radar coverage expanded to include captains across the nearby area',
             badge: '1 km',
           },
           {
             index: 2,
             radiusKm: 1.5,
-            title: 'Expanding Radar Range (1.5 km)',
-            description: 'Broadening radar sweep to include captains within 1.5 km',
+            title: 'Expanding Coverage Area',
+            description: 'Extending search radius to secure an available captain for your ride',
             badge: '1.5 km',
           },
           {
             index: 3,
             radiusKm: 2.0,
-            title: 'Broad Area Scan (2 km)',
-            description: 'Geographical coverage expanded to include captains within 2 km',
+            title: 'Broad Sector Sweep',
+            description: 'Broadcasting request to active captains across the sector',
             badge: '2 km',
           },
           {
             index: 4,
             radiusKm: 2.5,
-            title: 'Maximum Radar Range (2.5 km)',
-            description: 'Final maximum radar sweep across the entire sector (2.5 km) to secure your ride',
+            title: 'Maximum Radar Range',
+            description: 'Final maximum radar sweep to ensure receiving bids before search closes',
             badge: '2.5 km',
           },
         ];
@@ -277,8 +277,6 @@ export function ReceivingOffersScreen({
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[#14F5D5]/10 border border-[#14F5D5]/25 px-2.5 py-0.5 text-[10px] font-mono font-bold text-[#14F5D5]">
                   <Clock className="h-3 w-3 animate-pulse" />
                   <span>{formattedCountdown}</span>
-                  <span className="opacity-40">•</span>
-                  <span>{currentStage.badge}</span>
                 </span>
               </div>
             </div>
@@ -347,57 +345,53 @@ export function ReceivingOffersScreen({
 
       {!showOffersList ? (
         <>
-          <div className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-5 sm:p-6 shadow-2xl shadow-black/50">
+          <div className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-4 sm:p-5 shadow-2xl shadow-black/50">
             <div className="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 h-36 w-64 rounded-full bg-[#14F5D5]/10 blur-3xl" />
 
-
-
-          {/* Center Graphic */}
-          <div className="relative z-10 my-6 flex flex-col items-center justify-center">
-            <div className="relative flex h-24 w-24 items-center justify-center">
-              <div className="absolute inset-0 rounded-full border border-[#14F5D5]/20 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
-              <div className="absolute -inset-2 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/5 animate-pulse" />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-[#14B8A6]/40 bg-gradient-to-br from-[#14B8A6]/25 to-[#060D17] text-[#14F5D5] shadow-[0_0_24px_rgba(20,245,213,0.25)]">
-                <Radio className="h-8 w-8 text-[#14F5D5] animate-pulse" />
+          {/* Center Graphic - Compact & Sleek */}
+          <div className="relative z-10 my-3 flex flex-col items-center justify-center">
+            {/* Compact Radar Graphic */}
+            <div className="relative flex h-14 w-14 items-center justify-center">
+              <div className="absolute inset-0 rounded-full border border-[#14F5D5]/25 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
+              <div className="absolute -inset-1 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 animate-pulse" />
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#14B8A6]/40 bg-gradient-to-br from-[#14B8A6]/25 to-[#060D17] text-[#14F5D5] shadow-[0_0_16px_rgba(20,245,213,0.2)]">
+                <Radio className="h-4 w-4 text-[#14F5D5] animate-pulse" />
               </div>
             </div>
 
-            {/* High-Tech Radar Timer & Current Scan Stage Pill */}
-            <div className="mt-4 flex flex-col items-center gap-1.5">
-              <div className="inline-flex items-center gap-2.5 rounded-2xl border border-[#14F5D5]/40 bg-gradient-to-r from-[#060D19]/90 via-[#0A1A2E]/90 to-[#060D19]/90 px-4 py-2 shadow-[0_0_24px_rgba(20,245,213,0.25)] backdrop-blur-md">
-                <Clock className="h-4 w-4 text-[#14F5D5] animate-pulse shrink-0" />
-                <span className="font-mono text-base sm:text-lg font-black text-white tracking-widest drop-shadow-[0_0_8px_rgba(20,245,213,0.6)]">
-                  {formattedCountdown}
-                </span>
-                <span className="h-4 w-[1px] bg-white/20" />
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#14F5D5]/15 border border-[#14F5D5]/40 px-2.5 py-0.5 text-xs font-black text-[#14F5D5]">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
-                  </span>
-                  <span>
-                    {isArabic ? `المسح الحالي: ${currentStage.badge}` : `Current scan: ${currentStage.badge}`}
-                  </span>
-                </span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-400">
-                {isArabic
-                  ? `نطاق المسح (${currentStage.badge}) • المرحلة ${currentStage.index + 1} من 5`
-                  : `Scan radius (${currentStage.badge}) • Stage ${currentStage.index + 1} of 5`}
+            {/* Compact Live Countdown & Stage Pill (No distance repetition) */}
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#14F5D5]/30 bg-[#060D19]/80 px-3 py-0.5 shadow-sm">
+              <Clock className="h-3 w-3 text-[#14F5D5] animate-pulse shrink-0" />
+              <span className="font-mono text-xs font-black text-white tracking-wider">
+                {formattedCountdown}
               </span>
+              <span className="h-2.5 w-[1px] bg-white/20" />
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#14F5D5]">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#14F5D5]" />
+                </span>
+                <span>
+                  {isArabic
+                    ? `المرحلة ${currentStage.index + 1} من 5`
+                    : `Stage ${currentStage.index + 1} of 5`}
+                </span>
+              </div>
             </div>
 
-            <h3 className="mt-3.5 text-base sm:text-lg font-black text-white text-center tracking-tight">
+            {/* Stage Title */}
+            <h3 className="mt-1.5 text-xs sm:text-sm font-black text-white text-center tracking-tight">
               {currentStage.title}
             </h3>
-            <p className="mt-1 text-xs text-slate-300 text-center leading-relaxed max-w-sm">
+            {/* Stage Description */}
+            <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-400 text-center leading-normal max-w-xs">
               {currentStage.description}
             </p>
           </div>
 
-          {/* 5-Stage Progress Bar (0.5km -> 1km -> 1.5km -> 2km -> 2.5km) */}
-          <div className="relative z-10 mt-2 space-y-2">
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+          {/* 5-Stage Progress Bar - The single clear reference for distances */}
+          <div className="relative z-10 mt-2 space-y-1">
+            <div className="grid grid-cols-5 gap-1.5">
               {stages.map((stg) => {
                 const start = stg.index * STAGE_DURATION_SECONDS;
                 const end = (stg.index + 1) * STAGE_DURATION_SECONDS;
@@ -410,12 +404,12 @@ export function ReceivingOffersScreen({
                   : 0;
 
                 return (
-                  <div key={stg.index} className="space-y-1.5">
-                    <div className="h-2 w-full rounded-full bg-[#060D19] overflow-hidden relative border border-[#14B8A6]/20">
+                  <div key={stg.index} className="space-y-1">
+                    <div className="h-1.5 w-full rounded-full bg-[#060D19] overflow-hidden relative border border-[#14B8A6]/20">
                       <div
                         className={cn(
                           "h-full rounded-full bg-gradient-to-r from-[#14B8A6] to-[#14F5D5] transition-all duration-300 ease-out",
-                          isCurrent && "shadow-[0_0_12px_rgba(20,245,213,0.7)]"
+                          isCurrent && "shadow-[0_0_8px_rgba(20,245,213,0.7)]"
                         )}
                         style={{ width: `${fillPct}%` }}
                       />
@@ -423,9 +417,9 @@ export function ReceivingOffersScreen({
                     <div className="flex flex-col items-center">
                       <span
                         className={cn(
-                          "text-[10px] font-black truncate max-w-full transition-colors",
+                          "text-[9px] sm:text-[10px] font-bold truncate max-w-full transition-colors",
                           isCurrent
-                            ? "text-[#14F5D5] font-extrabold drop-shadow-[0_0_6px_rgba(20,245,213,0.6)]"
+                            ? "text-[#14F5D5] font-black drop-shadow-[0_0_6px_rgba(20,245,213,0.6)]"
                             : isCompleted
                             ? "text-[#14B8A6]"
                             : "text-slate-500"
@@ -439,16 +433,11 @@ export function ReceivingOffersScreen({
               })}
             </div>
 
-            {/* Timeline status row with live countdown and active scan indicator */}
-            <div className="flex items-center justify-between pt-0.5 px-0.5 text-[10px] font-mono font-bold text-slate-400">
+            {/* Timeline status footer */}
+            <div className="flex items-center justify-between pt-0.5 px-0.5 text-[9px] sm:text-[10px] font-mono text-slate-400">
               <span className="flex items-center gap-1 text-[#14F5D5]">
-                <Clock className="h-3 w-3" />
+                <Clock className="h-2.5 w-2.5" />
                 <span>{formattedCountdown}</span>
-              </span>
-              <span className="text-[#14F5D5] font-black">
-                {isArabic
-                  ? `المسح النشط: ${currentStage.badge}`
-                  : `Active: ${currentStage.badge}`}
               </span>
               <span>
                 {isArabic ? 'الحد الأقصى: 4:00 د' : 'Max Search: 4:00m'}
