@@ -20,6 +20,8 @@ import { getServerTime } from '@/lib/server-time';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
 
 const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minute (240s) search window
+const RADAR_SCAN_STAGES_KM = [0.5, 1.0, 1.5, 2.0, 2.5] as const;
+const STAGE_WINDOW_SECONDS = 48; // 240s / 5 stages = 48s each stage
 
 /**
  * Owns the incoming-offers poll/subscription for `RECEIVING_OFFERS`, the
@@ -39,7 +41,7 @@ export function useOffersLifecycle(
 
   const [preferredCaptainIds, setPreferredCaptainIds] = React.useState<string[]>([]);
   const [expandedOfferId, setExpandedOfferId] = React.useState<string | null>(null);
-  const [captainSearchRadiusKm, setCaptainSearchRadiusKm] = React.useState(1.5);
+  const [captainSearchRadiusKm, setCaptainSearchRadiusKm] = React.useState<number>(0.5);
   const [isExpandingCaptainSearch, setIsExpandingCaptainSearch] = React.useState(false);
   const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
 
@@ -285,26 +287,32 @@ export function useOffersLifecycle(
 
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {
-      setCaptainSearchRadiusKm(1.5);
+      setCaptainSearchRadiusKm(0.5);
       setIsExpandingCaptainSearch(false);
       return;
     }
 
-    if (state.offers.length > 0 || captainSearchRadiusKm >= 2.5) {
-      setIsExpandingCaptainSearch(false);
-      return;
-    }
+    const syncRadiusWithTime = () => {
+      const startedAt = state.requestStartedAt ?? getServerTime();
+      const elapsedSec = Math.floor(Math.max(0, getServerTime() - startedAt) / 1000);
+      const stageIdx = Math.min(RADAR_SCAN_STAGES_KM.length - 1, Math.floor(elapsedSec / STAGE_WINDOW_SECONDS));
+      const targetRadius = RADAR_SCAN_STAGES_KM[stageIdx];
 
-    const timeoutId = window.setTimeout(() => {
-      setIsExpandingCaptainSearch(true);
-      window.setTimeout(() => {
-        setCaptainSearchRadiusKm(2.5);
-        setIsExpandingCaptainSearch(false);
-      }, 900);
-    }, 4500);
+      setCaptainSearchRadiusKm((current) => {
+        if (current !== targetRadius) {
+          setIsExpandingCaptainSearch(true);
+          window.setTimeout(() => setIsExpandingCaptainSearch(false), 900);
+          return targetRadius;
+        }
+        return current;
+      });
+    };
 
-    return () => window.clearTimeout(timeoutId);
-  }, [captainSearchRadiusKm, state.offers.length, state.requestCancelledAt, state.screen]);
+    syncRadiusWithTime();
+    const intervalId = window.setInterval(syncRadiusWithTime, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [state.requestCancelledAt, state.requestStartedAt, state.screen]);
 
   // Cards start collapsed — the rider opens whichever offer they want to look at,
   // rather than the first one arriving being force-expanded for them. This effect
@@ -382,7 +390,7 @@ export function useOffersLifecycle(
     firstSeenAtRef.current.clear();
     setPreferredCaptainIds([]);
     setExpandedOfferId(null);
-    setCaptainSearchRadiusKm(1.5);
+    setCaptainSearchRadiusKm(0.5);
     setIsExpandingCaptainSearch(false);
     setAcceptingOfferId(null);
   }, []);

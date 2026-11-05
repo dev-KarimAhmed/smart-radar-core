@@ -60,20 +60,25 @@ export function useCaptainPresence(userId: string | undefined, activeCountryId: 
       }
 
       try {
-        // 1. يبدأ المسح الجغرافي بـ 1.5 كم (حلقة H3 بحجم 4)
+        // 1. يبدأ المسح الجغرافي بـ 0.5 كم (حلقة H3 بحجم 1)
         let rows = await fetchAvailableCaptainPresence(supabase, {
           centerH3Cell: riderH3Cell,
           countryId: activeCountryId,
-          ringSize: 4, // نطاق 1.5 كم
+          ringSize: 1, // نطاق 0.5 كم
         });
 
-        // 2. إذا لم يجد في هذا الحيز الجغرافي سائقين، يتوسع إلى 2.5 كم فقط ليس أكثر (حلقة H3 بحجم 7)
-        if (rows.length === 0) {
-          rows = await fetchAvailableCaptainPresence(supabase, {
+        // 2. التوسع التدريجي (1 كم -> 1.5 كم -> 2 كم -> 2.5 كم كحد أقصى) لملء حصة الـ 9 كباتن
+        const expansionRings = [3, 4, 6, 7];
+        for (const ring of expansionRings) {
+          if (rows.length >= 9) break;
+          const moreRows = await fetchAvailableCaptainPresence(supabase, {
             centerH3Cell: riderH3Cell,
             countryId: activeCountryId,
-            ringSize: 7, // نطاق 2.5 كم كحد أقصى قطعي
+            ringSize: ring,
           });
+          if (moreRows.length > rows.length) {
+            rows = moreRows;
+          }
         }
 
         if (active) setCaptainLocations(rows.slice(0, 9));

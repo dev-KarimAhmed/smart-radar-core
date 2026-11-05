@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Radio, Users, X } from 'lucide-react';
+import { Clock, MapPin, Radio, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getServerTime } from '@/lib/server-time';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
@@ -16,6 +16,7 @@ import { CaptainOfferCard } from './captain-offer-card';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 
 const TOTAL_SEARCH_SECONDS = 240; // 4 minutes
+const STAGE_DURATION_SECONDS = 48; // 240 / 5 = 48s for each of the 5 scan perimeters (0.5km -> 1km -> 1.5km -> 2km -> 2.5km)
 
 const styles = {
   cancelledWrapper: "space-y-4 pointer-events-auto",
@@ -127,62 +128,84 @@ export function ReceivingOffersScreen({
       ? [
           {
             index: 0,
-            title: 'رصد النطاق الأولي (1.5 كم)',
+            radiusKm: 0.5,
+            title: 'رصد النطاق فائق القرب (0.5 كم)',
             description: isExpandingCaptainSearch
-              ? 'جاري توسيع النطاق للبحث عن المزيد من الكباتن المعلنين المتاحين...'
-              : 'جاري مسح ومطابقة أقرب الكباتن المعلنين المتواجدين في محيطك المباشر',
-            badge: '1.5 كم',
+              ? 'جاري توسيع النطاق للبحث عن المزيد من الكباتن المتاحين...'
+              : 'جاري مسح ومطابقة أقرب الكباتن المتواجدين في محيطك المباشر (0.5 كم)',
+            badge: '0.5 كم',
           },
           {
             index: 1,
-            title: 'توسيع نطاق البحث (2.5 كم)',
-            description: 'تم توسيع البحث ليشمل جميع الكباتن المعلنين في المنطقة والمحيط المجاور',
-            badge: '2.5 كم',
+            radiusKm: 1.0,
+            title: 'توسيع نطاق البحث (1 كم)',
+            description: 'تم توسيع نطاق الرادار للبحث عن الكباتن المتاحين ضمن نطاق 1 كم',
+            badge: '1 كم',
           },
           {
             index: 2,
-            title: 'بث حي للطلب',
-            description: 'طلبك معروض الآن على الكباتن المعلنين لتقديم أفضل عروض الأسعار',
-            badge: 'بث حي',
+            radiusKm: 1.5,
+            title: 'توسيع نطاق البحث (1.5 كم)',
+            description: 'تم توسيع نطاق المسح ليشمل الكباتن في المنطقة والمحيط المجاور (1.5 كم)',
+            badge: '1.5 كم',
           },
           {
             index: 3,
-            title: 'مسح أخير',
-            description: 'جولة البحث الأخيرة في المنطقة لتأكيد كابتن معلن لرحلتك',
-            badge: 'مسح أخير',
+            radiusKm: 2.0,
+            title: 'توسيع نطاق التغطية (2 كم)',
+            description: 'تم توسيع التغطية الجغرافية لتشمل الكباتن ضمن نطاق 2 كم',
+            badge: '2 كم',
+          },
+          {
+            index: 4,
+            radiusKm: 2.5,
+            title: 'أقصى نطاق مسح جغرافي (2.5 كم)',
+            description: 'المسح الأقصى لطلبك يشمل كامل نطاق القطاع الجغرافي (2.5 كم) لتأكيد كابتن لرحلتك',
+            badge: '2.5 كم',
           },
         ]
       : [
           {
             index: 0,
-            title: 'Scanning Immediate Area (1.5 km)',
+            radiusKm: 0.5,
+            title: 'Scanning Immediate Range (0.5 km)',
             description: isExpandingCaptainSearch
-              ? 'Expanding coverage to find more nearby advertiser captains...'
-              : 'Scanning and matching the closest advertiser captains in your immediate area',
-            badge: '1.5 km',
+              ? 'Expanding coverage to find more nearby available captains...'
+              : 'Scanning and matching the nearest available captains in your immediate area (0.5 km)',
+            badge: '0.5 km',
           },
           {
             index: 1,
-            title: 'Expanded Radar Range (2.5 km)',
-            description: 'Radar coverage expanded to include all available advertiser captains in the sector',
-            badge: '2.5 km',
+            radiusKm: 1.0,
+            title: 'Expanding Search Range (1 km)',
+            description: 'Radar coverage expanded to include available captains within 1 km',
+            badge: '1 km',
           },
           {
             index: 2,
-            title: 'Live Request Broadcasting',
-            description: 'Your request is actively broadcasted to advertiser captains for fare bids',
-            badge: 'Live',
+            radiusKm: 1.5,
+            title: 'Expanding Radar Range (1.5 km)',
+            description: 'Broadening radar sweep to include captains within 1.5 km',
+            badge: '1.5 km',
           },
           {
             index: 3,
-            title: 'Final Search Sweep',
-            description: 'Final search cycle to secure an available captain before search closes',
-            badge: 'Final Sweep',
+            radiusKm: 2.0,
+            title: 'Broad Area Scan (2 km)',
+            description: 'Geographical coverage expanded to include captains within 2 km',
+            badge: '2 km',
+          },
+          {
+            index: 4,
+            radiusKm: 2.5,
+            title: 'Maximum Radar Range (2.5 km)',
+            description: 'Final maximum radar sweep across the entire sector (2.5 km) to secure your ride',
+            badge: '2.5 km',
           },
         ];
   }, [isArabic, isExpandingCaptainSearch]);
 
-  const currentStageIndex = Math.min(3, Math.floor(elapsedSeconds / 60));
+  const currentStageIndex = Math.min(4, Math.floor(elapsedSeconds / STAGE_DURATION_SECONDS));
   const currentStage = stages[currentStageIndex];
 
   const labels = React.useMemo(() => ({
@@ -247,9 +270,17 @@ export function ReceivingOffersScreen({
               <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
                 {isArabic ? 'اختار العرض المناسب' : t('offers.chooseCaptain')}
               </h2>
-              <p className="mt-1 text-xs text-[#14F5D5] font-bold">
-                {isArabic ? `انتظر العروض / ${activeOffers.length} إلى 9` : 'Choose the best offer to start your trip'}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-xs text-[#14F5D5] font-bold">
+                  {isArabic ? `انتظر العروض / ${activeOffers.length} إلى 9` : 'Choose the best offer to start your trip'}
+                </p>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#14F5D5]/10 border border-[#14F5D5]/25 px-2.5 py-0.5 text-[10px] font-mono font-bold text-[#14F5D5]">
+                  <Clock className="h-3 w-3 animate-pulse" />
+                  <span>{formattedCountdown}</span>
+                  <span className="opacity-40">•</span>
+                  <span>{currentStage.badge}</span>
+                </span>
+              </div>
             </div>
 
             <button
@@ -331,6 +362,31 @@ export function ReceivingOffersScreen({
               </div>
             </div>
 
+            {/* High-Tech Radar Timer & Current Scan Stage Pill */}
+            <div className="mt-4 flex flex-col items-center gap-1.5">
+              <div className="inline-flex items-center gap-2.5 rounded-2xl border border-[#14F5D5]/40 bg-gradient-to-r from-[#060D19]/90 via-[#0A1A2E]/90 to-[#060D19]/90 px-4 py-2 shadow-[0_0_24px_rgba(20,245,213,0.25)] backdrop-blur-md">
+                <Clock className="h-4 w-4 text-[#14F5D5] animate-pulse shrink-0" />
+                <span className="font-mono text-base sm:text-lg font-black text-white tracking-widest drop-shadow-[0_0_8px_rgba(20,245,213,0.6)]">
+                  {formattedCountdown}
+                </span>
+                <span className="h-4 w-[1px] bg-white/20" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#14F5D5]/15 border border-[#14F5D5]/40 px-2.5 py-0.5 text-xs font-black text-[#14F5D5]">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
+                  </span>
+                  <span>
+                    {isArabic ? `المسح الحالي: ${currentStage.badge}` : `Current scan: ${currentStage.badge}`}
+                  </span>
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">
+                {isArabic
+                  ? `نطاق المسح (${currentStage.badge}) • المرحلة ${currentStage.index + 1} من 5`
+                  : `Scan radius (${currentStage.badge}) • Stage ${currentStage.index + 1} of 5`}
+              </span>
+            </div>
+
             <h3 className="mt-3.5 text-base sm:text-lg font-black text-white text-center tracking-tight">
               {currentStage.title}
             </h3>
@@ -339,15 +395,19 @@ export function ReceivingOffersScreen({
             </p>
           </div>
 
-          {/* 4-Minute Progress Bar */}
+          {/* 5-Stage Progress Bar (0.5km -> 1km -> 1.5km -> 2km -> 2.5km) */}
           <div className="relative z-10 mt-2 space-y-2">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
               {stages.map((stg) => {
-                const start = stg.index * 60;
-                const end = (stg.index + 1) * 60;
+                const start = stg.index * STAGE_DURATION_SECONDS;
+                const end = (stg.index + 1) * STAGE_DURATION_SECONDS;
                 const isCompleted = elapsedSeconds >= end;
                 const isCurrent = elapsedSeconds >= start && elapsedSeconds < end;
-                const fillPct = isCompleted ? 100 : isCurrent ? Math.min(100, Math.max(0, ((elapsedSeconds - start) / 60) * 100)) : 0;
+                const fillPct = isCompleted
+                  ? 100
+                  : isCurrent
+                  ? Math.min(100, Math.max(0, ((elapsedSeconds - start) / STAGE_DURATION_SECONDS) * 100))
+                  : 0;
 
                 return (
                   <div key={stg.index} className="space-y-1.5">
@@ -361,10 +421,16 @@ export function ReceivingOffersScreen({
                       />
                     </div>
                     <div className="flex flex-col items-center">
-                      <span className={cn(
-                        "text-[10px] font-black truncate max-w-full",
-                        isCompleted || isCurrent ? "text-[#14F5D5]" : "text-slate-500"
-                      )}>
+                      <span
+                        className={cn(
+                          "text-[10px] font-black truncate max-w-full transition-colors",
+                          isCurrent
+                            ? "text-[#14F5D5] font-extrabold drop-shadow-[0_0_6px_rgba(20,245,213,0.6)]"
+                            : isCompleted
+                            ? "text-[#14B8A6]"
+                            : "text-slate-500"
+                        )}
+                      >
                         {stg.badge}
                       </span>
                     </div>
@@ -373,9 +439,18 @@ export function ReceivingOffersScreen({
               })}
             </div>
 
-            {/* Max search limit directly under timeline */}
-            <div className="flex items-center justify-center pt-0.5">
-              <span className="text-[10px] font-mono font-bold text-slate-400">
+            {/* Timeline status row with live countdown and active scan indicator */}
+            <div className="flex items-center justify-between pt-0.5 px-0.5 text-[10px] font-mono font-bold text-slate-400">
+              <span className="flex items-center gap-1 text-[#14F5D5]">
+                <Clock className="h-3 w-3" />
+                <span>{formattedCountdown}</span>
+              </span>
+              <span className="text-[#14F5D5] font-black">
+                {isArabic
+                  ? `المسح النشط: ${currentStage.badge}`
+                  : `Active: ${currentStage.badge}`}
+              </span>
+              <span>
                 {isArabic ? 'الحد الأقصى: 4:00 د' : 'Max Search: 4:00m'}
               </span>
             </div>
