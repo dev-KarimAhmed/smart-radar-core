@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, FileText, CheckCircle2, X, Download, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { downloadPdfInWorker } from '@/shared/utils/background-pdf-download';
 
 export interface CaptainUnifiedTermsModalProps {
   isOpen: boolean;
@@ -29,24 +30,11 @@ export function CaptainUnifiedTermsModal({
     if (!captainId) return;
     try {
       setIsDownloading(true);
-      const timestamp = Date.now();
-      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(captainId)}&download=true&fresh=true&_t=${timestamp}`;
-      const response = await fetch(downloadUrl, { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error('فشل جلب ملف العقد');
-      }
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const tempLink = document.createElement('a');
-      tempLink.href = blobUrl;
-      tempLink.download = `bynkcom_contract_${captainId}.pdf`;
-      document.body.appendChild(tempLink);
-      tempLink.click();
-      document.body.removeChild(tempLink);
-      window.URL.revokeObjectURL(blobUrl);
+      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(captainId)}&download=true&_t=${Date.now()}`;
+      const filename = `bynkcom_contract_${captainId.slice(0, 8).toUpperCase()}.pdf`;
+      await downloadPdfInWorker({ url: downloadUrl, filename });
     } catch (err) {
-      console.error('Error downloading contract PDF in background:', err);
-      window.location.href = `/api/captain/contract?captainId=${encodeURIComponent(captainId)}&download=true&fresh=true&_t=${Date.now()}`;
+      console.error('Error downloading contract PDF in background worker:', err);
     } finally {
       setIsDownloading(false);
     }

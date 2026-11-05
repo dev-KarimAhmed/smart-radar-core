@@ -218,10 +218,11 @@ export async function POST(req: Request) {
         console.warn('[Registration API] Welcome credit error:', creditErr);
       }
 
-      // Generate official PDF contract & email it to the captain (Article 5 Section 4)
-      try {
-        const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
-        const contractRes = await saveCaptainContract({
+      // Generate official PDF contract & email it to the captain asynchronously (Article 5 Section 4)
+      const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
+      void (async () => {
+        try {
+          const contractRes = await saveCaptainContract({
           captainId: userId,
           fullName,
           phone: normalizedPhone,
@@ -244,9 +245,10 @@ export async function POST(req: Request) {
           contractHash: contractRes.contractHash,
           acceptedAt: contractRes.acceptedAt,
         });
-      } catch (contractErr) {
-        console.warn('[Registration API] Captain contract generation note:', contractErr);
-      }
+        } catch (contractErr) {
+          console.warn('[Registration API] Async captain contract email error:', contractErr);
+        }
+      })();
     }
 
     // 5. Generate official confirmation link from Supabase Auth
