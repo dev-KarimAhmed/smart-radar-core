@@ -9,7 +9,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
 import { mapSupabaseAuthError, signUpCaptainWithPhone, signInRiderWithPhone, verifyEmailOtpCode, type CaptainProfileMetadata } from '@/features/auth/contract';
 import type { AffiliationType } from '@/core/types';
-import { CaptainUnifiedTermsModal } from '@/shared/components/captain-unified-terms-modal';
+import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 import { CaptainPersonalStep, type CaptainPersonalValues } from './captain-personal-step';
 import { CaptainAffiliationStep } from './captain-affiliation-step';
 import { CaptainVehicleStep, type CaptainVehicleValues } from './captain-vehicle-step';
@@ -583,14 +583,15 @@ export function CaptainOnboarding() {
           </button>
         </div>
       </section>
-      <CaptainUnifiedTermsModal
+      <LegalDataAccuracyModal
         isOpen={showAccuracyModal}
-        onAccept={() => {
+        onConfirm={() => {
           setShowAccuracyModal(false);
           void submitCaptainRegistration();
         }}
         onClose={() => setShowAccuracyModal(false)}
         isArabic={isArabic}
+        isLoading={isSubmitting}
       />
     </main>
   );

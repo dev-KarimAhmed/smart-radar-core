@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ShieldCheck, Printer, ArrowRight, Download, CheckCircle2, FileText, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { downloadPdfInWorker } from '@/shared/utils/background-pdf-download';
 
 interface ContractViewData {
   captainId: string;
@@ -54,21 +55,11 @@ function ContractContent() {
     if (!data?.captainId) return;
     try {
       setDownloading(true);
-      const timestamp = Date.now();
-      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(data.captainId)}&download=true&fresh=true&_t=${timestamp}`;
-      const res = await fetch(downloadUrl, { cache: 'no-store' });
-      if (!res.ok) throw new Error('فشل تنزيل ملف العقد');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Bynkcom_Captain_Contract_${data.captainId.slice(0, 8).toUpperCase()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(data.captainId)}&download=true&_t=${Date.now()}`;
+      const filename = `Bynkcom_Captain_Contract_${data.captainId.slice(0, 8).toUpperCase()}.pdf`;
+      await downloadPdfInWorker({ url: downloadUrl, filename });
     } catch (e) {
-      window.location.href = `/api/captain/contract?captainId=${encodeURIComponent(data.captainId)}&download=true&fresh=true&_t=${Date.now()}`;
+      console.warn('PDF Worker download error:', e);
     } finally {
       setDownloading(false);
     }
@@ -273,18 +264,14 @@ function ContractContent() {
                 <span className="text-white print:text-black font-mono text-left" dir="ltr">{data.phone}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">الرقم الوطني / الهوية:</span>
-                <span className="text-white print:text-black font-mono text-left">{data.nationalIdNumber}</span>
+                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">رخصة القيادة:</span>
+                <span className="text-white print:text-black font-mono text-left">{data.licenseNumber}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200 sm:col-span-2">
                 <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">البريد الإلكتروني:</span>
                 <span className="text-white print:text-black font-mono text-left" dir="ltr">{data.email}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200">
-                <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">رخصة القيادة:</span>
-                <span className="text-white print:text-black font-mono text-left">{data.licenseNumber}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200">
+              <div className="flex justify-between items-center py-2 border-b border-white/5 print:border-gray-200 sm:col-span-2">
                 <span className="text-slate-400 print:text-gray-600 whitespace-nowrap ml-2">بيانات المركبة واللوحة:</span>
                 <span className="text-white print:text-black text-left">
                   {data.vehicleMake} {data.vehicleModel} ({data.plateNumber})

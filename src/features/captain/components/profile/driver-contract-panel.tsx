@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Panel, Field, styles } from './driver-profile-shared';
 import { CaptainUnifiedTermsModal } from '@/shared/components/captain-unified-terms-modal';
 import { Button } from '@/components/ui/button';
+import { downloadPdfInWorker } from '@/shared/utils/background-pdf-download';
 
 export function DriverContractPanel({ state, user }: { state?: any; user?: any }) {
   const t = useTranslations('captainProfile');
@@ -66,32 +67,11 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
 
     try {
       setIsDownloadingPdf(true);
-      const timestamp = Date.now();
-      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true&fresh=true&_t=${timestamp}`;
-      const res = await fetch(downloadUrl, { cache: 'no-store' });
-      if (!res.ok) throw new Error('فشل تحميل وثيقة العقد');
-
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = `Bynkcom_Captain_Contract_${targetId.slice(0, 8).toUpperCase()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
+      const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true&_t=${Date.now()}`;
+      const filename = `Bynkcom_Captain_Contract_${targetId.slice(0, 8).toUpperCase()}.pdf`;
+      await downloadPdfInWorker({ url: downloadUrl, filename });
     } catch (err) {
-      console.warn('Background fetch download error, using silent iframe:', err);
-      // Fallback: silent hidden iframe (avoids opening new tab)
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true&fresh=true&_t=${Date.now()}`;
-      document.body.appendChild(iframe);
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 5000);
+      console.warn('PDF Worker download error:', err);
     } finally {
       setIsDownloadingPdf(false);
     }

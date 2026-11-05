@@ -325,18 +325,16 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
           <tr>
             <td class="lbl">رقم الهاتف:</td>
             <td class="val-ltr">${data.phone}</td>
-            <td class="lbl" style="border-right: 1px solid rgba(255, 255, 255, 0.06);">الرقم الوطني / الهوية:</td>
-            <td class="val">${data.nationalIdNumber || 'تم التحقق'}</td>
+            <td class="lbl" style="border-right: 1px solid rgba(255, 255, 255, 0.06);">رخصة القيادة:</td>
+            <td class="val">${data.licenseNumber || 'تم التحقق'}</td>
           </tr>
           <tr>
             <td class="lbl">البريد الإلكتروني:</td>
             <td class="val-ltr" colspan="3">${data.email}</td>
           </tr>
           <tr>
-            <td class="lbl">رخصة القيادة:</td>
-            <td class="val">${data.licenseNumber || 'تم التحقق'}</td>
-            <td class="lbl" style="border-right: 1px solid rgba(255, 255, 255, 0.06);">بيانات المركبة واللوحة:</td>
-            <td class="val">${data.vehicleMake || ''} ${data.vehicleModel || ''} (${data.plateNumber || 'مرخصة'})</td>
+            <td class="lbl">بيانات المركبة واللوحة:</td>
+            <td class="val" colspan="3">${data.vehicleMake || ''} ${data.vehicleModel || ''} (${data.plateNumber || 'مرخصة'})</td>
           </tr>
           <tr>
             <td class="lbl">النطاق الجغرافي:</td>
