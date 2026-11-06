@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Users, Sparkles, Link2 } from 'lucide-react';
+import { Copy, Check, Users, Sparkles, Link2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buildCaptainReferralLink, getCaptainReferredRiders, type ReferredRiderInfo } from '../services/captain-referral';
 import { ReferredRidersModal } from './referred-riders-modal';
 import type { User } from '@/core/types';
+import { useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
 
 function WhatsAppIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -25,9 +27,10 @@ function WhatsAppIcon({ className = 'h-4 w-4' }: { className?: string }) {
 interface DriverReferralCardProps {
   user: User | null;
   isArabic?: boolean;
+  onOpenHistory?: () => void;
 }
 
-export function DriverReferralCard({ user, isArabic = true }: DriverReferralCardProps) {
+export function DriverReferralCard({ user, isArabic = true, onOpenHistory }: DriverReferralCardProps) {
   const t = useTranslations('referral.driverCard');
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -36,7 +39,9 @@ export function DriverReferralCard({ user, isArabic = true }: DriverReferralCard
   const [loadingRiders, setLoadingRiders] = useState(false);
   const [ridersModalOpen, setRidersModalOpen] = useState(false);
 
-  const captainIdentifier = user?.serial_id || user?.uid || '';
+  const { user: authUser } = useAuth();
+  const effectiveUser = user || authUser;
+  const captainIdentifier = effectiveUser?.serial_id || effectiveUser?.uid || 'CAPTAIN';
   const referralLink = typeof window !== 'undefined' ? buildCaptainReferralLink(captainIdentifier) : `/?ref=${captainIdentifier}`;
 
   useEffect(() => {
@@ -105,7 +110,13 @@ export function DriverReferralCard({ user, isArabic = true }: DriverReferralCard
     }
   };
 
-  if (!captainIdentifier) return null;
+  const handleGoToHistory = () => {
+    if (onOpenHistory) {
+      onOpenHistory();
+    } else if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('radar_open_history'));
+    }
+  };
 
   return (
     <>
@@ -139,7 +150,9 @@ export function DriverReferralCard({ user, isArabic = true }: DriverReferralCard
         </div>
 
         <p className="text-xs text-slate-400 mb-3 leading-relaxed text-start">
-          {t('description')}
+          {isArabic
+            ? 'أرسل الرابط لعملائك... حافظ عليهم، واجعل طلباتهم تبدأ منك أنت قبل أي سائق آخر، وامنح نفسك فرص دخل إضافي من الإعلانات.'
+            : t('description')}
         </p>
 
         {/* Link, Copy, and WhatsApp Action Box */}
@@ -183,6 +196,23 @@ export function DriverReferralCard({ user, isArabic = true }: DriverReferralCard
               <WhatsAppIcon className="h-4.5 w-4.5" />
             </Button>
           </div>
+        </div>
+
+        {/* Navigation to Favorites in "سجلاتي" (per Page 3 & Page 5) */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5">
+          <p className="text-[11px] text-slate-400">
+            {isArabic
+              ? 'متابعة وإدارة عملائك المفضلين المسجلين معك:'
+              : 'Track and manage your favorite referred riders:'}
+          </p>
+          <button
+            type="button"
+            onClick={handleGoToHistory}
+            className="flex items-center gap-1.5 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-[#14F5D5] transition-all cursor-pointer shadow-sm group active:scale-95"
+          >
+            <span>{isArabic ? 'الانتقال إلى سجل المفضلين في شاشة سجلاتي' : 'View Favorite Riders in My Records'}</span>
+            <ArrowLeft className={cn("h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform", !isArabic && "rotate-180 group-hover:translate-x-0.5")} />
+          </button>
         </div>
       </div>
 

@@ -33,6 +33,7 @@ import { useDetectedCountryCode } from './use-detected-country-code';
 import { parsePhoneNumberFromString, getExampleNumber, type CountryCode } from 'libphonenumber-js';
 import phoneNumberExamples from 'libphonenumber-js/mobile/examples';
 import { useTranslations } from "next-intl";
+import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
 
 const styles = {
   root: "",
@@ -754,6 +755,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
             console.warn('[Welcome Credit Trigger]', e);
           }
         }
+      }
+
+      const newUserId = signUpResult.user?.id;
+      if (newUserId) {
+        void recordLegalDeclaration({
+          userId: newUserId,
+          userSerialId: (signUpResult.user as any)?.serial_id || ('U-' + newUserId.slice(0, 6).toUpperCase()),
+          actionType: 'NEW_ACCOUNT',
+          actionLabel: lang === 'ar' ? 'تسجيل حساب جديد' : 'New Account Registration',
+          isArabic: lang === 'ar',
+        });
       }
 
       toast({

@@ -75,6 +75,12 @@ export function CaptainMainContent({
   onOpenPriceSetup,
   dispatch,
 }: CaptainMainContentProps) {
+  React.useEffect(() => {
+    const handleOpenHistory = () => dispatch({ type: 'OPEN_HISTORY' });
+    window.addEventListener('radar_open_history', handleOpenHistory);
+    return () => window.removeEventListener('radar_open_history', handleOpenHistory);
+  }, [dispatch]);
+
   return (
     <div className={styles.contentRoot}>
       {screen === 'ACTIVE_TRIP' && driverOps.activeRequest ? (
@@ -153,7 +159,14 @@ export function CaptainMainContent({
 
       <CaptainReturnHomeBar screen={screen} onReturnHome={onOpenRadar} />
 
-      {screen === 'WALLET' ? <DriverWalletTab user={user} language={language === 'en' ? 'en' : 'ar'} isFlightActive={isActive} /> : null}
+      {screen === 'WALLET' ? (
+        <DriverWalletTab
+          user={user}
+          language={language === 'en' ? 'en' : 'ar'}
+          isFlightActive={isActive}
+          onOpenHistory={() => dispatch({ type: 'OPEN_HISTORY' })}
+        />
+      ) : null}
 
       {screen === 'NOTIFICATIONS' ? (
         <div className={styles.notificationsWrap}>

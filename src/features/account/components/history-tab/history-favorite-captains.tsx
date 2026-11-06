@@ -61,7 +61,7 @@ export function HistoryFavoriteCaptains({
               <CardTitle className="text-base font-black text-white flex items-center gap-2">
                 {isArabic ? 'كباتن مفضلون' : t('savedCaptainsTitle')}
               </CardTitle>
-              <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">
+              <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed font-sans">
                 {isArabic ? 'حازوا على رضاك واضفتهم الى قائمة المفضلون' : t('savedCaptainsDesc')}
               </CardDescription>
             </div>

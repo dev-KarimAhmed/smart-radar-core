@@ -440,6 +440,14 @@ const authCopy = {
   },
 } as const;
 
+function maskEmail(email: string | null): string {
+  if (!email || !email.includes('@')) return email || '';
+  const [name, domain] = email.split('@');
+  if (name.length <= 2) return `**@${domain}`;
+  const masked = '*'.repeat(Math.max(name.length - 2, 4));
+  return `${name[0]}${masked}${name[name.length - 1]}@${domain}`;
+}
+
 export function PersonalStep() {
   const tAuto = useTranslations('auto');
   const {
@@ -596,10 +604,17 @@ export function PersonalStep() {
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {isArabic ? 'تأكيد وتفعيل الحساب' : 'Account Activation'}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xs mx-auto">
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-center">
+                <p className="text-xs sm:text-sm font-bold text-amber-200 leading-relaxed max-w-xs mx-auto">
+                  {isArabic
+                    ? `عليك تفعيل الحساب من الإيميل (${maskEmail(awaitingConfirmationEmail)})`
+                    : `Please activate your account from your email (${maskEmail(awaitingConfirmationEmail)})`}
+                </p>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-xs mx-auto">
                 {isArabic
-                  ? 'تم إرسال كود تفعيل مكون من 6 أرقام إلى بريدك الإلكتروني:'
-                  : 'A 6-digit activation code was sent to your email:'}
+                  ? 'تم إرسال كود تفعيل مكون من 6 أرقام إلى بريدك الإلكتروني لتأكيد وتفعيل الحساب:'
+                  : 'A 6-digit activation code was sent to your email to confirm your account:'}
               </p>
             </div>
 

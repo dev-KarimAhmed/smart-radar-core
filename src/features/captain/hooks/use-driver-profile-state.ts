@@ -2,6 +2,7 @@ import React from 'react';
 import { supabase } from '@/lib/supabase-client';
 import type { User } from '@/core/types';
 import { useTranslations } from 'next-intl';
+import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
 
 type ProfileRow = Record<string, unknown>;
 
@@ -479,6 +480,16 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
 
       applySavedProfileState();
       captureSavedSnapshot();
+      if (user?.uid) {
+        void recordLegalDeclaration({
+          userId: user.uid,
+          userSerialId: user.serial_id,
+          actionType: 'PROFILE_UPDATE',
+          actionLabel: 'تعديل بيانات الحساب والمركبة',
+          fieldsChanged: Array.from(editingFields),
+          isArabic: true,
+        });
+      }
       toast({ title: t('saveSuccessTitle'), description: t('saveSuccessDescription') });
       setEditingFields(new Set());
     } catch (error) {
@@ -522,6 +533,16 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       if (fallbackSaved) {
         applySavedProfileState();
         captureSavedSnapshot();
+      if (user?.uid) {
+        void recordLegalDeclaration({
+          userId: user.uid,
+          userSerialId: user.serial_id,
+          actionType: 'PROFILE_UPDATE',
+          actionLabel: 'تعديل بيانات الحساب والمركبة',
+          fieldsChanged: Array.from(editingFields),
+          isArabic: true,
+        });
+      }
         toast({ title: t('saveSuccessTitle'), description: t('saveSuccessDescription') });
         setEditingFields(new Set());
       } else {

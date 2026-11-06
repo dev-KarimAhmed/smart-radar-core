@@ -34,6 +34,7 @@ import {
   getCaptainDistrictPaymentInfo,
 } from '../lib/wallet-static-config';
 import { CaptainAdsSeatsManager } from './captain-ads-seats-manager';
+import { DriverReferralCard } from '@/features/referral/components/driver-referral-card';
 import type { PaymentTransferChannel, FinancialDelegate } from '@/features/admin/types/wallet-directory';
 
 export interface CaptainReceiptItem {
@@ -75,6 +76,7 @@ interface DriverWalletTabProps {
   user: User | null;
   language: 'ar' | 'en';
   isFlightActive?: boolean;
+  onOpenHistory?: () => void;
 }
 
 function toHoursMinutes(totalMinutes: number) {
@@ -82,7 +84,7 @@ function toHoursMinutes(totalMinutes: number) {
   return { hours: Math.floor(safeMinutes / 60), minutes: safeMinutes % 60 };
 }
 
-export function DriverWalletTab({ user, language, isFlightActive = false }: DriverWalletTabProps) {
+export function DriverWalletTab({ user, language, isFlightActive = false, onOpenHistory }: DriverWalletTabProps) {
   const t = useTranslations('captainWallet');
   const wallet = useSovereignWallet(user);
   const walletIsReady = wallet.walletLoadState === 'ready';
@@ -283,6 +285,9 @@ export function DriverWalletTab({ user, language, isFlightActive = false }: Driv
         <h1 className="text-2xl sm:text-3xl font-black text-white">{t('title')}</h1>
         <p className="mt-1 text-xs sm:text-sm text-slate-400">{t('subtitle')}</p>
       </div>
+
+      {/* Driver Referral Card per client specification (Page 3 & Page 5: moved to Operations/Control Room) */}
+      <DriverReferralCard user={user} isArabic={language === 'ar'} onOpenHistory={onOpenHistory} />
 
       {/* 2. Unified Hero Balance Card */}
       <div className="relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-slate-900/95 via-[#071324] to-[#040812] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">

@@ -19,7 +19,7 @@ const styles = {
   icon: "h-5 w-5",
   titleBox: "min-w-0",
   title: "text-base font-black text-white flex items-center gap-2 font-sans",
-  desc: "text-xs text-slate-400 mt-0.5 leading-relaxed truncate font-sans",
+  desc: "text-xs text-slate-400 mt-0.5 leading-relaxed font-sans",
   actionsBox: "flex items-center gap-2",
   clearBtn: "h-8 text-[11px] text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 gap-1 rounded-xl",
   clearBtnIcon: "h-3.5 w-3.5",

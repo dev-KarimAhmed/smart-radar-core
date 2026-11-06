@@ -134,7 +134,7 @@ export function HistoryRiderTrips({
   };
 
   return (
-    <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white">
+    <Card id="rider-trips-section" className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white">
       {/* Top accent bar matching #14B8A6 */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/50 to-transparent" />
 
@@ -148,7 +148,7 @@ export function HistoryRiderTrips({
               <CardTitle className="text-base font-black text-white flex items-center gap-2">
                 {t('recentTripsTitle')}
               </CardTitle>
-              <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">
+              <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed font-sans">
                 {t('recentTripsDesc')}
               </CardDescription>
             </div>

@@ -152,6 +152,28 @@ export async function POST(req: Request) {
       // ignore
     }
 
+    // Insert welcome & legal declaration audit notifications for bell icon (Page 3 requirement)
+    try {
+      await supabaseAdmin.from('user_notifications').insert([
+        {
+          user_id: authUser.id,
+          title: 'مرحباً بك في شبكة بينكم للإعلان الرقمي 🌟',
+          description: 'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل. أهلاً بك في منصة بينكم للإعلان الرقمي.',
+          type: 'admin_message',
+          is_read: false,
+        },
+        {
+          user_id: authUser.id,
+          title: 'توثيق السجل القانوني الإلكتروني 🛡️',
+          description: 'تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني في شاشة سجلاتي.',
+          type: 'admin_message',
+          is_read: false,
+        },
+      ]);
+    } catch (notifErr) {
+      console.warn('[Verify Code] Notification insert error:', notifErr);
+    }
+
     return NextResponse.json({
       success: true,
       userId: authUser.id,

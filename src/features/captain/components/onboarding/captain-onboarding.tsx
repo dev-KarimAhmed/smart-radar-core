@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { mapSupabaseAuthError, signUpCaptainWithPhone, signInRiderWithPhone, verifyEmailOtpCode, type CaptainProfileMetadata } from '@/features/auth/contract';
 import type { AffiliationType } from '@/core/types';
 import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
+import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
 import { CaptainPersonalStep, type CaptainPersonalValues } from './captain-personal-step';
 import { CaptainAffiliationStep } from './captain-affiliation-step';
 import { CaptainVehicleStep, type CaptainVehicleValues } from './captain-vehicle-step';
@@ -80,6 +81,14 @@ const styles = {
   doneTitle: 'text-lg font-black text-[#F8FAFC]',
   doneText: 'text-sm font-medium leading-6 text-[#94A3B8]',
 } as const;
+
+function maskEmail(email: string | null): string {
+  if (!email || !email.includes('@')) return email || '';
+  const [name, domain] = email.split('@');
+  if (name.length <= 2) return `**@${domain}`;
+  const masked = '*'.repeat(Math.max(name.length - 2, 4));
+  return `${name[0]}${masked}${name[name.length - 1]}@${domain}`;
+}
 
 export function CaptainOnboarding() {
   const t = useTranslations('captainOnboarding');
@@ -303,6 +312,16 @@ export function CaptainOnboarding() {
       if ((result as any).needsEmailConfirmation) {
         setConfirmedEmail(personal.email.trim());
         setStep('done');
+        const captainId = result.user?.id;
+        if (captainId) {
+          void recordLegalDeclaration({
+            userId: captainId,
+            userSerialId: (result.user as any)?.serial_id || `D-${captainId.slice(0, 6).toUpperCase()}`,
+            actionType: 'NEW_ACCOUNT',
+            actionLabel: isArabic ? 'تسجيل كابتن جديد' : 'New Captain Registration',
+            isArabic,
+          });
+        }
         toast({
           title: isArabic ? 'تم إنشاء الحساب بنجاح! ✉️' : 'Account created successfully! ✉️',
           description: isArabic
@@ -486,7 +505,14 @@ export function CaptainOnboarding() {
                 <h2 className="text-2xl font-black text-white">
                   {isArabic ? 'تأكيد وتفعيل الحساب' : 'Account Activation'}
                 </h2>
-                <p className="text-sm text-slate-300 max-w-sm mx-auto leading-relaxed">
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-center">
+                  <p className="text-xs sm:text-sm font-bold text-amber-200 leading-relaxed max-w-sm mx-auto">
+                    {isArabic
+                      ? `عليك تفعيل الحساب من الإيميل (${maskEmail(confirmedEmail)})`
+                      : `Please activate your account from your email (${maskEmail(confirmedEmail)})`}
+                  </p>
+                </div>
+                <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
                   {isArabic
                     ? 'أرسلنا كود تفعيل مكون من 6 أرقام إلى بريدك الإلكتروني لتأكيد حسابك:'
                     : 'A 6-digit activation code was sent to your email to verify your account:'}

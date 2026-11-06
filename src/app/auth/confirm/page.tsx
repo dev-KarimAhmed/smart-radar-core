@@ -52,6 +52,27 @@ function ConfirmContent() {
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData?.session?.user?.email_confirmed_at) {
           if (isMounted) setStatus('success');
+          const confirmedUserId = sessionData.session.user.id;
+          if (confirmedUserId) {
+            void Promise.resolve(
+              supabase.from('user_notifications').insert([
+                {
+                  user_id: confirmedUserId,
+                  title: 'مرحباً بك في شبكة بينكم للإعلان الرقمي 🌟',
+                  description: 'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل.',
+                  type: 'admin_message',
+                  is_read: false,
+                },
+                {
+                  user_id: confirmedUserId,
+                  title: 'توثيق السجل القانوني الإلكتروني 🛡️',
+                  description: 'تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني في شاشة سجلاتي.',
+                  type: 'admin_message',
+                  is_read: false,
+                },
+              ])
+            ).catch(() => null);
+          }
           return;
         }
 

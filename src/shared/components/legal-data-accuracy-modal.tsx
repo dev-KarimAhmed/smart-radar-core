@@ -60,8 +60,8 @@ export function LegalDataAccuracyModal({
       ? 'أنت المسؤول عن صحة ومصداقية كافة البيانات المدخلة الشخصية والمهنية ولا تتحمل شبكة بينكم أي مسؤولية قانونية عن أي خلل أو عدم مطابقة في مصداقيتها ...'
       : 'You are solely responsible for the authenticity and accuracy of all personal and professional data entered. Bynkcom Network assumes no legal liability for any defect or mismatch in its authenticity...');
 
-  const resolvedConfirmText = confirmText || (isArabic ? 'تأكيد' : 'Confirm');
-  const resolvedCancelText = cancelText || (isArabic ? 'خروج' : 'Exit');
+  const resolvedConfirmText = confirmText || (isArabic ? 'تأكيد البيانات' : 'Confirm Data');
+  const resolvedCancelText = cancelText || (isArabic ? 'إلغاء والخروج' : 'Cancel & Exit');
 
   return (
     <div
@@ -144,7 +144,7 @@ export function LegalDataAccuracyModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 h-12 flex items-center justify-center rounded-2xl border border-slate-700/80 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-sm sm:text-base active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+            className="flex-1 h-12 flex items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-950/20 hover:bg-rose-900/30 text-rose-200 hover:text-white font-bold text-sm sm:text-base active:scale-[0.98] transition-all cursor-pointer shadow-sm"
           >
             <span>{resolvedCancelText}</span>
           </button>

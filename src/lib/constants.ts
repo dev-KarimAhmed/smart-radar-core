@@ -47,8 +47,11 @@ export const SOVEREIGN_PAYMENT_CHANNELS = [
 ] as const;
 
 export function getLandingPageUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app';
-  const cleaned = raw.replace(/^["'\s\u064B-\u065F]+|["'\s\u064B-\u065F]+$/g, '').trim();
-  return cleaned || 'https://radar-page.vercel.app';
+  const raw = (process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app').trim();
+  const cleaned = raw.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9/]+$/g, '').trim();
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    return cleaned;
+  }
+  return `https://${cleaned.replace(/^https?:?\/?\/?/, '')}`;
 }
 

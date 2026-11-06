@@ -7,6 +7,7 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { CountryRow, DistrictRow, GovernorateRow, ProfileKey, ProfileRow } from './profile-shared';
 import { getProfileName, normalizeRows, numberOrEmpty, saveProfile, fetchProfileByUserId, normalizeInternationalPhone, mapProfileSaveError } from './profile-shared';
 import { useTranslations } from 'next-intl';
+import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
 
 export function useProfileState() {
   const { user, isCaptain, isPassenger, isSovereign, logout, loginAsMockUser } = useAuth();
@@ -269,6 +270,14 @@ export function useProfileState() {
       } else {
         localStorage.removeItem(`radar_emergency_whatsapp_${user.uid}`);
       }
+
+      void recordLegalDeclaration({
+        userId: user.uid,
+        userSerialId: user.serial_id,
+        actionType: 'PROFILE_UPDATE',
+        actionLabel: 'تعديل بيانات الحساب الشخصي',
+        isArabic,
+      });
 
       toast({
         title: t('saveSuccessTitle'),

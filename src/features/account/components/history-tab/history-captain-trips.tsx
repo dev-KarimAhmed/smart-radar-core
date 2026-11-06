@@ -23,7 +23,7 @@ const styles = {
   icon: "h-5 w-5",
   titleBox: "min-w-0",
   title: "text-base font-black text-white flex items-center gap-2 font-sans",
-  desc: "text-xs text-slate-400 mt-0.5 leading-relaxed truncate font-sans",
+  desc: "text-xs text-slate-400 mt-0.5 leading-relaxed font-sans",
   actionsBox: "flex items-center gap-2",
   countBadge: "shrink-0 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 text-xs font-bold text-[#14F5D5] shadow-sm font-mono",
   chevronBox: "flex h-8 w-8 items-center justify-center rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 text-[#14F5D5] transition-all hover:bg-[#14B8A6]/20 shrink-0",
@@ -137,7 +137,7 @@ export function HistoryCaptainTrips({
   };
 
   return (
-    <div className={styles.container}>
+    <div id="captain-trips-section" className={styles.container}>
       <Card className={styles.card}>
         <div className={styles.accentBar} />
         <CardHeader
