@@ -34,7 +34,7 @@ const styles = {
   style435_16: "text-xs font-black uppercase tracking-widest text-[#14F5D5] md:text-sm",
   style439_17: "font-mono text-[9px] font-bold text-gray-500 md:text-[10px]",
   style446_18: "group/river relative flex min-h-0 w-full flex-1 items-center justify-center pt-0 overflow-hidden",
-  style446_19: "py-2 sm:py-4",
+  style446_19: "py-0 sm:py-0 h-full",
   style457_20: "absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0B0F19]/88 text-white shadow-xl shadow-black/35 backdrop-blur-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/45 sm:left-4",
   style459_21: "hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15",
   style460_22: "cursor-not-allowed opacity-35",
@@ -43,10 +43,10 @@ const styles = {
   style474_25: "hover:border-[#14B8A6]/45 hover:bg-[#14B8A6]/15",
   style475_26: "cursor-not-allowed opacity-35",
   style478_27: "h-5 w-5",
-  style490_28: "no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-6 sm:gap-8 overflow-x-auto items-center",
+  style490_28: "no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-6 sm:gap-8 overflow-x-auto items-center h-full",
   style491_29: "justify-center px-6 sm:px-16",
   style491_30: "px-14 lg:justify-center",
-  style497_31: "flex-shrink-0 my-auto",
+  style497_31: "flex-shrink-0 my-auto h-full flex items-center justify-center",
   style518_32: "fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4 md:justify-center",
   style526_33: "relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6",
   style534_34: "absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-red-400/40 hover:bg-red-950/70",
@@ -76,9 +76,9 @@ const styles = {
   style629_58: "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
   style632_59: "aspect-video w-full bg-black object-cover",
   style644_60: "aspect-video w-full bg-[#07101F] object-cover",
-  stageFull: "min-h-[calc(100vh-8rem)] h-full flex-1 justify-center items-center",
+  stageFull: "h-full w-full flex-1 justify-center items-center min-h-[calc(100vh-7.5rem)]",
   stageCompact: "h-[280px] w-full sm:h-[320px]",
-  cardFull: "h-[calc(100vh-8.5rem)] min-h-[440px] max-h-[840px] w-[290px] sm:w-[350px] md:w-[400px] lg:w-[440px] max-w-[88vw]",
+  cardFull: "h-[calc(100vh-7.65rem)] min-h-[460px] w-[290px] sm:w-[350px] md:w-[400px] lg:w-[440px] max-w-[88vw]",
   cardCompact: "h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]",
 } as const;
 
@@ -628,7 +628,8 @@ export function AdStage({
         className={cn(
           styles.style398_6,
           heightClass,
-          isFullScreen ? styles.style400_7 : styles.style400_8
+          isFullScreen ? styles.style400_7 : styles.style400_8,
+          isFullScreen && "py-0 sm:py-0 border-b-0"
         )}
         dir={direction}
         aria-busy="true"
@@ -685,7 +686,8 @@ export function AdStage({
       className={cn(
         styles.style398_6,
         heightClass,
-        isFullScreen ? styles.style400_7 : styles.style400_8
+        isFullScreen ? styles.style400_7 : styles.style400_8,
+        isFullScreen && "py-0 sm:py-0 border-b-0"
       )}
       dir={direction}
     >
