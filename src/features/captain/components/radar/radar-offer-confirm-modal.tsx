@@ -80,42 +80,68 @@ export function RadarOfferConfirmModal({
           </span>
         </div>
 
-        {/* Wait Seconds Box */}
+        {/* Wait Seconds Box (Page 8) */}
         <div className="space-y-2">
           <label className="block text-xs font-black text-slate-200">
             {copy.waitSecondsLabel}
           </label>
-          <div className="relative">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={waitSeconds}
-              onChange={(e) => {
-                const cleaned = e.target.value.replace(/\D/g, '');
-                setWaitSeconds(cleaned);
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const current = parseInt(waitSeconds, 10) || 120;
+                const nextVal = Math.max(30, current - 30);
+                setWaitSeconds(String(nextVal));
               }}
-              onBlur={() => {
-                const num = parseInt(waitSeconds, 10);
-                if (isNaN(num) || num < 30) {
-                  setWaitSeconds('30');
-                } else if (num > 180) {
-                  setWaitSeconds('180');
-                } else {
-                  setWaitSeconds(String(num));
-                }
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+              title="-30s"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <div className="relative flex-1">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={waitSeconds}
+                onChange={(e) => {
+                  const cleaned = e.target.value.replace(/\D/g, '');
+                  setWaitSeconds(cleaned);
+                }}
+                onBlur={() => {
+                  const num = parseInt(waitSeconds, 10);
+                  if (isNaN(num) || num < 30) {
+                    setWaitSeconds('30');
+                  } else if (num > 300) {
+                    setWaitSeconds('300');
+                  } else {
+                    setWaitSeconds(String(num));
+                  }
+                }}
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                  }
+                }}
+                className="w-full rounded-xl border border-emerald-500/40 bg-black/70 px-3 py-2.5 text-center font-mono text-base font-black text-emerald-300 outline-none focus:border-emerald-400"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-emerald-400/80 pointer-events-none select-none">
+                {language === 'ar' ? 'ثانية' : 's'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const current = parseInt(waitSeconds, 10) || 120;
+                const nextVal = Math.min(300, current + 30);
+                setWaitSeconds(String(nextVal));
               }}
-              onWheel={(e) => (e.target as HTMLInputElement).blur()}
-              onKeyDown={(e) => {
-                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                  e.preventDefault();
-                }
-              }}
-              className="w-full rounded-xl border border-emerald-500/40 bg-black/70 px-3 py-2.5 text-start font-mono text-base font-black text-emerald-300 outline-none focus:border-emerald-400"
-            />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-emerald-400/80 pointer-events-none select-none">
-              {language === 'ar' ? 'ثانية' : 's'}
-            </span>
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+              title="+30s"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
           <p className="text-[11px] text-slate-400 leading-tight pt-0.5">{copy.waitSecondsHint}</p>
         </div>

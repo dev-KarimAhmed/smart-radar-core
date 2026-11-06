@@ -1704,7 +1704,17 @@
     "tripMinutesRemaining": "متبقي {minutes} دقيقة تقريباً لظهور زر الإنهاء",
     "tripReadyToCompleteNotice": "✓ تم إنجاز مسار الرحلة بنجاح. اضغط أعلاه لإنهاء الرحلة وتوثيق أرباحك في المحفظة.",
     "openDestinationMap": "فتح مسار الوجهة في الخرائط",
-    "arrivedStatus": "تم الوصول · بانتظار بدء الرحلة"
+    "arrivedStatus": "تم الوصول · بانتظار بدء الرحلة",
+    "arrivalMessage": "رسالة الوصول",
+    "callClient": "الاتصال بالعميل",
+    "startTrip": "ابدأ",
+    "cancelOfferAction": "إلغاء العرض",
+    "completeService": "اكتمال الخدمة",
+    "stopTrip": "إيقاف الرحلة",
+    "googleMapsRoute": "خرائط جوجل مسار الرحلة",
+    "serviceDuration": "مدة الخدمة",
+    "agreedPrice": "السعر المتفق عليه",
+    "rendezvousPoint": "نقطة الالتقاء"
   },
   "transactions": {
     "useNewScreenTitle": "استخدم شاشة طلب الرحلة الجديدة",

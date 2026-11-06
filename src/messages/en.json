@@ -1704,7 +1704,17 @@
     "tripMinutesRemaining": "Approximately {minutes} min remaining until complete button appears",
     "tripReadyToCompleteNotice": "✓ Trip route completed successfully. Tap above to complete trip and record earnings.",
     "openDestinationMap": "Open Destination in Maps",
-    "arrivedStatus": "Arrived at pickup · Ready to start"
+    "arrivedStatus": "Arrived at pickup · Ready to start",
+    "arrivalMessage": "Arrival Message",
+    "callClient": "Call Client",
+    "startTrip": "Start",
+    "cancelOfferAction": "Cancel Offer",
+    "completeService": "Complete Service",
+    "stopTrip": "Stop Trip",
+    "googleMapsRoute": "Google Maps Route",
+    "serviceDuration": "Service Duration",
+    "agreedPrice": "Agreed Price",
+    "rendezvousPoint": "Rendezvous Point"
   },
   "transactions": {
     "useNewScreenTitle": "Use the new ride request screen",

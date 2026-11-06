@@ -1,11 +1,25 @@
 import React from 'react';
-import { ClipboardPaste, Edit3, Minus, Plus } from 'lucide-react';
+import { ClipboardPaste, Edit3, Minus, Plus, TrendingUp } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { styles } from './radar-map.styles';
 import { formatLocalizedNumber } from './radar-map.helpers';
 import type { RadarCopyType } from './radar-copy';
 import { RadarAntiDumpingAlerts } from './radar-anti-dumping-alerts';
+
+export function getCurrencyPriceStep(currency: string): number {
+  const code = (currency || '').toUpperCase();
+  if (code.includes('JOD') || code.includes('د.أ') || code.includes('دينار')) {
+    return 0.10;
+  }
+  if (code.includes('EGP') || code.includes('ج.م') || code.includes('جنيه')) {
+    return 50.0;
+  }
+  if (code.includes('SAR') || code.includes('AED') || code.includes('QAR')) {
+    return 5.0;
+  }
+  return 1.0;
+}
 
 interface RadarCardPricingSectionProps {
   request: Trip;
@@ -130,6 +144,19 @@ export function RadarCardPricingSection({
               </button>
             )}
           </div>
+          {/* Market Average Fare Reference (Page 10) */}
+          {request.offerPrice != null && request.offerPrice > 0 && (
+            <div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs">
+              <span className="font-bold text-slate-400 flex items-center gap-1">
+                <TrendingUp className="h-3 w-3 text-[#14F5D5]" />
+                <span>{copy.marketRateBenchmark || copy.marketFare}:</span>
+              </span>
+              <span className="font-mono font-bold text-slate-300 bg-white/5 border border-white/10 rounded-lg px-2 py-0.5 text-xs">
+                {formatLocalizedNumber(request.offerPrice.toFixed(2), language)} {currency}
+              </span>
+            </div>
+          )}
+
           {lastSubmittedPrice != null && (
             <div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs">
               <span className="font-bold text-slate-300">{copy.previousOfferPrice}</span>
@@ -143,10 +170,12 @@ export function RadarCardPricingSection({
               type="button"
               disabled={isBlockedByOtherPendingOffer}
               onClick={() => {
-                const nextVal = Math.max(0.1, Math.round((currentPrice - 0.5) * 100) / 100);
+                const stepAmount = getCurrencyPriceStep(currency);
+                const nextVal = Math.max(stepAmount, Math.round((currentPrice - stepAmount) * 100) / 100);
                 onUpdateDirectPrice(request.id, nextVal.toFixed(2));
                 if (priceError) onClearPriceError(request.id);
               }}
+              title={`-${getCurrencyPriceStep(currency)}`}
               className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
             >
               <Minus className="h-4 w-4" />
@@ -161,8 +190,8 @@ export function RadarCardPricingSection({
             >
               <input
                 type="number"
-                step="0.01"
-                min="0.1"
+                step={getCurrencyPriceStep(currency)}
+                min={getCurrencyPriceStep(currency)}
                 placeholder={defaultPriceValue || "0.00"}
                 disabled={isBlockedByOtherPendingOffer}
                 value={directPrice ?? defaultPriceValue}
@@ -189,10 +218,12 @@ export function RadarCardPricingSection({
               type="button"
               disabled={isBlockedByOtherPendingOffer}
               onClick={() => {
-                const nextVal = Math.round((currentPrice + 0.5) * 100) / 100;
+                const stepAmount = getCurrencyPriceStep(currency);
+                const nextVal = Math.round((currentPrice + stepAmount) * 100) / 100;
                 onUpdateDirectPrice(request.id, nextVal.toFixed(2));
                 if (priceError) onClearPriceError(request.id);
               }}
+              title={`+${getCurrencyPriceStep(currency)}`}
               className="flex h-10 w-9 sm:h-11 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900 text-slate-200 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
             >
               <Plus className="h-4 w-4" />

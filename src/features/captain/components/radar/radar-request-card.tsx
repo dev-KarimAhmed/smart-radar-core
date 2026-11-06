@@ -1,5 +1,17 @@
 import React from 'react';
-import { Clock, Loader2, Plus, Route, X } from 'lucide-react';
+import {
+  ChevronDown,
+  Clock,
+  ExternalLink,
+  Loader2,
+  MapPin,
+  Minus,
+  Plus,
+  Route,
+  Star,
+  TrendingUp,
+  X,
+} from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { RadarAntiCheatKernel } from '@/core/RadarAntiCheatKernel';
@@ -104,8 +116,29 @@ export function RadarRequestCard({
   const isUpperWarn = !isTaxiMode && !isDumpingCrimson && !isDumpingAmber && Boolean(baseMarketPrice) && currentPrice > 0 && currentPrice > (baseMarketPrice! * 1.15);
   const floorPrice = baseMarketPrice ? Math.round(baseMarketPrice * 0.85 * 100) / 100 : 0;
 
+  const isFavorite = Boolean(request.riderFavoritedMe || (request as any).isFavoriteCaptain);
+  const [isCoordsOpen, setIsCoordsOpen] = React.useState(true);
+  const [isBroadcastOpen, setIsBroadcastOpen] = React.useState(false);
+  const [isPricingOpen, setIsPricingOpen] = React.useState(true);
+  const [broadcastSeconds, setBroadcastSeconds] = React.useState(120);
+
   return (
-    <article className={cn(styles.style219_32, isOwnPendingOffer ? styles.cardPendingOffer : '')}>
+    <article
+      className={cn(
+        styles.style219_32,
+        isOwnPendingOffer ? styles.cardPendingOffer : '',
+        isFavorite && !isOwnPendingOffer && 'border-amber-400/50 shadow-[0_0_20px_rgba(251,191,36,0.18)] bg-gradient-to-b from-[#131b2e] to-[#070c18]'
+      )}
+    >
+      {/* Favorite Captain Prominent Banner (Page 9) */}
+      {isFavorite && (
+        <div className="mb-3 flex items-center justify-center gap-2 rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 px-4 py-2 text-xs sm:text-sm font-black text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.2)]">
+          <Star className="h-4 w-4 fill-amber-300 text-amber-300 animate-pulse shrink-0" />
+          <span>{copy.favoriteCaptainNotice || '⭐ أنت كابتن مفضل لدى المستخدم ⭐'}</span>
+          <Star className="h-4 w-4 fill-amber-300 text-amber-300 animate-pulse shrink-0" />
+        </div>
+      )}
+
       <RadarCardHeaderSection
         dropoff={request.dropoff}
         copy={copy}
@@ -118,43 +151,152 @@ export function RadarRequestCard({
       />
 
       {isExpanded && (
-        <div className="mt-3.5 pt-3 border-t border-slate-800/80 animate-in fade-in duration-150">
-          <RadarCardDetailsSection
-            request={request}
-            language={language}
-            currency={currency}
-            copy={copy}
-            driverLocation={driverLocation}
-            passengersCount={passengersCount}
-          />
+        <div className="mt-3.5 pt-3 border-t border-slate-800/80 animate-in fade-in duration-150 space-y-3">
+          {/* Accordion 1: إحداثيات الرحلة (Page 9 & 10) */}
+          <div className="rounded-2xl border border-slate-800 bg-[#070c18]/90 overflow-hidden transition-all">
+            <button
+              type="button"
+              onClick={() => setIsCoordsOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between p-3 text-xs font-black text-slate-200 hover:bg-white/5 transition cursor-pointer"
+            >
+              <span className="flex items-center gap-2 text-cyan-300">
+                <MapPin className="h-4 w-4 text-[#14F5D5]" />
+                <span>{copy.coordinatesAccordion || 'إحداثيات الرحلة'}</span>
+              </span>
+              <div className="flex items-center gap-2">
+                {request.estimatedDistance != null && (
+                  <span className="font-mono text-[11px] font-bold text-slate-400">
+                    {request.estimatedDistance} {language === 'ar' ? 'كم' : 'km'}
+                  </span>
+                )}
+                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isCoordsOpen && "rotate-180")} />
+              </div>
+            </button>
+            {isCoordsOpen && (
+              <div className="p-3 pt-0 border-t border-slate-800/60 animate-in fade-in duration-150">
+                <RadarCardDetailsSection
+                  request={request}
+                  language={language}
+                  currency={currency}
+                  copy={copy}
+                  driverLocation={driverLocation}
+                  passengersCount={passengersCount}
+                />
+                {routeGoogleMapsUrl && (
+                  <a
+                    href={routeGoogleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-3.5 py-2.5 text-xs font-black text-cyan-300 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>{copy.verifyCoordinatesBtn || 'تحقق من الإحداثيات إذا رغبت'}</span>
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
 
-          {!isOwnPendingOffer && (
-            <RadarCardPricingSection
-              request={request}
-              language={language}
-              currency={currency}
-              copy={copy}
-              isAppMode={isAppMode}
-              isIndependentMode={isIndependentMode}
-              isRadarFreeMode={isRadarFreeMode}
-              isTaxiMode={isTaxiMode}
-              isBlockedByOtherPendingOffer={isOwnPendingOffer}
-              lastSubmittedPrice={lastSubmittedPrice}
-              directPrice={directPrice}
-              defaultPriceValue={defaultPriceValue}
-              currentPrice={currentPrice}
-              priceError={priceError}
-              isDumpingCrimson={isDumpingCrimson}
-              isDumpingAmber={isDumpingAmber}
-              isUpperWarn={isUpperWarn}
-              floorPrice={floorPrice}
-              onInitiateOffer={onInitiateOffer}
-              onPastePrice={onPastePrice}
-              onUpdateDirectPrice={onUpdateDirectPrice}
-              onClearPriceError={onClearPriceError}
-              onEditTariff={onEditTariff}
-            />
-          )}
+          {/* Accordion 2: تعديل وقت الانتشار (Page 9 & 10) */}
+          <div className="rounded-2xl border border-slate-800 bg-[#070c18]/90 overflow-hidden transition-all">
+            <button
+              type="button"
+              onClick={() => setIsBroadcastOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between p-3 text-xs font-black text-slate-200 hover:bg-white/5 transition cursor-pointer"
+            >
+              <span className="flex items-center gap-2 text-amber-300">
+                <Clock className="h-4 w-4 text-amber-400" />
+                <span>{copy.broadcastTimeAccordion || 'تعديل وقت الانتشار'}</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                  {broadcastSeconds} {language === 'ar' ? 'ثانية' : 's'} ({Math.ceil(broadcastSeconds / 60)} {language === 'ar' ? 'دقيقة' : 'min'})
+                </span>
+                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isBroadcastOpen && "rotate-180")} />
+              </div>
+            </button>
+            {isBroadcastOpen && (
+              <div className="p-3 pt-0 border-t border-slate-800/60 animate-in fade-in duration-150 space-y-2.5">
+                <p className="text-[11px] text-slate-400 leading-relaxed font-sans pt-1">
+                  {language === 'ar'
+                    ? 'مدة صلاحية عرضك في المحيط ومهلة انتظار الراكب للرد قبل انتهاء الطلب.'
+                    : 'Offer broadcast duration and rider response wait window before expiry.'}
+                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastSeconds((prev) => Math.max(30, prev - 30))}
+                    className="flex h-10 w-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold transition cursor-pointer"
+                    title="-30s"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <div className="flex-1 text-center py-2 px-3 rounded-xl border border-amber-500/30 bg-amber-950/20 font-mono font-black text-base text-amber-300">
+                    {broadcastSeconds} {language === 'ar' ? 'ثانية' : 's'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastSeconds((prev) => Math.min(300, prev + 30))}
+                    className="flex h-10 w-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold transition cursor-pointer"
+                    title="+30s"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Accordion 3: تعديل الأسعار (Page 9 & 10) */}
+          <div className="rounded-2xl border border-slate-800 bg-[#070c18]/90 overflow-hidden transition-all">
+            <button
+              type="button"
+              onClick={() => setIsPricingOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between p-3 text-xs font-black text-slate-200 hover:bg-white/5 transition cursor-pointer"
+            >
+              <span className="flex items-center gap-2 text-emerald-300">
+                <TrendingUp className="h-4 w-4 text-[#14F5D5]" />
+                <span>{copy.priceAdjustmentAccordion || 'تعديل الأسعار'}</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                  {currentPrice ? currentPrice.toFixed(2) : captainPriceForCard} {currency}
+                </span>
+                <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", isPricingOpen && "rotate-180")} />
+              </div>
+            </button>
+            {isPricingOpen && (
+              <div className="p-3 pt-0 border-t border-slate-800/60 animate-in fade-in duration-150">
+                {!isOwnPendingOffer && (
+                  <RadarCardPricingSection
+                    request={request}
+                    language={language}
+                    currency={currency}
+                    copy={copy}
+                    isAppMode={isAppMode}
+                    isIndependentMode={isIndependentMode}
+                    isRadarFreeMode={isRadarFreeMode}
+                    isTaxiMode={isTaxiMode}
+                    isBlockedByOtherPendingOffer={isOwnPendingOffer}
+                    lastSubmittedPrice={lastSubmittedPrice}
+                    directPrice={directPrice}
+                    defaultPriceValue={defaultPriceValue}
+                    currentPrice={currentPrice}
+                    priceError={priceError}
+                    isDumpingCrimson={isDumpingCrimson}
+                    isDumpingAmber={isDumpingAmber}
+                    isUpperWarn={isUpperWarn}
+                    floorPrice={floorPrice}
+                    onInitiateOffer={onInitiateOffer}
+                    onPastePrice={onPastePrice}
+                    onUpdateDirectPrice={onUpdateDirectPrice}
+                    onClearPriceError={onClearPriceError}
+                    onEditTariff={onEditTariff}
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
           {isOwnPendingOffer && (
             <div className="mt-3 flex flex-col gap-1.5 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 p-2.5 text-xs text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.12)] backdrop-blur-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>

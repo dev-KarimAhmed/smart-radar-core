@@ -74,7 +74,11 @@ export function RadarMapCanvas({
         <div className={styles.style173_13}>
           <span className={styles.style174_14}>
             <Clock className={styles.style175_15} />
-            {radarLockMessage ? copy.locked : `${copy.remaining}: ${formatMinutes(totalMinutes, language)}`}
+            {radarLockMessage
+              ? copy.locked
+              : language === 'ar'
+                ? `رصيد الانتشار: ${formatMinutes(totalMinutes, language)} - أنت داخل نطاق الطلبات بالمحيط`
+                : `Broadcast Quota: ${formatMinutes(totalMinutes, language)} - Within perimeter`}
           </span>
         </div>
       </div>
