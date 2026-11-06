@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
 import { Copy, Check, Users, Sparkles, Link2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buildCaptainReferralLink, getCaptainReferredRiders, type ReferredRiderInfo } from '../services/captain-referral';
@@ -156,45 +155,56 @@ export function DriverReferralCard({ user, isArabic = true, onOpenHistory }: Dri
         </p>
 
         {/* Link, Copy, and WhatsApp Action Box */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 rounded-2xl border border-white/10 bg-black/40 p-2.5 backdrop-blur-sm">
-          <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden px-2 py-1.5 bg-white/[0.03] rounded-xl sm:bg-transparent">
-            <Link2 className="h-4 w-4 text-teal-400 shrink-0" />
-            <span className="text-xs font-mono text-slate-200 truncate select-all min-w-0 block w-full" dir="ltr">
-              {referralLink}
-            </span>
-          </div>
-
+        <div
+          dir="ltr"
+          className="flex items-center justify-between gap-2.5 sm:gap-4 rounded-2xl sm:rounded-full border border-white/10 bg-[#060B13]/95 px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-[inset_0_1px_4px_rgba(0,0,0,0.6)] backdrop-blur-md"
+        >
+          {/* Action buttons on the left */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Copy Button */}
-            <Button
+            {/* WhatsApp Direct Share Button */}
+            <button
               type="button"
-              size="sm"
+              onClick={handleWhatsAppShare}
+              title={t('whatsAppTooltip')}
+              aria-label="WhatsApp"
+              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-[#10B981]/70 bg-[#061E16]/80 text-[#25D366] hover:bg-[#10B981]/20 hover:border-[#10B981] active:scale-95 transition-all cursor-pointer shadow-sm"
+            >
+              <WhatsAppIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 fill-current text-[#25D366]" />
+            </button>
+
+            {/* Copy Button */}
+            <button
+              type="button"
               onClick={handleCopy}
-              className="flex-1 sm:flex-none shrink-0 h-8.5 px-3.5 rounded-xl border border-teal-500/30 bg-teal-500/15 text-[#14F5D5] hover:bg-teal-500/25 transition-all flex items-center justify-center gap-1.5 font-black text-xs cursor-pointer"
+              className="flex h-9 sm:h-10 shrink-0 items-center justify-center gap-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-[#14F5D5]/80 bg-[#061F22]/80 text-[#14F5D5] hover:bg-[#14F5D5]/20 hover:border-[#14F5D5] active:scale-95 transition-all cursor-pointer shadow-sm group"
             >
               {copied ? (
                 <>
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>{t('copiedButton')}</span>
+                  <span className="text-xs sm:text-sm font-black text-emerald-400 select-none">
+                    {t('copiedButton')}
+                  </span>
+                  <Check className="h-4 w-4 text-emerald-400" />
                 </>
               ) : (
                 <>
-                  <Copy className="h-3.5 w-3.5" />
-                  <span>{t('copyButton')}</span>
+                  <span className="text-xs sm:text-sm font-black text-[#14F5D5] select-none">
+                    {t('copyButton')}
+                  </span>
+                  <Copy className="h-4 w-4 text-[#14F5D5] group-hover:scale-110 transition-transform" />
                 </>
               )}
-            </Button>
+            </button>
+          </div>
 
-            {/* WhatsApp Direct Share Button */}
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleWhatsAppShare}
-              title={t('whatsAppTooltip')}
-              className="shrink-0 h-8.5 w-8.5 p-0 rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 transition-all flex items-center justify-center cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+          {/* URL and Link Icon on the right */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 justify-end overflow-hidden ps-2">
+            <span
+              className="text-xs sm:text-sm font-mono font-bold text-slate-100 truncate select-all text-right tracking-tight sm:tracking-normal"
+              title={referralLink}
             >
-              <WhatsAppIcon className="h-4.5 w-4.5" />
-            </Button>
+              {referralLink}
+            </span>
+            <Link2 className="h-4.5 w-4.5 text-[#14F5D5] shrink-0" />
           </div>
         </div>
 
