@@ -4,18 +4,49 @@ import dotenv from 'dotenv';
 import { Resend } from 'resend';
 import { formatContractDate } from './contract-pdf-service';
 
+export const DEFAULT_RESEND_FROM_EMAIL = 'بينكم - bynkcom <noreply@bynkcom.com>';
+
+export function getSenderFromEmail(): string {
+  try {
+    const envLocalPath = path.join(process.cwd(), '.env.local');
+    if (fs.existsSync(envLocalPath)) {
+      const parsed = dotenv.parse(fs.readFileSync(envLocalPath, 'utf8'));
+      if (parsed.RESEND_FROM_EMAIL?.trim()) {
+        const candidate = parsed.RESEND_FROM_EMAIL.trim();
+        if (!candidate.includes('الرادار') && !candidate.includes('Radar')) {
+          return candidate;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  const envFrom = process.env.RESEND_FROM_EMAIL?.trim();
+  if (envFrom && !envFrom.includes('الرادار') && !envFrom.includes('Radar')) {
+    return envFrom;
+  }
+
+  return DEFAULT_RESEND_FROM_EMAIL;
+}
+
 function getResendClient(): Resend | null {
   let apiKey = '';
   try {
     const envLocalPath = path.join(process.cwd(), '.env.local');
     if (fs.existsSync(envLocalPath)) {
-      const parsed = dotenv.parse(fs.readFileSync(envLocalPath));
+      const parsed = dotenv.parse(fs.readFileSync(envLocalPath, 'utf8'));
       if (parsed.RESEND_API_KEY?.trim()) {
         apiKey = parsed.RESEND_API_KEY.trim();
         process.env.RESEND_API_KEY = apiKey;
       }
       if (parsed.RESEND_FROM_EMAIL?.trim()) {
-        process.env.RESEND_FROM_EMAIL = parsed.RESEND_FROM_EMAIL.trim();
+        const candidate = parsed.RESEND_FROM_EMAIL.trim();
+        if (!candidate.includes('الرادار') && !candidate.includes('Radar')) {
+          process.env.RESEND_FROM_EMAIL = candidate;
+        } else {
+          process.env.RESEND_FROM_EMAIL = DEFAULT_RESEND_FROM_EMAIL;
+        }
       }
     }
   } catch {
@@ -42,7 +73,7 @@ export async function sendPasswordResetEmail(params: {
     return { success: false, error: 'RESEND_API_KEY is not configured or invalid' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'بينكم - bynkcom <noreply@bynkcom.com>';
+  const fromEmail = getSenderFromEmail();
 
   try {
     const { data, error } = await resend.emails.send({
@@ -125,7 +156,7 @@ export async function sendAccountConfirmationEmail(params: {
     return { success: false, error: 'RESEND_API_KEY is not configured or invalid' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'بينكم - bynkcom <noreply@bynkcom.com>';
+  const fromEmail = getSenderFromEmail();
   const subject = params.otpCode
     ? `كود تفعيل حسابك: ${params.otpCode} | بينكم - bynkcom`
     : 'تأكيد الحساب وتفعيل البريد الإلكتروني | بينكم - bynkcom';
@@ -245,7 +276,7 @@ export async function sendCaptainContractEmail(params: {
     return { success: false, error: 'RESEND_API_KEY is not configured or invalid' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'بينكم - bynkcom <noreply@bynkcom.com>';
+  const fromEmail = getSenderFromEmail();
   const formattedDate = formatContractDate(params.acceptedAt);
 
   try {

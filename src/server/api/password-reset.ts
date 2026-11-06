@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { Router, type Request } from 'express';
 
 import { requireRole } from './supabase-identity';
-import { sendPasswordResetEmail } from '../services/email-service';
+import { sendPasswordResetEmail, getSenderFromEmail } from '../services/email-service';
 
 /**
  * Password recovery for a phone-only login.
@@ -677,7 +677,7 @@ passwordResetRouter.post('/password-reset/test-resend', async (req, res) => {
   try {
     const { Resend: ResendClient } = await import('resend');
     const client = new ResendClient(apiKey);
-    const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || 'بينكم - bynkcom <noreply@bynkcom.com>';
+    const fromEmail = getSenderFromEmail();
     const result = await client.emails.send({
       from: fromEmail,
       to,
