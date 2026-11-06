@@ -77,7 +77,7 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
             <div className="space-y-1">
               <h2 className="text-lg font-black text-white flex items-center gap-2.5">
                 <History className="h-5 w-5 text-[#14F5D5]" />
-                {isArabic ? 'سجلي مع إعلانات الكباتين:' : t('title')}
+                {isArabic ? 'سجلاتي' : t('title')}
               </h2>
               <p className="text-xs text-slate-400 leading-relaxed font-sans">
                 {isArabic
@@ -113,6 +113,8 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
           onRatingSuccess={refreshReviews}
           t={t}
         />
+
+        <HistoryTripNotifications isArabic={isArabic} t={t} />
 
         {renderCaptainsWithDivider()}
       </div>

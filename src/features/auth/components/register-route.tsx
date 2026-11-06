@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 
 import { cn } from '@/lib/utils';
+import { getLandingPageUrl } from '@/lib/constants';
 const styles = {
   style161_1: "relative min-h-screen overflow-hidden bg-[#0B0F19] text-slate-100",
   style163_2: "pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.20),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(45,212,191,0.08),transparent_28%)]",
@@ -247,7 +248,7 @@ export function RegisterRoute({
           <header className={styles.style179_9}>
             <div className={styles.style180_10}>
               <a
-                href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+                href={getLandingPageUrl()}
                 className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
               >
                 <Image

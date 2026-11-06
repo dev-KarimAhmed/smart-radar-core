@@ -65,7 +65,7 @@ export function BottomNav() {
 
   const navItems = [
     { href: '#', icon: Home, label: t('home') },
-    { href: '#history', icon: History, label: isPassenger ? (isArabic ? 'سجلي مع معلن' : 'My Log') : t('history') },
+    { href: '#history', icon: History, label: isArabic ? 'سجلاتي' : t('history') },
     { href: '#vault', icon: Archive, label: t('vault') },
     ...(!isPassenger ? [{ href: '#wallet', icon: Wallet, label: t('wallet') }] : []),
     { href: '#profile', icon: User, label: t('profile') },

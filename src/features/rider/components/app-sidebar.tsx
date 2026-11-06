@@ -13,6 +13,7 @@ import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 import { calculateRiderRank } from '@/core/utils';
 import { cn, formatTelUri } from '@/lib/utils';
+import { getLandingPageUrl } from '@/lib/constants';
 import { useNotifications } from '@/shared/hooks/use-notifications';
 import { useRiderSidebarRadar } from '../hooks/use-rider-sidebar-radar';
 import { useTranslations } from "next-intl";
@@ -125,7 +126,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
         <Badge className={styles.role} variant="outline">{tAuto('key_3c26d043')}</Badge>
         <div className={styles.brand}>
           <a
-            href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+            href={getLandingPageUrl()}
             className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
           >
             <Image

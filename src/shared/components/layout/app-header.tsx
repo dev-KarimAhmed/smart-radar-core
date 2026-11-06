@@ -29,6 +29,7 @@ import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-mod
 import { useNotifications } from '@/shared/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { getLandingPageUrl } from '@/lib/constants';
 import { useTranslations } from "next-intl";
 
 const DriverPricingCard = dynamic(
@@ -38,7 +39,7 @@ const DriverPricingCard = dynamic(
 
 const styles = {
   root: 'sticky top-0 z-50 flex w-full flex-col shadow-xl',
-  primary: 'flex h-16 items-center justify-between border-b border-white/[0.06] bg-[#0A0F1D]/80 px-4 shadow-[0_4px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl',
+  primary: 'flex h-14 sm:h-16 items-center justify-between border-b border-white/[0.06] bg-[#0A0F1D]/80 px-3 sm:px-4 shadow-[0_4px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl',
   spacer: 'h-10 w-10',
   menuButton: 'relative h-10 w-10 rounded-full p-0 shadow-sm transition-transform hover:scale-105',
   menuAvatar: 'h-10 w-10 border-2 border-white/20',
@@ -185,7 +186,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const { user, isCaptain } = useAuth();
   const { toast } = useToast();
   const { isArabic, toggleLanguage } = useDashboardLanguage();
-  const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, hasUnread, adminUnreadCount, hasAdminUnread, markAllAsRead } = useNotifications();
   const { isStandalone, canPromptNative, triggerNativeInstall, platformEnv } = usePwaInstall(isCaptain ? 'captain' : 'rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash || '#' : '#'));
@@ -222,8 +223,8 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
           <button
             type="button"
             onClick={handleToggleNotifications}
-            aria-label={isArabic ? 'الإشعارات' : 'Notifications'}
-            title={isArabic ? 'الإشعارات' : 'Notifications'}
+            aria-label={isArabic ? 'رسائل وإشعارات المشرف' : 'Admin Notifications'}
+            title={isArabic ? 'رسائل وإشعارات المشرف' : 'Admin Notifications'}
             className={cn(
               "relative inline-flex items-center justify-center rounded-xl border h-9 w-9 sm:h-10 sm:w-10 transition cursor-pointer shrink-0",
               isNotificationsActive
@@ -232,9 +233,9 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
             )}
           >
             <Bell className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
-            {hasUnread && (
+            {hasAdminUnread && (
               <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse">
-                {unreadCount > 99 ? '99+' : unreadCount}
+                {adminUnreadCount > 99 ? '99+' : adminUnreadCount}
               </span>
             )}
           </button>
@@ -291,7 +292,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
         ) : (
           <div className={styles.requestRideWrapper}>
             <a
-              href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+              href={getLandingPageUrl()}
               className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
             >
               <Image

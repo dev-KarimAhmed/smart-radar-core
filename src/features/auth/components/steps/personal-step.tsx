@@ -45,6 +45,7 @@ import { requestPasswordRecovery } from '../../services/password-recovery';
 import { navigateAuth } from '@/lib/auth-routing';
 
 import { cn } from '@/lib/utils';
+import { getLandingPageUrl } from '@/lib/constants';
 import { useTranslations } from "next-intl";
 
 const styles = {
@@ -709,7 +710,7 @@ export function PersonalStep() {
           <header className={styles.style347_9}>
             <div className={styles.style348_10}>
               <a
-                href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+                href={getLandingPageUrl()}
                 className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
               >
                 <Image

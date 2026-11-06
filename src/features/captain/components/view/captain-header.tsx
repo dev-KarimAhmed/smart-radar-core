@@ -5,37 +5,38 @@ import Image from 'next/image';
 import { Bell, History, Languages, Loader2, LogOut, User, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { getLandingPageUrl } from '@/lib/constants';
 import type { CaptainScreen } from '../../state/captain-state-machine';
 import { MarketStatusIndicator } from '../market-status-indicator';
 
 const styles = {
-  headerCard: 'flex flex-col gap-3 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-3 sm:p-4',
-  topRow: 'flex flex-col gap-2.5 sm:grid sm:grid-cols-3 sm:items-center sm:gap-3',
-  brandRow: 'relative flex items-center justify-center w-full min-h-[34px] sm:w-auto sm:justify-start',
-  logoWrap: 'absolute start-0 flex items-center shrink-0 z-10',
-  logoImage: 'h-6 sm:h-8 w-auto object-contain',
+  headerCard: 'flex flex-col gap-2 rounded-2xl border border-emerald-500/20 bg-[#05080f] p-2 sm:p-2.5 shadow-xl',
+  topRow: 'flex flex-wrap items-center justify-between gap-2',
+  brandRow: 'flex items-center gap-2 sm:gap-3',
+  logoWrap: 'flex items-center shrink-0',
+  logoImage: 'h-6 sm:h-7 w-auto object-contain',
   marketWrapMobile: 'flex items-center justify-center sm:hidden',
   marketWrapDesktop: 'hidden sm:flex sm:justify-center sm:items-center',
-  actionsWrap: 'grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:justify-end',
+  actionsWrap: 'flex items-center gap-1.5 sm:gap-2 ms-auto',
   actionIcon: 'h-4 w-4 shrink-0',
   logoutIcon: 'h-4 w-4 shrink-0 rotate-180',
   actionLabel: 'text-xs font-black sm:text-sm',
-  notificationsBtn: 'relative sm:order-3 inline-flex items-center justify-center rounded-xl border px-3 py-2.5 transition sm:rounded-2xl sm:px-3.5 sm:py-3 w-full sm:w-auto',
+  notificationsBtn: 'relative inline-flex items-center justify-center rounded-xl border px-2.5 py-1.5 transition sm:rounded-2xl sm:px-3 sm:py-2',
   notificationsBtnActive: 'border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5]',
   notificationsBtnIdle: 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white',
   unreadBadge: 'absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse',
-  languageBtn: 'sm:order-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-2.5 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-4 sm:py-3 w-full sm:w-auto',
-  logoutBtn: 'sm:order-4 inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-600/15 px-2.5 py-2.5 text-red-100 transition hover:bg-red-600/25 sm:rounded-2xl sm:px-4 sm:py-3 w-full sm:w-auto',
-  statusRow: 'flex items-center gap-2 sm:gap-3 w-full',
-  statusBtnBase: 'relative inline-flex w-full sm:w-auto sm:flex-[1.8] sm:grow-[2] items-center justify-center gap-2.5 rounded-2xl px-4 py-3 sm:px-6 sm:py-3.5 text-sm sm:text-base font-black transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 select-none',
+  languageBtn: 'inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1.5 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-3 sm:py-2',
+  logoutBtn: 'inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-600/15 px-2.5 py-1.5 text-red-100 transition hover:bg-red-600/25 sm:rounded-2xl sm:px-3 sm:py-2',
+  statusRow: 'flex items-center gap-1.5 sm:gap-2.5 w-full',
+  statusBtnBase: 'relative inline-flex w-full sm:w-auto sm:flex-[1.8] sm:grow-[2] items-center justify-center gap-2 rounded-xl px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 select-none',
   statusBtnActive: 'border-2 border-emerald-400 bg-gradient-to-r from-emerald-500/25 via-emerald-500/35 to-teal-500/25 text-emerald-200 shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:bg-emerald-500/40 ring-1 ring-emerald-400/50',
   statusBtnIdle: 'border-2 border-slate-600/80 bg-slate-800/90 text-slate-200 hover:bg-slate-700/90 hover:border-slate-500 shadow-md',
-  statusActiveDotContainer: 'relative flex h-3 w-3 shrink-0',
+  statusActiveDotContainer: 'relative flex h-2.5 w-2.5 shrink-0',
   statusActiveDotPing: 'absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75',
-  statusActiveDotCore: 'relative inline-flex h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]',
-  statusIdleDot: 'h-3 w-3 shrink-0 rounded-full bg-rose-500 ring-2 ring-rose-500/30',
+  statusActiveDotCore: 'relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]',
+  statusIdleDot: 'h-2.5 w-2.5 shrink-0 rounded-full bg-rose-500 ring-2 ring-rose-500/30',
   statusUpdatingSpinner: 'h-4 w-4 animate-spin text-emerald-400',
-  navBtn: 'relative hidden sm:inline-flex items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-xs font-black transition sm:gap-2 sm:px-3 sm:py-3.5 sm:text-sm sm:flex-1 sm:basis-0',
+  navBtn: 'relative hidden sm:inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-black transition sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm sm:flex-1 sm:basis-0',
   navBtnActive: 'bg-[#14B8A6] text-[#06111f]',
   navBtnIdle: 'border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/10',
   navBtnText: 'truncate',
@@ -93,7 +94,7 @@ export function CaptainHeader({
         <div className={styles.brandRow}>
           <div className={styles.logoWrap}>
             <a
-              href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+              href={getLandingPageUrl()}
               className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
             >
               <Image

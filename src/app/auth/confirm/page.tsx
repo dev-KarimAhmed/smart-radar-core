@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2, ArrowRight, ShieldCheck, MailCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
+import { getLandingPageUrl } from '@/lib/constants';
 
 function ConfirmContent() {
   const searchParams = useSearchParams();
@@ -95,7 +96,7 @@ function ConfirmContent() {
         {/* Brand header */}
         <div className="flex items-center justify-center gap-2">
           <a
-            href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+            href={getLandingPageUrl()}
             className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
           >
             <Image

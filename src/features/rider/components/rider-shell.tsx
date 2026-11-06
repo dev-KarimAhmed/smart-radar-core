@@ -191,7 +191,7 @@ export function RiderShell() {
       : hash === '#profile'
         ? <ProfileScreen />
         : hash === '#notifications'
-          ? <NotificationsScreen onClose={() => { window.location.hash = '#'; }} />
+          ? <NotificationsScreen onClose={() => { window.location.hash = '#'; }} filterCategory="admin" />
           : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
 
   return (

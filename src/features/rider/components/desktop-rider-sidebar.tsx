@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { cn } from '@/lib/utils';
+import { getLandingPageUrl } from '@/lib/constants';
 import { useTranslations } from "next-intl";
 import { useNotifications } from '@/shared/hooks/use-notifications';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
@@ -50,9 +51,9 @@ const copy = {
     fallbackPhone: 'تطبيق الرحلات',
     logout: 'تسجيل الخروج',
     nav: {
-      notifications: 'التنبيهات',
+      notifications: 'إشعارات المشرف',
       home: 'الرئيسية',
-      history: 'سجلي مع معلن',
+      history: 'سجلاتي',
       vault: 'الخزنة',
       profile: 'حسابي',
     },
@@ -66,9 +67,9 @@ const copy = {
     fallbackPhone: 'Ride app',
     logout: 'Log out',
     nav: {
-      notifications: 'Notifications',
+      notifications: 'Admin Notices',
       home: 'Home',
-      history: 'My Log with Advertiser',
+      history: 'My Records',
       vault: 'Vault',
       profile: 'Profile',
     },
@@ -113,7 +114,7 @@ export function DesktopRiderSidebar({
 }) {
   const tAuto = useTranslations('auto');
   const { isArabic, toggleLanguage } = useDashboardLanguage();
-  const { hasUnread, unreadCount } = useNotifications();
+  const { adminUnreadCount, hasAdminUnread, tripUnreadCount, hasTripUnread } = useNotifications();
   const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
   const text = copy[language];
@@ -124,7 +125,7 @@ export function DesktopRiderSidebar({
       href: '#notifications',
       icon: Bell,
       label: text.nav.notifications,
-      badge: hasUnread ? (unreadCount > 99 ? '99+' : String(unreadCount)) : null,
+      badge: hasAdminUnread ? (adminUnreadCount > 99 ? '99+' : String(adminUnreadCount)) : null,
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         window.location.hash = '#notifications';
@@ -132,7 +133,12 @@ export function DesktopRiderSidebar({
       },
     },
     { href: '#', icon: Home, label: text.nav.home },
-    { href: '#history', icon: History, label: text.nav.history },
+    {
+      href: '#history',
+      icon: History,
+      label: text.nav.history,
+      badge: hasTripUnread ? (tripUnreadCount > 99 ? '99+' : String(tripUnreadCount)) : null,
+    },
     { href: '#vault', icon: Archive, label: text.nav.vault },
     { href: '#profile', icon: User, label: text.nav.profile },
   ];
@@ -167,7 +173,7 @@ export function DesktopRiderSidebar({
       {/* Brand Header with Distinct Teal 'بينكم' Coloring */}
       <div className={styles.header}>
         <a
-          href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+          href={getLandingPageUrl()}
           className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
         >
           <Image

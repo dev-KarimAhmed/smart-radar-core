@@ -7,6 +7,7 @@ import { Car, ExternalLink, MapPin, Phone, RefreshCw, ShieldAlert, User } from '
 import { useMaplibreInstance } from '@/shared/hooks/use-maplibre-instance';
 import maplibregl from 'maplibre-gl';
 import { supabase } from '@/lib/supabase-client';
+import { getLandingPageUrl } from '@/lib/constants';
 
 const styles = {
   root: 'min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans select-none',
@@ -156,7 +157,7 @@ function TrackContent() {
       <header className={styles.header}>
         <div className={styles.headerBrand}>
           <a
-            href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+            href={getLandingPageUrl()}
             className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
           >
             <Image src="/icons/logo-header.png" alt="Radar" width={585} height={152} priority className={styles.headerLogo} />

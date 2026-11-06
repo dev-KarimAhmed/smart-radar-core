@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   CarTaxiFront,
   Construction,
+  Home,
   Languages,
   Megaphone,
   ShieldCheck,
@@ -18,6 +19,7 @@ import { navigateAuth } from '@/lib/auth-routing';
 import type { User } from '@/core/types';
 
 import { cn } from '@/lib/utils';
+import { getLandingPageUrl } from '@/lib/constants';
 const styles = {
   style260_1: "relative min-h-dvh overflow-x-hidden overflow-y-auto bg-[#0B0F19] text-slate-100",
   style262_2: "pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_10%,rgba(20,184,166,0.22),transparent_26%),radial-gradient(circle_at_82%_18%,rgba(45,212,191,0.10),transparent_28%)]",
@@ -33,7 +35,7 @@ const styles = {
   style285_11: " max-w-3xl text-balance text-4xl font-black leading-tight tracking-normal text-[#F8FAFC] sm:text-5xl lg:text-7xl",
   style289_12: "mt-4 text-lg font-semibold leading-8 text-[#94A3B8] sm:text-xl",
   style328_19: "mx-auto mt-10 grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6",
-  style329_20: "lg:grid-cols-5",
+  style329_20: "lg:grid-cols-4",
   style348_22: "group flex h-full min-h-52 flex-col items-start justify-between gap-4 rounded-3xl border border-white/5 bg-[#161F30]/60 p-5 text-start shadow-2xl backdrop-blur-xl transition-colors duration-300 hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:border-[#14B8A6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/40 active:border-[#14B8A6] active:shadow-[0_0_20px_rgba(20,184,166,0.15)] sm:min-h-56 sm:p-6",
   style349_23: "text-right",
   style349_24: "text-left",
@@ -62,21 +64,22 @@ const copy = {
   ar: {
     switchLabel: 'English',
     ariaSwitch: 'تغيير اللغة إلى الإنجليزية',
-    title: 'مرحبا بك في بينكم - bynkcom',
+    backToHome: 'العودة إلى الشاشة الافتتاحية',
+    title: 'شبكة بينكم للإعلان الرقمي ترحب بكم',
     subtitle: 'اختر نوع حسابك وكمل دخولك بسهولة',
     underDevelopment: 'قيد التطوير',
     roles: {
       rider: {
         title: 'مستخدم',
-        description: 'ابحث عن عروض الكباتن المعلنين في محيطك واختر العرض المناسب',
+        description: 'ابحث عن عروض الكباتن المعلنين في محيطك واختار العرض المناسب',
       },
       driver: {
         title: 'كابتن معلن',
-        description: 'حدد سعرك، اشحن باقة الساعات، واستقبل الطلبات القريبة منك.',
+        description: 'اعلن عن نفسك، انتظر الطلبات، قدم عرضك',
       },
       admin: {
         title: 'مشرف',
-        description: 'ادخل لوحة المتابعة، راجع الحسابات، وتابع حركة النظام بهدوء.',
+        description: 'مدخل خاص بإدارة وتشغيل النظام.',
       },
       advertiser: {
         title: 'معلن',
@@ -84,36 +87,37 @@ const copy = {
       },
       delegate: {
         title: 'مندوب تسويق',
-        description: 'سجل الكباتن المعلنين والمحلات، وتابع عمولتك من مكان واحد.',
+        description: 'زيد من دخلك وأنت في عملك',
       },
     },
   },
   en: {
     switchLabel: 'العربية',
     ariaSwitch: 'Switch language to Arabic',
-    title: 'Welcome to bynkcom',
-    subtitle: 'Choose your account type and continue securely',
+    backToHome: 'Back to Opening Screen',
+    title: 'Welcome to byncom Digital Advertising Network',
+    subtitle: 'Choose your account type and continue easily',
     underDevelopment: 'Under Development',
     roles: {
       rider: {
-        title: 'Rider',
-        description: 'Search for advertiser captains in your area and choose the best offer.',
+        title: 'User',
+        description: 'Search for advertiser captain offers in your area and choose the best offer',
       },
       driver: {
-        title: 'Captain',
-        description: 'Set your own rates, top up your hourly package, and receive requests silently.',
+        title: 'Advertiser Captain',
+        description: 'Advertise yourself, wait for requests, present your offer',
       },
       admin: {
         title: 'Admin',
-        description: 'Open the control desk, review accounts, and keep system operations calm.',
+        description: 'Private entrance for system administration and operations.',
       },
       advertiser: {
         title: 'Advertiser',
-        description: 'Launch hyper-local ads targeted to specific areas and track live metrics.',
+        description: 'Create targeted ads for your area, track views and clicks easily.',
       },
       delegate: {
-        title: 'Delegate',
-        description: 'Onboard drivers and shops in the field, and earn guaranteed commissions.',
+        title: 'Marketing Delegate',
+        description: 'Increase your income while working',
       },
     },
   },
@@ -126,7 +130,6 @@ const roleConfig: Array<{
 }> = [
     { key: 'rider', Icon: UserRound },
     { key: 'driver', Icon: CarTaxiFront },
-    { key: 'admin', Icon: ShieldCheck },
     { key: 'advertiser', Icon: Megaphone, disabled: true },
     { key: 'delegate', Icon: Store, disabled: true },
   ];
@@ -300,11 +303,24 @@ export function RoleStep() {
         <span>{content.switchLabel}</span>
       </motion.button>
 
+      <motion.a
+        href={getLandingPageUrl()}
+        aria-label={content.backToHome}
+        title={content.backToHome}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+        className={cn(styles.style271_3, isArabic ? styles.style272_5 : styles.style272_4)}
+      >
+        <Home aria-hidden="true" className={styles.style275_6} />
+        <span>{content.backToHome}</span>
+      </motion.a>
+
       <section className={styles.style279_7}>
         <div className={styles.style280_8}>
           <div className={styles.style281_9}>
             <a
-              href={process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app'}
+              href={getLandingPageUrl()}
               className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
             >
               <Image

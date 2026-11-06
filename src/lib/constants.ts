@@ -46,3 +46,9 @@ export const SOVEREIGN_PAYMENT_CHANNELS = [
   { id: 'efawateer', name: 'eFAWATEERcom', label: 'إي فواتيركم' }
 ] as const;
 
+export function getLandingPageUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app';
+  const cleaned = raw.replace(/^["'\s\u064B-\u065F]+|["'\s\u064B-\u065F]+$/g, '').trim();
+  return cleaned || 'https://radar-page.vercel.app';
+}
+
