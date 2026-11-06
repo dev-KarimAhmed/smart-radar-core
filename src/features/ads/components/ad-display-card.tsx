@@ -24,11 +24,11 @@ const styles = {
   style131_15: "text-white",
   style137_16: "absolute right-5 top-6 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#111827]/90 px-3 py-1.5 text-[10px] font-black text-[#14F5D5] shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur-md",
   style138_17: "h-3 w-3 fill-orange-400 text-orange-400",
-  style142_18: "relative z-10 mx-auto flex w-full max-w-[90%] flex-col items-center gap-3 pb-1 text-center",
+  style142_18: "relative z-10 mx-auto flex w-full max-w-[90%] flex-col items-center gap-3.5 pb-2 sm:pb-4 text-center",
   style143_19: "space-y-1.5",
-  style144_20: "line-clamp-2 text-[15px] font-black leading-snug text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]",
-  style147_21: "line-clamp-2 text-[11px] font-semibold leading-relaxed text-white/86 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]",
-  style152_22: "inline-flex min-h-10 items-center justify-center rounded-2xl bg-[#14F5D5] px-6 py-2.5 text-[11px] font-black text-[#041315] shadow-[0_0_22px_rgba(20,245,213,0.42)] transition group-hover:bg-[#2FFFE5]",
+  style144_20: "line-clamp-2 text-[15px] sm:text-lg font-black leading-snug text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]",
+  style147_21: "line-clamp-3 text-[11px] sm:text-xs font-semibold leading-relaxed text-white/86 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]",
+  style152_22: "inline-flex min-h-10 sm:min-h-11 items-center justify-center rounded-2xl bg-[#14F5D5] px-6 sm:px-8 py-2.5 text-[11px] sm:text-xs font-black text-[#041315] shadow-[0_0_22px_rgba(20,245,213,0.42)] transition group-hover:bg-[#2FFFE5] cursor-pointer",
 } as const;
 
 
