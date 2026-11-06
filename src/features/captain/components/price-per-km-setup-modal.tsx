@@ -20,18 +20,18 @@ import type { CaptainMarketIndicator } from '../hooks/use-captain-market-indicat
 import { MarketStatusIndicator } from './market-status-indicator';
 
 const styles = {
-  content: 'border-emerald-500/25 bg-[#0B0F19] text-white shadow-2xl max-h-[85vh] overflow-y-auto',
-  title: 'text-xl font-black text-white',
-  description: 'text-sm leading-6 text-[#94A3B8] text-start',
-  marketIndicatorWrap: 'mt-3',
-  fields: 'mt-3 space-y-4',
+  content: 'border-emerald-500/25 bg-[#0B0F19] text-white shadow-2xl max-w-xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col gap-0 p-3.5 sm:p-5 overflow-hidden rounded-3xl',
+  title: 'text-lg sm:text-xl font-black text-white',
+  description: 'text-xs sm:text-sm leading-5 text-[#94A3B8] text-start',
+  marketIndicatorWrap: 'mt-2',
+  fields: 'mt-2 space-y-3.5',
   field: 'space-y-1.5',
-  fieldLabel: 'block text-sm font-black text-white text-start',
-  fieldHint: 'block text-xs leading-5 text-[#64748B] text-start',
-  marketAverageLine: 'block text-sm font-black text-emerald-300 text-start',
+  fieldLabel: 'block text-xs sm:text-sm font-black text-white text-start',
+  fieldHint: 'block text-[11px] leading-4 text-[#64748B] text-start',
+  marketAverageLine: 'block text-xs sm:text-sm font-black text-emerald-300 text-start',
   inputRow: 'flex items-stretch gap-2',
   input: 'w-full rounded-2xl border border-slate-800 bg-black/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400',
-  currencyBadge: 'flex shrink-0 items-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-sm font-black text-emerald-300',
+  currencyBadge: 'flex shrink-0 items-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs sm:text-sm font-black text-emerald-300',
   error: 'text-sm font-bold text-rose-400 text-start',
   footer: 'sm:justify-start',
   confirm: 'w-full bg-[#14B8A6] font-black text-[#06111f] hover:bg-[#14B8A6]/90 disabled:opacity-60 transition cursor-pointer flex items-center justify-center min-h-[44px]',
@@ -45,30 +45,29 @@ const styles = {
   shortDistancesToggleIconOpen: 'rotate-180',
   shortDistancesFields: 'space-y-4 border-t border-emerald-500/15 p-4',
   shortDistancesError: 'text-sm font-bold text-rose-400 text-start',
-  modeSelector: 'mt-3 mb-4 grid grid-cols-3 gap-1.5 sm:gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner',
+  modeSelector: 'mt-2 mb-3 grid grid-cols-3 gap-1.5 sm:gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner',
   modeButton: 'flex flex-col items-center justify-center rounded-xl py-2 px-1 sm:py-2.5 sm:px-2 text-center transition cursor-pointer select-none',
   modeButtonActive: 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20 font-black',
   modeButtonInactive: 'text-slate-400 hover:bg-white/5 hover:text-white font-bold',
   modeButtonTitle: 'text-xs font-black sm:text-sm whitespace-nowrap',
   modeButtonSubtitle: 'mt-0.5 text-[9px] sm:text-[10px] leading-tight opacity-80 line-clamp-2',
-  appNoticeCard: 'my-4 rounded-2xl border border-blue-400/30 bg-blue-500/10 p-4 text-sm font-bold text-blue-200 shadow-xl',
-  appNoticeTitle: 'font-black text-base text-blue-300 mb-2 flex items-center gap-2',
+  appNoticeCard: 'my-3 rounded-2xl border border-blue-400/30 bg-blue-500/10 p-3.5 text-sm font-bold text-blue-200 shadow-xl',
+  appNoticeTitle: 'font-black text-base text-blue-300 mb-1.5 flex items-center gap-2',
   appNoticeBody: 'leading-relaxed text-xs sm:text-sm text-slate-300',
-  taxiNoticeCard: 'my-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm font-bold text-amber-200 shadow-xl',
-  taxiNoticeTitle: 'font-black text-base text-amber-300 mb-2 flex items-center gap-2',
+  taxiNoticeCard: 'my-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3.5 text-sm font-bold text-amber-200 shadow-xl',
+  taxiNoticeTitle: 'font-black text-base text-amber-300 mb-1.5 flex items-center gap-2',
   taxiNoticeBody: 'leading-relaxed text-xs sm:text-sm text-slate-300',
   goldRankNotice: 'mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-black text-amber-300 text-center leading-relaxed',
-  comparisonGrid: 'grid grid-cols-3 gap-2 sm:gap-3 mb-4',
-  comparisonCard: 'flex flex-col justify-between rounded-2xl border border-slate-800 bg-black/40 p-2 sm:p-3 text-center',
-  comparisonCardAccent: 'flex flex-col justify-between rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/5 p-2 sm:p-3 text-center',
-  comparisonCardHeader: 'text-[11px] sm:text-xs font-black text-slate-400 mb-2 pb-1.5 border-b border-white/5 whitespace-nowrap',
-  comparisonCardHeaderAccent: 'text-[11px] sm:text-xs font-black text-[#14F5D5] mb-2 pb-1.5 border-b border-[#14B8A6]/20 whitespace-nowrap',
-  comparisonCardRows: 'space-y-2 text-xs font-black text-white',
-  comparisonCardRow: 'flex justify-between items-center gap-1 text-xs',
-  comparisonCardLabel: 'text-[10px] sm:text-[11px] text-slate-400 whitespace-nowrap',
-  comparisonCardValue: 'font-mono text-xs sm:text-sm font-black text-white',
-  comparisonInputWrap: 'w-14 sm:w-16 shrink-0',
-  miniInput: 'w-full rounded-lg border border-slate-700 bg-black/80 px-1 py-1 text-center font-mono text-xs font-bold text-white outline-none transition focus:border-emerald-400',
+  comparisonGrid: 'grid grid-cols-3 gap-1.5 sm:gap-2.5 mb-3 min-w-0',
+  comparisonCard: 'flex flex-col justify-between rounded-xl sm:rounded-2xl border border-slate-800 bg-black/40 p-2 sm:p-2.5 text-center min-w-0 overflow-hidden',
+  comparisonCardAccent: 'flex flex-col justify-between rounded-xl sm:rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/5 p-2 sm:p-2.5 text-center min-w-0 overflow-hidden shadow-[0_0_15px_rgba(20,245,213,0.08)]',
+  comparisonCardHeader: 'text-[10px] sm:text-xs font-black text-slate-400 mb-2 pb-1.5 border-b border-white/5 truncate',
+  comparisonCardHeaderAccent: 'text-[10px] sm:text-xs font-black text-[#14F5D5] mb-2 pb-1.5 border-b border-[#14B8A6]/20 truncate',
+  comparisonCardRows: 'space-y-2.5 text-xs font-black text-white',
+  comparisonCardRow: 'flex flex-col items-center justify-center gap-1 min-w-0',
+  comparisonCardLabel: 'text-[10px] sm:text-[11px] text-slate-400 font-bold truncate',
+  comparisonCardValue: 'h-7 flex items-center justify-center font-mono text-xs sm:text-sm font-black text-white',
+  miniInput: 'w-11 sm:w-14 h-7 min-w-0 shrink-0 rounded-md border border-[#14B8A6]/40 bg-black/90 px-0.5 text-center font-mono text-xs font-black text-emerald-300 outline-none transition focus:border-[#14F5D5] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
   silverWarningLine: 'mb-3 text-xs font-bold text-rose-400 bg-rose-500/10 p-2 rounded-lg border border-rose-500/20 text-start',
   silverModalContent: 'border-rose-500/40 bg-[#0B0F19] text-white shadow-2xl max-w-md',
   silverModalTitle: 'text-lg font-black text-rose-300 text-start',
@@ -343,7 +342,7 @@ export function PricePerKmSetupModal({
           }
         }}
       >
-        <AlertDialogHeader className="relative">
+        <AlertDialogHeader className="relative shrink-0 pb-1">
           {onClose ? (
             <button
               type="button"
@@ -373,82 +372,84 @@ export function PricePerKmSetupModal({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {/* تنبيه تشغيلي حاسم (Page 6) */}
-        <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/15 p-3.5 sm:p-4 text-start shadow-lg mb-2">
-          <div className="flex items-center gap-2 font-black text-amber-300 text-xs sm:text-sm mb-1">
-            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-            <span>{isArabic ? '" تنبيه تشغيلي حاسم "' : '" Crucial Operational Alert "'}</span>
+        {/* Scrollable Modal Body */}
+        <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 pl-1 scrollbar-thin">
+          {/* تنبيه تشغيلي حاسم (Page 6) */}
+          <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/15 p-3.5 sm:p-4 text-start shadow-lg mb-2">
+            <div className="flex items-center gap-2 font-black text-amber-300 text-xs sm:text-sm mb-1">
+              <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+              <span>{isArabic ? '" تنبيه تشغيلي حاسم "' : '" Crucial Operational Alert "'}</span>
+            </div>
+            <p className="text-xs font-bold text-slate-200 leading-relaxed font-sans">
+              {isArabic
+                ? 'فك قيد استهلاك البطارية على هاتفك ثم ضعه على شاحن المركبة اثناء نشاطك حيث إن التتبع اللحظي يستهلك طاقة البطارية.'
+                : 'Remove battery optimization restrictions on your phone and keep it plugged into your vehicle charger during activity, as live geolocation consumes battery power.'}
+            </p>
           </div>
-          <p className="text-xs font-bold text-slate-200 leading-relaxed font-sans">
-            {isArabic
-              ? 'فك قيد استهلاك البطارية على هاتفك ثم ضعه على شاحن المركبة اثناء نشاطك حيث إن التتبع اللحظي يستهلك طاقة البطارية.'
-              : 'Remove battery optimization restrictions on your phone and keep it plugged into your vehicle charger during activity, as live geolocation consumes battery power.'}
-          </p>
-        </div>
 
-        {marketIndicator ? (
-          <div className={styles.marketIndicatorWrap}>
-            <MarketStatusIndicator indicator={marketIndicator} size="full" />
+          {marketIndicator ? (
+            <div className={styles.marketIndicatorWrap}>
+              <MarketStatusIndicator indicator={marketIndicator} size="full" />
+            </div>
+          ) : null}
+
+          {/* Pricing Setup Mode Selector Tabs: 3 choices (Free Prices, Smart App, Taxi) */}
+          <div className={styles.modeSelector}>
+            <button
+              type="button"
+              onClick={() => {
+                setSetupMode('FREE');
+                setError('');
+              }}
+              className={cn(
+                styles.modeButton,
+                setupMode === 'FREE' ? styles.modeButtonActive : styles.modeButtonInactive
+              )}
+            >
+              <span className={styles.modeButtonTitle}>
+                {t('tariffFreePriceTitle')}
+              </span>
+              <span className={styles.modeButtonSubtitle}>
+                {t('tariffFreePriceSubtitle')}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSetupMode('APP');
+                setError('');
+              }}
+              className={cn(
+                styles.modeButton,
+                setupMode === 'APP' ? styles.modeButtonActive : styles.modeButtonInactive
+              )}
+            >
+              <span className={styles.modeButtonTitle}>
+                {t('tariffAppPriceTitle')}
+              </span>
+              <span className={styles.modeButtonSubtitle}>
+                {t('tariffAppPriceSubtitle')}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSetupMode('TAXI');
+                setError('');
+              }}
+              className={cn(
+                styles.modeButton,
+                setupMode === 'TAXI' ? styles.modeButtonActive : styles.modeButtonInactive
+              )}
+            >
+              <span className={styles.modeButtonTitle}>
+                {t('tariffTaxiPriceTitle')}
+              </span>
+              <span className={styles.modeButtonSubtitle}>
+                {t('tariffTaxiPriceSubtitle')}
+              </span>
+            </button>
           </div>
-        ) : null}
-
-        {/* Pricing Setup Mode Selector Tabs: 3 choices (Free Prices, Smart App, Taxi) */}
-        <div className={styles.modeSelector}>
-          <button
-            type="button"
-            onClick={() => {
-              setSetupMode('FREE');
-              setError('');
-            }}
-            className={cn(
-              styles.modeButton,
-              setupMode === 'FREE' ? styles.modeButtonActive : styles.modeButtonInactive
-            )}
-          >
-            <span className={styles.modeButtonTitle}>
-              {t('tariffFreePriceTitle')}
-            </span>
-            <span className={styles.modeButtonSubtitle}>
-              {t('tariffFreePriceSubtitle')}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSetupMode('APP');
-              setError('');
-            }}
-            className={cn(
-              styles.modeButton,
-              setupMode === 'APP' ? styles.modeButtonActive : styles.modeButtonInactive
-            )}
-          >
-            <span className={styles.modeButtonTitle}>
-              {t('tariffAppPriceTitle')}
-            </span>
-            <span className={styles.modeButtonSubtitle}>
-              {t('tariffAppPriceSubtitle')}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSetupMode('TAXI');
-              setError('');
-            }}
-            className={cn(
-              styles.modeButton,
-              setupMode === 'TAXI' ? styles.modeButtonActive : styles.modeButtonInactive
-            )}
-          >
-            <span className={styles.modeButtonTitle}>
-              {t('tariffTaxiPriceTitle')}
-            </span>
-            <span className={styles.modeButtonSubtitle}>
-              {t('tariffTaxiPriceSubtitle')}
-            </span>
-          </button>
-        </div>
 
         {setupMode === 'APP' && (
           <div className={styles.appNoticeCard}>
@@ -639,11 +640,11 @@ export function PricePerKmSetupModal({
               <div className={styles.comparisonCardRows}>
                 <div className={styles.comparisonCardRow}>
                   <span className={styles.comparisonCardLabel}>{t('tariffPerKmShort')}</span>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full min-w-0">
                     <button
                       type="button"
                       onClick={() => handleStepPricePerKm(-0.10)}
-                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      className="h-7 w-5 sm:w-6 shrink-0 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
                       title="-0.10"
                     >
                       <Minus className="h-3 w-3" />
@@ -665,7 +666,7 @@ export function PricePerKmSetupModal({
                     <button
                       type="button"
                       onClick={() => handleStepPricePerKm(0.10)}
-                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      className="h-7 w-5 sm:w-6 shrink-0 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
                       title="+0.10"
                     >
                       <Plus className="h-3 w-3" />
@@ -674,11 +675,11 @@ export function PricePerKmSetupModal({
                 </div>
                 <div className={styles.comparisonCardRow}>
                   <span className={styles.comparisonCardLabel}>{t('tariffPerMinShort')}</span>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full min-w-0">
                     <button
                       type="button"
                       onClick={() => handleStepPricePerMin(-0.10)}
-                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      className="h-7 w-5 sm:w-6 shrink-0 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
                       title="-0.10"
                     >
                       <Minus className="h-3 w-3" />
@@ -700,7 +701,7 @@ export function PricePerKmSetupModal({
                     <button
                       type="button"
                       onClick={() => handleStepPricePerMin(0.10)}
-                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      className="h-7 w-5 sm:w-6 shrink-0 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
                       title="+0.10"
                     >
                       <Plus className="h-3 w-3" />
@@ -727,8 +728,9 @@ export function PricePerKmSetupModal({
         )}
 
         {error ? <p className={styles.error}>{error}</p> : null}
+        </div>
 
-        <AlertDialogFooter className="mt-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5">
+        <AlertDialogFooter className="shrink-0 pt-3 border-t border-slate-800/80 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5">
           {onClose ? (
             <button
               type="button"
