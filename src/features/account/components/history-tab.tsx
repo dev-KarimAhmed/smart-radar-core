@@ -124,6 +124,9 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   } = state;
 
   const now = Date.now();
+  const effectiveCategory = isPassenger && (activeCategory === 'financial' || activeCategory === 'ranks')
+    ? 'all'
+    : activeCategory;
 
   const renderCaptainsWithDivider = () => (
     <div className="space-y-4">
@@ -138,32 +141,45 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   );
 
   // Filter Bar component (Page 4 requirement: Full-width tabs with zero truncation and zero scroll)
-  const renderFilterBar = () => (
-    <div className="w-full">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 w-full select-none">
-        {CATEGORIES.map((cat) => {
-          const isActive = activeCategory === cat.key;
-          const Icon = cat.icon;
-          return (
-            <button
-              key={cat.key}
-              type="button"
-              onClick={() => setActiveCategory(cat.key)}
-              className={cn(
-                'w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 rounded-2xl border text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-[0.98] text-center',
-                isActive
-                  ? cat.activeClass
-                  : 'border-white/10 bg-black/40 text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20'
-              )}
-            >
-              <Icon className={cn('h-4 w-4 shrink-0', isActive ? cat.color : 'text-slate-500')} />
-              <span className="whitespace-nowrap">{isArabic ? cat.labelAr : cat.labelEn}</span>
-            </button>
-          );
-        })}
+  const renderFilterBar = () => {
+    const categories = isPassenger
+      ? CATEGORIES.filter((cat) => cat.key !== 'financial' && cat.key !== 'ranks')
+      : CATEGORIES;
+
+    return (
+      <div className="w-full">
+        <div
+          className={cn(
+            'grid gap-2 w-full select-none',
+            isPassenger
+              ? 'grid-cols-2 sm:grid-cols-4'
+              : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
+          )}
+        >
+          {categories.map((cat) => {
+            const isActive = effectiveCategory === cat.key;
+            const Icon = cat.icon;
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setActiveCategory(cat.key)}
+                className={cn(
+                  'w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 rounded-2xl border text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-[0.98] text-center',
+                  isActive
+                    ? cat.activeClass
+                    : 'border-white/10 bg-black/40 text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20'
+                )}
+              >
+                <Icon className={cn('h-4 w-4 shrink-0', isActive ? cat.color : 'text-slate-500')} />
+                <span className="whitespace-nowrap">{isArabic ? cat.labelAr : cat.labelEn}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Passenger View
   if (isPassenger) {
@@ -187,11 +203,11 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
           </CardContent>
         </Card>
 
-        {/* Filter Navigation Bar */}
+        {/* Filter Navigation Bar (Hides Financial & Ranks tabs for Passengers) */}
         {renderFilterBar()}
 
         {/* Step 2: "بينكم تشكرك" Card */}
-        {hasTrips && (activeCategory === 'all' || activeCategory === 'activity') && (
+        {hasTrips && (effectiveCategory === 'all' || effectiveCategory === 'activity') && (
           <div className="rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-r from-[#14B8A6]/10 via-[#0B0F19] to-[#14B8A6]/10 p-4 text-center shadow-lg shadow-black/20 animate-in fade-in duration-200">
             <p className="text-sm font-black text-white">
               <span className="text-[#14F5D5] font-black drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]">بينكم</span>{' '}
@@ -202,18 +218,13 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
           </div>
         )}
 
-        {/* 1. Financial Log */}
-        {(activeCategory === 'all' || activeCategory === 'financial') && (
-          <HistoryFinancialReceipts isArabic={isArabic} />
-        )}
-
-        {/* 2. Legal Log */}
-        {(activeCategory === 'all' || activeCategory === 'legal') && (
+        {/* 1. Legal Log */}
+        {(effectiveCategory === 'all' || effectiveCategory === 'legal') && (
           <HistoryLegalDeclarations isArabic={isArabic} />
         )}
 
-        {/* 3. Activity Log */}
-        {(activeCategory === 'all' || activeCategory === 'activity') && (
+        {/* 2. Activity Log */}
+        {(effectiveCategory === 'all' || effectiveCategory === 'activity') && (
           <div className="space-y-4">
             <HistoryRiderTrips
               riderHistoricalTrips={riderHistoricalTrips}
@@ -232,13 +243,8 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
           </div>
         )}
 
-        {/* 4. Customers Log */}
-        {(activeCategory === 'all' || activeCategory === 'customers') && renderCaptainsWithDivider()}
-
-        {/* 5. Ranks and Points Log */}
-        {(activeCategory === 'all' || activeCategory === 'ranks') && (
-          <HistoryRanksPoints isArabic={isArabic} />
-        )}
+        {/* 3. Customers / Favorite Captains Log */}
+        {(effectiveCategory === 'all' || effectiveCategory === 'customers') && renderCaptainsWithDivider()}
       </div>
     );
   }
