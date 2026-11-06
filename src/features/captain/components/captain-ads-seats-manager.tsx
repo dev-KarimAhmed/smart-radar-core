@@ -400,11 +400,11 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
           </div>
           <div>
             <h2 className={styles.titleText}>
-              {isArabic ? 'إدارة النشر وترويج إعلاناتك المعروضة للمستخدمين في المحيط' : t('title')}
+              {isArabic ? 'إدارة النشر وترويج إعلاناتك المعروضة في المحيط' : t('title')}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 font-sans leading-relaxed">
               {isArabic
-                ? 'تظهر إعلاناتك الترويجية على بطاقتك على شاشة تفاصيل الرحلة فور قبول عرضك، تلقائياً بمجرد انطلاق الرحلة لتوفير تجربة هادئة بدون تشتيت.'
+                ? 'تظهر إعلاناتك الترويجية على بطاقتك على شاشة تفاصيل الرحلة فور قبول عرضك، تلقائياً'
                 : t('subtitle')}
             </p>
           </div>
@@ -417,6 +417,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
               {t('activeAdsCount', { count: ads.length })} / 3
             </span>
           </div>
+          {/* الزر لا يكون موجوداً إلا بعد اختيار الباقة والدفع (Page 5) */}
           {isPackageActive ? (
             <button
               type="button"
@@ -426,17 +427,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
               <Plus className={styles.plusIcon} />
               <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsPackageModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition cursor-pointer"
-              title={isArabic ? 'الزر لا يكون موجوداً إلا بعد اختيار الباقة والدفع' : 'Available only after choosing package and paying'}
-            >
-              <Lock className="h-3.5 w-3.5" />
-              <span>{isArabic ? 'ارفع وعدل اعلانك (مشروط بالباقة)' : 'Ad Manager (Locked)'}</span>
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
 

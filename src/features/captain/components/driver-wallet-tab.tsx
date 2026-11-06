@@ -370,7 +370,10 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
         </div>
       </div>
 
-      {/* 3. Digital Recharge Section */}
+      {/* 3. Captain Promotional Ad Seats Manager & Package Selection (Page 5) */}
+      <CaptainAdsSeatsManager user={user} language={language} />
+
+      {/* 4. Digital Recharge Section */}
       <div id="captain-recharge-section" className="space-y-6 rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-7 shadow-xl">
         {/* Step 1: Channels */}
         <div>
@@ -534,10 +537,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
         </div>
       </div>
 
-      {/* 3.5. Captain Promotional Ad Seats Manager */}
-      <CaptainAdsSeatsManager user={user} language={language} />
-
-      {/* 4. Last 5 Receipts History Section (Collapsible Dropdown Menu) */}
+      {/* 5. Last 5 Receipts History Section (Collapsible Dropdown Menu) */}
       <div
         className={cn(
           "overflow-hidden rounded-3xl border border-slate-800 bg-[#070c18] shadow-xl transition-all duration-300",

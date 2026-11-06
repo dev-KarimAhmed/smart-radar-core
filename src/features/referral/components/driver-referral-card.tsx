@@ -208,8 +208,11 @@ export function DriverReferralCard({ user, isArabic = true, onOpenHistory }: Dri
           <button
             type="button"
             onClick={handleGoToHistory}
-            className="flex items-center gap-1.5 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-[#14F5D5] transition-all cursor-pointer shadow-sm group active:scale-95"
+            className="flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-[#14F5D5] transition-all cursor-pointer shadow-sm group active:scale-95"
           >
+            <span className="px-1.5 py-0.5 rounded-md bg-teal-500/20 text-[10px] font-black text-[#14F5D5]">
+              {isArabic ? 'متابعة السجل ⬅' : 'Track Log ⬅'}
+            </span>
             <span>{isArabic ? 'الانتقال إلى سجل المفضلين في شاشة سجلاتي' : 'View Favorite Riders in My Records'}</span>
             <ArrowLeft className={cn("h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform", !isArabic && "rotate-180 group-hover:translate-x-0.5")} />
           </button>
