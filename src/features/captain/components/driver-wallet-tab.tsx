@@ -432,14 +432,14 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
                 <p className="mt-1 text-amber-200/80">{walletIsMissing ? t('walletMissingBody') : t('walletErrorBody')}</p>
               </div>
             ) : null}
+
+            {/* Captain Promotional Ad Package & Management Buttons (Inside Dropdown per Client Request) */}
+            <CaptainAdsSeatsManager user={user} language={language} />
           </div>
         )}
       </div>
 
-      {/* 3. Captain Promotional Ad Seats Manager & Package Selection (Page 5) */}
-      <CaptainAdsSeatsManager user={user} language={language} />
-
-      {/* 4. Digital Recharge Section */}
+      {/* 3. Digital Recharge Section */}
       <div id="captain-recharge-section" className="space-y-6 rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-7 shadow-xl">
         {/* Step 1: Channels */}
         <div>

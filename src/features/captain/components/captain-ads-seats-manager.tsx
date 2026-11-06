@@ -173,7 +173,11 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
   // حالة باقة الإعلانات (باقة الخدمات / A per Page 5 & 6)
   const [adPackage, setAdPackage] = useState<CaptainAdPackage>(() => getCaptainAdPackage(captainId));
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
-  const isPackageActive = adPackage.status === 'ACTIVE';
+  const [isAdsManagerModalOpen, setIsAdsManagerModalOpen] = useState(false);
+  const isPackageActive =
+    adPackage.status === 'ACTIVE' ||
+    (user as any)?.ad_package_active === true ||
+    (user as any)?.ad_package_status === 'ACTIVE';
 
   const handleActivatePackage = () => {
     const updated = subscribeCaptainAdPackage(captainId);
@@ -347,206 +351,198 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
       : styles.charCountOk;
 
   return (
-    <div className={styles.container} dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* 1. بانر شراء حصص النشر واختيار الباقة (Page 5) */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 p-4 sm:p-5 rounded-2xl border border-teal-500/30 bg-gradient-to-r from-teal-500/15 via-[#071324] to-emerald-500/10 shadow-lg">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#00ffcc]" />
-            <h3 className="text-sm sm:text-base font-black text-white">
-              {isArabic ? 'اشتري حصص النشر في محيطك وعلن عن نفسك' : 'Buy advertising quotas in your perimeter and promote yourself'}
-            </h3>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed font-sans">
-            {isArabic
-              ? 'عند زر الدخول يختار الباقة ثم ينتقل الى وسيلة الدفع واختيار وسيلة.'
-              : 'Choose the ad package then proceed to select your payment channel.'}
-          </p>
-        </div>
+    <div className="w-full pt-3.5 border-t border-white/10" dir={isArabic ? 'rtl' : 'ltr'}>
+      {/* شريط زري باقة الإعلانات وإدارة الإعلانات (داخل القائمة المنسدلة للرصيد) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        {/* 1. زر اختار باقة اعلانك (متاح دائماً ويفتح نافذة الباقة وحصص النشر) */}
+        <button
+          type="button"
+          onClick={() => setIsPackageModalOpen(true)}
+          className="flex-1 flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-teal-500 via-[#14F5D5] to-emerald-400 p-3 sm:p-3.5 text-xs sm:text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+        >
+          <Sparkles className="h-4.5 w-4.5 shrink-0 text-slate-950" />
+          <span>{isArabic ? 'اختار باقة اعلانك' : 'Choose Ad Package'}</span>
+          <span className="px-2 py-0.5 rounded-lg bg-black/20 text-slate-950 text-[11px] font-bold">
+            {isArabic ? (isPackageActive ? 'مفعلة ✓' : 'الدخول') : (isPackageActive ? 'Active ✓' : 'Enter')}
+          </span>
+        </button>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {!isPackageActive ? (
-            <button
-              type="button"
-              onClick={() => setIsPackageModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 via-[#00ffcc] to-emerald-400 hover:brightness-110 text-slate-950 px-4 py-2.5 text-xs sm:text-sm font-black shadow-lg shadow-teal-500/25 active:scale-95 transition-all cursor-pointer"
-            >
-              <span>{isArabic ? 'اختار باقة اعلانك' : 'Choose Ad Package'}</span>
-              <span className="px-2 py-0.5 rounded-lg bg-black/20 text-white text-[11px] font-bold">{isArabic ? 'الدخول' : 'Enter'}</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 text-xs font-black shadow-sm">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                <span>{isArabic ? 'باقة الخدمات / A (مفعلة)' : 'Services Package / A (Active)'}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsPackageModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-slate-300 font-bold transition cursor-pointer"
-              >
-                {isArabic ? 'تفاصيل الباقة' : 'Package Details'}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 2. الترويسة الرئيسية للنظام الإعلاني القائم على المقاعد (Page 5) */}
-      <div className={styles.headerWrapper}>
-        <div className={styles.titleRow}>
-          <div className={styles.headerIconBox}>
-            <Tv className={styles.titleIcon} />
-          </div>
-          <div>
-            <h2 className={styles.titleText}>
-              {isArabic ? 'إدارة النشر وترويج إعلاناتك المعروضة في المحيط' : t('title')}
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5 font-sans leading-relaxed">
-              {isArabic
-                ? 'تظهر إعلاناتك الترويجية على بطاقتك على شاشة تفاصيل الرحلة فور قبول عرضك، تلقائياً'
-                : t('subtitle')}
-            </p>
-          </div>
-        </div>
-
-        <div className={styles.headerActionsRight}>
-          <div className={styles.seatSummaryBadge}>
-            <Sparkles className={styles.sparklesIcon} />
-            <span>
-              {t('activeAdsCount', { count: ads.length })} / 3
-            </span>
-          </div>
-          {/* الزر لا يكون موجوداً إلا بعد اختيار الباقة والدفع (Page 5) */}
-          {isPackageActive ? (
-            <button
-              type="button"
-              onClick={() => handleOpenAddForSeat(nextSeatNumber)}
-              className={styles.addNewHeaderBtn}
-            >
-              <Plus className={styles.plusIcon} />
-              <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* شبكة المقاعد الإعلانية (3 مقاعد لباقة الخدمات / A) */}
-      <div className={styles.seatsGrid}>
-        {ads.map((ad) => (
-          <div key={ad.id} className={styles.seatCardOccupied}>
-            <div>
-              <div className={styles.seatBadgeRow}>
-                <span className={styles.seatNumberBadge}>
-                  {t('promotionalAd')} #{ad.seatNumber}
-                </span>
-                <span className={ad.status === 'ACTIVE' ? styles.seatStatusActive : styles.seatStatusPaused}>
-                  <span className={styles.statusDot} />
-                  <span>
-                    {ad.status === 'ACTIVE' ? t('statusActive') : t('statusPaused')}
-                  </span>
-                </span>
-              </div>
-
-              <div className={styles.adImageThumbnailWrapper}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={ad.imageUrl}
-                  alt={ad.caption || t('promotionalAd')}
-                  className={styles.adImageThumbnail}
-                  onError={handleImageError}
-                />
-              </div>
-
-              {ad.caption ? (
-                <p className={styles.captionBox} title={ad.caption}>
-                  &ldquo;{ad.caption}&rdquo;
-                </p>
-              ) : (
-                <p className={styles.captionFallback}>
-                  {t('imageOnly')}
-                </p>
-              )}
-            </div>
-
-            {/* أزرار الإجراءات: تعديل، حذف، تجميد */}
-            <div className={styles.actionsBar}>
-              <button
-                type="button"
-                onClick={() => handleOpenEdit(ad)}
-                className={styles.actionBtnEdit}
-                title={t('editAd')}
-              >
-                <Pencil className={styles.pencilIcon} />
-                <span>{t('edit')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleToggleStatus(ad)}
-                className={styles.actionBtnToggle}
-                title={ad.status === 'ACTIVE' ? t('pause') : t('activate')}
-              >
-                {ad.status === 'ACTIVE' ? <Pause className={styles.pauseIconAmber} /> : <Play className={styles.playIconEmerald} />}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAdToDelete(ad)}
-                className={styles.actionBtnDelete}
-                title={t('deleteAd')}
-              >
-                <Trash2 className={styles.trashIcon} />
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {/* كارد إضافة إعلان جديد إذا كانت الباقة مفعلة والمقاعد أقل من 3 */}
+        {/* 2. زر ارفع وعدل اعلانك - لا يكون موجوداً إلا بعد اختيار باقة ودفعها وتفعيلها تماماً من الأدمن */}
         {isPackageActive ? (
-          ads.length < 3 && (
-            <div className={styles.seatCardVacant}>
-              <div className={styles.vacantIconBox}>
-                <Plus className={styles.plusIconLarge} />
-              </div>
-              <h3 className={styles.vacantTitle}>
-                {t('newAd')} ({ads.length + 1} / 3)
-              </h3>
-              <p className={styles.vacantSubtitle}>
-                {isArabic ? 'مساحة متاحة ضمن باقة الخدمات / A' : t('availableSlot')}
-              </p>
-              <button
-                type="button"
-                onClick={() => handleOpenAddForSeat(nextSeatNumber)}
-                className={styles.vacantAddBtn}
-              >
-                <Plus className={styles.plusIcon} />
-                <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
-              </button>
-            </div>
-          )
-        ) : (
-          <div className="col-span-full rounded-2xl border-2 border-dashed border-amber-500/30 bg-amber-500/5 p-6 text-center space-y-3">
-            <Lock className="h-8 w-8 text-amber-400 mx-auto" />
-            <h4 className="text-sm font-black text-amber-200">
-              {isArabic ? 'الزر لا يكون موجوداً ومتاحاً إلا بعد اختيار الباقة والدفع' : 'Ad manager is available after selecting package and payment'}
-            </h4>
-            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed font-sans">
-              {isArabic
-                ? 'اشترك الآن في باقة الخدمات / A للبدء برفع حتى 3 بوستات إعلانية ترويجية لنشاطك، وتظهر تلقائياً للمستخدمين في محيط 500 متر.'
-                : 'Subscribe to Package A to publish up to 3 ads within 500m.'}
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsPackageModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2.5 text-xs sm:text-sm font-black text-slate-950 shadow-md transition hover:brightness-110 active:scale-95 cursor-pointer"
-            >
-              <Sparkles className="h-4 w-4" />
-              <span>{isArabic ? 'اختار باقة اعلانك (الدخول)' : 'Choose Ad Package'}</span>
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => setIsAdsManagerModalOpen(true)}
+            className="flex-1 flex items-center justify-center gap-2.5 rounded-2xl border border-[#14F5D5]/80 bg-[#061F22]/90 hover:bg-[#14F5D5]/20 p-3 sm:p-3.5 text-xs sm:text-sm font-black text-[#14F5D5] shadow-lg shadow-cyan-500/10 active:scale-95 transition-all cursor-pointer group"
+          >
+            <Tv className="h-4.5 w-4.5 shrink-0 text-[#14F5D5] group-hover:scale-110 transition-transform" />
+            <span>{isArabic ? 'ارفع وعدل اعلانك' : 'Upload & Edit Ads'}</span>
+            <span className="px-2 py-0.5 rounded-lg bg-[#14F5D5]/20 text-[#14F5D5] text-[11px] font-bold">
+              {ads.length}/3
+            </span>
+          </button>
+        ) : null}
       </div>
+
+      {/* 1. نافذة منبثقة (Popup): "إدارة النشر وترويج إعلاناتك المعروضة للمستخدمين في المحيط" */}
+      {mounted && isAdsManagerModalOpen
+        ? createPortal(
+            <div className={styles.modalOverlay} role="dialog" aria-modal="true" dir={isArabic ? 'rtl' : 'ltr'}>
+              <div className="relative flex flex-col max-h-[92vh] w-full max-w-4xl rounded-3xl border border-[#00ffcc]/40 bg-[#070D19] shadow-2xl text-start overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-white/10 p-5 pb-4 bg-[#070D19] shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-teal-500/30 bg-teal-500/10 text-[#00ffcc] shadow-[0_0_15px_rgba(0,255,204,0.15)]">
+                      <Tv className="h-5 w-5 text-[#00ffcc]" />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-white">
+                        {isArabic ? 'إدارة النشر وترويج إعلاناتك المعروضة للمستخدمين في المحيط' : 'Manage & Promote Your Ads in Area'}
+                      </h3>
+                      <p className="text-xs text-slate-400 font-sans mt-0.5 leading-relaxed">
+                        {isArabic
+                          ? 'تظهر إعلاناتك الترويجية على بطاقتك على شاشة تفاصيل الرحلة فور قبول عرضك، تلقائياً'
+                          : 'Your promotional ads appear on your card on the trip details screen upon accepting your offer, automatically'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00ffcc]/30 bg-[#00ffcc]/10 px-3 py-1 text-xs font-bold text-[#00ffcc]">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>{ads.length} / 3</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsAdsManagerModalOpen(false)}
+                      className="rounded-full p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+                      title={isArabic ? 'إغلاق' : 'Close'}
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modal Body: Seats Grid */}
+                <div className="overflow-y-auto p-5 space-y-4 flex-1 overscroll-contain">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {ads.map((ad) => (
+                      <div key={ad.id} className={styles.seatCardOccupied}>
+                        <div>
+                          <div className={styles.seatBadgeRow}>
+                            <span className={styles.seatNumberBadge}>
+                              {t('promotionalAd')} #{ad.seatNumber}
+                            </span>
+                            <span className={ad.status === 'ACTIVE' ? styles.seatStatusActive : styles.seatStatusPaused}>
+                              <span className={styles.statusDot} />
+                              <span>
+                                {ad.status === 'ACTIVE' ? t('statusActive') : t('statusPaused')}
+                              </span>
+                            </span>
+                          </div>
+
+                          <div className={styles.adImageThumbnailWrapper}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={ad.imageUrl}
+                              alt={ad.caption || t('promotionalAd')}
+                              className={styles.adImageThumbnail}
+                              onError={handleImageError}
+                            />
+                          </div>
+
+                          {ad.caption ? (
+                            <p className={styles.captionBox} title={ad.caption}>
+                              &ldquo;{ad.caption}&rdquo;
+                            </p>
+                          ) : (
+                            <p className={styles.captionFallback}>
+                              {t('imageOnly')}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Actions bar */}
+                        <div className={styles.actionsBar}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(ad)}
+                            className={styles.actionBtnEdit}
+                            title={t('editAd')}
+                          >
+                            <Pencil className={styles.pencilIcon} />
+                            <span>{t('edit')}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(ad)}
+                            className={styles.actionBtnToggle}
+                            title={ad.status === 'ACTIVE' ? t('pause') : t('activate')}
+                          >
+                            {ad.status === 'ACTIVE' ? (
+                              <Pause className={styles.pauseIconAmber} />
+                            ) : (
+                              <Play className={styles.playIconEmerald} />
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setAdToDelete(ad)}
+                            className={styles.actionBtnDelete}
+                            title={t('deleteAd')}
+                          >
+                            <Trash2 className={styles.trashIcon} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Vacant seats (up to 3) */}
+                    {ads.length < 3 && (
+                      <div className={styles.seatCardVacant}>
+                        <div className={styles.vacantIconBox}>
+                          <Plus className={styles.plusIconLarge} />
+                        </div>
+                        <h3 className={styles.vacantTitle}>
+                          {t('newAd')} ({ads.length + 1} / 3)
+                        </h3>
+                        <p className={styles.vacantSubtitle}>
+                          {isArabic ? 'مساحة متاحة ضمن باقة الخدمات / A' : t('availableSlot')}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddForSeat(nextSeatNumber)}
+                          className={styles.vacantAddBtn}
+                        >
+                          <Plus className={styles.plusIcon} />
+                          <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 sm:p-5 border-t border-white/10 bg-[#070D19]/95 flex items-center justify-between shrink-0">
+                  <div className="text-xs text-slate-400 font-sans">
+                    {isArabic
+                      ? 'الحد الأقصى 3 إعلانات ترويجية نشطة ضمن باقة الخدمات / A'
+                      : 'Max 3 promotional ads within Services Package A'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAdsManagerModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 transition cursor-pointer"
+                  >
+                    {isArabic ? 'إغلاق' : 'Close'}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {/* نافذة إنشاء / تعديل الإعلان خارج البوكس بالكامل */}
       {mounted && isModalOpen
@@ -738,16 +734,21 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
               <div className="relative flex flex-col max-h-[92vh] w-full max-w-lg rounded-3xl border border-[#00ffcc]/40 bg-[#070D19] shadow-2xl text-start overflow-hidden">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between border-b border-white/10 p-5 pb-4 bg-[#070D19] shrink-0">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-teal-500/30 bg-teal-500/10 text-[#00ffcc]">
-                      <Sparkles className="h-5 w-5" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-teal-500/30 bg-teal-500/10 text-[#00ffcc] shadow-[0_0_15px_rgba(0,255,204,0.15)]">
+                      <Sparkles className="h-5 w-5 text-[#00ffcc]" />
                     </div>
                     <div>
-                      <h3 className="text-base sm:text-lg font-black text-white">
-                        {isArabic ? 'باقة الخدمات / A' : 'Services Package / A'}
-                      </h3>
-                      <p className="text-xs text-amber-300 font-bold">
-                        {isArabic ? 'زر شاشة اختار باقة اعلانك' : 'Choose Ad Package Screen'}
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base sm:text-lg font-black text-white">
+                          {isArabic ? 'اشتري حصص النشر في محيطك وعلن عن نفسك' : 'Buy Ad Quotas in Your Area'}
+                        </h3>
+                        <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full border border-teal-500/30 bg-teal-500/10 text-[#00ffcc] text-[11px] font-bold">
+                          {isArabic ? 'باقة الخدمات / A' : 'Services Package A'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-sans mt-0.5">
+                        {isArabic ? 'عند زر الدخول يختار الباقة ثم ينتقل الى وسيلة الدفع واختيار وسيلة' : 'Choose package then proceed to payment channel'}
                       </p>
                     </div>
                   </div>
