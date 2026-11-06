@@ -26,6 +26,23 @@ function PwaUpdater() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
+    // In local development / localhost, unregister existing SW and purge cache to prevent stale chunk traps
+    if (process.env.NODE_ENV !== 'production' || (typeof window !== 'undefined' && window.location.hostname === 'localhost')) {
+      void navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          void reg.unregister();
+        }
+      });
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        void caches.keys().then((keys) => {
+          for (const key of keys) {
+            void caches.delete(key);
+          }
+        });
+      }
+      return;
+    }
+
     let removeVisibilityListener: (() => void) | undefined;
     void navigator.serviceWorker.register('/sw.js').then((nextRegistration) => {
       setRegistration(nextRegistration);

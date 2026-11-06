@@ -290,3 +290,65 @@ export async function toggleCaptainAdStatus(captainId: string, adId: string): Pr
   const nextStatus = target.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
   return await updateCaptainAd(captainId, adId, { status: nextStatus });
 }
+
+export interface CaptainAdPackage {
+  packageId: 'PACKAGE_A';
+  packageNameAr: string;
+  packageNameEn: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'UNSUBSCRIBED';
+  durationDays: number;
+  maxAds: number;
+  coverageMeters: number;
+  priceJOD?: number;
+  subscribedAt?: string;
+  expiresAt?: string;
+}
+
+export const AD_PACKAGE_A_DETAILS: CaptainAdPackage = {
+  packageId: 'PACKAGE_A',
+  packageNameAr: 'باقة الخدمات / A',
+  packageNameEn: 'Services Package / A',
+  status: 'UNSUBSCRIBED',
+  durationDays: 30,
+  maxAds: 3,
+  coverageMeters: 500,
+  priceJOD: 10,
+};
+
+export function getCaptainAdPackageKey(captainId: string): string {
+  return `radar_captain_ad_package_${captainId}`;
+}
+
+export function getCaptainAdPackage(captainId: string): CaptainAdPackage {
+  if (typeof window === 'undefined') return AD_PACKAGE_A_DETAILS;
+  try {
+    const raw = localStorage.getItem(getCaptainAdPackageKey(captainId));
+    if (!raw) return AD_PACKAGE_A_DETAILS;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.status === 'ACTIVE') {
+      if (parsed.expiresAt && new Date(parsed.expiresAt).getTime() < Date.now()) {
+        return { ...parsed, status: 'EXPIRED' };
+      }
+      return parsed;
+    }
+    return { ...AD_PACKAGE_A_DETAILS, ...parsed };
+  } catch {
+    return AD_PACKAGE_A_DETAILS;
+  }
+}
+
+export function subscribeCaptainAdPackage(captainId: string): CaptainAdPackage {
+  const now = new Date();
+  const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const pkg: CaptainAdPackage = {
+    ...AD_PACKAGE_A_DETAILS,
+    status: 'ACTIVE',
+    subscribedAt: now.toISOString(),
+    expiresAt: expires.toISOString(),
+  };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(getCaptainAdPackageKey(captainId), JSON.stringify(pkg));
+    window.dispatchEvent(new CustomEvent('radar_captain_ad_package_updated', { detail: { captainId, package: pkg } }));
+  }
+  return pkg;
+}

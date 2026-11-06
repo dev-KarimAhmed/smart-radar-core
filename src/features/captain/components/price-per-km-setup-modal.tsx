@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { ArrowLeft, ArrowRight, ChevronDown, Loader2, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, ChevronDown, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -181,6 +181,33 @@ export function PricePerKmSetupModal({
   const [isSilverWarningModalOpen, setIsSilverWarningModalOpen] = React.useState(false);
   const [isSilverConfirmed, setIsSilverConfirmed] = React.useState(false);
 
+  // قفز 10 أرقام (0.10) لأسعار الكيلو والدقيقة والمسافات (Page 7)
+  const handleStepPricePerKm = (delta: number) => {
+    const current = parseFloat(pricePerKm) || 0;
+    const next = Math.max(0, Math.round((current + delta) * 100) / 100);
+    setPricePerKm(next.toFixed(2));
+    setIsSilverConfirmed(false);
+  };
+
+  const handleStepPricePerMin = (delta: number) => {
+    const current = parseFloat(pricePerMin) || 0;
+    const next = Math.max(0, Math.round((current + delta) * 100) / 100);
+    setPricePerMin(next.toFixed(2));
+    setIsSilverConfirmed(false);
+  };
+
+  const handleStepIncludedKm = (delta: number) => {
+    const current = parseFloat(includedKm) || 0;
+    const next = Math.max(0, Math.round((current + delta) * 10) / 10);
+    setIncludedKm(next.toString());
+  };
+
+  const handleStepBaseFare = (delta: number) => {
+    const current = parseFloat(baseFare) || 0;
+    const next = Math.max(0, Math.round((current + delta) * 10) / 10);
+    setBaseFare(next.toFixed(2));
+  };
+
   const executeFreeSave = async (
     parsedBaseFare: number,
     parsedPricePerKm: number,
@@ -346,6 +373,19 @@ export function PricePerKmSetupModal({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {/* تنبيه تشغيلي حاسم (Page 6) */}
+        <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/15 p-3.5 sm:p-4 text-start shadow-lg mb-2">
+          <div className="flex items-center gap-2 font-black text-amber-300 text-xs sm:text-sm mb-1">
+            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+            <span>{isArabic ? '" تنبيه تشغيلي حاسم "' : '" Crucial Operational Alert "'}</span>
+          </div>
+          <p className="text-xs font-bold text-slate-200 leading-relaxed font-sans">
+            {isArabic
+              ? 'فك قيد استهلاك البطارية على هاتفك ثم ضعه على شاحن المركبة اثناء نشاطك حيث إن التتبع اللحظي يستهلك طاقة البطارية.'
+              : 'Remove battery optimization restrictions on your phone and keep it plugged into your vehicle charger during activity, as live geolocation consumes battery power.'}
+          </p>
+        </div>
+
         {marketIndicator ? (
           <div className={styles.marketIndicatorWrap}>
             <MarketStatusIndicator indicator={marketIndicator} size="full" />
@@ -460,14 +500,26 @@ export function PricePerKmSetupModal({
               {shortDistancesError ? <p className={styles.shortDistancesError}>{shortDistancesError}</p> : null}
               {/* Distance included in opening charge comes first */}
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>{t('tariffModalIncludedKmLabel')}</label>
-                {marketAverage ? (
-                  <span className={styles.marketAverageLine}>
-                    {t('tariffModalMarketAverageKm', { avg: marketAverage.includedKm.toFixed(1) })}
-                  </span>
-                ) : null}
+                <div className="flex items-center justify-between">
+                  <label className={styles.fieldLabel}>
+                    {isArabic ? 'حدد المسافة القصيرة بنسبة لك:' : t('tariffModalIncludedKmLabel')}
+                  </label>
+                  {marketAverage ? (
+                    <span className="text-[11px] font-bold text-slate-400">
+                      {isArabic ? `متوسط السوق: ${marketAverage.includedKm.toFixed(1)} كم` : t('tariffModalMarketAverageKm', { avg: marketAverage.includedKm.toFixed(1) })}
+                    </span>
+                  ) : null}
+                </div>
                 <span className={styles.fieldHint}>{t('tariffModalIncludedKmHint')}</span>
                 <div className={styles.inputRow}>
+                  <button
+                    type="button"
+                    onClick={() => handleStepIncludedKm(-0.5)}
+                    className="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black flex items-center justify-center active:scale-95 transition cursor-pointer"
+                    title="-0.5"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -477,20 +529,40 @@ export function PricePerKmSetupModal({
                     onChange={(event) => setIncludedKm(event.target.value)}
                     placeholder="0"
                     disabled={isSaving}
-                    className={styles.input}
+                    className={cn(styles.input, "text-center font-mono font-bold text-base")}
                   />
+                  <button
+                    type="button"
+                    onClick={() => handleStepIncludedKm(0.5)}
+                    className="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black flex items-center justify-center active:scale-95 transition cursor-pointer"
+                    title="+0.5"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
                   <span className={styles.currencyBadge}>{t('tariffModalKmUnit')}</span>
                 </div>
               </div>
 
               {/* Base fare (opening charge) comes second */}
               <div className={styles.field}>
-                <label className={styles.fieldLabel}>{t('tariffModalBaseFareLabel')}</label>
-                <span className={styles.marketAverageLine}>
-                  {t('tariffModalMarketFloor', { min: minBaseFare.toFixed(2), currency: currency || '' })}
-                </span>
+                <div className="flex items-center justify-between">
+                  <label className={styles.fieldLabel}>
+                    {isArabic ? 'حدد السعر المقطوع للمسافة القصيرة:' : t('tariffModalBaseFareLabel')}
+                  </label>
+                  <span className="text-[11px] font-bold text-emerald-300">
+                    {isArabic ? `متوسط سعر السوق للمسافات القصيرة: ${(minBaseFare || 2.1).toFixed(2)} ${currency || 'د.أ'}` : t('tariffModalMarketFloor', { min: minBaseFare.toFixed(2), currency: currency || '' })}
+                  </span>
+                </div>
                 <span className={styles.fieldHint}>{t('tariffModalBaseFareHint')}</span>
                 <div className={styles.inputRow}>
+                  <button
+                    type="button"
+                    onClick={() => handleStepBaseFare(-0.5)}
+                    className="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black flex items-center justify-center active:scale-95 transition cursor-pointer"
+                    title="-0.5"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -500,8 +572,16 @@ export function PricePerKmSetupModal({
                     onChange={(event) => setBaseFare(event.target.value)}
                     placeholder="0.00"
                     disabled={isSaving}
-                    className={styles.input}
+                    className={cn(styles.input, "text-center font-mono font-bold text-base")}
                   />
+                  <button
+                    type="button"
+                    onClick={() => handleStepBaseFare(0.5)}
+                    className="h-11 w-11 shrink-0 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black flex items-center justify-center active:scale-95 transition cursor-pointer"
+                    title="+0.5"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
                   {currency ? <span className={styles.currencyBadge}>{currency}</span> : null}
                 </div>
               </div>
@@ -559,7 +639,15 @@ export function PricePerKmSetupModal({
               <div className={styles.comparisonCardRows}>
                 <div className={styles.comparisonCardRow}>
                   <span className={styles.comparisonCardLabel}>{t('tariffPerKmShort')}</span>
-                  <div className={styles.comparisonInputWrap}>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleStepPricePerKm(-0.10)}
+                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      title="-0.10"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <input
                       type="number"
                       inputMode="decimal"
@@ -574,11 +662,27 @@ export function PricePerKmSetupModal({
                       disabled={isSaving}
                       className={styles.miniInput}
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleStepPricePerKm(0.10)}
+                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      title="+0.10"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
                   </div>
                 </div>
                 <div className={styles.comparisonCardRow}>
                   <span className={styles.comparisonCardLabel}>{t('tariffPerMinShort')}</span>
-                  <div className={styles.comparisonInputWrap}>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleStepPricePerMin(-0.10)}
+                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      title="-0.10"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <input
                       type="number"
                       inputMode="decimal"
@@ -593,10 +697,31 @@ export function PricePerKmSetupModal({
                       disabled={isSaving}
                       className={styles.miniInput}
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleStepPricePerMin(0.10)}
+                      className="h-6 w-5 sm:w-6 rounded bg-white/10 hover:bg-white/20 text-white font-black flex items-center justify-center text-xs active:scale-90 transition cursor-pointer select-none"
+                      title="+0.10"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Pricing Freedom & Advisory Note (Page 7) */}
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-slate-300 space-y-1 font-sans text-start">
+            <p className="font-black text-[#14F5D5] flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>{isArabic ? 'حرية التسعير الكاملة (السائق حر):' : 'Full Pricing Freedom:'}</span>
+            </p>
+            <p className="leading-relaxed text-slate-400">
+              {isArabic
+                ? 'حرية التسعير لا تُقيّد السائق. الأسهم وقفزات الأرقام (+/- 0.10) تتيح لك تخصيص أسعارك بمرونة، والمؤشرات استرشادية فقط لتوضيح متوسط السوق.'
+                : 'Pricing freedom does not restrict you. Benchmark indicators are purely advisory to help you stay competitive in your market.'}
+            </p>
           </div>
          </div>
         )}
@@ -631,10 +756,8 @@ export function PricePerKmSetupModal({
           >
             {isSaving ? (
               <Loader2 className="h-5 w-5 animate-spin mx-auto text-[#06111f]" />
-            ) : isActivationConfirm ? (
-              t('tariffModalConfirmAction')
             ) : (
-              t('pricePerKmModalSave')
+              <span>{isArabic ? 'تأكيد وبدء العمل' : t('tariffModalConfirmAction')}</span>
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

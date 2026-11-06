@@ -95,6 +95,8 @@ export function CaptainHeader({
           <div className={styles.logoWrap}>
             <a
               href={getLandingPageUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center cursor-pointer hover:opacity-90 transition-opacity"
             >
               <Image

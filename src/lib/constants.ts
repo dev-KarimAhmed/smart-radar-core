@@ -48,10 +48,10 @@ export const SOVEREIGN_PAYMENT_CHANNELS = [
 
 export function getLandingPageUrl(): string {
   const raw = (process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app').trim();
-  const cleaned = raw.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9/]+$/g, '').trim();
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
-    return cleaned;
+  const sanitized = raw.replace(/["'\\]/g, '').trim();
+  if (sanitized.startsWith('http://') || sanitized.startsWith('https://')) {
+    return sanitized;
   }
-  return `https://${cleaned.replace(/^https?:?\/?\/?/, '')}`;
+  return `https://${sanitized.replace(/^https?:?\/?\/?/, '')}`;
 }
 

@@ -279,7 +279,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
   const currencySymbol = user?.currencyAr || user?.currencyEn || '';
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-12 text-white">
+    <div className="w-full space-y-6 pb-12 text-white min-w-0">
       {/* 1. Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-black text-white">{t('title')}</h1>
@@ -371,7 +371,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
       </div>
 
       {/* 3. Digital Recharge Section */}
-      <div className="space-y-6 rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-7 shadow-xl">
+      <div id="captain-recharge-section" className="space-y-6 rounded-3xl border border-slate-800 bg-[#070c18] p-5 sm:p-7 shadow-xl">
         {/* Step 1: Channels */}
         <div>
           <div className="flex items-center justify-between">
