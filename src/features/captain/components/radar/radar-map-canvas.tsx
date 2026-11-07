@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 import type { Trip } from '@/core/types';
 import type { CaptainCancelCooldownState } from '../../services/captain-cancel-cooldown';
 import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
@@ -62,24 +63,30 @@ export function RadarMapCanvas({
       </div>
       <div className={styles.style166_9} />
 
-      {/* Floating Center Banner per Page 8: انت داخل نطاق الطلبات بالمحيط */}
-      {radarLockMessage ? (
-        <div className="pointer-events-none absolute top-3 sm:top-4 inset-x-0 mx-auto w-fit max-w-[85%] z-20 flex items-center justify-center rounded-xl sm:rounded-2xl border border-amber-500/40 bg-[#06101E]/95 px-6 sm:px-10 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-amber-300 shadow-2xl backdrop-blur-md select-none animate-in fade-in duration-300">
-          <span>{radarLockMessage}</span>
-        </div>
-      ) : isActive ? (
-        <div className="pointer-events-none absolute top-3 sm:top-4 inset-x-0 mx-auto w-fit max-w-[85%] z-20 flex items-center justify-center rounded-xl sm:rounded-2xl border border-teal-500/40 bg-[#06101E]/95 px-8 sm:px-14 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-[#14F5D5] shadow-2xl backdrop-blur-md select-none animate-in fade-in duration-300">
-          <span>{language === 'ar' ? 'انت داخل نطاق الطلبات بالمحيط' : 'You are within order broadcast perimeter'}</span>
-        </div>
-      ) : (
-        <div className="pointer-events-none absolute top-3 sm:top-4 inset-x-0 mx-auto w-fit max-w-[85%] z-20 flex items-center justify-center rounded-xl sm:rounded-2xl border border-slate-700/60 bg-[#06101E]/95 px-6 sm:px-10 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-slate-400 shadow-2xl backdrop-blur-md select-none animate-in fade-in duration-300">
-          <span>{copy.offline}</span>
-        </div>
-      )}
+      {/* Full-width Map Top Banner per User Request */}
+      <div
+        className={cn(
+          "pointer-events-none absolute top-2.5 sm:top-3.5 inset-x-2.5 sm:inset-x-4 z-20 flex items-center justify-center rounded-xl sm:rounded-2xl border px-3 sm:px-4 py-2 sm:py-2.5 shadow-2xl backdrop-blur-md select-none transition-all duration-300",
+          radarLockMessage
+            ? "border-amber-500/40 bg-[#06101E]/95 text-amber-300"
+            : isActive
+              ? "border-teal-500/40 bg-[#06101E]/95 text-[#14F5D5]"
+              : "border-slate-700/60 bg-[#06101E]/95 text-slate-400"
+        )}
+      >
+        <span className="text-xs sm:text-sm font-black tracking-wide text-center">
+          {radarLockMessage ||
+            (isActive
+              ? language === 'ar'
+                ? 'انت داخل نطاق الطلبات بالمحيط'
+                : 'You are within order broadcast perimeter'
+              : copy.offline)}
+        </span>
 
-      {/* Top-Right Label: رادار الكابتن المعلن */}
-      <div className="pointer-events-none absolute top-3 sm:top-4 end-3 sm:end-4 z-20 text-[11px] sm:text-xs font-bold text-slate-300/80 bg-black/40 px-2.5 py-1 rounded-lg border border-white/5 backdrop-blur-sm select-none">
-        <span>{copy.title}</span>
+        {/* Top-Right Label: رادار الكابتن المعلن */}
+        <span className="absolute end-3 sm:end-4 text-[10px] sm:text-xs font-bold text-slate-400 select-none">
+          {copy.title}
+        </span>
       </div>
 
       {(!isMapReady || mapIssue) && (
