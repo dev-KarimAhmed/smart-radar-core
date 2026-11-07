@@ -136,6 +136,7 @@ export function RadarMapView({
       <RadarRequestsQueue
         language={language}
         currency={currency}
+        totalMinutes={totalMinutes}
         copy={copy}
         requests={requests}
         sortedRequests={sortedRequests}

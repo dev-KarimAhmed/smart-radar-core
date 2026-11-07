@@ -4,13 +4,14 @@ import type { CaptainCancelCooldownState } from '../../services/captain-cancel-c
 import { formatSecondsToMMSS } from '../../services/captain-cancel-cooldown';
 import type { Trip } from '@/core/types';
 import { styles } from './radar-map.styles';
-import { StateCard } from './radar-map.helpers';
+import { StateCard, formatMinutes } from './radar-map.helpers';
 import { RadarRequestCard } from './radar-request-card';
 import type { RadarCopyType } from './radar-copy';
 
 interface RadarRequestsQueueProps {
   language: 'ar' | 'en';
   currency: string;
+  totalMinutes?: number;
   copy: RadarCopyType;
   requests: Trip[];
   sortedRequests: Trip[];
@@ -43,6 +44,7 @@ interface RadarRequestsQueueProps {
 export function RadarRequestsQueue({
   language,
   currency,
+  totalMinutes = 0,
   copy,
   requests,
   sortedRequests,
@@ -73,12 +75,20 @@ export function RadarRequestsQueue({
 }: RadarRequestsQueueProps) {
   return (
     <aside className={styles.style201_22}>
-      <div className={styles.style202_23}>
-        <div>
-          <p className={styles.style204_24}>{copy.queueBadge}</p>
-          <h2 className={styles.style205_25}>{copy.sheetTitle}</h2>
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-teal-500/30 bg-[#06101E]/90 px-4 py-3 text-xs sm:text-sm font-black text-[#14F5D5] shadow-lg backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-[#14F5D5] shrink-0" />
+          <span>
+            {language === 'ar'
+              ? `رصيد الانتشار ${formatMinutes(totalMinutes, language)}`
+              : `Broadcast Quota: ${formatMinutes(totalMinutes, language)}`}
+          </span>
         </div>
-        <span className={styles.style208_27}>{requests.length}</span>
+        {requests.length > 0 ? (
+          <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-black text-emerald-300">
+            {requests.length}
+          </span>
+        ) : null}
       </div>
 
       <div className={styles.style211_28}>

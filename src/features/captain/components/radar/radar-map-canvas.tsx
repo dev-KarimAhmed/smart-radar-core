@@ -1,15 +1,11 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import type { CaptainCancelCooldownState } from '../../services/captain-cancel-cooldown';
-import { formatSecondsToMMSS } from '../../services/captain-cancel-cooldown';
-import { cn } from '@/lib/utils';
 import { RecenterMapButton } from '@/shared/components/map/recenter-map-button';
 import { styles } from './radar-map.styles';
 import {
   CarMarkerIcon,
   fallbackRequestPosition,
-  formatMinutes,
 } from './radar-map.helpers';
 import type { RadarCopyType } from './radar-copy';
 
@@ -67,31 +63,23 @@ export function RadarMapCanvas({
       <div className={styles.style166_9} />
 
       {/* Floating Center Banner per Page 8: انت داخل نطاق الطلبات بالمحيط */}
-      {isActive && !radarLockMessage && (
-        <div className="pointer-events-none absolute top-3 inset-x-0 mx-auto w-fit z-20 flex items-center justify-center gap-2 rounded-full border border-teal-500/40 bg-[#06101E]/90 px-4 py-1.5 text-xs font-black text-[#14F5D5] shadow-xl backdrop-blur-md select-none animate-in fade-in duration-300">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
-          </span>
+      {radarLockMessage ? (
+        <div className="pointer-events-none absolute top-3 sm:top-4 inset-x-0 mx-auto w-fit max-w-[85%] z-20 flex items-center justify-center rounded-xl sm:rounded-2xl border border-amber-500/40 bg-[#06101E]/95 px-6 sm:px-10 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-amber-300 shadow-2xl backdrop-blur-md select-none animate-in fade-in duration-300">
+          <span>{radarLockMessage}</span>
+        </div>
+      ) : isActive ? (
+        <div className="pointer-events-none absolute top-3 sm:top-4 inset-x-0 mx-auto w-fit max-w-[85%] z-20 flex items-center justify-center rounded-xl sm:rounded-2xl border border-teal-500/40 bg-[#06101E]/95 px-8 sm:px-14 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-[#14F5D5] shadow-2xl backdrop-blur-md select-none animate-in fade-in duration-300">
           <span>{language === 'ar' ? 'انت داخل نطاق الطلبات بالمحيط' : 'You are within order broadcast perimeter'}</span>
+        </div>
+      ) : (
+        <div className="pointer-events-none absolute top-3 sm:top-4 inset-x-0 mx-auto w-fit max-w-[85%] z-20 flex items-center justify-center rounded-xl sm:rounded-2xl border border-slate-700/60 bg-[#06101E]/95 px-6 sm:px-10 py-2 sm:py-2.5 text-xs sm:text-sm font-black text-slate-400 shadow-2xl backdrop-blur-md select-none animate-in fade-in duration-300">
+          <span>{copy.offline}</span>
         </div>
       )}
 
-      <div className={styles.style168_10}>
-        <div>
-          <p className={styles.style170_11}>{copy.title}</p>
-          <p className={styles.style171_12}>{isActive && !radarLockMessage ? copy.online : copy.offline}</p>
-        </div>
-        <div className={styles.style173_13}>
-          <span className={styles.style174_14}>
-            <Clock className={styles.style175_15} />
-            {radarLockMessage
-              ? copy.locked
-              : language === 'ar'
-                ? `رصيد الانتشار: ${formatMinutes(totalMinutes, language)} - أنت داخل نطاق الطلبات بالمحيط`
-                : `Broadcast Quota: ${formatMinutes(totalMinutes, language)} - Within perimeter`}
-          </span>
-        </div>
+      {/* Top-Right Label: رادار الكابتن المعلن */}
+      <div className="pointer-events-none absolute top-3 sm:top-4 end-3 sm:end-4 z-20 text-[11px] sm:text-xs font-bold text-slate-300/80 bg-black/40 px-2.5 py-1 rounded-lg border border-white/5 backdrop-blur-sm select-none">
+        <span>{copy.title}</span>
       </div>
 
       {(!isMapReady || mapIssue) && (
