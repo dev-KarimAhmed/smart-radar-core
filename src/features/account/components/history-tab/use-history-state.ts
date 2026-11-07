@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { dexieDb, type RiderTripLedgerEntry } from '@/lib/dexie-db';
+import { dexieDb } from '@/lib/dexie-db';
 import { fetchFavoriteCaptainIds, setFavoriteCaptain } from '../../services/favorite-captains';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,33 +12,28 @@ import { getCurrencyLabel } from '@/shared/services/currency-label';
 import {
   HISTORY_TTL_MS,
   type HistoricalTrip,
-  getCaptainIdFromTrip,
-  getHistoryCaptainName,
-  getHistoryCaptainRank,
-  getHistoryCaptainPhone,
-  getHistoryVehicleInfo,
-  parseTripTimestamp,
-  fetchRowsByIds,
-  enrichCaptainDetails,
-  getTripHistoryId,
-  appendUniqueTrips,
-  mapLedgerRowToTripShape,
-  tripShapeToRiderLedgerEntry
 } from './history-shared';
-import { getRiderLinkedCaptain, removeCaptainReferral, type LinkedCaptainInfo } from '@/features/referral/services/captain-referral';
+import { getRiderLinkedCaptain, type LinkedCaptainInfo } from '@/features/referral/services/captain-referral';
+import {
+  buildRiderHistoricalTrips,
+  buildFavoriteCaptains,
+  buildCaptainHistoricalTrips,
+} from './history-transforms';
+import { fetchTripHistoryData } from './history-fetch-service';
+
+export {
+  buildRiderHistoricalTrips,
+  buildFavoriteCaptains,
+  buildCaptainHistoricalTrips,
+} from './history-transforms';
+export { fetchTripHistoryData } from './history-fetch-service';
 
 export function useHistoryState() {
-
   const { user, isCaptain, isPassenger } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
   const t = useTranslations('historyTab');
   const tRef = useTranslations('referral.linkedCaptain');
-  // NOT its own store any more. The ids come from the server (favoriteCaptainIds) and the
-  // display details are read off the rider's own trips below, so there is exactly one place
-  // that knows who is favourited. Keeping a second table of captain details was how the list
-  // and the hearts drifted apart in the first place.
-  // Captain ids, from the server. Keyed by captain so one favourite covers every trip with
-  // them ظ¤ the Dexie list above is keyed by trip and cannot answer that question.
+
   const [favoriteCaptainIds, setFavoriteCaptainIds] = useState<Set<string>>(new Set());
   const [dexieFavorites, setDexieFavorites] = useState<any[]>([]);
   const [linkedCaptain, setLinkedCaptain] = useState<LinkedCaptainInfo | null>(null);
@@ -69,11 +64,6 @@ export function useHistoryState() {
   const THREE_DAYS_MS = HISTORY_TTL_MS;
   const now = Date.now();
 
-  /**
-   * One source: fetchFavoriteCaptainIds. It reads the server, falls back to the
-   * captain-keyed offline cache, and migrates any device-only legacy favourites on the way.
-   * Also merges the referral linked captain for riders.
-   */
   const loadFavorites = async () => {
     try {
       const ids = await fetchFavoriteCaptainIds();
@@ -122,7 +112,7 @@ export function useHistoryState() {
       setSovereignLogs([]);
       toast({
         title: t('logsClearedTitle'),
-        description: t('logsClearedDesc')
+        description: t('logsClearedDesc'),
       });
     } catch (err) {
       console.error("Failed to clear sovereign logs:", err);
@@ -148,6 +138,7 @@ export function useHistoryState() {
     window.addEventListener('sovereign-log-added', handleLogAdded);
     window.addEventListener('radar_favorites_updated', handleFavoritesUpdated);
     window.addEventListener('rider-favorites-updated', handleFavoritesUpdated);
+
     return () => {
       window.removeEventListener('sovereign-log-added', handleLogAdded);
       window.removeEventListener('radar_favorites_updated', handleFavoritesUpdated);
@@ -164,555 +155,59 @@ export function useHistoryState() {
 
     let active = true;
 
-    async function fetchTripHistory() {
-      // [ACT-SSOT-04] Offline-First / Cache-First: immediately read and render local Dexie trips
-      try {
-        const cutoffMs = Date.now() - THREE_DAYS_MS;
-        if (isCaptain) {
-          const localCaptain = await dexieDb.captainLedger.toArray();
-          const validCaptain = localCaptain.filter(entry => entry.completedAt >= cutoffMs);
-          const expiredCaptain = localCaptain.filter(entry => entry.completedAt < cutoffMs);
-          if (expiredCaptain.length > 0) {
-            void Promise.all(expiredCaptain.map(e => dexieDb.captainLedger.delete(e.requestId)));
-          }
-
-          if (validCaptain.length > 0 && active) {
-            setRealTrips(validCaptain.map(entry => ({
-              id: entry.requestId,
-              status: 'COMPLETED',
-              completed_at: new Date(entry.completedAt).toISOString(),
-              created_at: new Date(entry.completedAt).toISOString(),
-              final_fare: entry.finalFare,
-              rider: { full_name: isArabic ? 'مستخدم محلي' : 'Local Rider', phone: '', rating: 5.0 },
-              destination_address_ar: (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير متاح') ? entry.destination : '',
-              pickup_address_ar: entry.pickup || '',
-              trip_fare: entry.finalFare,
-            } as any)));
+    async function syncTrips() {
+      const result = await fetchTripHistoryData({
+        userId: user!.uid,
+        isCaptain: Boolean(isCaptain),
+        isArabic,
+        cutoffMs: Date.now() - THREE_DAYS_MS,
+        onLocalTripsLoaded: (localTrips) => {
+          if (active && localTrips.length > 0) {
+            setRealTrips(localTrips);
             setLoading(false);
           }
-        } else {
-          const localRider = await dexieDb.riderTripLedger.toArray();
-          const validRider = localRider.filter(entry => entry.timestamp >= cutoffMs);
-          const expiredRider = localRider.filter(entry => entry.timestamp < cutoffMs);
-          if (expiredRider.length > 0) {
-            void Promise.all(expiredRider.map(e => dexieDb.riderTripLedger.delete(e.tripId)));
-          }
+        },
+      });
 
-          if (validRider.length > 0 && active) {
-            setRealTrips(validRider.map(entry => ({
-              id: entry.tripId,
-              status: 'COMPLETED',
-              completed_at: new Date(entry.timestamp).toISOString(),
-              created_at: new Date(entry.timestamp).toISOString(),
-              final_fare: entry.finalPrice,
-              accepted_captain_id: entry.captainId,
-              captain: {
-                id: entry.captainId,
-                full_name: entry.captainName,
-                phone: entry.captainPhone,
-                rating: 5.0,
-                rank: entry.captainRank,
-              },
-              vehicle: entry.vehicleInfo ? { model: entry.vehicleInfo } : undefined,
-              destination_address_ar: entry.destinationAddressAr || 'رحلة سابقة',
-              destination_address: entry.destinationAddressAr || 'رحلة سابقة',
-              pickup_address_ar: entry.pickupAddressAr || '',
-              pickup_address: entry.pickupAddressAr || '',
-              distance_km: entry.distanceKm,
-              duration_minutes: entry.durationMinutes,
-              origin_lat: entry.originLat,
-              origin_lng: entry.originLng,
-              destination_lat: entry.destinationLat,
-              destination_lng: entry.destinationLng,
-              trip_fare: entry.finalPrice,
-            } as any)));
-            setLoading(false);
-          }
-        }
-      } catch (cacheErr) {
-        if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab Cache-First read error]', cacheErr);
+      if (!active) return;
+      if (result.trips.length > 0) {
+        setRealTrips(result.trips);
       }
-
-      // Background Sync with remote Supabase
-      try {
-        const userColumn = isCaptain ? 'accepted_captain_id' : 'rider_id';
-        let fetchedData: any[] = [];
-
-        // 0. Primary history source: server ledger written by complete_ride_trip.
-        // This keeps the screen correct even when ride_requests joins are unavailable.
-        if (!isCaptain) {
-          try {
-            const { data: ledgerRows, error: ledgerError } = await supabase
-              .from('trips_72h_ledger')
-              .select('*')
-              .eq('rider_id', user!.uid)
-              .gt('purge_at', new Date().toISOString())
-              .order('completed_at', { ascending: false });
-
-            if (ledgerError) {
-              if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger fetch skipped]', ledgerError);
-            } else if (ledgerRows && ledgerRows.length > 0) {
-              const captainIds = Array.from(new Set(ledgerRows.map((row: any) => row.captain_id).filter(Boolean)));
-              const requestIds = Array.from(new Set(ledgerRows.map((row: any) => row.request_id).filter(Boolean)));
-              const [captainMap, captainProfileMap, requestMap] = await Promise.all([
-                fetchRowsByIds('profiles', captainIds),
-                fetchRowsByIds('captain_profiles', captainIds),
-                fetchRowsByIds('ride_requests', requestIds),
-              ]);
-
-              const ledgerTrips = ledgerRows.map((row: any) => {
-                const req = row.request_id ? requestMap.get(row.request_id) : null;
-                const base = mapLedgerRowToTripShape(
-                  row,
-                  row.captain_id ? captainMap.get(row.captain_id) : null,
-                  row.captain_id ? captainProfileMap.get(row.captain_id) : null
-                );
-                return {
-                  ...base,
-                  destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
-                  destination_address: req?.destination_address || req?.destination_address_ar || base.destination_address,
-                  pickup_address_ar: req?.origin_address || base.metadata?.pickup_address_ar || '',
-                  pickup_address: req?.origin_address || base.metadata?.pickup_address_ar || '',
-                  distance_km: req?.distance_km ?? (row.distance_meters ? Number((row.distance_meters / 1000).toFixed(1)) : undefined),
-                  duration_minutes: req?.duration_minutes ?? row.duration_minutes,
-                  origin_lat: req?.origin_lat,
-                  origin_lng: req?.origin_lng,
-                  destination_lat: req?.destination_lat,
-                  destination_lng: req?.destination_lng,
-                  metadata: {
-                    ...base.metadata,
-                    pickup_address_ar: req?.origin_address,
-                    destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
-                    distance_km: req?.distance_km,
-                    origin_lat: req?.origin_lat,
-                    origin_lng: req?.origin_lng,
-                    destination_lat: req?.destination_lat,
-                    destination_lng: req?.destination_lng,
-                  }
-                };
-              });
-              fetchedData = appendUniqueTrips(fetchedData, ledgerTrips);
-
-              try {
-                const cacheEntries = ledgerTrips
-                  .map(tripShapeToRiderLedgerEntry)
-                  .filter((entry): entry is RiderTripLedgerEntry => Boolean(entry));
-                await Promise.all(cacheEntries.map((entry) => dexieDb.riderTripLedger.put(entry)));
-              } catch (cacheError) {
-                if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger cache skipped]', cacheError);
-              }
-            }
-          } catch (ledgerFetchError) {
-            if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab ledger fetch failed]', ledgerFetchError);
-          }
-        } else {
-          try {
-            const { data: ledgerRows, error: ledgerError } = await supabase
-              .from('trips_72h_ledger')
-              .select('*')
-              .eq('captain_id', user!.uid)
-              .gt('purge_at', new Date().toISOString())
-              .order('completed_at', { ascending: false });
-
-            if (ledgerError) {
-              if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab captain ledger fetch skipped]', ledgerError);
-            } else if (ledgerRows && ledgerRows.length > 0) {
-              const riderIds = Array.from(new Set(ledgerRows.map((row: any) => row.rider_id).filter(Boolean)));
-              const requestIds = Array.from(new Set(ledgerRows.map((row: any) => row.request_id).filter(Boolean)));
-              const [riderMap, requestMap] = await Promise.all([
-                fetchRowsByIds('profiles', riderIds),
-                fetchRowsByIds('ride_requests', requestIds),
-              ]);
-
-              const ledgerTrips = ledgerRows.map((row: any) => {
-                const req = row.request_id ? requestMap.get(row.request_id) : null;
-                const base = mapLedgerRowToTripShape(
-                  row,
-                  undefined,
-                  undefined,
-                  row.rider_id ? riderMap.get(row.rider_id) : null,
-                );
-                return {
-                  ...base,
-                  destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
-                  destination_address: req?.destination_address || req?.destination_address_ar || base.destination_address,
-                  pickup_address_ar: req?.origin_address || '',
-                  pickup_address: req?.origin_address || '',
-                  metadata: {
-                    ...base.metadata,
-                    pickup_address_ar: req?.origin_address,
-                    destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
-                  }
-                };
-              });
-              fetchedData = appendUniqueTrips(fetchedData, ledgerTrips);
-            }
-          } catch (ledgerFetchError) {
-            if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab captain ledger fetch failed]', ledgerFetchError);
-          }
-        }
-
-        // 1. Fetch from Supabase remote database only if ledger rows were empty
-        if (fetchedData.length === 0) {
-          try {
-            const { data, error } = await supabase
-              .from('ride_requests')
-              .select(`
-                *,
-                rider:profiles!rider_id(id, full_name, phone, rating),
-                captain:profiles!accepted_captain_id(id, full_name, phone, rating)
-              `)
-              .eq(userColumn, user!.uid)
-              .eq('status', 'COMPLETED')
-              .order('created_at', { ascending: false });
-
-            if (error) {
-              if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab query notice]', error.message);
-            } else if (data) {
-              fetchedData = appendUniqueTrips(fetchedData, data);
-            }
-          } catch (supabaseError) {
-            if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
-          }
-        }
-
-        if (fetchedData.length > 0) {
-          fetchedData = await enrichCaptainDetails(fetchedData);
-        }
-
-        // 2. Fetch and merge from Dexie local database for offline-first compliance (SC55)
-        try {
-          const cutoffMs = Date.now() - THREE_DAYS_MS;
-          if (isCaptain) {
-            const rawCaptainTrips = await dexieDb.captainLedger.toArray();
-            const localCaptainTrips = rawCaptainTrips.filter(entry => entry.completedAt >= cutoffMs);
-            const localMapped = localCaptainTrips.map(entry => {
-              const cleanDest = (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير محدد') ? entry.destination : '';
-              const cleanPick = (entry.pickup && entry.pickup !== 'موقعي الحالي') ? entry.pickup : '';
-              const riderId = entry.riderId || '';
-              return {
-                id: entry.requestId,
-                request_id: entry.requestId,
-                rider_id: riderId,
-                riderId: riderId,
-                status: 'COMPLETED',
-                completed_at: new Date(entry.completedAt).toISOString(),
-                created_at: new Date(entry.completedAt).toISOString(),
-                final_fare: entry.finalFare,
-                rider: {
-                  id: riderId,
-                  full_name: (entry as any).riderName || (isArabic ? 'مستخدم محلي' : 'Local Rider'),
-                  phone: (entry as any).riderPhone || '',
-                  rating: 5.0
-                },
-                destination_address_ar: cleanDest,
-                destination_address: cleanDest,
-                pickup_address_ar: cleanPick,
-                pickup_address: cleanPick,
-                metadata: {
-                  rider_id: riderId,
-                  riderId: riderId,
-                  pickup_address_ar: cleanPick,
-                  destination_address_ar: cleanDest
-                }
-              };
-            });
-            
-            const seenIds = new Set(fetchedData.map(r => r.id));
-            for (const item of localMapped) {
-              if (!seenIds.has(item.id)) {
-                fetchedData.push(item);
-                seenIds.add(item.id);
-              }
-            }
-
-            // Enrich rider names for local trips if missing
-            const unpopulatedRiderIds = Array.from(new Set(
-              fetchedData
-                .filter(r => (r.rider_id || r.riderId) && (!r.rider?.full_name || r.rider.full_name === 'مستخدم محلي' || r.rider.full_name === 'Local Rider'))
-                .map(r => r.rider_id || r.riderId)
-                .filter(Boolean)
-            ));
-            if (unpopulatedRiderIds.length > 0) {
-              try {
-                const riderMap = await fetchRowsByIds('profiles', unpopulatedRiderIds);
-                fetchedData = fetchedData.map(item => {
-                  const targetRiderId = item.rider_id || item.riderId;
-                  if (targetRiderId && riderMap.has(targetRiderId)) {
-                    const prof = riderMap.get(targetRiderId);
-                    return {
-                      ...item,
-                      rider: {
-                        ...item.rider,
-                        id: targetRiderId,
-                        full_name: prof.full_name || item.rider?.full_name,
-                        phone: prof.phone || item.rider?.phone,
-                      }
-                    };
-                  }
-                  return item;
-                });
-              } catch {}
-            }
-          } else {
-            const rawRiderTrips = await dexieDb.riderTripLedger.toArray();
-            const localRiderTrips = rawRiderTrips.filter(entry => entry.timestamp >= cutoffMs);
-            const localMapped = localRiderTrips.map(entry => ({
-              id: entry.tripId,
-              captain_id: entry.captainId,
-              status: 'COMPLETED',
-              completed_at: new Date(entry.timestamp).toISOString(),
-              created_at: new Date(entry.timestamp).toISOString(),
-              final_fare: entry.finalPrice,
-              captain: {
-                id: entry.captainId,
-                full_name: entry.captainName,
-                phone: entry.captainPhone,
-                rating: entry.captainRank === 'PLATINUM' ? 5.0 : entry.captainRank === 'GOLD' ? 4.5 : 4.0,
-                rank: entry.captainRank,
-              },
-              destination_address_ar: entry.destinationAddressAr || '',
-              destination_address: entry.destinationAddressAr || '',
-              pickup_address_ar: entry.pickupAddressAr || '',
-              pickup_address: entry.pickupAddressAr || '',
-              distance_km: entry.distanceKm,
-              duration_minutes: entry.durationMinutes,
-              origin_lat: entry.originLat,
-              origin_lng: entry.originLng,
-              destination_lat: entry.destinationLat,
-              destination_lng: entry.destinationLng,
-              metadata: {
-                vehicle_info: entry.vehicleInfo,
-                destination_address_ar: entry.destinationAddressAr,
-                pickup_address_ar: entry.pickupAddressAr,
-              }
-            }));
-
-            const seenIds = new Set(fetchedData.map(r => r.id));
-            for (const item of localMapped) {
-              if (!seenIds.has(item.id)) {
-                fetchedData.push(item);
-                seenIds.add(item.id);
-              }
-            }
-          }
-        } catch (dexieError) {
-          if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Dexie Merge Failed]', dexieError);
-        }
-
-        // 1.5 Fetch reviews for these trips to show detailed rating items
-        try {
-          const tripIds = Array.from(new Set([
-            ...fetchedData.map(r => r.id),
-            ...realTrips.map(r => r.id)
-          ])).filter(Boolean);
-          if (tripIds.length > 0) {
-            const { data: reviewsData, error: reviewsError } = await supabase
-              .from('reviews')
-              .select('*')
-              .in('trip_id', tripIds);
-            
-            if (!reviewsError && reviewsData && active) {
-              const reviewsMap: Record<string, any> = {};
-              reviewsData.forEach(rev => {
-                if (user?.uid && rev.reviewer_id === user.uid) {
-                  reviewsMap[rev.trip_id] = rev;
-                } else if (!user?.uid && !reviewsMap[rev.trip_id]) {
-                  reviewsMap[rev.trip_id] = rev;
-                }
-              });
-              setTripReviews(reviewsMap);
-            }
-          }
-        } catch (revErr) {
-          if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab fetch reviews failed]', revErr);
-        }
-
-        if (active && Array.isArray(fetchedData) && fetchedData.length > 0) {
-          setRealTrips(fetchedData);
-        }
-      } catch (error) {
-        if (!active) return;
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab trips fetch]', error);
-        // [ACT-PWA-09] Offline-First: Retain locally loaded Dexie ledger records if remote fetch fails
-      } finally {
-        if (active) setLoading(false);
+      if (Object.keys(result.reviews).length > 0) {
+        setTripReviews(result.reviews);
       }
+      setLoading(false);
     }
 
-    void fetchTripHistory();
+    void syncTrips();
 
     return () => {
       active = false;
     };
-  }, [user?.uid, isCaptain, toast]);
+  }, [user?.uid, isCaptain, isArabic]);
 
   const riderHistoricalTrips = useMemo<HistoricalTrip[]>(() => {
-    const combinedReal = realTrips.map(trip => {
-      const acceptedOffer = trip.offers?.find((o: any) => o.driverId === trip.driverId) || trip.acceptedOffer;
-      return {
-        tripId: trip.id,
-        captainId: getCaptainIdFromTrip(trip),
-        serialId: trip.serial_id || trip.serialId || (trip.id ? ('T-' + String(trip.id).slice(0, 4).toUpperCase()) : 'T-TRIP'),
-        captainName: getHistoryCaptainName(trip, acceptedOffer),
-        captainRank: getHistoryCaptainRank(trip, acceptedOffer),
-        captainPhone: getHistoryCaptainPhone(trip, acceptedOffer),
-        vehicleInfo: getHistoryVehicleInfo(trip, acceptedOffer),
-        finalPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
-        timestamp: parseTripTimestamp(trip),
-        pickupAddress: trip.pickup_address_ar || trip.pickup_address || trip.origin_address || trip.metadata?.pickup_address_ar || '',
-        destinationAddress: trip.destination_address_ar || trip.destination_address || trip.destinationAddress || trip.metadata?.destination_address_ar || trip.destination || '',
-        distanceKm: trip.distance_km ?? trip.distanceKm ?? (trip.distance_meters ? Number((trip.distance_meters / 1000).toFixed(1)) : undefined),
-        durationMinutes: trip.duration_minutes ?? trip.metadata?.duration_minutes,
-        originLat: trip.origin_lat ?? trip.originLat ?? trip.metadata?.origin_lat,
-        originLng: trip.origin_lng ?? trip.originLng ?? trip.metadata?.origin_lng,
-        destinationLat: trip.destination_lat ?? trip.destinationLat ?? trip.metadata?.destination_lat,
-        destinationLng: trip.destination_lng ?? trip.destinationLng ?? trip.metadata?.destination_lng,
-      };
-    });
+    return buildRiderHistoricalTrips(realTrips, now, THREE_DAYS_MS);
+  }, [realTrips, now, THREE_DAYS_MS]);
 
-    const all = [...combinedReal];
-    all.sort((a, b) => b.timestamp - a.timestamp);
-    return all.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
-  }, [realTrips, now]);
-
-  /**
-   * The favourites list, derived rather than stored.
-   *
-   * One entry per favourited CAPTAIN, with the display details taken from the most recent
-   * trip the rider took with them. Previously this rendered its own Dexie table of captain
-   * details keyed by trip, so the same captain could appear several times in the list while
-   * the hearts on the trips above disagreed with it.
-   */
   const favoriteCaptains = useMemo(() => {
-    const byCaptain = new Map<string, HistoricalTrip>();
-    for (const trip of riderHistoricalTrips) {
-      const captainId = String(trip.captainId || '');
-      if (!captainId || !favoriteCaptainIds.has(captainId)) continue;
-      // Trips are already newest-first, so the first one seen is the freshest snapshot of
-      // this captain's name, vehicle and phone.
-      if (!byCaptain.has(captainId)) {
-        const isReferred = Boolean(linkedCaptain?.is_linked && linkedCaptain.captain_id === captainId);
-        byCaptain.set(captainId, {
-          ...trip,
-          isReferredCaptain: isReferred,
-        } as any);
-      }
-    }
-
-    // If the rider has favorited captains from ad showcase or local cache that haven't completed a trip yet:
-    for (const fav of dexieFavorites) {
-      const captainId = String(fav.captainId || '');
-      if (!captainId || !favoriteCaptainIds.has(captainId)) continue;
-      if (!byCaptain.has(captainId)) {
-        const isReferred = Boolean(linkedCaptain?.is_linked && linkedCaptain.captain_id === captainId);
-        byCaptain.set(captainId, {
-          tripId: fav.tripId || `fav_${captainId}`,
-          captainId,
-          serialId: fav.serialId || ('C-' + captainId.slice(0, 4).toUpperCase()),
-          captainName: fav.captainName || (isArabic ? 'كابتن معتمد' : 'Verified Captain'),
-          captainRank: fav.captainRank || 'PLATINUM',
-          captainPhone: fav.captainPhone || '',
-          vehicleInfo: fav.vehicleInfo || (isArabic ? 'مركبة معتمدة' : 'Verified Vehicle'),
-          finalPrice: fav.finalPrice || 0,
-          timestamp: fav.timestamp || Date.now(),
-          isReferredCaptain: isReferred,
-        } as any);
-      }
-    }
-
-    // If the rider is linked to a captain via referral who is not in trips yet, but is favorited:
-    if (
-      linkedCaptain?.is_linked &&
-      linkedCaptain.captain_id &&
-      favoriteCaptainIds.has(linkedCaptain.captain_id) &&
-      !byCaptain.has(linkedCaptain.captain_id)
-    ) {
-      byCaptain.set(linkedCaptain.captain_id, {
-        tripId: 'referral-' + linkedCaptain.captain_id,
-        captainId: linkedCaptain.captain_id,
-        serialId: linkedCaptain.captain_serial || '',
-        captainName: linkedCaptain.captain_name || tRef('defaultCaptainName'),
-        captainRank: 'GOLD',
-        captainPhone: linkedCaptain.captain_phone || '',
-        vehicleInfo: '',
-        finalPrice: 0,
-        timestamp: linkedCaptain.linked_at ? new Date(linkedCaptain.linked_at).getTime() : Date.now(),
-        isReferredCaptain: true,
-      } as any);
-    }
-
-    // Fallback for any captainId in favoriteCaptainIds that has not yet had details filled:
-    for (const captainId of favoriteCaptainIds) {
-      if (!byCaptain.has(captainId)) {
-        const isReferred = Boolean(linkedCaptain?.is_linked && linkedCaptain.captain_id === captainId);
-        byCaptain.set(captainId, {
-          tripId: `fav_${captainId}`,
-          captainId,
-          serialId: 'C-' + captainId.slice(0, 4).toUpperCase(),
-          captainName: isArabic ? 'كابتن معتمد' : 'Verified Captain',
-          captainRank: 'PLATINUM',
-          captainPhone: '',
-          vehicleInfo: isArabic ? 'مركبة معتمدة' : 'Verified Vehicle',
-          finalPrice: 0,
-          timestamp: Date.now(),
-          isReferredCaptain: isReferred,
-        } as any);
-      }
-    }
-
-    // Spread the whole trip: the "remove" button in the list calls toggleFavorite, which
-    // takes a HistoricalTrip. `id` is added because the list keys on it.
-    return [...byCaptain.entries()].map(([captainId, trip]) => ({
-      ...trip,
-      id: captainId,
-      captainId,
-    }));
+    return buildFavoriteCaptains({
+      favoriteCaptainIds,
+      dexieFavorites,
+      riderHistoricalTrips,
+      linkedCaptain,
+      defaultCaptainName: tRef('defaultCaptainName'),
+      isArabic,
+    });
   }, [favoriteCaptainIds, dexieFavorites, riderHistoricalTrips, linkedCaptain, tRef, isArabic]);
 
   const captainHistoricalTrips = useMemo(() => {
-    const combinedReal = realTrips.map(trip => {
-      const rawPickup = trip.metadata?.pickup_address_ar || trip.pickup_address_ar || trip.pickup || trip.origin_address;
-      const cleanPickup = (!rawPickup || rawPickup === 'موقعي الحالي' || rawPickup === 'Current Location')
-        ? (isArabic ? 'نقطة الانطلاق' : 'Pickup Location')
-        : rawPickup;
-
-      const rawDropoff = trip.destination_address_ar || trip.destination_address || trip.dropoff || trip.metadata?.destination_address_ar;
-      const cleanDropoff = (!rawDropoff || rawDropoff === 'غير محدد' || rawDropoff === 'Unspecified' || rawDropoff === 'Destination' || rawDropoff === 'غير متاح')
-        ? (isArabic ? 'وجهة الرحلة' : 'Trip Destination')
-        : rawDropoff;
-
-      return {
-        tripId: trip.id,
-        riderId: trip.rider?.id || trip.rider_id || trip.metadata?.rider_id || trip.riderId || '',
-        riderPhone: trip.rider?.phone || trip.rider_phone || '',
-        serialId: trip.serial_id || trip.serialId || (trip.id ? ('T-' + String(trip.id).slice(0, 4).toUpperCase()) : 'T-TRIP'),
-        riderName: trip.rider?.full_name || trip.rider_name || trip.riderName || (isArabic ? 'مستخدم' : 'Rider'),
-        pickup: cleanPickup,
-        dropoff: cleanDropoff,
-        earnedPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
-        timestamp: parseTripTimestamp(trip),
-        status: trip.status || 'COMPLETED'
-      };
-    });
-
-    const all = [...combinedReal];
-    all.sort((a, b) => b.timestamp - a.timestamp);
-    return all.filter(trip => (now - trip.timestamp) < THREE_DAYS_MS);
-  }, [realTrips, now, isArabic]);
+    return buildCaptainHistoricalTrips(realTrips, now, THREE_DAYS_MS, isArabic);
+  }, [realTrips, now, THREE_DAYS_MS, isArabic]);
 
   const toggleFavorite = async (trip: HistoricalTrip) => {
-    // Decided per CAPTAIN, not per trip. Looking the existing record up by tripId is what
-    // made the heart light up on one trip and stay empty on every other trip with the same
-    // captain.
     const wasFavorite = trip.captainId ? favoriteCaptainIds.has(String(trip.captainId)) : false;
-    const isReferred = Boolean(
-      (trip as any).isReferredCaptain ||
-      (linkedCaptain?.is_linked && linkedCaptain.captain_id === trip.captainId)
-    );
 
-    // The server first, because this is the copy the CAPTAIN reads. The old code wrote only
-    // Dexie and localStorage, so the captain's card never learned about it at all.
     if (trip.captainId) {
       try {
         await setFavoriteCaptain(String(trip.captainId), !wasFavorite);
@@ -733,20 +228,13 @@ export function useHistoryState() {
       }
     }
 
-    // The per-trip Dexie row is gone. It was a second, differently-keyed copy of the same
-    // fact ظ¤ the row keyed by tripId, the localStorage key by captainId ظ¤ so the two could
-    // not agree with each other, let alone with the server. setFavoriteCaptain above owns
-    // the write and keeps the captain-keyed offline cache.
     try {
-      // Stale: an old build wrote this one keyed by TRIP. Cleared so it cannot linger.
       localStorage.removeItem(`radar_preferred_captain_${trip.tripId}`);
 
       if (trip.captainId) {
         if (wasFavorite) {
           localStorage.removeItem(`radar_preferred_captain_${trip.captainId}`);
         } else {
-          // Kept: prioritizeRiderOffers reads these keys to float a preferred captain's
-          // offer to the top of the auction.
           localStorage.setItem(`radar_preferred_captain_${trip.captainId}`, JSON.stringify({
             captainId: trip.captainId,
             fullName: trip.captainName,
@@ -779,7 +267,7 @@ export function useHistoryState() {
 
   const refreshReviews = useCallback(async () => {
     try {
-      const tripIds = realTrips.map(r => r.id).filter(Boolean);
+      const tripIds = realTrips.map((r) => r.id).filter(Boolean);
       if (tripIds.length > 0) {
         const { data: reviewsData, error: reviewsError } = await supabase
           .from('reviews')
@@ -788,7 +276,7 @@ export function useHistoryState() {
 
         if (!reviewsError && reviewsData) {
           const reviewsMap: Record<string, any> = {};
-          reviewsData.forEach(rev => {
+          reviewsData.forEach((rev) => {
             if (user?.uid && rev.reviewer_id === user.uid) {
               reviewsMap[rev.trip_id] = rev;
             } else if (!user?.uid && !reviewsMap[rev.trip_id]) {
