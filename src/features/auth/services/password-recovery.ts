@@ -65,11 +65,20 @@ async function readError(response: Response, fallback: string) {
  * registered, so callers must not branch on it — there is nothing to branch on.
  */
 export async function requestPasswordRecovery(phone: string, email?: string) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch {
+    // Ignore in unauthenticated context
+  }
+
   const response = await fetch('/api/password-reset/request', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    // The email is a confirmation the server checks against the address already on the
-    // account. It is never where the link gets sent — see the endpoint for why.
+    headers,
     body: JSON.stringify({ phone, email: email?.trim() || undefined }),
   });
 

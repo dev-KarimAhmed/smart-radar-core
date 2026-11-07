@@ -73,7 +73,7 @@ export function RiderSecuritySection() {
   const { isArabic } = useDashboardLanguage();
   const t = copy[isArabic ? 'ar' : 'en'];
   const { toast } = useToast();
-  const { currentEmail, save: saveRecoveryEmail } = useRecoveryEmail();
+  const { currentEmail, currentPhone, save: saveRecoveryEmail } = useRecoveryEmail();
 
   // Change password states
   const [newPassword, setNewPassword] = useState('');
@@ -158,7 +158,7 @@ export function RiderSecuritySection() {
         }
       }
 
-      const res = await requestPasswordRecovery('', targetEmail);
+      const res = await requestPasswordRecovery(currentPhone, targetEmail);
       const successText = res.message || t.resetLinkSuccess(targetEmail);
       setResetSuccess(successText);
       toast({

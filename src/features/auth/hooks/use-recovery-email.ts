@@ -22,12 +22,15 @@ export type RecoveryEmailStatus = 'loading' | 'missing' | 'set' | 'pending';
 export function useRecoveryEmail() {
   const [status, setStatus] = React.useState<RecoveryEmailStatus>('loading');
   const [currentEmail, setCurrentEmail] = React.useState('');
+  const [currentPhone, setCurrentPhone] = React.useState('');
   const [isSaving, setIsSaving] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
     const { data } = await supabase.auth.getUser();
     const email = String(data.user?.email || '').trim();
+    const phone = String(data.user?.phone || '').trim();
     setCurrentEmail(email);
+    setCurrentPhone(phone);
     setStatus(email ? 'set' : 'missing');
     return email;
   }, []);
@@ -37,7 +40,9 @@ export function useRecoveryEmail() {
     void supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
       const email = String(data.user?.email || '').trim();
+      const phone = String(data.user?.phone || '').trim();
       setCurrentEmail(email);
+      setCurrentPhone(phone);
       setStatus(email ? 'set' : 'missing');
     });
     return () => { active = false; };
@@ -53,5 +58,5 @@ export function useRecoveryEmail() {
     }
   }, []);
 
-  return { status, currentEmail, isSaving, save, refresh };
+  return { status, currentEmail, currentPhone, isSaving, save, refresh };
 }

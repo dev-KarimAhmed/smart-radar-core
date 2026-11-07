@@ -527,6 +527,17 @@ export function PersonalStep() {
 
   // Password recovery dispatches a secure reset link directly to the user's private email inbox.
   const submitPasswordRecovery = async () => {
+    const cleanPhone = resetPhone.replace(/\D/g, '');
+    if (cleanPhone.length < 8) {
+      setResetError(isArabic ? 'يرجى إدخال رقم هاتف صحيح (8 أرقام على الأقل).' : 'Please enter a valid phone number (at least 8 digits).');
+      return;
+    }
+    const cleanEmail = resetEmail.trim().toLowerCase();
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setResetError(isArabic ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.');
+      return;
+    }
+
     setResetSubmitting(true);
     setResetError('');
     setResetMessage('');
@@ -1016,12 +1027,28 @@ export function PersonalStep() {
           <div className={styles.style832_141}>
             <div className={styles.style833_142}>
               {isArabic
-                ? 'أدخل بريدك الإلكتروني. سيصلك رابط لإعادة تعيين كلمة المرور فوراً على بريدك.'
-                : 'Enter your email. You will receive an instant password reset link in your inbox.'}
+                ? 'أدخل رقم هاتفك والبريد الإلكتروني المربوط به للتحقق وإرسال رابط استرجاع كلمة المرور.'
+                : 'Enter your phone number and the email linked to it to verify and receive the password reset link.'}
             </div>
 
             <Field
-              label={isArabic ? 'البريد الإلكتروني (Gmail)' : 'Email address (Gmail)'}
+              label={t.resetPhone || (isArabic ? 'رقم الهاتف المسجل' : 'Registered phone number')}
+              icon={<Phone className={styles.style839_143} />}
+            >
+              <input
+                type="tel"
+                dir="ltr"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder={isArabic ? 'رقم هاتفك (مثال: 07XXXXXXXX)' : '07XXXXXXXX'}
+                value={resetPhone}
+                onChange={(event) => setResetPhone(event.target.value)}
+                className={cn(styles.input, styles.style847_144)}
+              />
+            </Field>
+
+            <Field
+              label={isArabic ? 'البريد الإلكتروني المربوط بهذا الرقم' : 'Email linked to this phone number'}
               icon={<Mail className={styles.style839_143} />}
             >
               <input
@@ -1037,8 +1064,8 @@ export function PersonalStep() {
             </Field>
             <p className={styles.resetEmailNote}>
               {isArabic
-                ? 'سيصلك رابط مباشر لإنشاء كلمة مرور جديدة إلى بريدك الإلكتروني.'
-                : 'A direct link to set a new password will be sent to your email.'}
+                ? 'سيتم التحقق من تطابق البريد الإلكتروني مع رقم الهاتف المسجل قبل إرسال رابط الاسترجاع.'
+                : 'Email will be verified against the registered phone number before dispatching the recovery link.'}
             </p>
 
             {resetMessage ? (
@@ -1049,15 +1076,17 @@ export function PersonalStep() {
             <button
               type="button"
               onClick={() => void submitPasswordRecovery()}
-              disabled={resetSubmitting || !resetEmail.trim().includes('@')}
+              disabled={
+                resetSubmitting ||
+                !resetEmail.trim().includes('@') ||
+                resetPhone.replace(/\D/g, '').length < 8
+              }
               className={styles.resetSubmit}
             >
               {resetSubmitting
-                ? (isArabic ? 'جاري الإرسال…' : 'Sending…')
+                ? (isArabic ? 'جاري التحقق والإرسال…' : 'Verifying & Sending…')
                 : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
             </button>
-
-
           </div>
         </DialogContent>
       </Dialog>

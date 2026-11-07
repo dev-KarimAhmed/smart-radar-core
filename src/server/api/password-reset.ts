@@ -163,24 +163,50 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     return res.status(503).json({ success: false, error: 'خدمة استرجاع كلمة المرور غير متاحة حالياً.' });
   }
 
-  const digits = phoneDigits(req.body?.phone);
+  let digits = phoneDigits(req.body?.phone);
   const claimedEmail = String(req.body?.email ?? '').trim().toLowerCase();
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(claimedEmail);
 
-  if (digits.length < 8 && !isEmailValid) {
-    return res.status(400).json({ success: false, error: 'يرجى إدخال رقم هاتف صالح أو بريد إلكتروني صحيح.' });
+  // If phone is missing from body, check if caller has a Bearer token (authenticated user in settings)
+  const authHeader = req.headers['authorization'];
+  if (digits.length < 8 && authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    try {
+      const userRes = await fetch(`${config.url}/auth/v1/user`, {
+        headers: {
+          apikey: config.serviceKey,
+          Authorization: `Bearer ${token}`,
+        },
+        signal: AbortSignal.timeout(4_000),
+      });
+      if (userRes.ok) {
+        const authUser = (await userRes.json()) as { phone?: string };
+        if (authUser?.phone) {
+          digits = phoneDigits(authUser.phone);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (digits.length < 8) {
+    return res.status(400).json({
+      success: false,
+      error: 'يرجى إدخال رقم الهاتف المسجل به الحساب (8 أرقام على الأقل).',
+    });
+  }
+
+  if (!isEmailValid) {
+    return res.status(400).json({
+      success: false,
+      error: 'يرجى إدخال بريد إلكتروني صحيح.',
+    });
   }
 
   try {
-    let user: { id: string; email: string | null } | null = null;
-
-    if (digits.length >= 8) {
-      user = await findAuthUserByPhone(config, digits);
-    }
-
-    if (!user && isEmailValid) {
-      user = await findAuthUserByEmail(config, claimedEmail);
-    }
+    // 1. Strict lookup by phone number — never fallback to search by email!
+    const user = await findAuthUserByPhone(config, digits);
 
     if (!user) {
       await auditReset(config, {
@@ -190,25 +216,50 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       });
       return res.status(404).json({
         success: false,
-        error: 'لم يتم العثور على حساب مسجل بهذه البيانات. يرجى التأكد من رقم الهاتف أو البريد الإلكتروني.',
+        error: 'لم يتم العثور على حساب مسجل برقم الهاتف هذا.',
       });
     }
 
-    if (user.email && isEmailValid && claimedEmail !== user.email.toLowerCase()) {
+    // 2. Strict Email Verification:
+    // The claimed email must belong to this specific phone account, and cannot belong to someone else.
+    const registeredEmail = (user.email ?? '').trim().toLowerCase();
+
+    // Check if the claimed email belongs to another registered account
+    const emailOwner = await findAuthUserByEmail(config, claimedEmail);
+    if (emailOwner && emailOwner.id !== user.id) {
+      await auditReset(config, {
+        profile_id: user.id,
+        action: 'PASSWORD_RESET_EMAIL_MISMATCH_ANOTHER_ACCOUNT',
+        detail: { digits, claimedEmail, registeredEmail, ownerId: emailOwner.id },
+      });
       return res.status(400).json({
         success: false,
-        error: 'البريد الإلكتروني المدخل لا يتطابق مع البريد المسجل لهذا الحساب.',
+        error: 'هذا البريد الإلكتروني غير مسجل لهذا الرقم.',
       });
     }
 
-    const targetEmail = user.email || (isEmailValid ? claimedEmail : null);
-
-    if (!targetEmail) {
+    // If the account has a registered email, it must match the claimed email exactly
+    if (registeredEmail && registeredEmail !== claimedEmail) {
+      await auditReset(config, {
+        profile_id: user.id,
+        action: 'PASSWORD_RESET_EMAIL_MISMATCH',
+        detail: { digits, claimedEmail, registeredEmail },
+      });
       return res.status(400).json({
         success: false,
-        error: 'هذا الحساب غير مرتبط ببريد إلكتروني حالياً. يرجى كتابة بريدك الإلكتروني (Gmail) في خانة البريد لإرسال رابط الاسترجاع إليه.',
+        error: 'هذا البريد الإلكتروني غير مسجل لهذا الرقم.',
       });
     }
+
+    // If the account has no registered email at all
+    if (!registeredEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'هذا الحساب غير مرتبط ببريد إلكتروني. يرجى التواصل مع الدعم الفني لاستعادة كلمة المرور.',
+      });
+    }
+
+    const targetEmail = registeredEmail;
 
     // ALWAYS ensure this email is actually set on the underlying auth.users row and confirmed!
     // For phone-registered users, Supabase GoTrue only sets user_metadata->email, while auth.users.email
