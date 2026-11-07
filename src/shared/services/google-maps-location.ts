@@ -1,7 +1,47 @@
-export interface ParsedMapLocation {
-  lat: number;
-  lng: number;
-}
+import {
+  type ParsedMapLocation,
+  isValidLocation,
+  safeDecodeURIComponent,
+  PLUS_CODE_ALPHABET,
+  decodePlusCode,
+  recoverNearestPlusCode,
+  extractPlusCode,
+  resolvePlusCodeLocation,
+} from './google-maps-plus-codes';
+import {
+  parseOpenStreetMapLocation,
+  isOpenStreetMapLink,
+  extractOpenStreetMapUrl,
+  normalizeOpenStreetMapUrl,
+  isInvalidPlaceName,
+  extractGoogleMapsPlaceName,
+  isCoordinatePairSegment,
+  decodeGoogleMapsPathSegment,
+  isShortGoogleMapsLink,
+  isGoogleMapsLink,
+  isMapsLink,
+  sanitizeGoogleMapsUrl,
+  looksLikeGoogleMapsLocation,
+  extractGoogleMapsUrl,
+  normalizeGoogleMapsUrl,
+} from './google-maps-place-utils';
+
+export type { ParsedMapLocation };
+export {
+  PLUS_CODE_ALPHABET,
+  decodePlusCode,
+  recoverNearestPlusCode,
+  extractPlusCode,
+  resolvePlusCodeLocation,
+  parseOpenStreetMapLocation,
+  isOpenStreetMapLink,
+  isInvalidPlaceName,
+  extractGoogleMapsPlaceName,
+  isShortGoogleMapsLink,
+  isGoogleMapsLink,
+  isMapsLink,
+  sanitizeGoogleMapsUrl,
+};
 
 export interface ResolvedLocationGeography {
   governorate?: string | null;
@@ -40,101 +80,6 @@ export class ClipboardMapLocationError extends Error {
   }
 }
 
-export const PLUS_CODE_ALPHABET = '23456789CFGHJMPQRVWX';
-
-export function decodePlusCode(code: string): ParsedMapLocation | null {
-  const clean = code.trim().toUpperCase().replace('+', '');
-  let lat = -90;
-  let lng = -180;
-  let latRes = 20;
-  let lngRes = 20;
-  const len = Math.min(clean.length, 10);
-  for (let i = 0; i < len; i += 2) {
-    const r = PLUS_CODE_ALPHABET.indexOf(clean[i]);
-    const c = PLUS_CODE_ALPHABET.indexOf(clean[i + 1]);
-    if (r === -1 || c === -1) return null;
-    lat += r * latRes;
-    lng += c * lngRes;
-    latRes /= 20;
-    lngRes /= 20;
-  }
-  const resultLat = lat + latRes * 10;
-  const resultLng = lng + lngRes * 10;
-  return isValidLocation(resultLat, resultLng) ? { lat: resultLat, lng: resultLng } : null;
-}
-
-export function recoverNearestPlusCode(
-  shortCode: string,
-  refLat: number,
-  refLng: number,
-): ParsedMapLocation | null {
-  const clean = shortCode.trim().toUpperCase();
-  const plusIdx = clean.indexOf('+');
-  if (plusIdx === -1) return null;
-  if (plusIdx >= 8) {
-    return decodePlusCode(clean);
-  }
-  const prefixLen = 8 - plusIdx;
-  if (prefixLen !== 4 && prefixLen !== 6 && prefixLen !== 2) return null;
-
-  const step = prefixLen === 4 ? 1.0 : prefixLen === 6 ? 0.05 : 20.0;
-  let best: ParsedMapLocation | null = null;
-  let bestDist = Infinity;
-
-  for (let dLat = -1; dLat <= 1; dLat++) {
-    for (let dLng = -1; dLng <= 1; dLng++) {
-      const candLat = refLat + dLat * step;
-      const candLng = refLng + dLng * step;
-      let cLat = candLat + 90;
-      let cLng = candLng + 180;
-      let prefix = '';
-      let gLat = 20;
-      let gLng = 20;
-      for (let i = 0; i < prefixLen / 2; i++) {
-        const lDigit = Math.floor(cLat / gLat);
-        const lnDigit = Math.floor(cLng / gLng);
-        cLat -= lDigit * gLat;
-        cLng -= lnDigit * gLng;
-        if (lDigit < 0 || lDigit >= 20 || lnDigit < 0 || lnDigit >= 20) continue;
-        prefix += PLUS_CODE_ALPHABET[lDigit] + PLUS_CODE_ALPHABET[lnDigit];
-        gLat /= 20;
-        gLng /= 20;
-      }
-      if (prefix.length !== prefixLen) continue;
-      const full = prefix + clean;
-      const decoded = decodePlusCode(full);
-      if (!decoded) continue;
-      const dist = (decoded.lat - refLat) ** 2 + (decoded.lng - refLng) ** 2;
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = decoded;
-      }
-    }
-  }
-  return best;
-}
-
-export function extractPlusCode(text: string): string | null {
-  const match = text.match(/\b([23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,4})\b/i);
-  return match ? match[1].toUpperCase() : null;
-}
-
-export function resolvePlusCodeLocation(
-  codeOrText: string,
-  referenceLocation?: ParsedMapLocation,
-): ParsedMapLocation | null {
-  const code = extractPlusCode(codeOrText) || codeOrText.trim().toUpperCase();
-  const plusIdx = code.indexOf('+');
-  if (plusIdx === -1) return null;
-  if (plusIdx >= 8) {
-    return decodePlusCode(code);
-  }
-  if (referenceLocation && isValidLocation(referenceLocation.lat, referenceLocation.lng)) {
-    return recoverNearestPlusCode(code, referenceLocation.lat, referenceLocation.lng);
-  }
-  return null;
-}
-
 export async function resolveClipboardMapLocation(
   rawValue: string,
   fetcher: FetchLike = fetch,
@@ -151,7 +96,7 @@ export async function resolveClipboardMapLocation(
   const plusLocation = resolvePlusCodeLocation(rawValue, referenceLocation);
 
   const clipboardValue = extractGoogleMapsUrl(rawValue);
-  if (!clipboardValue || (!looksLikeGoogleMapsLocation(clipboardValue) && !plusLocation)) {
+  if (!clipboardValue || (!looksLikeGoogleMapsLocation(clipboardValue, parseGoogleMapsLocation) && !plusLocation)) {
     throw new ClipboardMapLocationError('INVALID_MAPS_LINK');
   }
 
@@ -183,7 +128,7 @@ export async function resolveClipboardMapLocation(
     );
   }
 
-  const payload = await response.json() as {
+  const payload = (await response.json()) as {
     resolvedUrl?: unknown;
     location?: { lat?: unknown; lng?: unknown };
     geography?: ResolvedLocationGeography;
@@ -231,16 +176,18 @@ export function parseGoogleMapsLocation(
   }
 
   const isHtml = /<html|<!doctype|<body|<meta\s+/i.test(text);
-  const isDirectionsUrl = /\/maps\/dir\//i.test(text)
-    || /[?&]daddr=/i.test(text)
-    || /[?&]saddr=/i.test(text)
-    || /[?&]dirflg=/i.test(text);
+  const isDirectionsUrl =
+    /\/maps\/dir\//i.test(text) ||
+    /[?&]daddr=/i.test(text) ||
+    /[?&]saddr=/i.test(text) ||
+    /[?&]dirflg=/i.test(text);
 
   // If camera coordinates are present in the URL, they serve as a reference for short Plus Codes
   const cameraMatch = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
-  const cameraCoords = cameraMatch && isValidLocation(Number(cameraMatch[1]), Number(cameraMatch[2]))
-    ? { lat: Number(cameraMatch[1]), lng: Number(cameraMatch[2]) }
-    : null;
+  const cameraCoords =
+    cameraMatch && isValidLocation(Number(cameraMatch[1]), Number(cameraMatch[2]))
+      ? { lat: Number(cameraMatch[1]), lng: Number(cameraMatch[2]) }
+      : null;
   const effectiveRefLocation = referenceLocation || cameraCoords || undefined;
 
   // Directions URLs (`/maps/dir/{origin}/{destination}/...` or `?saddr=...&daddr=...`)
@@ -296,7 +243,6 @@ export function parseGoogleMapsLocation(
       }
     }
 
-
     // Plus code anywhere in the directions URL text
     const plusCode = extractPlusCode(text);
     if (plusCode) {
@@ -349,8 +295,6 @@ export function parseGoogleMapsLocation(
 
   // Google place pages and short-link redirects often embed the map center as
   // longitude first (`!2d{lng}!3d{lat}`) inside the page bootstrap payload.
-  // Note: `!1m3!1d{zoom}!2d{lng}!3d{lat}` is the map-framing viewport camera, NOT
-  // a place pin. We must ignore `!1m3!1d` viewport matches so they don't hijack the location.
   const placePayloadMatches = text.matchAll(
     /(!1m3!1d[\d.]+)?!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/g,
   );
@@ -363,7 +307,6 @@ export function parseGoogleMapsLocation(
   }
 
   // Only allow URL parameters like ?center= or camera @lat,lng on URL/plain text, never in HTML documents
-  // (where staticmap?center= is Google's GeoIP default for the caller server).
   if (!isHtml) {
     const fallbackPatterns = [
       /(?:[?&](?:ll|center)=)(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
@@ -379,8 +322,7 @@ export function parseGoogleMapsLocation(
     }
   }
 
-  // The loose decimal-pair pattern must ONLY run on short non-HTML strings (e.g. user input or a short URL).
-  // Running this on an entire HTML document matches random numbers (like analytics or US datacenter IP coords).
+  // The loose decimal-pair pattern must ONLY run on short non-HTML strings
   if (!isHtml && text.length < 500) {
     const looseMatch = text.match(/(^|[^\d.-])(-?\d{1,2}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)([^\d.]|$)/);
     if (looseMatch) {
@@ -391,306 +333,4 @@ export function parseGoogleMapsLocation(
   }
 
   return null;
-}
-
-export function parseOpenStreetMapLocation(value: string): ParsedMapLocation | null {
-  const text = safeDecodeURIComponent(value.trim());
-
-  try {
-    const url = new URL(text);
-    const mlatRaw = url.searchParams.get('mlat');
-    const mlonRaw = url.searchParams.get('mlon');
-    if (mlatRaw !== null && mlonRaw !== null) {
-      const mlat = Number(mlatRaw);
-      const mlon = Number(mlonRaw);
-      if (isValidLocation(mlat, mlon)) return { lat: mlat, lng: mlon };
-    }
-
-    const hashMatch = url.hash.match(/map=-?\d+(?:\.\d+)?\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)/);
-    if (hashMatch) {
-      const lat = Number(hashMatch[1]);
-      const lng = Number(hashMatch[2]);
-      if (isValidLocation(lat, lng)) return { lat, lng };
-    }
-  } catch {
-    // Not a fully-qualified URL; fall through to the plain-text fragment match below.
-  }
-
-  const hashOnlyMatch = text.match(/map=-?\d+(?:\.\d+)?\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)/);
-  if (hashOnlyMatch) {
-    const lat = Number(hashOnlyMatch[1]);
-    const lng = Number(hashOnlyMatch[2]);
-    if (isValidLocation(lat, lng)) return { lat, lng };
-  }
-
-  return null;
-}
-
-export function isOpenStreetMapLink(value: string) {
-  try {
-    const hostname = new URL(normalizeOpenStreetMapUrl(value)).hostname.toLowerCase();
-    return hostname === 'openstreetmap.org' || hostname === 'www.openstreetmap.org' || hostname === 'osm.org';
-  } catch {
-    return false;
-  }
-}
-
-function extractOpenStreetMapUrl(rawValue: string) {
-  const value = rawValue.trim();
-  if (!value) return '';
-
-  const urlMatch = value.match(
-    /(?:https?:\/\/)?(?:www\.)?(?:openstreetmap\.org|osm\.org)\/[^\s<>"']+/i,
-  );
-  return normalizeOpenStreetMapUrl((urlMatch?.[0] || '').replace(/[),.;]+$/, ''));
-}
-
-function normalizeOpenStreetMapUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (/^(?:www\.)?(?:openstreetmap\.org|osm\.org)\//i.test(trimmed)) {
-    return `https://${trimmed}`;
-  }
-  return trimmed;
-}
-
-export function isInvalidPlaceName(name: string | null | undefined): boolean {
-  if (!name || typeof name !== 'string') return true;
-  const trimmed = name.trim();
-  if (!trimmed || trimmed.length < 2) return true;
-
-  // Google Maps protobuf parameters or internal data segments (e.g. data=!4m12..., !4m11..., !1m5..., am=t)
-  if (
-    trimmed.startsWith('data=') ||
-    trimmed.includes('data=!') ||
-    trimmed.startsWith('!') ||
-    /^!?[0-9]+[a-z][0-9]+/i.test(trimmed) ||
-    /^am=[a-z0-9]+/i.test(trimmed)
-  ) {
-    return true;
-  }
-
-  // Camera / viewport / zoom / coordinate markers (e.g. @31.8876,35.8867,17z)
-  if (
-    trimmed.startsWith('@') ||
-    isCoordinatePairSegment(trimmed) ||
-    /^-?\d+(?:\.\d+)?,\s*-?\d+(?:\.\d+)?$/.test(trimmed)
-  ) {
-    return true;
-  }
-
-  // Degrees, minutes, seconds coordinate format (e.g. 31°53'15.5"N 35°53'12.5"E)
-  if (/^\d+°\d+['′]/i.test(trimmed) || /\d+°\d+['′"″][NSEW]/i.test(trimmed)) {
-    return true;
-  }
-
-  // Raw Plus Code only (e.g. 8G4P+3R)
-  if (/^[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}$/i.test(trimmed)) {
-    return true;
-  }
-
-  // Raw hexadecimal IDs (e.g. 0x151ca7e4b:0x1234)
-  if (/^0x[0-9a-f]+(:0x[0-9a-f]+)?$/i.test(trimmed)) {
-    return true;
-  }
-
-  // Generic origin keywords that are not destinations
-  const normalized = trimmed.replace(/\+/g, ' ').toLowerCase();
-  if (
-    normalized === 'current location' ||
-    normalized === 'my location' ||
-    normalized === 'your location' ||
-    normalized === 'موقعي' ||
-    normalized === 'موقعي الحالي' ||
-    normalized === 'موقعك' ||
-    normalized === 'موقعك الحالي'
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-export function extractGoogleMapsPlaceName(value: string): string | null {
-  try {
-    const url = new URL(value.trim());
-    const placeMatch = url.pathname.match(/\/maps\/(?:place|search)\/([^/?#]+)/i);
-    if (placeMatch?.[1]) {
-      const decoded = decodeGoogleMapsPathSegment(placeMatch[1]);
-      if (decoded && !isInvalidPlaceName(decoded)) {
-        return decoded;
-      }
-    }
-
-    // Directions links (`/maps/dir/{origin}/{waypoint...}/{destination}/@{viewCenter}/...`)
-    // have no dedicated "place" segment — the destination's name is just the last
-    // non-coordinate segment before the `@` viewport marker or protobuf data=` / `am=` blocks.
-    const dirMatch = url.pathname.match(/\/maps\/dir\/(.+?)(?:\/@|\/data=!|\/am=|$)/i);
-    if (dirMatch?.[1]) {
-      const namedSegments = dirMatch[1]
-        .split('/')
-        .map((segment) => decodeGoogleMapsPathSegment(segment))
-        .filter((segment): segment is string => Boolean(segment && !isCoordinatePairSegment(segment) && !isInvalidPlaceName(segment)));
-      const lastNamedSegment = namedSegments[namedSegments.length - 1];
-      if (lastNamedSegment) return lastNamedSegment;
-    }
-
-    const qParam = url.searchParams.get('q') || url.searchParams.get('query') || url.searchParams.get('destination') || url.searchParams.get('daddr');
-    if (qParam && !isCoordinatePairSegment(qParam)) {
-      const decoded = decodeGoogleMapsPathSegment(qParam);
-      if (decoded && !isInvalidPlaceName(decoded)) {
-        return decoded;
-      }
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function isCoordinatePairSegment(segment: string) {
-  return /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(segment);
-}
-
-function decodeGoogleMapsPathSegment(rawSegment: string) {
-  let placeName = safeDecodeURIComponent(rawSegment.replace(/\+/g, ' '))
-    .replace(/[\u200B-\u200F\u202A-\u202E\u2060]/g, '')
-    .trim();
-
-  if (isInvalidPlaceName(placeName)) {
-    return null;
-  }
-
-  // Strip Plus Code anywhere in name (e.g. "XXJ5+99G ", "7CQG+25, ", "مقابر ... HRQ7+HGG ...")
-  placeName = placeName
-    .replace(/\b[A-Z0-9]{2,8}\+[A-Z0-9]{2,4}\b\s*[-–—,،]?\s*/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-
-  if (isInvalidPlaceName(placeName)) {
-    return null;
-  }
-
-  return placeName || null;
-}
-
-export function isShortGoogleMapsLink(value: string) {
-  try {
-    const hostname = new URL(normalizeGoogleMapsUrl(value)).hostname.toLowerCase();
-    return hostname === 'maps.app.goo.gl' || hostname === 'goo.gl';
-  } catch {
-    return false;
-  }
-}
-
-export function isGoogleMapsLink(value: string) {
-  try {
-    const hostname = new URL(normalizeGoogleMapsUrl(value)).hostname.toLowerCase();
-    return (
-      hostname === 'maps.app.goo.gl'
-      || hostname === 'goo.gl'
-      || hostname === 'google.com'
-      || hostname.endsWith('.google.com')
-    );
-  } catch {
-    return false;
-  }
-}
-
-export function isMapsLink(value: string) {
-  return isGoogleMapsLink(value) || isOpenStreetMapLink(value);
-}
-
-export function sanitizeGoogleMapsUrl(urlStr: string): string {
-  try {
-    const normalized = normalizeGoogleMapsUrl(urlStr);
-    const url = new URL(normalized);
-    const hostname = url.hostname.toLowerCase();
-
-    // On short links (maps.app.goo.gl or goo.gl), ALL query params are mobile share tracking
-    // (e.g. g_st=ac, g_st=ic, utm_*, feature=shared). The short token in the pathname
-    // is all that identifies the place.
-    if (hostname === 'maps.app.goo.gl' || hostname === 'goo.gl') {
-      url.search = '';
-      return url.toString();
-    }
-
-    // On full Google Maps links, remove tracking parameters while keeping place/navigation params:
-    const trackingParams = [
-      'g_st',
-      'utm_source',
-      'utm_medium',
-      'utm_campaign',
-      'utm_term',
-      'utm_content',
-      'feature',
-      'si',
-      'entry',
-      'coh',
-      'g_ep',
-      'skid',
-    ];
-    for (const param of trackingParams) {
-      url.searchParams.delete(param);
-    }
-    return url.toString();
-  } catch {
-    return urlStr
-      .replace(/[?&]g_st=[^&#\s]+/gi, '')
-      .replace(/[?&]utm_[a-z]+=[^&#\s]+/gi, '')
-      .replace(/\?&/, '?')
-      .replace(/[?&]$/, '');
-  }
-}
-
-function looksLikeGoogleMapsLocation(value: string) {
-  const normalized = normalizeGoogleMapsUrl(value).toLowerCase();
-  if (!normalized) return false;
-
-  return (
-    isGoogleMapsLink(normalized) ||
-    parseGoogleMapsLocation(normalized) !== null ||
-    extractPlusCode(value) !== null
-  );
-}
-
-function extractGoogleMapsUrl(rawValue: string) {
-  const value = rawValue.trim();
-  if (!value) return '';
-
-  const urlMatch = value.match(
-    /(?:https?:\/\/)?(?:www\.)?(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.com|google\.com)\/[^\s<>"']+/i,
-  );
-  return sanitizeGoogleMapsUrl(normalizeGoogleMapsUrl((urlMatch?.[0] || value).replace(/[),.;]+$/, '')));
-}
-
-function normalizeGoogleMapsUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (/^(?:www\.)?(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.com|google\.com)\//i.test(trimmed)) {
-    return `https://${trimmed}`;
-  }
-  return trimmed;
-}
-
-function isValidLocation(lat: number, lng: number) {
-  return Number.isFinite(lat)
-    && Number.isFinite(lng)
-    && Math.abs(lat) <= 90
-    && Math.abs(lng) <= 180
-    // 0,0 is open water in the Gulf of Guinea. Every time it shows up here it is an unset
-    // field or a stray regex match, never a destination — and the loose decimal-pair
-    // pattern below can produce it from an unrelated pair of numbers in a URL.
-    && !(lat === 0 && lng === 0);
-}
-
-function safeDecodeURIComponent(value: string) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
 }
