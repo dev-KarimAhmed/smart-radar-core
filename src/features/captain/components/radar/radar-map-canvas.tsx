@@ -66,6 +66,17 @@ export function RadarMapCanvas({
       </div>
       <div className={styles.style166_9} />
 
+      {/* Floating Center Banner per Page 8: انت داخل نطاق الطلبات بالمحيط */}
+      {isActive && !radarLockMessage && (
+        <div className="pointer-events-none absolute top-3 inset-x-0 mx-auto w-fit z-20 flex items-center justify-center gap-2 rounded-full border border-teal-500/40 bg-[#06101E]/90 px-4 py-1.5 text-xs font-black text-[#14F5D5] shadow-xl backdrop-blur-md select-none animate-in fade-in duration-300">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
+          </span>
+          <span>{language === 'ar' ? 'انت داخل نطاق الطلبات بالمحيط' : 'You are within order broadcast perimeter'}</span>
+        </div>
+      )}
+
       <div className={styles.style168_10}>
         <div>
           <p className={styles.style170_11}>{copy.title}</p>

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 
 export const styles = {
   style136_1: "group overflow-hidden rounded-2xl border bg-[#161F30]/80 text-[#F8FAFC] shadow-2xl shadow-black/20 backdrop-blur-md transition-all duration-300 hover:border-[#14B8A6]",
-  style137_2: "border-emerald-300/70 shadow-[0_0_34px_rgba(20,184,166,0.18)]",
+  style137_2: "border-2 border-amber-400/80 bg-gradient-to-b from-[#1c1809]/95 via-[#111928]/95 to-[#070c17] shadow-[0_0_35px_rgba(251,191,36,0.22)] ring-1 ring-amber-400/40",
   style137_3: "border-[#243249]",
   style146_5: "flex min-w-0 flex-1 items-center gap-3",
   style148_6: "min-w-0",

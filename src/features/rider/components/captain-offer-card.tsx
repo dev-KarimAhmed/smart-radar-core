@@ -2,6 +2,7 @@
 
 import React from 'react';
 import {
+  Award,
   CheckCircle2,
   ChevronDown,
   Heart,
@@ -113,6 +114,21 @@ function CaptainOfferCardBase({
 
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
 
+  const rankBadgeStyle = (() => {
+    switch (captain.rank) {
+      case 'PLATINUM':
+        return 'border-cyan-400/50 bg-cyan-500/15 text-cyan-200';
+      case 'GOLD':
+        return 'border-amber-400/60 bg-amber-500/20 text-amber-200';
+      case 'BRONZE':
+        return 'border-amber-700/50 bg-amber-800/20 text-amber-300';
+      case 'SILVER':
+        return 'border-slate-400/50 bg-slate-500/20 text-slate-200';
+      default:
+        return 'border-[#14B8A6]/40 bg-[#14B8A6]/15 text-[#14F5D5]';
+    }
+  })();
+
   const durationLabel = formatMinutes(
     preferRoutedMinutes(offer.estimated_duration_minutes, offer.trip_distance_km || offer.distance_km),
     language,
@@ -131,26 +147,31 @@ function CaptainOfferCardBase({
       dir={isArabic ? 'rtl' : 'ltr'}
       className={cn(styles.style136_1, isPreferred ? styles.style137_2 : styles.style137_3)}
     >
-      {/* 1. اسم الكابتن والتقييم - حذف الرتبة وفق الصفحة 8 */}
+      {/* 1. اسم الكابتن والتقييم والرتبة (Page 9) */}
       <div className="p-4 pb-0 sm:p-5 sm:pb-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <span className="text-xs font-bold text-slate-400">
-              {isArabic ? 'المعلن' : 'Advertiser'}
-            </span>
-            <h3 dir="auto" className="text-xl sm:text-2xl font-black text-[#F8FAFC] truncate">
+            {isPreferred ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-amber-500/20 px-2.5 py-0.5 text-xs font-black text-amber-200 shadow-[0_0_14px_rgba(251,191,36,0.3)]">
+                <Heart className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
+                <span>{isArabic ? 'كابتن مفضل' : t('preferredCaptain')}</span>
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-slate-400">
+                {isArabic ? 'الكابتن' : t('captain')}
+              </span>
+            )}
+            <span className="text-slate-400 text-xs font-bold">/</span>
+            <h3 dir="auto" className={cn(
+              "text-lg sm:text-xl font-black truncate",
+              isPreferred ? "text-amber-100 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]" : "text-[#F8FAFC]"
+            )}>
               {captainName}
             </h3>
             {captain.is_verified ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2 py-0.5 text-[10px] font-black text-[#14F5D5]">
                 <CheckCircle2 className="h-3 w-3" />
                 {t('verified')}
-              </span>
-            ) : null}
-            {isPreferred ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.2)]">
-                <Heart className="h-3.5 w-3.5 fill-emerald-200 text-emerald-200" />
-                {t('preferredCaptain')}
               </span>
             ) : null}
           </div>
@@ -270,10 +291,14 @@ function CaptainOfferCardBase({
           <span className="text-xs sm:text-sm font-black text-[#14F5D5]">{currencyCode}</span>
         </div>
 
-        {/* نوع التسعير (سعر حر / ...) على اليسار في RTL */}
-        <div className="shrink-0">
+        {/* نوع التسعير والرتبة على اليسار في RTL (Page 9: تكسي عام ماسي / سعر حر برونز ...) */}
+        <div className="shrink-0 flex items-center gap-2">
           <span className="text-xs sm:text-sm font-black text-[#14F5D5] tracking-wide">
             {pricingLabel}
+          </span>
+          <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black", rankBadgeStyle)}>
+            <Award className="h-3 w-3" />
+            <span>{rankLabel}</span>
           </span>
         </div>
       </div>
