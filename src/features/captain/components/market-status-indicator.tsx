@@ -6,15 +6,24 @@ import { cn } from '@/lib/utils';
 import type { CaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
 
 const styles = {
-  full: 'flex items-center gap-3 rounded-2xl border px-4 py-3',
-  fullLow: 'border-emerald-500/25 bg-emerald-500/10',
-  fullHigh: 'border-rose-500/25 bg-rose-500/10',
-  fullGauge: 'h-16 w-28 shrink-0',
-  fullText: 'flex-1 text-start',
-  fullTitle: 'text-sm font-black',
-  fullTitleLow: 'text-emerald-300',
-  fullTitleHigh: 'text-rose-300',
-  fullBody: 'mt-0.5 text-xs leading-5 text-[#94A3B8]',
+  banner:
+    'relative overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-gradient-to-r from-amber-600/20 via-orange-500/25 to-amber-600/20 p-3.5 sm:p-4 text-center shadow-lg shadow-amber-950/30 transition-all select-none',
+  bannerGlow:
+    'absolute inset-0 bg-gradient-to-b from-amber-400/10 via-transparent to-transparent pointer-events-none',
+  bannerHeader: 'relative z-10 flex items-center justify-center gap-2 mb-1.5',
+  bannerDot:
+    'h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]',
+  bannerTitle: 'text-sm sm:text-base font-black text-amber-300 tracking-wide',
+  bannerBadge:
+    'text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border border-amber-400/40 bg-amber-500/20 text-amber-200',
+  bannerBadgeLow:
+    'border-emerald-400/40 bg-emerald-500/15 text-emerald-200',
+  bannerStats:
+    'relative z-10 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-bold text-slate-100 flex-wrap',
+  bannerStatItem: 'inline-flex items-center gap-1.5',
+  bannerStatNumber: 'font-mono text-base sm:text-lg font-black text-amber-300 drop-shadow-sm',
+  bannerStatLabel: 'font-bold text-slate-200',
+  bannerDivider: 'text-amber-500/60 font-black text-base select-none',
   compact: 'inline-flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border px-2.5 py-1 sm:px-3.5 sm:py-1.5 shadow-md backdrop-blur-md',
   compactLow: 'border-emerald-500/25 bg-emerald-500/10',
   compactHigh: 'border-rose-500/25 bg-rose-500/10',
@@ -25,8 +34,8 @@ const styles = {
 } as const;
 
 interface MarketStatusIndicatorProps {
-  indicator: CaptainMarketIndicator | null;
-  size?: 'full' | 'compact';
+  indicator: CaptainMarketIndicator | null | undefined;
+  size?: 'full' | 'compact' | 'banner';
 }
 
 // A semicircle speedometer: a green zone from 0 to the current demand
@@ -94,10 +103,17 @@ function describeArc(cx: number, cy: number, r: number, startAngle: number, endA
 
 export function MarketStatusIndicator({ indicator, size = 'full' }: MarketStatusIndicatorProps) {
   const t = useTranslations('captainDashboard');
-  if (!indicator) return null;
+  if (!indicator && size === 'compact') return null;
 
-  const isHigh = indicator.status === 'high';
-  const scopeLabel = indicator.scope === 'governorate'
+  const resolvedIndicator: CaptainMarketIndicator = indicator ?? {
+    activeCaptainCount: 0,
+    pendingRequestCount: 0,
+    scope: 'governorate',
+    status: 'low',
+  };
+
+  const isHigh = resolvedIndicator.status === 'high';
+  const scopeLabel = resolvedIndicator.scope === 'governorate'
     ? t('marketIndicatorScopeGovernorate')
     : t('marketIndicatorScopeCountry');
 
@@ -106,10 +122,10 @@ export function MarketStatusIndicator({ indicator, size = 'full' }: MarketStatus
       <div
         className={cn(styles.compact, isHigh ? styles.compactHigh : styles.compactLow)}
         title={isHigh
-          ? t('marketIndicatorHighBody', { count: indicator.activeCaptainCount, demand: indicator.pendingRequestCount, scope: scopeLabel })
-          : t('marketIndicatorLowBody', { count: indicator.activeCaptainCount, demand: indicator.pendingRequestCount, scope: scopeLabel })}
+          ? t('marketIndicatorHighBody', { count: resolvedIndicator.activeCaptainCount, demand: resolvedIndicator.pendingRequestCount, scope: scopeLabel })
+          : t('marketIndicatorLowBody', { count: resolvedIndicator.activeCaptainCount, demand: resolvedIndicator.pendingRequestCount, scope: scopeLabel })}
       >
-        <Gauge value={indicator.activeCaptainCount} threshold={indicator.pendingRequestCount} status={indicator.status} className={styles.compactGauge} />
+        <Gauge value={resolvedIndicator.activeCaptainCount} threshold={resolvedIndicator.pendingRequestCount} status={resolvedIndicator.status} className={styles.compactGauge} />
         <span className={cn(styles.compactLabel, isHigh ? styles.compactLabelHigh : styles.compactLabelLow)}>
           {isHigh ? t('marketIndicatorHighShort') : t('marketIndicatorLowShort')}
         </span>
@@ -118,17 +134,41 @@ export function MarketStatusIndicator({ indicator, size = 'full' }: MarketStatus
   }
 
   return (
-    <div className={cn(styles.full, isHigh ? styles.fullHigh : styles.fullLow)}>
-      <Gauge value={indicator.activeCaptainCount} threshold={indicator.pendingRequestCount} status={indicator.status} className={styles.fullGauge} />
-      <div className={styles.fullText}>
-        <p className={cn(styles.fullTitle, isHigh ? styles.fullTitleHigh : styles.fullTitleLow)}>
-          {isHigh ? t('marketIndicatorHighTitle', { scope: scopeLabel }) : t('marketIndicatorLowTitle', { scope: scopeLabel })}
-        </p>
-        <p className={styles.fullBody}>
-          {isHigh
-            ? t('marketIndicatorHighBody', { count: indicator.activeCaptainCount, demand: indicator.pendingRequestCount, scope: scopeLabel })
-            : t('marketIndicatorLowBody', { count: indicator.activeCaptainCount, demand: indicator.pendingRequestCount, scope: scopeLabel })}
-        </p>
+    <div
+      className={styles.banner}
+      title={isHigh
+        ? t('marketIndicatorHighBody', { count: resolvedIndicator.activeCaptainCount, demand: resolvedIndicator.pendingRequestCount, scope: scopeLabel })
+        : t('marketIndicatorLowBody', { count: resolvedIndicator.activeCaptainCount, demand: resolvedIndicator.pendingRequestCount, scope: scopeLabel })}
+    >
+      <div className={styles.bannerGlow} />
+      <div className={styles.bannerHeader}>
+        <span className={styles.bannerDot} />
+        <h4 className={styles.bannerTitle}>
+          {t('marketIndicatorTitle')}
+        </h4>
+        <span className={cn(styles.bannerBadge, !isHigh && styles.bannerBadgeLow)}>
+          {isHigh ? t('marketIndicatorHighShort') : t('marketIndicatorLowShort')}
+        </span>
+      </div>
+
+      <div className={styles.bannerStats}>
+        <span className={styles.bannerStatItem}>
+          <span className={styles.bannerStatNumber}>
+            {resolvedIndicator.pendingRequestCount}
+          </span>
+          <span className={styles.bannerStatLabel}>
+            {t('marketPendingRequestsLabel')}
+          </span>
+        </span>
+        <span className={styles.bannerDivider}>|</span>
+        <span className={styles.bannerStatItem}>
+          <span className={styles.bannerStatNumber}>
+            {resolvedIndicator.activeCaptainCount}
+          </span>
+          <span className={styles.bannerStatLabel}>
+            {t('marketActiveCaptainsLabel')}
+          </span>
+        </span>
       </div>
     </div>
   );

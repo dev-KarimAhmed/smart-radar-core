@@ -23,7 +23,7 @@ const styles = {
   content: 'border-emerald-500/25 bg-[#0B0F19] text-white shadow-2xl max-w-xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col gap-0 p-3.5 sm:p-5 overflow-hidden rounded-3xl',
   title: 'text-lg sm:text-xl font-black text-white',
   description: 'text-xs sm:text-sm leading-5 text-[#94A3B8] text-start',
-  marketIndicatorWrap: 'mt-2',
+  marketIndicatorWrap: 'my-2.5 sm:my-3',
   fields: 'mt-2 space-y-3.5',
   field: 'space-y-1.5',
   fieldLabel: 'block text-xs sm:text-sm font-black text-white text-start',
@@ -387,11 +387,10 @@ export function PricePerKmSetupModal({
             </p>
           </div>
 
-          {marketIndicator ? (
-            <div className={styles.marketIndicatorWrap}>
-              <MarketStatusIndicator indicator={marketIndicator} size="full" />
-            </div>
-          ) : null}
+          {/* Label above activity modes */}
+          <p className="text-center text-xs sm:text-sm font-black text-slate-300 mt-2 mb-1">
+            {t('marketActivityTitle')}
+          </p>
 
           {/* Pricing Setup Mode Selector Tabs: 3 choices (Free Prices, Smart App, Taxi) */}
           <div className={styles.modeSelector}>
@@ -449,6 +448,11 @@ export function PricePerKmSetupModal({
                 {t('tariffTaxiPriceSubtitle')}
               </span>
             </button>
+          </div>
+
+          {/* Market Status Indicator Banner - positioned directly below the 3 mode selector buttons */}
+          <div className={styles.marketIndicatorWrap}>
+            <MarketStatusIndicator indicator={marketIndicator} size="full" />
           </div>
 
         {setupMode === 'APP' && (
