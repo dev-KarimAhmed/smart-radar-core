@@ -1,128 +1,44 @@
 import React from 'react';
-import type { SovereignFareQuote } from '@/core/logic/geospatial-kernel';
-import type { Offer } from '@/core/types';
-import { toEpochMs } from '@/shared/services/trip-countdown';
+import type {
+  RiderMachineScreen,
+  RiderDestination,
+  RiderLocalRating,
+  RiderActiveTripCaptain,
+  RiderActiveTrip,
+  RiderMachineState,
+  RiderMachineAction,
+} from './rider-state-types';
+import {
+  RIDER_STATE_STORAGE_KEY,
+  initialRiderMachineState,
+} from './rider-state-types';
+import {
+  firstString,
+  firstNumber,
+  extractRowStartTime,
+  buildDestinationFromRow,
+  buildActiveTrip,
+} from './rider-state-helpers';
 
-export type RiderMachineScreen =
-  | 'IDLE_MAP'
-  | 'DESTINATION_SELECTION'
-  | 'RECEIVING_OFFERS'
-  | 'TRIP_ACTIVE'
-  | 'RATING_MODAL'
-  | 'PURGE_LEDGER'
-  | 'FAVORITE_CAPTAINS';
-
-export interface RiderDestination {
-  id: string;
-  label: string;
-  governorate: string;
-  district: string;
-  coords: {
-    lat: number;
-    lng: number;
-  };
-  tortuosityFactor?: number;
-  fareQuote?: SovereignFareQuote;
-  serverEstimatedFare?: number;
-  originCell?: string;
-  destinationCell?: string;
-}
-
-export interface RiderLocalRating {
-  captain: number;
-  vehicle: number;
-  favorite: boolean;
-}
-
-export interface RiderActiveTripCaptain {
-  serial_number?: string | null;
-  serial?: string | null;
-  nickname?: string | null;
-  full_name?: string | null;
-  name?: string | null;
-  phone?: string | null;
-  plate_number?: string | null;
-  license_plate?: string | null;
-  vehicle_model?: string | null;
-  vehicle_color?: string | null;
-  facebook_url?: string | null;
-  instagram_url?: string | null;
-  [key: string]: unknown;
-}
-
-export interface RiderActiveTrip {
-  tripId: string;
-  captainId: string;
-  captainName: string;
-  captainSerial: string;
-  captainPhone: string;
-  vehicleType: string;
-  vehiclePlate: string;
-  finalPrice: number;
-  destinationLabel: string;
-  distanceKm: number;
-  originCell?: string;
-  destinationCell?: string;
-  tortuosityFactor?: number;
-  etaSeconds: number;
-  startedAt: number;
-  acceptedAtMs?: number | null;
-  arrivedAtMs?: number | null;
-  startedAtMs?: number | null;
-  pickupEtaMinutes?: number | null;
-  tripDurationMinutes?: number | null;
-  captain?: RiderActiveTripCaptain | null;
-  status?: string;
-  cancel_requested_by?: 'rider' | 'captain' | null;
-}
-
-export interface RiderMachineState {
-  screen: RiderMachineScreen;
-  destination: RiderDestination | null;
-  offers: Offer[];
-  activeTrip: RiderActiveTrip | null;
-  completedTrip: RiderActiveTrip | null;
-  requestStartedAt: number | null;
-  requestId: string | null;
-  requestCancelledAt: number | null;
-  pendingAcceptedOfferId: string | null;
-  autoRetryRequested?: boolean;
-}
-
-export type RiderMachineAction =
-  | { type: 'OPEN_DESTINATION' }
-  | { type: 'CONFIRM_DESTINATION'; destination: RiderDestination }
-  | { type: 'SEND_REQUEST' }
-  | { type: 'SERVER_REQUEST_CREATED'; requestId: string }
-  | { type: 'SERVER_STATUS_RECEIVING_OFFERS' }
-  | { type: 'SERVER_STATUS_ACCEPTED'; row: Record<string, unknown> }
-  | { type: 'SERVER_STATUS_COMPLETED'; row?: Record<string, unknown> }
-  | { type: 'REQUEST_FAILED' }
-  | { type: 'REQUEST_CANCELLED' }
-  | { type: 'REHYDRATE_SEARCHING'; requestId: string; row?: Record<string, unknown> }
-  | { type: 'REHYDRATE_ACTIVE_TRIP'; requestId: string; row: Record<string, unknown>; offers: Offer[] }
-  | { type: 'RECEIVE_OFFERS'; offers: Offer[] }
-  | { type: 'SELECT_OFFER'; offerId: string }
-  | { type: 'COMPLETE_TRIP' }
-  | { type: 'SUBMIT_RATING' }
-  | { type: 'OPEN_PURGE_LEDGER' }
-  | { type: 'OPEN_FAVORITE_CAPTAINS' }
-  | { type: 'RETURN_TO_MAP' }
-  | { type: 'CLEAR_AUTO_RETRY' }
-  | { type: 'RESET_TO_IDLE' };
-
-const RIDER_STATE_STORAGE_KEY = 'radar_active_rider_machine_state';
-
-export const initialRiderMachineState: RiderMachineState = {
-  screen: 'IDLE_MAP',
-  destination: null,
-  offers: [],
-  activeTrip: null,
-  completedTrip: null,
-  requestStartedAt: null,
-  requestId: null,
-  requestCancelledAt: null,
-  pendingAcceptedOfferId: null,
+export type {
+  RiderMachineScreen,
+  RiderDestination,
+  RiderLocalRating,
+  RiderActiveTripCaptain,
+  RiderActiveTrip,
+  RiderMachineState,
+  RiderMachineAction,
+};
+export {
+  RIDER_STATE_STORAGE_KEY,
+  initialRiderMachineState,
+};
+export {
+  firstString,
+  firstNumber,
+  extractRowStartTime,
+  buildDestinationFromRow,
+  buildActiveTrip,
 };
 
 export function createInitialRiderMachineState(): RiderMachineState {
@@ -155,140 +71,6 @@ export function shouldShowAdRiver(state: RiderMachineState): boolean {
   }
 
   return true;
-}
-
-/**
- * Rebuilds the rider's destination from the ride_requests row.
- *
- * The destination is chosen on the client and only ever lived in this state — so a reload
- * mid-request lost it. `REHYDRATE_SEARCHING` restored the screen and the request id and
- * nothing else, which is why the offers screen showed "الوجهة: غير متاح" for a request whose
- * address is sitting right there in the row it was rehydrated from.
- *
- * It also cost more than a label: buildCaptainOfferFromOffer measures the trip distance from
- * `destination.coords`, so after a reload every offer card lost its trip distance too.
- *
- * governorate/district stay empty on purpose — the row stores the composed address, not its
- * parts, and nothing downstream of a rehydrate reads them. Inventing a split by string
- * surgery on the label would be a guess dressed as data.
- */
-function buildDestinationFromRow(
-  requestId: string,
-  row: Record<string, unknown> | undefined,
-): RiderDestination | null {
-  if (!row) return null;
-
-  const label = firstString(
-    row.destination_address_ar,
-    row.destination_address,
-    row.destination_address_en,
-  );
-  const lat = firstNumber(row.destination_lat);
-  const lng = firstNumber(row.destination_lng);
-
-  // A label with no coordinates is still worth restoring: the rider gets to see where they
-  // asked to go, and the offer cards fall back to the routed distance on each offer's own
-  // receipt for the number.
-  if (!label && (lat === null || lng === null)) return null;
-
-  return {
-    id: requestId,
-    label: label || '',
-    governorate: '',
-    district: '',
-    coords: {
-      lat: lat ?? 0,
-      lng: lng ?? 0,
-    },
-    serverEstimatedFare: firstNumber(row.server_estimated_fare) ?? undefined,
-    originCell: firstString(row.origin_h3) || undefined,
-    destinationCell: firstString(row.destination_h3) || undefined,
-  };
-}
-
-function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, unknown>): RiderActiveTrip | null {
-  const existing = state.activeTrip;
-  const acceptedOfferId =
-    firstString(acceptedRow.accepted_offer_id, acceptedRow.offer_id, acceptedRow.selected_offer_id) ||
-    state.pendingAcceptedOfferId;
-  const acceptedCaptainId = firstString(
-    acceptedRow.accepted_driver_id,
-    acceptedRow.driver_id,
-    acceptedRow.captain_id,
-    acceptedRow.accepted_captain_id,
-  );
-  const selectedOffer = state.offers.find((offer) => (
-    offer.id === acceptedOfferId ||
-    offer.driverId === acceptedOfferId ||
-    offer.driverId === acceptedCaptainId
-  ));
-
-  if (!selectedOffer && !acceptedCaptainId && !existing) return null;
-
-  const vehicle = selectedOffer?.driverVehicle || {};
-  const distanceKm = state.destination?.fareQuote?.estimatedRoadDistanceKm
-    ?? firstNumber(acceptedRow.estimated_distance_km, acceptedRow.route_distance_km)
-    ?? existing?.distanceKm
-    ?? 0;
-  const estimatedTripMinutes = firstNumber(
-    acceptedRow.estimated_duration_minutes,
-    acceptedRow.route_duration_minutes,
-    acceptedRow.trip_duration_minutes
-  ) ?? existing?.tripDurationMinutes ?? Math.max(1, Math.ceil((distanceKm || 2) * 1.5));
-
-  const rowCaptain = (acceptedRow.captain || acceptedRow.captain_profile) as Record<string, any> | undefined;
-
-  return {
-    tripId: firstString(acceptedRow.trip_id, acceptedRow.active_trip_id, acceptedRow.id) || existing?.tripId || state.requestId || '',
-    captainId: selectedOffer?.driverId || acceptedCaptainId || existing?.captainId || '',
-    captainName:
-      selectedOffer?.captain?.full_name ||
-      selectedOffer?.captain?.nickname ||
-      rowCaptain?.full_name ||
-      rowCaptain?.nickname ||
-      selectedOffer?.driverName ||
-      firstString(acceptedRow.driver_name, acceptedRow.captain_name) ||
-      existing?.captainName ||
-      'السائق',
-    captainSerial:
-      selectedOffer?.driverName ||
-      firstString(acceptedRow.driver_serial, acceptedRow.captain_serial, acceptedRow.driver_name, acceptedRow.captain_name) ||
-      acceptedCaptainId ||
-      existing?.captainSerial ||
-      'السائق',
-    captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || existing?.captainPhone || '',
-    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim() || existing?.vehicleType || 'سيارة',
-    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || existing?.vehiclePlate || 'غير متاح',
-    finalPrice:
-      firstNumber(
-        acceptedRow.final_fare,
-        acceptedRow.final_price,
-        acceptedRow.accepted_price,
-        acceptedRow.offer_price,
-        acceptedRow.server_estimated_fare,
-      ) ??
-      (selectedOffer?.price === -1
-        ? state.destination?.serverEstimatedFare ?? 0
-        : selectedOffer?.price ?? state.destination?.serverEstimatedFare ?? existing?.finalPrice ?? 0),
-    destinationLabel: state.destination?.label
-      || firstString(acceptedRow.destination_address_ar, acceptedRow.destination_address, acceptedRow.destination_address_en)
-      || existing?.destinationLabel
-      || 'وجهة',
-    distanceKm,
-    originCell: state.destination?.originCell ?? state.destination?.fareQuote?.originCell ?? existing?.originCell,
-    destinationCell: state.destination?.destinationCell ?? state.destination?.fareQuote?.destinationCell ?? existing?.destinationCell,
-    tortuosityFactor: state.destination?.fareQuote?.tortuosityFactor ?? existing?.tortuosityFactor,
-    etaSeconds: Math.round(estimatedTripMinutes * 60) || existing?.etaSeconds || 120,
-    startedAt: existing?.startedAt ?? Date.now(),
-    acceptedAtMs: toEpochMs(acceptedRow.accepted_at) ?? existing?.acceptedAtMs,
-    arrivedAtMs: toEpochMs(acceptedRow.arrived_at) ?? existing?.arrivedAtMs,
-    startedAtMs: toEpochMs(acceptedRow.started_at) ?? existing?.startedAtMs,
-    pickupEtaMinutes: firstNumber(acceptedRow.pickup_eta_minutes, selectedOffer?.pickup_eta_minutes) ?? existing?.pickupEtaMinutes,
-    tripDurationMinutes: estimatedTripMinutes,
-    captain: selectedOffer?.captain || rowCaptain || existing?.captain || null,
-    status: String(acceptedRow.status || existing?.status || 'ACCEPTED').toUpperCase(),
-    cancel_requested_by: (acceptedRow.cancel_requested_by as any) ?? existing?.cancel_requested_by ?? null,
-  };
 }
 
 export function riderDashboardReducer(state: RiderMachineState, action: RiderMachineAction): RiderMachineState {
@@ -371,8 +153,6 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
           window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
         } catch {}
       }
-      // A trip already accepted (or further along) that gets cancelled
-      // is usually a captain cancellation. Auto-retry search for the rider.
       if (state.screen === 'TRIP_ACTIVE') {
         const destination = state.destination || (state.activeTrip?.destinationLabel ? {
           id: state.activeTrip.tripId,
@@ -395,8 +175,6 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
           autoRetryRequested: true,
         };
       }
-      // Cancel Collision Shield: reject any delayed server echo if the rider is not actively waiting for offers
-      // (prevents dragging the rider away from DESTINATION_SELECTION, IDLE_MAP, or modals)
       if (state.screen !== 'RECEIVING_OFFERS') {
         return state;
       }
@@ -415,8 +193,6 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         ...state,
         screen: 'RECEIVING_OFFERS',
         requestId: action.requestId,
-        // Keep whatever is already in state — it is the richer object, with the fare quote
-        // and the governorate/district the picker knew. Only fall back to the row.
         destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
         requestStartedAt: state.requestStartedAt ?? extractRowStartTime(action.row),
       };
@@ -519,24 +295,4 @@ export function useRiderDashboardMachine() {
   }, [state]);
 
   return { state, dispatch, showAdRiver: shouldShowAdRiver(state) };
-}
-
-function extractRowStartTime(row?: Record<string, unknown> | null): number {
-  const rowCreatedAt = row?.created_at ? new Date(row.created_at as string).getTime() : Date.now();
-  return Number.isFinite(rowCreatedAt) && rowCreatedAt > 0 ? rowCreatedAt : Date.now();
-}
-
-function firstString(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return null;
-}
-
-function firstNumber(...values: unknown[]) {
-  for (const value of values) {
-    const numberValue = Number(value);
-    if (Number.isFinite(numberValue)) return numberValue;
-  }
-  return null;
 }
