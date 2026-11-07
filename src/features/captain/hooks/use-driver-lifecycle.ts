@@ -288,7 +288,6 @@ export function useDriverLifecycle(user: User | null) {
       if (!updated) return false;
 
       changeDriverStatus(desiredStatus);
-      if (desiredStatus === 'active') setActivationNonce((value) => value + 1);
       if (user?.uid) {
         if (desiredStatus === 'idle') {
           void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid);

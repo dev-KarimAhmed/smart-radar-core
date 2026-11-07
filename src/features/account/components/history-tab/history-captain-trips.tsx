@@ -85,7 +85,7 @@ export function HistoryCaptainTrips({
   onRatingSuccess,
   t
 }: HistoryCaptainTripsProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [ratingTargetTrip, setRatingTargetTrip] = useState<any | null>(null);
   const activeCurrency = currencyLabel || (isArabic ? 'د.أ' : 'JOD');
 

@@ -139,7 +139,11 @@ export function useDriverTransactions(
       );
 
       const cancellationTime = (row?.cancelled_at || row?.updated_at || getServerTime()) as string | number | Date;
-      const startedAt = (row?.started_at as string | undefined) || targetReq?.startedAtMs;
+      const status = String(row?.status || targetReq?.status || '').toUpperCase();
+      const isTripActive = status === 'TRIP_ACTIVE' || status === 'IN_PROGRESS';
+      // Sovereign Rule: If cancellation occurs before trip starts (ACCEPTED, ARRIVED), the captain must NOT be frozen
+      const rawStartedAt = (row?.started_at as string | undefined) || targetReq?.startedAtMs;
+      const startedAt = isTripActive ? rawStartedAt : null;
       const acceptedAt = (row?.accepted_at as string | undefined) || targetReq?.acceptedAtMs;
       const arrivedAt = (row?.arrived_at as string | undefined) || targetReq?.arrivedAtMs;
       const pickupEta = (row?.pickup_eta_minutes as number | undefined) ?? targetReq?.pickup_eta_minutes;

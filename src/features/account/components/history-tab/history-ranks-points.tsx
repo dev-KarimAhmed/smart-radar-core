@@ -103,7 +103,7 @@ const RANK_HIERARCHY: CaptainRankName[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM
 
 export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps) {
   const { user } = useAuth();
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // Derive current rank
   const rawRank = (user?.rank || (user as any)?.tier || 'BRONZE').toUpperCase() as CaptainRankName;

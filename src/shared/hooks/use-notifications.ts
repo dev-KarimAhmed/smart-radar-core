@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { parseNotificationContent } from '@/shared/utils/notification-i18n';
 import { playNotificationSound } from '@/shared/utils/notification-sound';
 import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
+import { recordAdminNotificationSeen } from '@/features/account/services/legal-log-service';
 
 export interface AppNotification {
   id: string;
@@ -544,6 +545,16 @@ export function useNotifications(explicitUserId?: string | null) {
   // Mark single notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
     const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
+    const targetItem = memoryNotifications.find((n) => n.id === notificationId);
+    if (targetItem && isAdminNotification(targetItem) && targetUserId) {
+      void recordAdminNotificationSeen({
+        userId: targetUserId,
+        notificationId: targetItem.id,
+        notificationTitle: targetItem.title,
+        notificationDescription: targetItem.description,
+      });
+    }
+
     const updated = memoryNotifications.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
     updateStore(updated, targetUserId);
 
@@ -566,6 +577,19 @@ export function useNotifications(explicitUserId?: string | null) {
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
+    if (targetUserId) {
+      memoryNotifications.forEach((n) => {
+        if (!n.read && isAdminNotification(n)) {
+          void recordAdminNotificationSeen({
+            userId: targetUserId,
+            notificationId: n.id,
+            notificationTitle: n.title,
+            notificationDescription: n.description,
+          });
+        }
+      });
+    }
+
     const updated = memoryNotifications.map((n) => ({ ...n, read: true }));
     updateStore(updated, targetUserId);
 

@@ -192,6 +192,17 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash || '#' : '#'));
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const pending = localStorage.getItem('radar_pending_pwa_install_prompt');
+    if (pending === 'true') {
+      localStorage.removeItem('radar_pending_pwa_install_prompt');
+      if (!isStandalone) {
+        setIsInstallModalOpen(true);
+      }
+    }
+  }, [isStandalone]);
+
+  useEffect(() => {
     const handleHash = () => setCurrentHash(window.location.hash || '#');
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);

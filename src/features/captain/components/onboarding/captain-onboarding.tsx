@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, Languages, ShieldCheck, MailCheck, Mail, Loader2, RefreshCw, Clock, Check } from 'lucide-react';
+import { CheckCircle2, Languages, ShieldCheck, MailCheck, Mail, Loader2, RefreshCw, Clock, Check, Download } from 'lucide-react';
+import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 import { navigateAuth } from '@/lib/auth-routing';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -96,6 +97,7 @@ export function CaptainOnboarding() {
   const [isHydrated, setIsHydrated] = React.useState(false);
   const [step, setStep] = React.useState<OnboardingStep>(1);
   const [showAccuracyModal, setShowAccuracyModal] = React.useState(false);
+  const [showPwaInstallModal, setShowPwaInstallModal] = React.useState(false);
   const [personal, setPersonal] = React.useState<CaptainPersonalValues>(emptyPersonal);
   const [rememberMe, setRememberMe] = React.useState<boolean>(readStoredRememberMe);
   const [affiliation, setAffiliation] = React.useState<AffiliationType | null>(null);
@@ -134,6 +136,9 @@ export function CaptainOnboarding() {
         description: isArabic ? 'تم تفعيل بريدك الإلكتروني بنجاح.' : 'Your email has been confirmed successfully.',
       });
       try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+        }
         await signInRiderWithPhone({
           phone: personal.phone,
           password: personal.password,
@@ -312,6 +317,12 @@ export function CaptainOnboarding() {
       if ((result as any).needsEmailConfirmation) {
         setConfirmedEmail(personal.email.trim());
         setStep('done');
+        setShowPwaInstallModal(true);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+          } catch {}
+        }
         const captainId = result.user?.id;
         if (captainId) {
           void recordLegalDeclaration({
@@ -335,6 +346,12 @@ export function CaptainOnboarding() {
         title: t('successTitle'),
         description: t(result.session ? 'successDescription' : 'successNeedsLogin'),
       });
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+        } catch {}
+      }
 
       if (result.session) {
         if (personal.email?.trim().includes('@')) {
@@ -568,6 +585,15 @@ export function CaptainOnboarding() {
               <div className="space-y-3 pt-2">
                 <button
                   type="button"
+                  onClick={() => setShowPwaInstallModal(true)}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 active:scale-95 h-11 text-xs sm:text-sm font-bold text-[#14F5D5] transition-all cursor-pointer shadow-md shadow-[#14B8A6]/10"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>{isArabic ? 'تثبيت تطبيق بينكم (PWA)' : 'Install Among You (PWA)'}</span>
+                </button>
+
+                <button
+                  type="button"
                   disabled={isResending || resendCountdown > 0}
                   onClick={handleResendConfirmation}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-95 h-11 text-xs sm:text-sm font-bold text-slate-300 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -618,6 +644,12 @@ export function CaptainOnboarding() {
         onClose={() => setShowAccuracyModal(false)}
         isArabic={isArabic}
         isLoading={isSubmitting}
+      />
+      <SovereignPwaInstallModal
+        isOpen={showPwaInstallModal}
+        onClose={() => setShowPwaInstallModal(false)}
+        isArabic={isArabic}
+        role="captain"
       />
     </main>
   );

@@ -636,6 +636,12 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
       const signUpResult = await signUpRiderWithPhone(signUpInput);
 
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+        } catch {}
+      }
+
       if ((signUpResult as any).needsEmailConfirmation) {
         setAwaitingConfirmationEmail((signUpResult as any).email || personal.email.trim());
         toast({

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useNotifications, type AppNotification } from '@/shared/hooks/use-notifications';
+import { useNotifications, isAdminNotification, type AppNotification } from '@/shared/hooks/use-notifications';
+import { recordAdminNotificationSeen } from '../services/legal-log-service';
 import { highlightBrand } from '@/shared/components/brand-highlight';
 import {
   Bell,
@@ -152,6 +153,14 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
     } else {
       if (!item.read) {
         void markAsRead(item.id);
+      } else if (isAdminNotification(item) && user?.uid) {
+        void recordAdminNotificationSeen({
+          userId: user.uid,
+          notificationId: item.id,
+          notificationTitle: item.title,
+          notificationDescription: item.description,
+          isArabic,
+        });
       }
       setViewingNotification(item);
     }

@@ -103,11 +103,11 @@ test('calculateRemainingCooldown: does not use original duration (60 min trip, c
 });
 
 // =========================================================================
-// REQUIREMENT 3: If cancelled before it starts, calculate remaining time until scheduled trip end time
+// REQUIREMENT 3: If cancelled BEFORE trip starts, captain must NOT be frozen
+// (Freeze duration must be ZERO so captain is not locked out or disabled)
 // =========================================================================
-test('calculateRemainingCooldown: cancelled before start with acceptedAt and pickupEta (60 min trip, 10 min ETA, cancelled 20 min in -> 50 min freeze)', () => {
+test('calculateRemainingCooldown: cancelled before start with acceptedAt and pickupEta yields 0 freeze', () => {
   const acceptedAt = new Date('2026-11-02T10:00:00.000Z').getTime();
-  // Scheduled trip end = 10:00 AM + 10 min pickup + 60 min trip = 11:10 AM
   const pickupEtaMinutes = 10;
   const cancellationTime = new Date('2026-11-02T10:20:00.000Z').getTime(); // cancelled before start
 
@@ -119,16 +119,15 @@ test('calculateRemainingCooldown: cancelled before start with acceptedAt and pic
     cancellationTime,
   });
 
-  // Remaining = 11:10 AM - 10:20 AM = 50 minutes
-  assert.equal(result.remainingMinutes, 50);
-  assert.equal(result.remainingSeconds, 3000);
-  assert.equal(result.freezeDurationMs, 50 * 60 * 1000);
-  assert.equal(result.scheduledEndTimeMs, new Date('2026-11-02T11:10:00.000Z').getTime());
+  // Sovereign Rule: Since trip never started, freeze duration is 0
+  assert.equal(result.remainingMinutes, 0);
+  assert.equal(result.remainingSeconds, 0);
+  assert.equal(result.freezeDurationMs, 0);
+  assert.equal(result.elapsedSeconds, 0);
 });
 
-test('calculateRemainingCooldown: cancelled before start when captain has arrived at pickup (40 min trip, cancelled 10 min after arrival -> 30 min freeze)', () => {
+test('calculateRemainingCooldown: cancelled before start when captain has arrived at pickup yields 0 freeze', () => {
   const arrivedAt = new Date('2026-11-02T10:10:00.000Z').getTime();
-  // Scheduled trip end = 10:10 AM + 40 min trip = 10:50 AM
   const cancellationTime = new Date('2026-11-02T10:20:00.000Z').getTime();
 
   const result = calculateRemainingCooldown({
@@ -138,11 +137,40 @@ test('calculateRemainingCooldown: cancelled before start when captain has arrive
     cancellationTime,
   });
 
-  // Remaining = 10:50 AM - 10:20 AM = 30 minutes
-  assert.equal(result.remainingMinutes, 30);
-  assert.equal(result.remainingSeconds, 1800);
-  assert.equal(result.freezeDurationMs, 30 * 60 * 1000);
-  assert.equal(result.scheduledEndTimeMs, new Date('2026-11-02T10:50:00.000Z').getTime());
+  // Sovereign Rule: Since trip never started, freeze duration is 0
+  assert.equal(result.remainingMinutes, 0);
+  assert.equal(result.remainingSeconds, 0);
+  assert.equal(result.freezeDurationMs, 0);
+  assert.equal(result.elapsedSeconds, 0);
+});
+
+test('calculateRemainingCooldown: unilateral cancel before start without startedAtMs yields 0 freeze', () => {
+  const cancellationTime = Date.now();
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: 30,
+    startedAtMs: null,
+    cancellationTime,
+  });
+
+  assert.equal(result.remainingMinutes, 0);
+  assert.equal(result.remainingSeconds, 0);
+  assert.equal(result.freezeDurationMs, 0);
+});
+
+test('calculateRemainingCooldown: cancellation prior to start timestamp yields 0 freeze', () => {
+  const now = Date.now();
+  const futureStart = now + 5000;
+
+  const result = calculateRemainingCooldown({
+    totalTripMinutes: 30,
+    startedAtMs: futureStart,
+    cancellationTime: now,
+  });
+
+  assert.equal(result.remainingMinutes, 0);
+  assert.equal(result.remainingSeconds, 0);
+  assert.equal(result.freezeDurationMs, 0);
 });
 
 // =========================================================================

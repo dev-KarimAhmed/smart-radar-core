@@ -55,17 +55,15 @@ export function toEpochMs(value: unknown): number | null {
 /**
  * Calculates the captain's freeze duration upon trip cancellation.
  *
- * Core Equation:
- *   remainingDuration = tripEndTime.difference(cancellationTime);
- *   freezeDuration = remainingDuration.isNegative ? Duration.zero : remainingDuration;
- *
- * Important Requirements:
- * 1. Calculate the remaining duration based on the actual cancellation timestamp.
- * 2. Do not use the original trip duration as the freeze duration.
- * 3. If the trip is cancelled before it starts, calculate the remaining time until the scheduled trip end time.
- * 4. If the trip is cancelled after its scheduled end time, the freeze duration should be zero.
- * 5. Ensure the captain's freeze/unavailability period is updated correctly using the calculated remaining duration.
- * 6. Handle timezone and date-time consistency properly using UTC epoch milliseconds.
+ * Core Equation & Sovereign Rule:
+ * 1. If the trip is cancelled BEFORE it actively starts (startedAtMs is null/undefined or cancellation is before start):
+ *    The captain must NOT be frozen for the trip duration (freezeDuration = 0).
+ * 2. If the trip is cancelled AFTER it has actively started (startedAtMs is present and <= cancellationTime):
+ *    remainingDuration = tripEndTime.difference(cancellationTime);
+ *    freezeDuration = remainingDuration.isNegative ? Duration.zero : remainingDuration;
+ * 3. If the trip is cancelled after its scheduled end time, freeze duration is zero.
+ * 4. Do not use the original trip duration as the freeze duration.
+ * 5. Handle timezone and date-time consistency properly using UTC epoch milliseconds.
  *
  * Example:
  * - Trip duration: 60 minutes.
@@ -87,9 +85,6 @@ export function calculateRemainingCooldown(
   let totalTripMinutes: number;
   let startMs: number | null = null;
   let cancelMs: number | null = null;
-  let acceptedMs: number | null = null;
-  let arrivedMs: number | null = null;
-  let pickupEtaMins: number | null = null;
   let scheduledEndMs: number | null = null;
 
   if (typeof optionsOrTotalMinutes === 'object' && optionsOrTotalMinutes !== null) {
@@ -97,21 +92,11 @@ export function calculateRemainingCooldown(
     totalTripMinutes = Number(opts.totalTripMinutes);
     startMs = toEpochMs(opts.startedAtMs);
     cancelMs = toEpochMs(opts.cancellationTime);
-    acceptedMs = toEpochMs(opts.acceptedAtMs);
-    arrivedMs = toEpochMs(opts.arrivedAtMs);
-    pickupEtaMins = typeof opts.pickupEtaMinutes === 'number' && Number.isFinite(opts.pickupEtaMinutes)
-      ? Math.max(0, opts.pickupEtaMinutes)
-      : null;
     scheduledEndMs = toEpochMs(opts.scheduledEndTime);
   } else {
     totalTripMinutes = Number(optionsOrTotalMinutes);
     startMs = toEpochMs(startedAtMs);
     cancelMs = toEpochMs(cancellationTime);
-    acceptedMs = toEpochMs(acceptedAtMs);
-    arrivedMs = toEpochMs(arrivedAtMs);
-    pickupEtaMins = typeof pickupEtaMinutes === 'number' && Number.isFinite(pickupEtaMinutes)
-      ? Math.max(0, pickupEtaMinutes)
-      : null;
     scheduledEndMs = toEpochMs(scheduledEndTime);
   }
 
@@ -122,36 +107,34 @@ export function calculateRemainingCooldown(
   const totalMinutes = Math.max(1, Math.round(Number(totalTripMinutes) || 20));
   const tripDurationMs = totalMinutes * 60 * 1000;
 
-  // 3. Determine scheduled trip end time
-  let tripEndTimeMs: number;
-  let anchorMs: number;
-
-  if (scheduledEndMs && scheduledEndMs > 0) {
-    tripEndTimeMs = scheduledEndMs;
-    anchorMs = tripEndTimeMs - tripDurationMs;
-  } else if (startMs && startMs > 0) {
-    // Trip has actively started: scheduled trip end is started_at + trip duration
-    anchorMs = startMs;
-    tripEndTimeMs = startMs + tripDurationMs;
-  } else if (arrivedMs && arrivedMs > 0) {
-    // Trip has not started yet, but captain arrived at pickup: scheduled end is arrived_at + trip duration
-    anchorMs = arrivedMs;
-    tripEndTimeMs = arrivedMs + tripDurationMs;
-  } else if (acceptedMs && acceptedMs > 0) {
-    // Trip cancelled before starting: scheduled end is accepted_at + pickup ETA + trip duration
-    anchorMs = acceptedMs;
-    const pickupMs = (pickupEtaMins ?? 0) * 60 * 1000;
-    tripEndTimeMs = acceptedMs + pickupMs + tripDurationMs;
-  } else {
-    // No prior anchor timestamp: scheduled from cancellation time
-    anchorMs = cancellationTimeMs;
-    tripEndTimeMs = cancellationTimeMs + tripDurationMs;
+  // 3. SOVEREIGN RULE: If cancelled BEFORE the trip starts, the captain must NOT be frozen for the trip duration.
+  // Unilateral or mutual cancellation before trip start (startedAtMs is null or after cancellationTime)
+  // results in zero freeze duration so the captain remains active and unblocked.
+  if (!startMs || startMs <= 0 || cancellationTimeMs < startMs) {
+    return {
+      remainingMinutes: 0,
+      remainingSeconds: 0,
+      elapsedSeconds: 0,
+      scheduledEndTimeMs: cancellationTimeMs,
+      cancellationTimeMs,
+      freezeDurationMs: 0,
+    };
   }
 
-  // 4. Calculate remaining duration: tripEndTime.difference(cancellationTime)
+  // 4. Determine scheduled trip end time for an actively started trip
+  let tripEndTimeMs: number;
+  const anchorMs = startMs;
+
+  if (scheduledEndMs && scheduledEndMs > startMs) {
+    tripEndTimeMs = scheduledEndMs;
+  } else {
+    tripEndTimeMs = startMs + tripDurationMs;
+  }
+
+  // 5. Calculate remaining duration: tripEndTime.difference(cancellationTime)
   const remainingDurationMs = tripEndTimeMs - cancellationTimeMs;
 
-  // 5. freezeDuration = remainingDuration.isNegative ? Duration.zero : remainingDuration
+  // 6. freezeDuration = remainingDuration.isNegative ? Duration.zero : remainingDuration
   const freezeDurationMs = remainingDurationMs <= 0 ? 0 : remainingDurationMs;
   const remainingSeconds = Math.floor(freezeDurationMs / 1000);
   const remainingMinutes = remainingSeconds > 0 ? Math.ceil(remainingSeconds / 60) : 0;

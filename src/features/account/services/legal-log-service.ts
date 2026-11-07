@@ -6,7 +6,7 @@ export interface LegalDeclarationRecord {
   id: string;
   userId: string;
   userSerialId: string;
-  actionType: 'NEW_ACCOUNT' | 'PROFILE_UPDATE' | 'VEHICLE_UPDATE';
+  actionType: 'NEW_ACCOUNT' | 'PROFILE_UPDATE' | 'VEHICLE_UPDATE' | 'ADMIN_NOTIFICATION' | string;
   actionLabel: string;
   declarationText: string;
   timestamp: number;
@@ -122,6 +122,52 @@ export async function recordLegalDeclaration(params: {
     console.warn('Cloud sync of legal declaration audit note failed (offline/non-critical):', e);
   }
 
+  return record;
+}
+
+export function recordAdminNotificationSeen(params: {
+  userId: string;
+  userSerialId?: string;
+  notificationId: string;
+  notificationTitle: string;
+  notificationDescription: string;
+  isArabic?: boolean;
+}): LegalDeclarationRecord | null {
+  if (!params.userId || typeof window === 'undefined') return null;
+  const existing = getStoredLegalDeclarations(params.userId);
+  const decId = `DEC-ADM-${params.notificationId}`;
+  if (existing.some((r) => r.id === decId || r.fieldsChanged?.includes(params.notificationId))) {
+    return null;
+  }
+  const now = new Date();
+  const isArabic = params.isArabic ?? true;
+  const userSerialId = params.userSerialId || params.userId.slice(0, 8).toUpperCase();
+  const record: LegalDeclarationRecord = {
+    id: decId,
+    userId: params.userId,
+    userSerialId,
+    actionType: 'ADMIN_NOTIFICATION',
+    actionLabel: isArabic ? 'إشعار إداري رسمي مقروء' : 'Official Admin Notice Acknowledged',
+    declarationText: isArabic
+      ? `تم استلام وقراءة والإقرار رسمياً بمضمون الإشعار الإداري الصادر عن الإدارة: "${params.notificationTitle}" — ${params.notificationDescription}`
+      : `Officially received, reviewed and acknowledged administrative notice: "${params.notificationTitle}" — ${params.notificationDescription}`,
+    timestamp: now.getTime(),
+    preciseTime: formatPreciseTimestamp(now, isArabic),
+    fieldsChanged: [params.notificationId],
+    status: 'VERIFIED',
+  };
+
+  const updated = [record, ...existing].slice(0, 50);
+  try {
+    localStorage.setItem(getLegalDeclarationsStorageKey(params.userId), JSON.stringify(updated));
+    window.dispatchEvent(
+      new CustomEvent('radar-legal-declaration-recorded', {
+        detail: { record },
+      })
+    );
+  } catch (e) {
+    console.warn('[recordAdminNotificationSeen] local save skipped:', e);
+  }
   return record;
 }
 

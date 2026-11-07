@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ShieldCheck, Clock, FileCheck2, UserCheck, ShieldAlert } from 'lucide-react';
+import { ChevronDown, ShieldCheck, Clock, FileCheck2, UserCheck, ShieldAlert, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -151,8 +151,12 @@ export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclar
                   {/* Meta row: Action, Status Badge & IDs */}
                   <div className={styles.metaRow}>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={styles.badgeAction}>
-                        <FileCheck2 className="h-3 w-3" />
+                      <span className={cn(styles.badgeAction, item.actionType === 'ADMIN_NOTIFICATION' && 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300')}>
+                        {item.actionType === 'ADMIN_NOTIFICATION' ? (
+                          <Bell className="h-3 w-3 text-cyan-400" />
+                        ) : (
+                          <FileCheck2 className="h-3 w-3" />
+                        )}
                         <span>{item.actionLabel}</span>
                       </span>
 

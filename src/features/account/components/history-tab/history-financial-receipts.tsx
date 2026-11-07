@@ -87,7 +87,7 @@ export function HistoryFinancialReceipts({ isArabic = true }: HistoryFinancialRe
   const { user } = useAuth();
   const [receipts, setReceipts] = useState<FinancialReceiptRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [previewReceipt, setPreviewReceipt] = useState<FinancialReceiptRecord | null>(null);
 
   const captainId = user?.uid || (user as any)?.id || '';

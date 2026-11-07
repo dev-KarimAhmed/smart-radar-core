@@ -49,8 +49,20 @@ export function DriverViewTab() {
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
   const { isOffline, isReconnecting } = useConnectionGuard();
   const countryConfig = useCountryConfig(user?.countryId);
-  const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('captain');
+  const { canShowInstallButton, canPromptNative, triggerNativeInstall, isStandalone } = usePwaInstall('captain');
   const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const pending = localStorage.getItem('radar_pending_pwa_install_prompt');
+    if (pending === 'true') {
+      localStorage.removeItem('radar_pending_pwa_install_prompt');
+      if (!isStandalone) {
+        setIsInstallModalOpen(true);
+      }
+    }
+  }, [isStandalone]);
+
   const isDriverLocationLive = driverOps?.driverLocation && (driverOps.driverLocation as { source?: string }).source === 'gps';
   const { currencyCode: liveCurrencyCode, countryCode: liveCountryCode } = useLiveCurrencyFromLocation(
     isDriverLocationLive ? driverOps?.driverLocation : null,
@@ -64,14 +76,27 @@ export function DriverViewTab() {
     driverOps?.activationNonce ?? 0,
   );
   const [isManualPriceSetupOpen, setIsManualPriceSetupOpen] = React.useState(false);
+  const [isPendingActivation, setIsPendingActivation] = React.useState(false);
+
+  // Security guard: If a captain has 'active' status in DB/state but tariff is incomplete, revert to 'idle'
+  React.useEffect(() => {
+    const isTariffMissing = currentTariff.baseFare === null || currentTariff.pricePerKm === null || currentTariff.pricePerMin === null;
+    if (isTariffMissing && driverOps?.driverStatus === 'active') {
+      void driverOps.toggleDriverStatus('idle');
+    }
+  }, [currentTariff.baseFare, currentTariff.pricePerKm, currentTariff.pricePerMin, driverOps]);
 
   const handleClosePriceSetup = React.useCallback(() => {
     setIsManualPriceSetupOpen(false);
+    setIsPendingActivation(false);
     dismissPriceSetup();
-    if (needsPriceSetup && isActivationConfirm && driverOps?.driverStatus === 'active') {
-      void driverOps.toggleDriverStatus('idle');
+    if (driverOps?.driverStatus === 'active') {
+      const isTariffMissing = currentTariff.baseFare === null || currentTariff.pricePerKm === null || currentTariff.pricePerMin === null;
+      if (isTariffMissing) {
+        void driverOps.toggleDriverStatus('idle');
+      }
     }
-  }, [dismissPriceSetup, needsPriceSetup, isActivationConfirm, driverOps]);
+  }, [dismissPriceSetup, driverOps, currentTariff.baseFare, currentTariff.pricePerKm, currentTariff.pricePerMin]);
 
   const { marketIndicator } = useCaptainMarketIndicator(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
@@ -152,7 +177,13 @@ export function DriverViewTab() {
           historyUnreadCount={tripUnreadCount}
           hasHistoryUnread={hasTripUnread}
           marketIndicator={marketIndicator}
-          onToggleStatus={() => void driverOps.toggleDriverStatus(isActive ? 'idle' : 'active')}
+          onToggleStatus={() => {
+            if (isActive) {
+              void driverOps.toggleDriverStatus('idle');
+            } else {
+              setIsPendingActivation(true);
+            }
+          }}
           onOpenNotifications={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
           onToggleLanguage={toggleLanguage}
           onLogout={() => void logout()}
@@ -210,7 +241,7 @@ export function DriverViewTab() {
       </div>
 
       <CaptainModals
-        needsPriceSetup={needsPriceSetup}
+        needsPriceSetup={needsPriceSetup || isPendingActivation}
         isManualPriceSetupOpen={isManualPriceSetupOpen}
         activationNonce={driverOps?.activationNonce ?? 0}
         direction={direction}
@@ -218,10 +249,20 @@ export function DriverViewTab() {
         currentTariff={currentTariff}
         marketIndicator={marketIndicator}
         isInDifferentCountry={isInDifferentCountry}
-        isActivationConfirm={isActivationConfirm}
+        isActivationConfirm={isPendingActivation || isActivationConfirm}
         onSaveTariff={async (val) => {
           const res = await saveTariff(val);
-          if (res.saved) setIsManualPriceSetupOpen(false);
+          if (res.saved) {
+            setIsManualPriceSetupOpen(false);
+            setIsPendingActivation(false);
+            if (!isActive) {
+              await driverOps.toggleDriverStatus('active');
+            }
+            if (!driverOps?.activeRequest && state.selectedRequest) {
+              dispatch({ type: 'IGNORE_REQUEST', requestId: state.selectedRequest.id });
+            }
+            dispatch({ type: 'OPEN_RADAR' });
+          }
           return res;
         }}
         onClosePriceSetup={handleClosePriceSetup}
