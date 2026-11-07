@@ -3,10 +3,30 @@ import { supabase } from '@/lib/supabase-client';
 import type { User } from '@/core/types';
 import { useTranslations } from 'next-intl';
 import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
-
-type ProfileRow = Record<string, unknown>;
-
-type TFunction = (key: string) => string;
+import {
+  type ProfileRow,
+  type TFunction,
+  inputToNumber,
+  numberToInput,
+  firstString,
+  firstNumber,
+  getVehiclePlate,
+  getVehicleMake,
+  getVehicleColor,
+  getVehicleYear,
+  getCaptainProfile,
+  getCaptainTier,
+  buildVehicleColumnPayload,
+  buildCaptainProfileDbPayload,
+  fetchCaptainFullProfileData,
+  extractDriverProfileInitialValues,
+  saveProfileToAuthMetadata,
+  parseProfileSaveError,
+  mergeSavedProfileState,
+  validateDriverTariff,
+  getDevMockDriverProfile,
+  isUuid,
+} from '../services/driver-profile-helpers';
 
 export function useDriverProfileState(user: User | null, toast: any) {
   const t = useTranslations('captainProfile');
@@ -17,24 +37,18 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   const [phone, setPhone] = React.useState(user?.phone || '');
   // Identity-verification data set once at registration — read-only here, never
   // part of the save payload.
-  const [nationalIdNumber, setNationalIdNumber] = React.useState('');
-  const [licenseNumber, setLicenseNumber] = React.useState('');
+  const [nationalIdNumber, setNationalIdNumber] = React.useState(''); const [licenseNumber, setLicenseNumber] = React.useState('');
   const [vehiclePlate, setVehiclePlate] = React.useState('');
-  const [vehicleMake, setVehicleMake] = React.useState('');
-  const [vehicleModel, setVehicleModel] = React.useState('');
-  const [vehicleColor, setVehicleColor] = React.useState('');
-  const [vehicleYear, setVehicleYear] = React.useState('');
+  const [vehicleMake, setVehicleMake] = React.useState(''); const [vehicleModel, setVehicleModel] = React.useState('');
+  const [vehicleColor, setVehicleColor] = React.useState(''); const [vehicleYear, setVehicleYear] = React.useState('');
   const [businessName, setBusinessName] = React.useState('');
-  const [officePhone, setOfficePhone] = React.useState('');
-  const [sideId, setSideId] = React.useState('');
+  const [officePhone, setOfficePhone] = React.useState(''); const [sideId, setSideId] = React.useState('');
   // Smart-app/independent captains only — the aggregator's own partner code.
   const [companyCode, setCompanyCode] = React.useState('');
-  const [facebookUrl, setFacebookUrl] = React.useState('');
-  const [instagramUrl, setInstagramUrl] = React.useState('');
+  const [facebookUrl, setFacebookUrl] = React.useState(''); const [instagramUrl, setInstagramUrl] = React.useState('');
   // The captain's own tariff, the same three components the activation modal collects.
   const [baseFare, setBaseFare] = React.useState('');
-  const [pricePerKm, setPricePerKm] = React.useState('');
-  const [pricePerMin, setPricePerMin] = React.useState('');
+  const [pricePerKm, setPricePerKm] = React.useState(''); const [pricePerMin, setPricePerMin] = React.useState('');
   // NOT NULL with a zero default server-side, so this is '0' rather than blank when unset.
   const [includedKm, setIncludedKm] = React.useState('');
   // Market-derived floor from captain_base_fare_floor(); a trigger re-checks it on save.
@@ -89,142 +103,75 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       try {
         if ((process.env.NODE_ENV !== 'production') && !isUuid(user!.uid)) {
           if (!active) return;
-          setProfile({
-            id: user!.uid,
-            full_name: user?.name,
-            phone: user?.phone,
-            serial_id: user?.serial_id,
-          });
-          const devFullName = firstString(user?.name);
-          const devPhone = firstString(user?.phone);
-          const devVehiclePlate = firstString(user?.vehicle?.plate);
-          const devVehicleMake = firstString(user?.vehicle?.make);
-          const devVehicleColor = firstString(user?.vehicle?.color);
-          const devVehicleYear = firstString(user?.vehicle?.year);
-          setFullName(devFullName);
-          setPhone(devPhone);
-          setVehiclePlate(devVehiclePlate);
-          setVehicleMake(devVehicleMake);
-          setVehicleColor(devVehicleColor);
-          setVehicleYear(devVehicleYear);
+          const mock = getDevMockDriverProfile(user);
+          setProfile(mock.profile);
+          setFullName(mock.devFullName);
+          setPhone(mock.devPhone);
+          setVehiclePlate(mock.devVehiclePlate);
+          setVehicleMake(mock.devVehicleMake);
+          setVehicleColor(mock.devVehicleColor);
+          setVehicleYear(mock.devVehicleYear);
           savedSnapshotRef.current = {
             ...savedSnapshotRef.current,
-            fullName: devFullName,
-            phone: devPhone,
-            vehiclePlate: devVehiclePlate,
-            vehicleMake: devVehicleMake,
-            vehicleColor: devVehicleColor,
-            vehicleYear: devVehicleYear,
+            fullName: mock.devFullName,
+            phone: mock.devPhone,
+            vehiclePlate: mock.devVehiclePlate,
+            vehicleMake: mock.devVehicleMake,
+            vehicleColor: mock.devVehicleColor,
+            vehicleYear: mock.devVehicleYear,
           };
           return;
         }
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user!.uid)
-          .maybeSingle();
-
+        const { profile: data, captainProfile, floor } = await fetchCaptainFullProfileData(user!.uid);
         if (!active) return;
-        if (error) throw error;
+        if (floor != null && Number.isFinite(floor)) setMinBaseFare(floor);
 
-        let captainProfile: ProfileRow | null = null;
-        try {
-          const { data: captainData, error: captainError } = await supabase
-            .from('captain_profiles')
-            .select('*')
-            .eq('id', user!.uid)
-            .maybeSingle();
-          if (captainError) throw captainError;
-          captainProfile = (captainData || null) as ProfileRow | null;
-        } catch (captainProfileError) {
-          if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver captain profile]', captainProfileError);
-        }
+        const initial = extractDriverProfileInitialValues(data, captainProfile, user);
 
-        // The floor is computed from the market, so it has to come from the server rather
-        // than any column on the profile itself.
-        try {
-          const { data: tariffContext } = await supabase.rpc('get_captain_tariff_context');
-          const floor = Number((tariffContext as Record<string, unknown> | null)?.minBaseFare);
-          if (active && Number.isFinite(floor)) setMinBaseFare(floor);
-        } catch (tariffContextError) {
-          if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver tariff context]', tariffContextError);
-        }
-        if (!active) return;
-
-        const mergedProfile = {
-          ...(data || {}),
-          captain_profile: captainProfile,
-        } as ProfileRow;
-
-        const newFullName = firstString(mergedProfile.full_name, user?.name);
-        const newPhone = firstString(mergedProfile.phone, user?.phone);
-        const newVehiclePlate = firstString(getVehiclePlate(mergedProfile), user?.vehicle?.plate);
-        const newVehicleMake = firstString(getVehicleMake(mergedProfile), user?.vehicle?.make);
-        const newVehicleColor = firstString(getVehicleColor(mergedProfile), user?.vehicle?.color);
-        const newVehicleYear = firstString(getVehicleYear(mergedProfile), user?.vehicle?.year);
-        const newBaseFare = numberToInput(captainProfile?.base_fare);
-        const newPricePerKm = numberToInput(captainProfile?.price_per_km);
-        const newPricePerMin = numberToInput(captainProfile?.price_per_min);
-        const newIncludedKm = numberToInput(captainProfile?.included_km ?? 0);
-        const newVehicleModel = firstString(captainProfile?.vehicle_model);
-        const newBusinessName = firstString(captainProfile?.employment_type);
-        const newOfficePhone = firstString(captainProfile?.office_phone);
-        const newSideId = firstString(captainProfile?.side_id);
-        const newCompanyCode = firstString(captainProfile?.company_code);
-        const newFacebookUrl = firstString(captainProfile?.facebook_url);
-        const newInstagramUrl = firstString(captainProfile?.instagram_url);
-        const newNickname = firstString(captainProfile?.nickname);
-        const newNationalIdNumber = firstString(captainProfile?.national_id_number);
-        const newLicenseNumber = firstString(captainProfile?.license_number);
-
-        setProfile(mergedProfile);
-        setFullName(newFullName);
-        setNickname(newNickname);
-        setPhone(newPhone);
-        setNationalIdNumber(newNationalIdNumber);
-        setLicenseNumber(newLicenseNumber);
-        setVehiclePlate(newVehiclePlate);
-        setVehicleMake(newVehicleMake);
-        setVehicleColor(newVehicleColor);
-        setVehicleYear(newVehicleYear);
-        setBaseFare(newBaseFare);
-        setPricePerKm(newPricePerKm);
-        setPricePerMin(newPricePerMin);
-        setIncludedKm(newIncludedKm);
-        setVehicleModel(newVehicleModel);
-        setOfficePhone(newOfficePhone);
-        setSideId(newSideId);
-        setCompanyCode(newCompanyCode);
-        setFacebookUrl(newFacebookUrl);
-        setInstagramUrl(newInstagramUrl);
-        const rawAffiliation = firstString(captainProfile?.affiliation_type, user?.affiliation?.type);
-        const isIndep = rawAffiliation === 'independent' || newBusinessName === 'مستقل' || newBusinessName.toLowerCase() === 'independent';
-        const newAffiliationType = rawAffiliation || (captainProfile?.vehicle_type === 'TAXI' ? 'office-taxi' : isIndep ? 'independent' : (newBusinessName ? 'smart-app' : 'independent'));
-        const cleanBusinessName = (newAffiliationType === 'independent' || isIndep) ? '' : newBusinessName;
-        setAffiliationType(newAffiliationType);
-        setBusinessName(cleanBusinessName);
+        setProfile(initial.mergedProfile);
+        setFullName(initial.fullName);
+        setNickname(initial.nickname);
+        setPhone(initial.phone);
+        setNationalIdNumber(initial.nationalIdNumber);
+        setLicenseNumber(initial.licenseNumber);
+        setVehiclePlate(initial.vehiclePlate);
+        setVehicleMake(initial.vehicleMake);
+        setVehicleColor(initial.vehicleColor);
+        setVehicleYear(initial.vehicleYear);
+        setBaseFare(initial.baseFare);
+        setPricePerKm(initial.pricePerKm);
+        setPricePerMin(initial.pricePerMin);
+        setIncludedKm(initial.includedKm);
+        setVehicleModel(initial.vehicleModel);
+        setOfficePhone(initial.officePhone);
+        setSideId(initial.sideId);
+        setCompanyCode(initial.companyCode);
+        setFacebookUrl(initial.facebookUrl);
+        setInstagramUrl(initial.instagramUrl);
+        setAffiliationType(initial.affiliationType);
+        setBusinessName(initial.businessName);
 
         savedSnapshotRef.current = {
-          fullName: newFullName,
-          nickname: newNickname,
-          phone: newPhone,
-          vehiclePlate: newVehiclePlate,
-          vehicleMake: newVehicleMake,
-          vehicleModel: newVehicleModel,
-          vehicleColor: newVehicleColor,
-          vehicleYear: newVehicleYear,
-          businessName: cleanBusinessName,
-          officePhone: newOfficePhone,
-          sideId: newSideId,
-          companyCode: newCompanyCode,
-          facebookUrl: newFacebookUrl,
-          instagramUrl: newInstagramUrl,
-          baseFare: newBaseFare,
-          includedKm: newIncludedKm,
-          pricePerKm: newPricePerKm,
-          pricePerMin: newPricePerMin,
-          affiliationType: newAffiliationType,
+          fullName: initial.fullName,
+          nickname: initial.nickname,
+          phone: initial.phone,
+          vehiclePlate: initial.vehiclePlate,
+          vehicleMake: initial.vehicleMake,
+          vehicleModel: initial.vehicleModel,
+          vehicleColor: initial.vehicleColor,
+          vehicleYear: initial.vehicleYear,
+          businessName: initial.businessName,
+          officePhone: initial.officePhone,
+          sideId: initial.sideId,
+          companyCode: initial.companyCode,
+          facebookUrl: initial.facebookUrl,
+          instagramUrl: initial.instagramUrl,
+          baseFare: initial.baseFare,
+          includedKm: initial.includedKm,
+          pricePerKm: initial.pricePerKm,
+          pricePerMin: initial.pricePerMin,
+          affiliationType: initial.affiliationType,
         };
       } catch (error) {
         if (!active) return;
@@ -287,22 +234,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
    * raw Postgres error. The enforce_captain_base_fare_floor trigger is still the authority;
    * this only saves a round trip.
    */
-  const validateTariff = () => {
-    const parsedBaseFare = inputToNumber(baseFare);
-    const parsedPerKm = inputToNumber(pricePerKm);
-    const parsedPerMin = inputToNumber(pricePerMin);
-
-    // All three blank is allowed — it just leaves the tariff unset, and the mandatory modal
-    // will ask for it. Filling only some of them is not.
-    const filled = [parsedBaseFare, parsedPerKm, parsedPerMin].filter((value) => value !== null).length;
-    if (filled === 0) return '';
-    if (filled < 3) return t('tariffIncomplete');
-
-    if (parsedBaseFare! < minBaseFare) return t('tariffBaseFareTooLow', { min: minBaseFare.toFixed(2) });
-    if (parsedPerKm! <= 0) return t('tariffPerKmInvalid');
-    if (parsedPerMin! < 0) return t('tariffPerMinInvalid');
-    return '';
-  };
+  const validateTariff = () => validateDriverTariff(baseFare, pricePerKm, pricePerMin, minBaseFare, t);
 
   const saveProfile = async () => {
     if (!user?.uid) return;
@@ -371,7 +303,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       const profileWriteConfirmed = Array.isArray(updatedRows) && updatedRows.length > 0;
 
       if (!profileWriteConfirmed || Object.keys(vehicleColumnPayload).length === 0) {
-        const metadataSaved = await saveProfileToAuthMetadata();
+        const metadataSaved = await triggerAuthMetadataFallback();
         if (!profileWriteConfirmed && !metadataSaved) {
           throw new Error('profile_update_not_confirmed');
         }
@@ -385,58 +317,24 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       // this screen never lets the captain change their affiliation: if no
       // captain_profiles row exists yet, the upsert becomes an insert and a
       // missing NOT NULL column fails outright rather than defaulting.
-      const isOfficeTaxi = affiliationType === 'office-taxi';
-      const isSmartApp = affiliationType === 'smart-app';
-      const isIndependent = affiliationType === 'independent' || (!isOfficeTaxi && !isSmartApp);
-
-      const captainProfilePayload: Record<string, unknown> = {
-        id: user.uid,
-        vehicle_type: isOfficeTaxi ? 'TAXI' : 'PRIVATE',
-        affiliation_type: isOfficeTaxi ? 'office-taxi' : isSmartApp ? 'smart-app' : 'independent',
-        pricing_mode: isIndependent ? 'FREE' : isOfficeTaxi ? 'TAXI' : 'APP',
-        plate_number: vehicle.plate || null,
-        vehicle_brand: vehicle.make || null,
-        vehicle_model: vehicleModel.trim() || null,
-        vehicle_year: vehicle.year ? Number(vehicle.year) || null : null,
-        employment_type: isIndependent
-          ? 'مستقل'
-          : (businessName.trim() || (isOfficeTaxi ? 'مكتب تاكسي' : 'تطبيق ذكي')),
-        nickname: nickname.trim() || null,
-        // A vehicle's color isn't tied to how the captain is affiliated — office-taxi
-        // captains can set it too, so this is unconditional, not just the smart-app branch.
-        vehicle_color: vehicle.color || null,
-        facebook_url: facebookUrl.trim() || null,
-        instagram_url: instagramUrl.trim() || null,
-      };
-
-      // Tariff columns are sent ONLY when the captain actually changed them.
-      //
-      // Re-sending an unchanged base_fare is what triggered
-      // `base_fare_below_market_minimum` on an edit to the company name: the floor is
-      // derived from the market average and moves, so a value that was legal when it was
-      // set becomes illegal later, and re-submitting it re-runs the check. Omitting the
-      // column leaves the stored value alone on the update path, and leaves the tariff
-      // unset on a genuine first insert — which is what the setup modal then asks for.
-      if (tariffTouched) {
-        captainProfilePayload.base_fare = inputToNumber(baseFare);
-        captainProfilePayload.price_per_km = inputToNumber(pricePerKm);
-        captainProfilePayload.price_per_min = inputToNumber(pricePerMin);
-        // NOT NULL with a zero default, so a blank field means "no allowance", not "unset".
-        captainProfilePayload.included_km = inputToNumber(includedKm) ?? 0;
-      }
-      if (isOfficeTaxi) {
-        captainProfilePayload.office_phone = officePhone.trim() || null;
-        captainProfilePayload.side_id = sideId.trim() || null;
-        captainProfilePayload.company_code = null;
-      } else if (isSmartApp) {
-        captainProfilePayload.company_code = companyCode.trim() || null;
-        captainProfilePayload.office_phone = null;
-        captainProfilePayload.side_id = null;
-      } else {
-        captainProfilePayload.company_code = null;
-        captainProfilePayload.office_phone = null;
-        captainProfilePayload.side_id = null;
-      }
+      const captainProfilePayload = buildCaptainProfileDbPayload({
+        userId: user.uid,
+        affiliationType,
+        businessName,
+        vehicle,
+        vehicleModel,
+        nickname,
+        facebookUrl,
+        instagramUrl,
+        tariffTouched,
+        baseFare,
+        pricePerKm,
+        pricePerMin,
+        includedKm,
+        officePhone,
+        sideId,
+        companyCode,
+      });
 
       const { data: captainProfileRows, error: captainProfileError } = await supabase
         .from('captain_profiles')
@@ -495,22 +393,13 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile save]', error);
 
-      const errText = `${error instanceof Error ? error.message : ''} ${JSON.stringify(error || '')}`.toLowerCase();
-      if (errText.includes('unique_profiles_phone') || (errText.includes('phone') && errText.includes('duplicate'))) {
-        toast({
-          variant: 'destructive',
-          title: t('saveErrorTitle'),
-          description: 'رقم الهاتف مسجل بالفعل لحساب آخر في النظام. يرجى استخدام رقم آخر.',
-        });
+      const { isDuplicatePhone, isDuplicatePlate } = parseProfileSaveError(error);
+      if (isDuplicatePhone) {
+        toast({ variant: 'destructive', title: t('saveErrorTitle'), description: 'رقم الهاتف مسجل بالفعل لحساب آخر في النظام. يرجى استخدام رقم آخر.' });
         return;
       }
-
-      if (errText.includes('unique_plate_number') || errText.includes('unique_profiles_vehicle_plate') || (errText.includes('plate') && errText.includes('duplicate'))) {
-        toast({
-          variant: 'destructive',
-          title: t('saveErrorTitle'),
-          description: 'رقم لوحة المركبة مسجل بالفعل لمركبة أخرى في النظام. يرجى استخدام لوحة أخرى.',
-        });
+      if (isDuplicatePlate) {
+        toast({ variant: 'destructive', title: t('saveErrorTitle'), description: 'رقم لوحة المركبة مسجل بالفعل لمركبة أخرى في النظام. يرجى استخدام لوحة أخرى.' });
         return;
       }
 
@@ -529,7 +418,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
 
       const fallbackSaved = (process.env.NODE_ENV !== 'production') && !isUuid(user.uid)
         ? true
-        : await saveProfileToAuthMetadata();
+        : await triggerAuthMetadataFallback();
       if (fallbackSaved) {
         applySavedProfileState();
         captureSavedSnapshot();
@@ -560,26 +449,10 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       setOfficePhone('');
       setSideId('');
     }
-    setProfile((current) => ({
-      ...(current || {}),
-      full_name: fullName.trim(),
-      phone: phone.trim(),
-      vehicle_plate: vehiclePlate.trim(),
-      vehicle_make: vehicleMake.trim(),
-      vehicle_color: vehicleColor.trim(),
-      vehicle_year: vehicleYear.trim(),
-      captain_profile: {
-        ...(getCaptainProfile(current || null) || {}),
-        affiliation_type: affiliationType,
-        vehicle_model: vehicleModel.trim(),
-        employment_type: affiliationType === 'independent' ? 'مستقل' : businessName.trim(),
-        nickname: nickname.trim(),
-        office_phone: affiliationType === 'office-taxi' ? officePhone.trim() : '',
-        side_id: affiliationType === 'office-taxi' ? sideId.trim() : '',
-        company_code: affiliationType === 'smart-app' ? companyCode.trim() : '',
-        facebook_url: facebookUrl.trim(),
-        instagram_url: instagramUrl.trim(),
-      },
+    setProfile((current) => mergeSavedProfileState(current, {
+      fullName, phone, vehiclePlate, vehicleMake, vehicleColor, vehicleYear,
+      affiliationType, vehicleModel, businessName, nickname, officePhone, sideId,
+      companyCode, facebookUrl, instagramUrl,
     }));
   };
 
@@ -594,34 +467,10 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     };
   };
 
-  const saveProfileToAuthMetadata = async () => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          subRole: affiliationType === 'independent' ? 'independent' : 'captain',
-          affiliation: {
-            type: affiliationType,
-            companyName: affiliationType === 'independent' ? '' : businessName.trim(),
-            companyCode: affiliationType === 'smart-app' ? companyCode.trim() : '',
-            officePhone: affiliationType === 'office-taxi' ? officePhone.trim() : '',
-            sideId: affiliationType === 'office-taxi' ? sideId.trim() : '',
-          },
-          vehicle: {
-            plate: vehiclePlate.trim(),
-            make: vehicleMake.trim(),
-            color: vehicleColor.trim(),
-            year: vehicleYear.trim(),
-          },
-        },
-      });
-      return !error;
-    } catch (metadataError) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver profile metadata fallback]', metadataError);
-      return false;
-    }
-  };
+  const triggerAuthMetadataFallback = () => saveProfileToAuthMetadata({
+    fullName, phone, affiliationType, businessName, companyCode, officePhone, sideId,
+    vehicle: { plate: vehiclePlate, make: vehicleMake, color: vehicleColor, year: vehicleYear },
+  });
 
   const isFieldEditing = (key: string) => editingFields.has(key);
   const [showAccuracyModal, setShowAccuracyModal] = React.useState(false);
@@ -645,153 +494,4 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     isLoadingProfile, profileLoadFailed, setProfileReloadToken, handleFieldSave, tier,
     showAccuracyModal, confirmSaveProfile, cancelSaveProfile
   };
-}
-
-function inputToNumber(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function numberToInput(value: unknown) {
-  const parsed = Number(value);
-  return value === null || value === undefined || !Number.isFinite(parsed) ? '' : String(parsed);
-}
-
-function firstString(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return '';
-}
-
-function firstNumber(...values: unknown[]) {
-  for (const value of values) {
-    const number = Number(value);
-    if (Number.isFinite(number)) return number;
-  }
-  return 0;
-}
-
-function getVehiclePlate(profile: ProfileRow | null) {
-  const captainProfile = getCaptainProfile(profile);
-  return firstString(profile?.vehicle_plate, profile?.plate_number, profile?.car_plate, captainProfile?.plate_number);
-}
-
-function getVehicleMake(profile: ProfileRow | null) {
-  const captainProfile = getCaptainProfile(profile);
-  const captainVehicleName = [captainProfile?.vehicle_brand, captainProfile?.vehicle_model]
-    .filter((value) => typeof value === 'string' && value.trim())
-    .join(' ');
-  return firstString(profile?.vehicle_make, profile?.vehicle_type, profile?.car_make, captainVehicleName, captainProfile?.vehicle_type);
-}
-
-function getVehicleColor(profile: ProfileRow | null) {
-  const captainProfile = getCaptainProfile(profile);
-  return firstString(profile?.vehicle_color, profile?.car_color, captainProfile?.vehicle_color, captainProfile?.color);
-}
-
-function getVehicleYear(profile: ProfileRow | null) {
-  const captainProfile = getCaptainProfile(profile);
-  // captain_profiles.vehicle_year is a Postgres integer (unlike profiles'
-  // text column of the same name) — firstString only matches actual strings,
-  // so a numeric year from captain_profiles was silently skipped every time.
-  const captainYear = captainProfile?.vehicle_year;
-  return firstString(
-    profile?.vehicle_year,
-    profile?.model_year,
-    typeof captainYear === 'number' ? String(captainYear) : captainYear,
-  );
-}
-
-function getCaptainProfile(profile: ProfileRow | null) {
-  return isRecord(profile?.captain_profile) ? profile.captain_profile as ProfileRow : null;
-}
-
-function getCaptainTier(profile: ProfileRow | null, rating: number, t: TFunction, userRank?: unknown) {
-  const captainProfile = getCaptainProfile(profile);
-  const explicitTier = firstString(
-    profile?.tier,
-    profile?.rank,
-    profile?.driver_rank,
-    profile?.captain_rank,
-    profile?.membership_tier,
-    captainProfile?.tier,
-    captainProfile?.rank,
-    captainProfile?.driver_rank,
-    captainProfile?.captain_rank,
-    captainProfile?.membership_tier,
-    userRank,
-  );
-  const normalizedTier = normalizeTier(explicitTier);
-
-  if (normalizedTier) {
-    return { key: normalizedTier, label: tierLabel(normalizedTier, t) };
-  }
-
-  if (rating >= 4.9) return { key: 'platinum', label: tierLabel('platinum', t) };
-  if (rating >= 4.7) return { key: 'gold', label: tierLabel('gold', t) };
-  if (rating >= 4.4) return { key: 'bronze', label: tierLabel('bronze', t) };
-  return { key: 'silver', label: tierLabel('silver', t) };
-}
-
-function normalizeTier(value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return '';
-  if (normalized.includes('platinum') || normalized.includes('بلات')) return 'platinum';
-  if (normalized.includes('gold') || normalized.includes('ذهب')) return 'gold';
-  if (normalized.includes('silver') || normalized.includes('فض')) return 'silver';
-  if (normalized.includes('bronze') || normalized.includes('برون')) return 'bronze';
-  return normalized;
-}
-
-function tierLabel(value: string, t: TFunction) {
-  const key = normalizeTier(value);
-  if (key === 'platinum' || key === 'gold' || key === 'silver' || key === 'bronze') {
-    return t(`tierLabels.${key}`);
-  }
-  return value;
-}
-
-function buildVehicleColumnPayload(
-  profile: ProfileRow | null,
-  vehicle: { plate: string; make: string; color: string; year: string },
-) {
-  const payload: Record<string, unknown> = {};
-  const plateKey = firstExistingKey(profile, ['vehicle_plate', 'plate_number', 'car_plate']);
-  const makeKey = firstExistingKey(profile, ['vehicle_make', 'vehicle_type', 'car_make']);
-  const colorKey = firstExistingKey(profile, ['vehicle_color', 'car_color']);
-  const yearKey = firstExistingKey(profile, ['vehicle_year', 'model_year']);
-  const vehicleJsonKey = firstExistingKey(profile, ['vehicle', 'driver_vehicle']);
-  const metadataKey = firstExistingKey(profile, ['metadata', 'profile_metadata']);
-
-  if (plateKey) payload[plateKey] = vehicle.plate || null;
-  if (makeKey) payload[makeKey] = vehicle.make || null;
-  if (colorKey) payload[colorKey] = vehicle.color || null;
-  if (yearKey) payload[yearKey] = vehicle.year || null;
-
-  if (vehicleJsonKey) {
-    payload[vehicleJsonKey] = vehicle;
-  }
-
-  if (metadataKey) {
-    const currentMetadata = isRecord(profile?.[metadataKey]) ? profile?.[metadataKey] as Record<string, unknown> : {};
-    payload[metadataKey] = { ...currentMetadata, vehicle };
-  }
-
-  return payload;
-}
-
-function firstExistingKey(record: ProfileRow | null, keys: string[]) {
-  if (!record) return '';
-  return keys.find((key) => Object.prototype.hasOwnProperty.call(record, key)) || '';
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
