@@ -23,7 +23,7 @@ const styles = {
   content: 'border-emerald-500/25 bg-[#0B0F19] text-white shadow-2xl max-w-xl w-[95vw] sm:w-full max-h-[90vh] flex flex-col gap-0 p-3.5 sm:p-5 overflow-hidden rounded-3xl',
   title: 'text-lg sm:text-xl font-black text-white',
   description: 'text-xs sm:text-sm leading-5 text-[#94A3B8] text-start',
-  marketIndicatorWrap: 'my-2.5 sm:my-3',
+  marketIndicatorWrap: 'my-1.5 sm:my-2',
   fields: 'mt-2 space-y-3.5',
   field: 'space-y-1.5',
   fieldLabel: 'block text-xs sm:text-sm font-black text-white text-start',
@@ -45,7 +45,7 @@ const styles = {
   shortDistancesToggleIconOpen: 'rotate-180',
   shortDistancesFields: 'space-y-4 border-t border-emerald-500/15 p-4',
   shortDistancesError: 'text-sm font-bold text-rose-400 text-start',
-  modeSelector: 'mt-2 mb-3 grid grid-cols-3 gap-1.5 sm:gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner',
+  modeSelector: 'mt-1 mb-2 grid grid-cols-3 gap-1.5 sm:gap-2 rounded-2xl border border-slate-800 bg-black/50 p-1.5 shadow-inner',
   modeButton: 'flex flex-col items-center justify-center rounded-xl py-2 px-1 sm:py-2.5 sm:px-2 text-center transition cursor-pointer select-none',
   modeButtonActive: 'bg-[#14B8A6] text-[#06111f] shadow-lg shadow-[#14B8A6]/20 font-black',
   modeButtonInactive: 'text-slate-400 hover:bg-white/5 hover:text-white font-bold',
@@ -388,7 +388,7 @@ export function PricePerKmSetupModal({
           </div>
 
           {/* Label above activity modes */}
-          <p className="text-center text-xs sm:text-sm font-black text-slate-300 mt-2 mb-1">
+          <p className="text-center text-[11px] sm:text-xs font-black text-slate-300 mt-1.5 mb-0.5">
             {t('marketActivityTitle')}
           </p>
 

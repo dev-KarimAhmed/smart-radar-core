@@ -7,23 +7,23 @@ import type { CaptainMarketIndicator } from '../hooks/use-captain-market-indicat
 
 const styles = {
   banner:
-    'relative overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-gradient-to-r from-amber-600/20 via-orange-500/25 to-amber-600/20 p-3.5 sm:p-4 text-center shadow-lg shadow-amber-950/30 transition-all select-none',
+    'relative overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-600/20 via-orange-500/25 to-amber-600/20 py-2 px-3 sm:py-2.5 sm:px-3.5 text-center shadow-md shadow-amber-950/20 transition-all select-none',
   bannerGlow:
     'absolute inset-0 bg-gradient-to-b from-amber-400/10 via-transparent to-transparent pointer-events-none',
-  bannerHeader: 'relative z-10 flex items-center justify-center gap-2 mb-1.5',
+  bannerHeader: 'relative z-10 flex items-center justify-center gap-1.5 mb-1',
   bannerDot:
-    'h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]',
-  bannerTitle: 'text-sm sm:text-base font-black text-amber-300 tracking-wide',
+    'h-2 w-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_rgba(251,191,36,0.9)]',
+  bannerTitle: 'text-xs sm:text-sm font-black text-amber-300 tracking-wide',
   bannerBadge:
-    'text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border border-amber-400/40 bg-amber-500/20 text-amber-200',
+    'text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-400/40 bg-amber-500/20 text-amber-200',
   bannerBadgeLow:
     'border-emerald-400/40 bg-emerald-500/15 text-emerald-200',
   bannerStats:
-    'relative z-10 flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-bold text-slate-100 flex-wrap',
-  bannerStatItem: 'inline-flex items-center gap-1.5',
-  bannerStatNumber: 'font-mono text-base sm:text-lg font-black text-amber-300 drop-shadow-sm',
+    'relative z-10 flex items-center justify-center gap-2 sm:gap-2.5 text-[11px] sm:text-xs font-bold text-slate-200 flex-wrap',
+  bannerStatItem: 'inline-flex items-center gap-1',
+  bannerStatNumber: 'font-mono text-xs sm:text-sm font-black text-amber-300 drop-shadow-sm',
   bannerStatLabel: 'font-bold text-slate-200',
-  bannerDivider: 'text-amber-500/60 font-black text-base select-none',
+  bannerDivider: 'text-amber-500/60 font-black text-xs select-none',
   compact: 'inline-flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-full border px-2.5 py-1 sm:px-3.5 sm:py-1.5 shadow-md backdrop-blur-md',
   compactLow: 'border-emerald-500/25 bg-emerald-500/10',
   compactHigh: 'border-rose-500/25 bg-rose-500/10',
