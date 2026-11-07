@@ -1,326 +1,82 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { adminFetch } from '@/features/admin/lib/admin-api-client';
+import React from 'react';
 import {
   ShieldCheck,
   Shield,
   Crown,
   UserPlus,
   Users,
-  Eye,
-  EyeOff,
   Loader2,
   CheckCircle2,
   AlertCircle,
-  X,
-  UserRound,
-  Trash2,
-  ArrowUpRight,
-  ShieldAlert,
   Info,
-  Sliders,
-  Check,
-  Car,
-  Wallet,
-  Clock,
-  UserCheck,
-  KeyRound,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { useTranslations } from 'next-intl';
-import { useAuth } from '@/hooks/use-auth';
-import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
-import { ADMIN_SECTORS, ALL_SECTOR_IDS, AdminSectorId } from '@/features/admin/lib/admin-permissions';
+import {
+  type AdminProfile,
+  PRIMARY_SOVEREIGN_ADMIN_ID,
+  PRIMARY_SOVEREIGN_ADMIN_PHONE,
+  adminPanelStyles as styles,
+} from './admins/admins-types';
+import { useAdminsManagement } from './admins/use-admins-management';
+import { CreateAdminForm } from './admins/create-admin-form';
+import { AdminTableRow } from './admins/admin-table-row';
+import { DeleteAdminDialog } from './admins/delete-admin-dialog';
+import { EditPermissionsDialog } from './admins/edit-permissions-dialog';
 
-export const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
-export const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
-
-export interface AdminProfile {
-  id: string;
-  full_name: string;
-  phone: string;
-  email?: string;
-  status: string;
-  created_at: string;
-  admin_rank?: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
-  admin_rank_label?: string;
-  is_primary?: boolean;
-  allowed_sectors?: string[];
-}
-
-const styles = {
-  root: "space-y-6",
-  statsGrid: "grid grid-cols-1 gap-3 sm:grid-cols-3",
-  statCard: "rounded-2xl border border-white/10 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg",
-  statTitle: "text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5",
-  statValue: "text-2xl font-black text-[#F8FAFC] font-mono",
-  header: "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-2",
-  addBtn: "inline-flex items-center justify-center gap-2 rounded-xl bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] px-4 py-2 text-xs font-black transition-all shadow-[0_4px_20px_rgba(20,184,166,0.25)] active:scale-95 cursor-pointer",
-  formModal: "rounded-2xl border border-[#14B8A6]/30 bg-[#0B0F19]/95 p-5 shadow-2xl backdrop-blur-xl space-y-4 animate-in fade-in slide-in-from-top-3 duration-200",
-  formTitle: "text-sm font-black text-white flex items-center justify-between border-b border-white/10 pb-3",
-  formGrid: "grid grid-cols-1 gap-3 sm:grid-cols-3",
-  label: "block text-[11px] font-bold text-slate-300 mb-1 text-start",
-  input: "w-full min-h-10 rounded-xl border border-white/10 bg-black/50 px-3 text-xs font-semibold text-white outline-none focus:border-[#14B8A6] transition text-start",
-  tableCard: "rounded-2xl border border-white/10 bg-[#0B0F19]/90 overflow-hidden shadow-xl",
-  tableHead: "border-b border-white/10 bg-black/40 text-slate-300 text-xs font-bold",
-  tableRow: "border-b border-white/5 transition hover:bg-white/[0.02]",
-  avatar: "flex h-8 w-8 items-center justify-center rounded-xl bg-[#14B8A6]/10 text-[#14B8A6] font-black border border-[#14B8A6]/30 text-xs",
-  statusBadge: "inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg",
-} as const;
+export { PRIMARY_SOVEREIGN_ADMIN_ID, PRIMARY_SOVEREIGN_ADMIN_PHONE };
+export type { AdminProfile };
 
 export function AdminsManagementPanel() {
-  const t = useTranslations('adminAdmins');
-  const tAuto = useTranslations('auto');
-  const { isArabic, direction } = useDashboardLanguage();
-  const { user } = useAuth();
-
-  const isCallerPrimary =
-    user?.uid === PRIMARY_SOVEREIGN_ADMIN_ID ||
-    user?.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
-
-  const [admins, setAdmins] = useState<AdminProfile[]>([]);
-  const [callerRank, setCallerRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' | null>(() => {
-    if (isCallerPrimary || user?.adminRank === 'GENERAL_ADMIN') {
-      return 'GENERAL_ADMIN';
-    }
-    return user?.adminRank || null;
-  });
-  const [callerId, setCallerId] = useState<string | null>(user?.uid || null);
-  const [loading, setLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Form state
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('+9627');
-  const [password, setPassword] = useState('');
-  const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>('ASSISTANT_ADMIN');
-  const [allowedSectors, setAllowedSectors] = useState<AdminSectorId[]>([...ALL_SECTOR_IDS]);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState<string | null>(null);
-
-  // Edit Permissions Modal State
-  const [editPermissionsTarget, setEditPermissionsTarget] = useState<AdminProfile | null>(null);
-  const [editRank, setEditRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>('ASSISTANT_ADMIN');
-  const [editSectors, setEditSectors] = useState<AdminSectorId[]>([...ALL_SECTOR_IDS]);
-  const [savingPermissions, setSavingPermissions] = useState(false);
-
-  // Actions & Dialog state
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AdminProfile | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const isGeneralAdmin =
-    callerRank === 'GENERAL_ADMIN' ||
-    isCallerPrimary ||
-    user?.adminRank === 'GENERAL_ADMIN';
-
-  useEffect(() => {
-    if (isCallerPrimary || user?.adminRank === 'GENERAL_ADMIN') {
-      setCallerRank('GENERAL_ADMIN');
-    }
-    if (user?.uid && !callerId) {
-      setCallerId(user.uid);
-    }
-  }, [isCallerPrimary, user?.adminRank, user?.uid, callerId]);
-
-  const fetchAdmins = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await adminFetch('/api/admin/list-admins');
-      const data = await res.json();
-      if (data?.success && Array.isArray(data.admins)) {
-        setAdmins(data.admins);
-        if (isCallerPrimary) {
-          setCallerRank('GENERAL_ADMIN');
-        } else if (data.callerRank) {
-          setCallerRank(data.callerRank);
-        }
-        if (data.callerId) {
-          setCallerId(data.callerId);
-        } else if (user?.uid) {
-          setCallerId(user.uid);
-        }
-      }
-    } catch (err) {
-      console.error('[AdminsManagementPanel] fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [isCallerPrimary, user?.uid]);
-
-  useEffect(() => {
-    void fetchAdmins();
-  }, [fetchAdmins]);
-
-  // Handle Create Admin
-  const handleCreateAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isGeneralAdmin) return;
-    setFormError(null);
-    setFormSuccess(null);
-
-    if (!fullName.trim() || fullName.trim().length < 3) {
-      setFormError(t('errName'));
-      return;
-    }
-    if (!phone.trim() || phone.trim().length < 8) {
-      setFormError(t('errPhone'));
-      return;
-    }
-    if (!password || password.length < 8) {
-      setFormError(t('errPassword'));
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const res = await adminFetch('/api/admin/create-sub-admin', {
-        method: 'POST',
-        body: JSON.stringify({
-          fullName: fullName.trim(),
-          phone: phone.trim(),
-          password,
-          adminRank,
-          allowedSectors: adminRank === 'GENERAL_ADMIN' ? [...ALL_SECTOR_IDS] : allowedSectors,
-        }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result?.error || t('errGeneric'));
-      }
-
-      setFormSuccess(t('successCreated'));
-      setFullName('');
-      setPhone('+9627');
-      setPassword('');
-      setAdminRank('ASSISTANT_ADMIN');
-      setAllowedSectors([...ALL_SECTOR_IDS]);
-      await fetchAdmins();
-      setTimeout(() => {
-        setIsAdding(false);
-        setFormSuccess(null);
-      }, 2000);
-    } catch (err: any) {
-      setFormError(err.message || t('errGeneric'));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Handle Save Admin Permissions & Rank
-  const handleSavePermissions = async () => {
-    if (!editPermissionsTarget || !isGeneralAdmin || editPermissionsTarget.is_primary) return;
-    try {
-      setSavingPermissions(true);
-      setActionFeedback(null);
-      const finalSectors = editRank === 'GENERAL_ADMIN' ? [...ALL_SECTOR_IDS] : editSectors;
-      const res = await adminFetch('/api/admin/update-admin-permissions', {
-        method: 'POST',
-        body: JSON.stringify({
-          adminId: editPermissionsTarget.id,
-          adminRank: editRank,
-          allowedSectors: finalSectors,
-        }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result?.error || t('errGeneric'));
-      }
-
-      setActionFeedback({
-        type: 'success',
-        message: isArabic ? 'تم تحديث صلاحيات المشرف ورتبته بنجاح.' : 'Admin permissions updated successfully.',
-      });
-      setEditPermissionsTarget(null);
-      await fetchAdmins();
-      setTimeout(() => setActionFeedback(null), 3500);
-    } catch (err: any) {
-      setActionFeedback({ type: 'error', message: err.message || t('errGeneric') });
-    } finally {
-      setSavingPermissions(false);
-    }
-  };
-
-  // Handle Update Admin Rank
-  const handleUpdateRank = async (targetAdmin: AdminProfile, newRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN') => {
-    if (!isGeneralAdmin || targetAdmin.is_primary) return;
-    try {
-      setActionLoading(targetAdmin.id);
-      setActionFeedback(null);
-      const res = await adminFetch('/api/admin/update-admin-rank', {
-        method: 'POST',
-        body: JSON.stringify({
-          targetAdminId: targetAdmin.id,
-          newRank,
-        }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result?.error || t('errGeneric'));
-      }
-
-      setActionFeedback({ type: 'success', message: t('rankUpdatedSuccess') });
-      await fetchAdmins();
-      setTimeout(() => setActionFeedback(null), 3500);
-    } catch (err: any) {
-      setActionFeedback({ type: 'error', message: err.message || t('errGeneric') });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // Handle Confirm Delete Admin
-  const handleDeleteAdmin = async () => {
-    if (!deleteTarget || !isGeneralAdmin || deleteTarget.is_primary || deleteTarget.id === callerId) return;
-    try {
-      setDeleting(true);
-      setActionFeedback(null);
-      const res = await adminFetch('/api/admin/delete-admin', {
-        method: 'POST',
-        body: JSON.stringify({
-          targetAdminId: deleteTarget.id,
-        }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result?.error || t('errGeneric'));
-      }
-
-      setActionFeedback({ type: 'success', message: t('adminDeletedSuccess') });
-      setDeleteTarget(null);
-      await fetchAdmins();
-      setTimeout(() => setActionFeedback(null), 3500);
-    } catch (err: any) {
-      setActionFeedback({ type: 'error', message: err.message || t('errGeneric') });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const generalAdminsCount = admins.filter(
-    a => a.admin_rank === 'GENERAL_ADMIN' || a.is_primary || a.id === PRIMARY_SOVEREIGN_ADMIN_ID || a.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE
-  ).length;
-  const assistantAdminsCount = Math.max(0, admins.length - generalAdminsCount);
+  const {
+    t,
+    tAuto,
+    isArabic,
+    direction,
+    user,
+    admins,
+    callerId,
+    loading,
+    isAdding,
+    setIsAdding,
+    submitting,
+    fullName,
+    setFullName,
+    phone,
+    setPhone,
+    password,
+    setPassword,
+    adminRank,
+    setAdminRank,
+    allowedSectors,
+    setAllowedSectors,
+    showPassword,
+    setShowPassword,
+    formError,
+    setFormError,
+    formSuccess,
+    setFormSuccess,
+    editPermissionsTarget,
+    setEditPermissionsTarget,
+    editRank,
+    setEditRank,
+    editSectors,
+    setEditSectors,
+    savingPermissions,
+    actionLoading,
+    actionFeedback,
+    deleteTarget,
+    setDeleteTarget,
+    deleting,
+    isGeneralAdmin,
+    generalAdminsCount,
+    handleCreateAdmin,
+    handleSavePermissions,
+    handleUpdateRank,
+    handleDeleteAdmin,
+  } = useAdminsManagement();
 
   return (
     <div className={cn(styles.root, isArabic ? "text-right" : "text-left")} dir={direction}>
@@ -406,7 +162,7 @@ export function AdminsManagementPanel() {
           <button
             type="button"
             onClick={() => {
-              setIsAdding(prev => !prev);
+              setIsAdding((prev) => !prev);
               setFormError(null);
               setFormSuccess(null);
             }}
@@ -423,245 +179,29 @@ export function AdminsManagementPanel() {
         )}
       </div>
 
-      {/* Add Admin Form (Available only to GENERAL_ADMIN) */}
+      {/* Add Admin Form */}
       {isAdding && isGeneralAdmin && (
-        <form onSubmit={handleCreateAdmin} className={styles.formModal}>
-          <div className={styles.formTitle}>
-            <span className="flex items-center gap-1.5 text-sm font-bold text-[#14B8A6]">
-              <UserPlus className="h-4 w-4" />
-              {t('formHeader')}
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsAdding(false)}
-              className="text-slate-400 hover:text-white transition"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {formError && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-bold text-rose-300">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-              <span>{formError}</span>
-            </div>
-          )}
-
-          {formSuccess && (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-bold text-emerald-300">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
-              <span>{formSuccess}</span>
-            </div>
-          )}
-
-          <div className={styles.formGrid}>
-            <div>
-              <label className={styles.label}>{t('fullNameLabel')}</label>
-              <Input
-                type="text"
-                placeholder={t('fullNamePlaceholder')}
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                className={styles.input}
-                required
-              />
-            </div>
-
-            <div>
-              <label className={styles.label}>{t('phoneLabel')}</label>
-              <Input
-                type="tel"
-                dir="ltr"
-                placeholder="+962790000000"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className={styles.input}
-                required
-              />
-            </div>
-
-            <div className="relative">
-              <label className={styles.label}>{t('passwordLabel')}</label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  dir="ltr"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className={`${styles.input} pl-9`}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#14B8A6] transition"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Rank Selector */}
-          <div className="space-y-2 pt-2 border-t border-white/5">
-            <label className={styles.label}>{t('adminRankLabel')}</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Option: Assistant Admin */}
-              <button
-                type="button"
-                onClick={() => setAdminRank('ASSISTANT_ADMIN')}
-                className={`p-3.5 rounded-xl border text-start transition-all flex items-start gap-3 ${
-                  adminRank === 'ASSISTANT_ADMIN'
-                    ? 'border-cyan-500 bg-cyan-500/10 shadow-[0_0_15px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/50'
-                    : 'border-white/10 bg-black/40 hover:border-white/20'
-                }`}
-              >
-                <div className={`p-2 rounded-lg mt-0.5 ${adminRank === 'ASSISTANT_ADMIN' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-slate-400'}`}>
-                  <Shield className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-white">{t('assistantAdmin')}</p>
-                    <Badge className="bg-cyan-500/20 text-cyan-300 border-none text-[9px] py-0 px-1.5">{t('recommendedBadge')}</Badge>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{t('assistantAdminDesc')}</p>
-                </div>
-              </button>
-
-              {/* Option: General Admin */}
-              <button
-                type="button"
-                onClick={() => setAdminRank('GENERAL_ADMIN')}
-                className={`p-3.5 rounded-xl border text-start transition-all flex items-start gap-3 ${
-                  adminRank === 'GENERAL_ADMIN'
-                    ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/50'
-                    : 'border-white/10 bg-black/40 hover:border-white/20'
-                }`}
-              >
-                <div className={`p-2 rounded-lg mt-0.5 ${adminRank === 'GENERAL_ADMIN' ? 'bg-amber-500/20 text-amber-300' : 'bg-white/5 text-slate-400'}`}>
-                  <Crown className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-bold text-white">{t('generalAdmin')}</p>
-                    <Badge className="bg-amber-500/20 text-amber-300 border-none text-[9px] py-0 px-1.5">{t('sovereignBadge')}</Badge>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{t('generalAdminDesc')}</p>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Sector Permissions Selector */}
-          <div className="space-y-2.5 pt-3 border-t border-white/5">
-            <div className="flex items-center justify-between">
-              <label className={styles.label}>
-                {isArabic ? 'صلاحيات أزرار القطاعات المصرح بها لهذا المشرف:' : 'Authorized Sector Buttons Permissions:'}
-              </label>
-              {adminRank === 'ASSISTANT_ADMIN' && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAllowedSectors([...ALL_SECTOR_IDS])}
-                    className="text-[10px] text-teal-400 hover:text-teal-300 font-bold transition cursor-pointer"
-                  >
-                    {isArabic ? 'تحديد الكل' : 'Select All'}
-                  </button>
-                  <span className="text-slate-600">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setAllowedSectors([])}
-                    className="text-[10px] text-slate-400 hover:text-slate-300 font-bold transition cursor-pointer"
-                  >
-                    {isArabic ? 'إلغاء التحديد' : 'Deselect All'}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {adminRank === 'GENERAL_ADMIN' ? (
-              <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs flex items-center gap-2 font-medium">
-                <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>
-                  {isArabic
-                    ? 'المشرف العام يمتلك تلقائياً صلاحيات سيادية كاملة للوصول لجميع القطاعات والأزرار دون استثناء.'
-                    : 'General Admin automatically possesses full sovereign access to all sectors and buttons.'}
-                </span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {ADMIN_SECTORS.map((sector) => {
-                  const isChecked = allowedSectors.includes(sector.id as AdminSectorId);
-                  return (
-                    <button
-                      key={sector.id}
-                      type="button"
-                      onClick={() => {
-                        setAllowedSectors((prev) =>
-                          isChecked
-                            ? prev.filter((id) => id !== sector.id)
-                            : [...prev, sector.id as AdminSectorId]
-                        );
-                      }}
-                      className={cn(
-                        "p-2.5 rounded-xl border text-start transition flex items-center justify-between gap-2 cursor-pointer",
-                        isChecked
-                          ? "bg-teal-500/15 border-teal-500/50 text-white shadow-sm ring-1 ring-teal-500/30"
-                          : "bg-black/40 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={cn(
-                            "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
-                            isChecked
-                              ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
-                              : "border-white/20 bg-black/40"
-                          )}
-                        >
-                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
-                        <span className="text-xs font-bold">
-                          {isArabic ? sector.labelAr : sector.labelEn}
-                        </span>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[9px] font-mono",
-                          isChecked ? "border-teal-500/40 text-teal-300" : "border-white/10 text-slate-500"
-                        )}
-                      >
-                        {sector.id}
-                      </Badge>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className={styles.addBtn}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{t('saving')}</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>{t('confirmSubmit')}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+        <CreateAdminForm
+          fullName={fullName}
+          setFullName={setFullName}
+          phone={phone}
+          setPhone={setPhone}
+          password={password}
+          setPassword={setPassword}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+          adminRank={adminRank}
+          setAdminRank={setAdminRank}
+          allowedSectors={allowedSectors}
+          setAllowedSectors={setAllowedSectors}
+          submitting={submitting}
+          formError={formError}
+          formSuccess={formSuccess}
+          onClose={() => setIsAdding(false)}
+          onSubmit={handleCreateAdmin}
+          isArabic={isArabic}
+          t={t}
+        />
       )}
 
       {/* Admins Table */}
@@ -692,183 +232,33 @@ export function AdminsManagementPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {admins.map((admin) => {
-                    const isTargetPrimary =
-                      admin.is_primary ||
-                      admin.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
-                      admin.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
-                    const isTargetGeneral = admin.admin_rank === 'GENERAL_ADMIN' || isTargetPrimary;
-                    const isCallerHimself =
-                      admin.id === callerId ||
-                      (user?.uid && admin.id === user.uid) ||
-                      (user?.phone && admin.phone === user.phone);
-                    const canModify = isGeneralAdmin && !isTargetPrimary;
-                    const canDelete = isGeneralAdmin && !isTargetPrimary && !isCallerHimself;
-
-                    return (
-                      <tr key={admin.id} className={styles.tableRow}>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className={`${styles.avatar} ${isTargetGeneral ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : ''}`}>
-                              {isTargetGeneral ? <Crown className="h-4 w-4" /> : <UserRound className="h-4 w-4" />}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <p className="font-bold text-[#F8FAFC]">{admin.full_name || t('unnamed')}</p>
-                                {isCallerHimself && (
-                                  <Badge className="bg-teal-500/20 text-teal-300 border-none text-[9px] py-0 px-1 font-sans">{t('youTag')}</Badge>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-slate-500 font-mono">{admin.id.slice(0, 8)}...</p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-3 font-mono text-slate-300" dir="ltr">
-                          {admin.phone}
-                        </td>
-
-                        {/* Admin Rank Badge */}
-                        <td className="px-4 py-3">
-                          {isTargetGeneral ? (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-xl shadow-[0_0_12px_rgba(245,158,11,0.15)]">
-                              <Crown className="h-3.5 w-3.5 text-amber-400" />
-                              <span>{t('generalAdmin')}</span>
-                              {isTargetPrimary && (
-                                <span className="text-[9px] bg-amber-400/20 text-amber-200 px-1 py-0.2 rounded font-sans">{t('primaryTag')}</span>
-                              )}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-2.5 py-1 rounded-xl">
-                              <Shield className="h-3.5 w-3.5 text-cyan-400" />
-                              <span>{t('assistantAdmin')}</span>
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Allowed Sectors Column */}
-                        <td className="px-4 py-3">
-                          {isTargetGeneral ? (
-                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg shadow-sm">
-                              <Crown className="w-3 h-3 text-amber-400" />
-                              <span>{isArabic ? 'كامل القطاعات (مشرف عام)' : 'All Sectors (General Admin)'}</span>
-                            </span>
-                          ) : (
-                            <div className="flex flex-wrap gap-1 max-w-[260px]">
-                              {Array.isArray(admin.allowed_sectors) && admin.allowed_sectors.length > 0 ? (
-                                admin.allowed_sectors.map((secId) => {
-                                  const secDef = ADMIN_SECTORS.find((s) => s.id === secId);
-                                  return (
-                                    <span
-                                      key={secId}
-                                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-500/10 border border-teal-500/30 text-teal-300 inline-flex items-center gap-1"
-                                    >
-                                      <Check className="w-2.5 h-2.5 text-teal-400 stroke-[3]" />
-                                      <span>{isArabic ? secDef?.labelAr || secId : secDef?.labelEn || secId}</span>
-                                    </span>
-                                  );
-                                })
-                              ) : (
-                                <span className="text-[10px] text-rose-400 font-bold bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded">
-                                  {isArabic ? 'لا توجد قطاعات مصرحة' : 'No Authorized Sectors'}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <span className={styles.statusBadge}>
-                            <CheckCircle2 className="h-3 w-3" />
-                            {t('activeStatus')}
-                          </span>
-                        </td>
-
-                        <td className="px-4 py-3 text-slate-400 text-[11px] font-mono">
-                          {admin.created_at ? new Date(admin.created_at).toLocaleDateString(isArabic ? 'ar-JO' : 'en-US') : '-'}
-                        </td>
-
-                        {/* Actions Column (General Admin only) */}
-                        {isGeneralAdmin && (
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center gap-1.5">
-                              {/* Edit Permissions & Rank Button */}
-                              {canModify && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setEditPermissionsTarget(admin);
-                                    const targetRank = admin.admin_rank || 'ASSISTANT_ADMIN';
-                                    setEditRank(targetRank);
-                                    const currentSectors = Array.isArray(admin.allowed_sectors) && admin.allowed_sectors.length > 0
-                                      ? (admin.allowed_sectors as AdminSectorId[])
-                                      : (targetRank === 'GENERAL_ADMIN' ? [...ALL_SECTOR_IDS] : ['captains', 'riders']);
-                                    setEditSectors(currentSectors);
-                                  }}
-                                  className="h-7 px-2.5 text-[10px] font-bold rounded-lg text-teal-300 hover:text-white hover:bg-teal-500/20 border border-teal-500/30 transition-all flex items-center gap-1 cursor-pointer"
-                                  title={isArabic ? 'تعديل صلاحيات القطاعات والرتبة' : 'Edit Sector Permissions & Rank'}
-                                >
-                                  <Sliders className="h-3 w-3 text-teal-400" />
-                                  <span>{isArabic ? 'الصلاحيات' : 'Permissions'}</span>
-                                </Button>
-                              )}
-
-                              {/* Toggle Rank Button */}
-                              {canModify ? (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  disabled={actionLoading === admin.id}
-                                  onClick={() => handleUpdateRank(admin, isTargetGeneral ? 'ASSISTANT_ADMIN' : 'GENERAL_ADMIN')}
-                                  className={`h-7 px-2 text-[10px] font-bold rounded-lg transition-all ${
-                                    isTargetGeneral
-                                      ? 'text-slate-300 hover:text-cyan-300 hover:bg-cyan-500/10 border border-white/10'
-                                      : 'text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/30'
-                                  }`}
-                                  title={isTargetGeneral ? t('demoteToAssistant') : t('promoteToGeneral')}
-                                >
-                                  {actionLoading === admin.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : isTargetGeneral ? (
-                                    <span className="flex items-center gap-1">
-                                      <Shield className="h-3 w-3 text-cyan-400" />
-                                      <span>{t('demoteToAssistantBtn')}</span>
-                                    </span>
-                                  ) : (
-                                    <span className="flex items-center gap-1">
-                                      <ArrowUpRight className="h-3 w-3 text-amber-400" />
-                                      <span>{t('promoteToGeneralBtn')}</span>
-                                    </span>
-                                  )}
-                                </Button>
-                              ) : (
-                                <span className="text-[10px] text-slate-500 font-sans px-2">
-                                  {admin.is_primary ? t('primaryProtected') : '-'}
-                                </span>
-                              )}
-
-                              {/* Delete Admin Button */}
-                              {canDelete ? (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setDeleteTarget(admin)}
-                                  className="h-7 w-7 p-0 rounded-lg text-rose-400 hover:text-rose-200 hover:bg-rose-500/20 border border-rose-500/20 transition-all"
-                                  title={t('deleteAdmin')}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              ) : null}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
+                  {admins.map((admin) => (
+                    <AdminTableRow
+                      key={admin.id}
+                      admin={admin}
+                      callerId={callerId}
+                      userUid={user?.uid}
+                      userPhone={user?.phone}
+                      isGeneralAdmin={isGeneralAdmin}
+                      actionLoading={actionLoading}
+                      onEditPermissions={(adm) => {
+                        setEditPermissionsTarget(adm);
+                        const targetRank = adm.admin_rank || 'ASSISTANT_ADMIN';
+                        setEditRank(targetRank);
+                        const currentSectors =
+                          Array.isArray(adm.allowed_sectors) && adm.allowed_sectors.length > 0
+                            ? (adm.allowed_sectors as any)
+                            : targetRank === 'GENERAL_ADMIN'
+                            ? []
+                            : ['captains', 'riders'];
+                        setEditSectors(currentSectors);
+                      }}
+                      onUpdateRank={handleUpdateRank}
+                      onDelete={(adm) => setDeleteTarget(adm)}
+                      isArabic={isArabic}
+                      t={t}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -877,270 +267,30 @@ export function AdminsManagementPanel() {
       </Card>
 
       {/* Delete Admin Confirmation Modal */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-md bg-[#0B0F19] border border-rose-500/30 text-white shadow-2xl rounded-2xl" dir={direction}>
-          <DialogHeader className={cn("space-y-2", isArabic ? "text-right" : "text-left")}>
-            <div className="flex items-center gap-2.5 text-rose-400">
-              <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                <Trash2 className="w-5 h-5 text-rose-400" />
-              </div>
-              <DialogTitle className="text-lg font-black text-white">
-                {t('deleteConfirmTitle')}
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-slate-400 text-xs leading-relaxed">
-              {t('deleteConfirmDesc')}
-            </DialogDescription>
-          </DialogHeader>
-
-          {deleteTarget && (
-            <div className={cn("my-2 p-3 rounded-xl bg-black/50 border border-white/10 space-y-1.5 text-xs", isArabic ? "text-right" : "text-left")}>
-              <p className="text-slate-400 font-medium">{t('targetAdminInfo')}</p>
-              <div className="flex items-center justify-between pt-1">
-                <span className="font-bold text-white">{deleteTarget.full_name}</span>
-                <span className="font-mono text-slate-300" dir="ltr">{deleteTarget.phone}</span>
-              </div>
-              <div className="flex items-center gap-1.5 pt-1 text-slate-400 text-[11px]">
-                <span>{t('rankLabel')}</span>
-                <span className={deleteTarget.admin_rank === 'GENERAL_ADMIN' ? 'text-amber-300 font-bold' : 'text-cyan-300 font-bold'}>
-                  {deleteTarget.admin_rank === 'GENERAL_ADMIN' ? t('generalAdmin') : t('assistantAdmin')}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="flex-row gap-2 sm:justify-start pt-3 border-t border-white/10">
-            <Button
-              type="button"
-              onClick={handleDeleteAdmin}
-              disabled={deleting}
-              className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm h-10 rounded-xl transition-all shadow-lg shadow-rose-950/40"
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
-                  {t('deleting')}
-                </>
-              ) : (
-                <>
-                  <Trash2 className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
-                  {t('confirmDelete')}
-                </>
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-              disabled={deleting}
-              className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs"
-            >
-              {t('cancel')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteAdminDialog
+        deleteTarget={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirmDelete={handleDeleteAdmin}
+        deleting={deleting}
+        direction={direction}
+        isArabic={isArabic}
+        t={t}
+      />
 
       {/* Edit Permissions Modal */}
-      <Dialog open={!!editPermissionsTarget} onOpenChange={(open) => !open && setEditPermissionsTarget(null)}>
-        <DialogContent className="max-w-lg bg-[#0B0F19] border border-teal-500/30 text-white shadow-2xl rounded-2xl p-6" dir={direction}>
-          <DialogHeader className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
-            <div className="flex items-center gap-2 text-teal-400">
-              <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
-                <Sliders className="w-5 h-5 text-teal-400" />
-              </div>
-              <DialogTitle className="text-base font-black text-white">
-                {isArabic ? 'تعديل صلاحيات القطاعات والرتبة' : 'Edit Sector Permissions & Rank'}
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-slate-400 text-xs">
-              {isArabic
-                ? 'تحكم في أزرار القطاعات المصرح لهذا المشرف بالوصول إليها وإدارتها في لوحة التحكم.'
-                : 'Control which sector buttons this supervisor is authorized to access and manage.'}
-            </DialogDescription>
-          </DialogHeader>
-
-          {editPermissionsTarget && (
-            <div className="space-y-4 my-2">
-              {/* Target Admin Card */}
-              <div className="p-3 rounded-xl bg-black/50 border border-white/10 flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-bold text-white text-sm">{editPermissionsTarget.full_name}</p>
-                  <p className="font-mono text-slate-400 text-[11px]" dir="ltr">{editPermissionsTarget.phone}</p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={editPermissionsTarget.admin_rank === 'GENERAL_ADMIN' ? 'border-amber-500/40 text-amber-300' : 'border-cyan-500/40 text-cyan-300'}
-                >
-                  {editPermissionsTarget.admin_rank === 'GENERAL_ADMIN' ? t('generalAdmin') : t('assistantAdmin')}
-                </Badge>
-              </div>
-
-              {/* Rank Selection */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-300">{t('adminRankLabel')}</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditRank('ASSISTANT_ADMIN')}
-                    className={cn(
-                      "p-2.5 rounded-xl border text-start transition flex items-center gap-2 cursor-pointer",
-                      editRank === 'ASSISTANT_ADMIN'
-                        ? "bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/40"
-                        : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
-                    )}
-                  >
-                    <Shield className="w-4 h-4 text-cyan-400" />
-                    <div>
-                      <p className="text-xs font-bold">{t('assistantAdmin')}</p>
-                      <p className="text-[10px] text-slate-400">{isArabic ? 'صلاحيات قطاعية محددة' : 'Custom sectors'}</p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditRank('GENERAL_ADMIN');
-                      setEditSectors([...ALL_SECTOR_IDS]);
-                    }}
-                    className={cn(
-                      "p-2.5 rounded-xl border text-start transition flex items-center gap-2 cursor-pointer",
-                      editRank === 'GENERAL_ADMIN'
-                        ? "bg-amber-500/15 border-amber-500 text-amber-200 ring-1 ring-amber-500/40"
-                        : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
-                    )}
-                  >
-                    <Crown className="w-4 h-4 text-amber-400" />
-                    <div>
-                      <p className="text-xs font-bold">{t('generalAdmin')}</p>
-                      <p className="text-[10px] text-slate-400">{isArabic ? 'كامل القطاعات' : 'Full access'}</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Sector Permissions Checklist */}
-              <div className="space-y-2 pt-2 border-t border-white/5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-slate-300">
-                    {isArabic ? 'صلاحيات أزرار القطاعات:' : 'Sector Permissions:'}
-                  </label>
-                  {editRank === 'ASSISTANT_ADMIN' && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditSectors([...ALL_SECTOR_IDS])}
-                        className="text-[10px] text-teal-400 hover:text-teal-300 font-bold transition cursor-pointer"
-                      >
-                        {isArabic ? 'تحديد الكل' : 'Select All'}
-                      </button>
-                      <span className="text-slate-600">|</span>
-                      <button
-                        type="button"
-                        onClick={() => setEditSectors([])}
-                        className="text-[10px] text-slate-400 hover:text-slate-300 font-bold transition cursor-pointer"
-                      >
-                        {isArabic ? 'إلغاء التحديد' : 'Deselect All'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {editRank === 'GENERAL_ADMIN' ? (
-                  <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>
-                      {isArabic
-                        ? 'المشرف العام يملك وصولاً سيادياً كاملاً لجميع القطاعات تلقائياً.'
-                        : 'General Admin has full sovereign access to all sectors automatically.'}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {ADMIN_SECTORS.map((sector) => {
-                      const isChecked = editSectors.includes(sector.id as AdminSectorId);
-                      return (
-                        <button
-                          key={sector.id}
-                          type="button"
-                          onClick={() => {
-                            setEditSectors((prev) =>
-                              isChecked
-                                ? prev.filter((id) => id !== sector.id)
-                                : [...prev, sector.id as AdminSectorId]
-                            );
-                          }}
-                          className={cn(
-                            "p-2.5 rounded-xl border text-start transition flex items-center justify-between gap-2 cursor-pointer",
-                            isChecked
-                              ? "bg-teal-500/15 border-teal-500/50 text-white shadow-sm ring-1 ring-teal-500/30"
-                              : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={cn(
-                                "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
-                                isChecked
-                                  ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
-                                  : "border-white/20 bg-black/40"
-                              )}
-                            >
-                              {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                            </div>
-                            <span className="text-xs font-bold">
-                              {isArabic ? sector.labelAr : sector.labelEn}
-                            </span>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[9px] font-mono",
-                              isChecked ? "border-teal-500/40 text-teal-300" : "border-white/10 text-slate-500"
-                            )}
-                          >
-                            {sector.id}
-                          </Badge>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="flex-row gap-2 sm:justify-start pt-3 border-t border-white/10">
-            <Button
-              type="button"
-              onClick={handleSavePermissions}
-              disabled={savingPermissions || !editPermissionsTarget}
-              className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-black text-xs sm:text-sm h-10 rounded-xl transition-all shadow-lg shadow-teal-950/40 cursor-pointer"
-            >
-              {savingPermissions ? (
-                <>
-                  <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
-                  {t('saving')}
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
-                  <span>{isArabic ? 'حفظ الصلاحيات' : 'Save Permissions'}</span>
-                </>
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditPermissionsTarget(null)}
-              disabled={savingPermissions}
-              className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs cursor-pointer"
-            >
-              {t('cancel')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditPermissionsDialog
+        editPermissionsTarget={editPermissionsTarget}
+        onClose={() => setEditPermissionsTarget(null)}
+        editRank={editRank}
+        setEditRank={setEditRank}
+        editSectors={editSectors}
+        setEditSectors={setEditSectors}
+        savingPermissions={savingPermissions}
+        onSave={handleSavePermissions}
+        direction={direction}
+        isArabic={isArabic}
+        t={t}
+      />
     </div>
   );
 }
