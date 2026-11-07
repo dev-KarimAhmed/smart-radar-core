@@ -10,43 +10,24 @@ import {
   cacheSupabaseSession,
   clearSupabaseSessionCache,
 } from '@/lib/supabase-auth';
-import { hasStoredSupabaseAuthSession, SUPABASE_AUTH_STORAGE_KEY } from '@/features/auth/services/supabase-auth-storage';
-import { DASHBOARD_LANGUAGE_KEY, DASHBOARD_LANGUAGE_EVENT, useDashboardLanguage } from './use-dashboard-language';
+import { hasStoredSupabaseAuthSession } from '@/features/auth/services/supabase-auth-storage';
+import { DASHBOARD_LANGUAGE_KEY, useDashboardLanguage } from './use-dashboard-language';
 import { useToast } from './use-toast';
 import { syncServerTime } from '@/lib/server-time';
+import {
+  getInitialUserFromCache,
+  cancelActiveRequestBeforeLogout,
+  purgeTransientFrontendCache,
+  restorePreservedLanguage,
+} from './auth-session-cleanup';
+import { useSessionTakeoverListener, usePreferredLanguageSync } from './use-auth-session-sync';
+
+export { purgeTransientFrontendCache };
 
 const LogoutDialog = dynamic(
   () => import('@/features/auth/components/logout-dialog').then((module) => module.LogoutDialog),
   { ssr: false },
 );
-
-const styles = { root: 'contents' } as const;
-
-function getInitialUserFromCache(): SovereignUser | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const rawMock =
-      window.localStorage.getItem('radar_sovereign_mock_user') ||
-      window.sessionStorage.getItem('radar_sovereign_mock_user');
-    if (process.env.NODE_ENV !== 'production' && rawMock) {
-      const parsedMock = JSON.parse(rawMock);
-      if (parsedMock && (parsedMock.role === 'admin' || parsedMock.adminRank === 'GENERAL_ADMIN')) {
-        return parsedMock as SovereignUser;
-      }
-    }
-    const raw =
-      window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
-      window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.user && typeof parsed.user === 'object') {
-      return buildUserFromSupabaseAuth(parsed.user) as SovereignUser;
-    }
-  } catch {
-    // Ignore cache parse errors
-  }
-  return null;
-}
 
 interface AuthContextType {
   user: SovereignUser | null;
@@ -79,18 +60,15 @@ function AuthContent({ children }: { children: ReactNode }) {
     let mounted = true;
     let unsubscribe = () => {};
     let bootstrapCompleted = false;
-    
-    // Sync server time as early as possible
+
     syncServerTime();
 
-    // Fast-restore cached session on client mount without hydration mismatch
     const cachedUser = getInitialUserFromCache();
     if (cachedUser) {
       setUser(cachedUser);
       setLoading(false);
     }
 
-    // Intercept recovery links landing on root or dashboard before auth redirects kick in
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/reset-password')) {
       const hash = window.location.hash || '';
       const search = window.location.search || '';
@@ -120,7 +98,6 @@ function AuthContent({ children }: { children: ReactNode }) {
 
     const bootstrapTimeout = window.setTimeout(() => {
       if (!mounted || bootstrapCompleted) return;
-      // Do not wipe session if we already restored a valid cached user
       if (!cachedUser && !getInitialUserFromCache()) {
         clearSupabaseSessionCache();
         setUser(null);
@@ -139,7 +116,6 @@ function AuthContent({ children }: { children: ReactNode }) {
             cacheSupabaseSession(session);
             setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
 
-            // Verify with server to immediately detect deleted/purged accounts
             void supabase.auth.getUser().then(({ data: userData, error: userError }) => {
               if (!mounted) return;
               if (userError || !userData?.user) {
@@ -182,12 +158,9 @@ function AuthContent({ children }: { children: ReactNode }) {
         if (session?.user) {
           setUser(buildUserFromSupabaseAuth(session.user) as SovereignUser);
         } else if (_event === 'SIGNED_OUT') {
-          // If the phone just woke up from sleep or is temporarily offline, token auto-refresh
-          // can transiently fail before LTE/Wi-Fi reassociates. Check if durable storage still has a session.
           const hasStored = hasStoredSupabaseAuthSession();
           const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
           if (hasStored || isOffline) {
-            // Keep current user state intact and attempt a quiet background session refresh
             void supabase.auth.getSession().then(({ data }) => {
               if (data?.session?.user && mounted) {
                 cacheSupabaseSession(data.session);
@@ -204,7 +177,6 @@ function AuthContent({ children }: { children: ReactNode }) {
         finishBootstrap();
       });
 
-      // Silently re-check session when device wakes up or network recovers
       const handleWakeOrOnline = () => {
         if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
         if (hasStoredSupabaseAuthSession()) {
@@ -289,147 +261,11 @@ function AuthContent({ children }: { children: ReactNode }) {
     forceKickoutRef.current = forceKickout;
   });
 
-  useEffect(() => {
-    if (!user?.uid) return;
-    let isMounted = true;
-    let channel: any = null;
-    let channelPhone: any = null;
-    let channelPhoneDigits: any = null;
-    let channelEmail: any = null;
-
-    let deviceId = '';
-    if (typeof window !== 'undefined') {
-      try {
-        deviceId = window.localStorage.getItem('radar_device_id') || '';
-        if (!deviceId) {
-          deviceId = typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : (Date.now() + '-' + Math.random().toString(36).slice(2));
-          window.localStorage.setItem('radar_device_id', deviceId);
-        }
-      } catch {
-        deviceId = 'device-' + user.uid;
-      }
-    }
-    
-    const phoneKey = user.phone ? user.phone.trim().replace(/[\s()-]/g, '') : '';
-    const phoneDigits = user.phone ? user.phone.trim().replace(/\D/g, '') : '';
-    const emailKey = (user as any).email ? String((user as any).email).trim().toLowerCase() : '';
-
-    import('@/lib/supabase-client').then(({ supabase }) => {
-      if (!isMounted) return;
-
-      const handleCheckActive = (payload: any, ch: any) => {
-        const foreignDeviceId = payload.payload?.deviceId;
-        if (foreignDeviceId && deviceId && foreignDeviceId !== deviceId) {
-          ch.send({
-            type: 'broadcast',
-            event: 'session_active',
-            payload: { deviceId },
-          });
-        }
-      };
-
-      const handleForeignTakeover = (payload: any) => {
-        const foreignDeviceId = payload.payload?.deviceId;
-        if (foreignDeviceId && deviceId && foreignDeviceId !== deviceId) {
-          toast({
-            variant: 'destructive',
-            title: 'تم تسجيل الدخول من جهاز آخر',
-            description: 'تم تسجيل الدخول إلى هذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.',
-            duration: 10000,
-          });
-          void forceKickoutRef.current();
-        }
-      };
-
-      channel = supabase.channel('user-session-' + user.uid);
-      channel.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channel));
-      channel.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
-      channel.subscribe();
-
-      if (phoneDigits) {
-        channelPhoneDigits = supabase.channel('user-session-phone-' + phoneDigits);
-        channelPhoneDigits.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhoneDigits));
-        channelPhoneDigits.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
-        channelPhoneDigits.subscribe();
-      }
-
-      if (phoneKey && phoneKey !== phoneDigits) {
-        channelPhone = supabase.channel('user-session-phone-' + phoneKey);
-        channelPhone.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelPhone));
-        channelPhone.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
-        channelPhone.subscribe();
-      }
-
-      if (emailKey) {
-        channelEmail = supabase.channel('user-session-email-' + emailKey);
-        channelEmail.on('broadcast', { event: 'check_active_session' }, (payload: any) => handleCheckActive(payload, channelEmail));
-        channelEmail.on('broadcast', { event: 'session_takeover' }, handleForeignTakeover);
-        channelEmail.subscribe();
-      }
-    });
-    
-    return () => {
-      isMounted = false;
-      import('@/lib/supabase-client').then(({ supabase }) => {
-        try {
-          if (channel) supabase.removeChannel(channel);
-          if (channelPhoneDigits) supabase.removeChannel(channelPhoneDigits);
-          if (channelPhone) supabase.removeChannel(channelPhone);
-          if (channelEmail) supabase.removeChannel(channelEmail);
-        } catch {}
-      });
-    };
-  }, [user?.uid, user?.phone, (user as any)?.email, toast]);
-
-  // Keep preferred_language in profiles synced with active device/user language choice
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    const syncLanguageToProfile = async (targetLang: 'ar' | 'en') => {
-      try {
-        const { supabase } = await import('@/lib/supabase-client');
-        await supabase
-          .from('profiles')
-          .update({ preferred_language: targetLang })
-          .eq('id', user.uid);
-      } catch (err) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[useAuth] Failed to sync preferred_language:', err);
-        }
-      }
-    };
-
-    // 1. Initial sync on mount if local preference exists
-    const stored = typeof window !== 'undefined'
-      ? (window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) as 'ar' | 'en' | null)
-      : null;
-    if (stored === 'en' || stored === 'ar') {
-      void syncLanguageToProfile(stored);
-    }
-
-    // 2. Realtime listener for whenever language toggle is pressed
-    const handleLangChange = (event: Event) => {
-      const detail = (event as CustomEvent<'ar' | 'en'>).detail;
-      if (detail === 'en' || detail === 'ar') {
-        void syncLanguageToProfile(detail);
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
-      }
-    };
-  }, [user?.uid]);
+  useSessionTakeoverListener({ user, forceKickoutRef, toast });
+  usePreferredLanguageSync(user?.uid);
 
   const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
-    if (!(process.env.NODE_ENV !== 'production')) return;
+    if (process.env.NODE_ENV === 'production') return;
     setUser(mockUser);
     setLoading(false);
     if (typeof window !== 'undefined' && mockUser?.uid) {
@@ -446,9 +282,6 @@ function AuthContent({ children }: { children: ReactNode }) {
     setLogoutInProgress(true);
     const preservedLanguage =
       typeof window !== 'undefined' ? window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) : null;
-    // Must run before signOut/cache-clear below — it needs the still-active
-    // session (RLS relies on auth.uid()) to find and cancel the user's own
-    // in-flight request, if any, instead of leaving it orphaned.
     await cancelActiveRequestBeforeLogout(user);
     clearSupabaseSessionCache();
     purgeTransientFrontendCache();
@@ -500,31 +333,34 @@ function AuthContent({ children }: { children: ReactNode }) {
   const isPassenger = useMemo(() => user?.role === 'rider', [user]);
   const isDelegate = useMemo(() => user?.role === 'delegate', [user]);
 
-  const value = useMemo(() => ({
-    user,
-    loading,
-    promoData,
-    logout,
-    loginAsMockUser,
-    isSovereign,
-    isCaptain,
-    isPassenger,
-    isDelegate,
-    suspendUserDocListener,
-    resumeUserDocListener,
-  }), [
-    user,
-    loading,
-    promoData,
-    logout,
-    loginAsMockUser,
-    isSovereign,
-    isCaptain,
-    isPassenger,
-    isDelegate,
-    suspendUserDocListener,
-    resumeUserDocListener,
-  ]);
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      promoData,
+      logout,
+      loginAsMockUser,
+      isSovereign,
+      isCaptain,
+      isPassenger,
+      isDelegate,
+      suspendUserDocListener,
+      resumeUserDocListener,
+    }),
+    [
+      user,
+      loading,
+      promoData,
+      logout,
+      loginAsMockUser,
+      isSovereign,
+      isCaptain,
+      isPassenger,
+      isDelegate,
+      suspendUserDocListener,
+      resumeUserDocListener,
+    ]
+  );
 
   return (
     <AuthContext.Provider value={value}>
@@ -551,122 +387,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContent>{children}</AuthContent>;
 }
 
-// A request still "in flight" — anything before the trip is over — must be
-// cancelled server-side on logout instead of left orphaned for the other
-// side (rider or captain) to keep waiting on. Re-derives this from the DB by
-// id/role rather than any client-side dashboard state, since that state may
-// not be mounted at all from wherever the logout button was pressed.
-// Must exactly match the live `ride_request_status` Postgres enum members —
-// any value here that isn't a real enum label makes PostgREST fail the whole
-// `.in()` filter with a 400 (bad enum cast), silently skipping the cancel.
-const NON_TERMINAL_REQUEST_STATUSES = [
-  'PENDING', 'RECEIVING_OFFERS', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED', 'TRIP_ACTIVE',
-];
-
-async function cancelActiveRequestBeforeLogout(user: SovereignUser | null) {
-  if (!user?.uid) return;
-
-  try {
-    const { supabase } = await import('@/lib/supabase-client');
-
-    if (user.role === 'rider') {
-      const { data } = await supabase
-        .from('ride_requests')
-        .select('id')
-        .eq('rider_id', user.uid)
-        .in('status', NON_TERMINAL_REQUEST_STATUSES)
-        .limit(1)
-        .maybeSingle();
-      if (data?.id) {
-        await supabase.rpc('cancel_ride_request', { p_request_id: data.id });
-      }
-    } else if (user.role === 'driver') {
-      // If the captain submitted offers in the auction, withdraw/cancel and delete them on logout
-      try {
-        await supabase
-          .from('ride_offers')
-          .update({ status: 'CANCELLED' })
-          .eq('captain_id', user.uid);
-        await supabase
-          .from('ride_offers')
-          .delete()
-          .eq('captain_id', user.uid);
-        try {
-          await supabase.rpc('set_captain_status', { p_status: 'IDLE' });
-        } catch {
-          // Ignore status reset error
-        }
-      } catch (offerErr) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Logout captain offers cleanup failed]', offerErr);
-        }
-      }
-
-      const { data } = await supabase
-        .from('ride_requests')
-        .select('id')
-        .eq('accepted_captain_id', user.uid)
-        .in('status', NON_TERMINAL_REQUEST_STATUSES)
-        .limit(1)
-        .maybeSingle();
-      if (data?.id) {
-        await supabase.rpc('captain_cancel_active_trip', { p_request_id: data.id });
-      }
-    }
-  } catch (error) {
-    if ((process.env.NODE_ENV !== 'production')) console.warn('[Logout active-request cleanup]', error);
-  }
-}
-
-export function purgeTransientFrontendCache() {
-  if (typeof window === 'undefined') return;
-
-  const sessionKeys = [
-    'sovereign_write_lock',
-    'sovereign_trip_status',
-    'sovereign_driver_status',
-    'sovereign_rejected_trips_v1',
-    'radar_driver_rejected_requests_v1',
-  ];
-
-  const localKeys = [
-    'sovereign_gps_local_buffer',
-    'radar_rider_local_reports',
-    'radar_user_notifications_v1',
-  ];
-
-  for (const key of sessionKeys) {
-    window.sessionStorage.removeItem(key);
-  }
-
-  for (const key of localKeys) {
-    window.localStorage.removeItem(key);
-  }
-
-  try {
-    for (let i = window.localStorage.length - 1; i >= 0; i--) {
-      const key = window.localStorage.key(i);
-      if (key && (key.startsWith('radar_user_notifications_') || key === 'radar_user_notifications_v1')) {
-        window.localStorage.removeItem(key);
-      }
-    }
-  } catch {}
-
-  try {
-    void import('@/shared/hooks/use-notifications').then(({ clearNotificationMemoryStore }) => {
-      clearNotificationMemoryStore();
-    }).catch(() => {});
-  } catch {}
-}
-
-function restorePreservedLanguage(language: string | null) {
-  if (typeof window === 'undefined' || (language !== 'ar' && language !== 'en')) return;
-  window.localStorage.setItem(DASHBOARD_LANGUAGE_KEY, language);
-}
-
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
-
