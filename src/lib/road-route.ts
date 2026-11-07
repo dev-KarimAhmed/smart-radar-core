@@ -1,4 +1,23 @@
 import { estimateTripMinutes, timeOfDayTrafficMultiplier } from '@/shared/services/trip-duration';
+import {
+  getMapboxToken,
+  pickOptimalMapboxRoute,
+  requestMapboxRoute,
+  requestValhallaRoute,
+  requestOsrmRoute,
+  requestProxyRoute,
+  isPlausibleRoute,
+  type RawRoute,
+  MAX_ROUTE_DISTANCE_KM,
+  MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
+} from './road-route-providers';
+
+export {
+  getMapboxToken,
+  pickOptimalMapboxRoute,
+  MAX_ROUTE_DISTANCE_KM,
+  MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
+};
 
 export interface RoadRoutePoint {
   lat: number;
@@ -56,17 +75,6 @@ export const OSM_ROAD_CALIBRATION_FACTOR = 1.0;
 
 const ROUTE_PROVIDERS = ['mapbox', 'valhalla', 'osrm'] as const;
 export type RouteProvider = (typeof ROUTE_PROVIDERS)[number];
-
-interface RawRoute {
-  distanceKm: number;
-  minutes: number;
-  /**
-   * Whether the engine's duration already accounts for real-world slowdown. Valhalla's
-   * does; OSRM's does not, and only OSRM's gets multiplied by the traffic factor. Applying
-   * it to both would double-count on the engine that already models the cost.
-   */
-  modelsCongestion: boolean;
-}
 /**
  * Sovereign Constitution V2.6-Secured (Chapter 2, Section 4):
  * OSRM routing timeout is capped at 1500ms hard ceiling. If the server does not respond
@@ -176,11 +184,6 @@ export function normalizeTrafficFactor(value: number) {
 }
 export const MIN_TORTUOSITY_FACTOR = 1.15;
 export const MAX_TORTUOSITY_FACTOR = 1.35;
-export const MAX_ROUTE_DISTANCE_KM = 40000;
-// A road route can be longer than the straight line, but a result that is
-// several times longer is usually a bad router response or a coordinate
-// mismatch. In that case the local, bounded estimate is safer for the rider.
-export const MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO = 4;
 
 export function normalizeTortuosityFactor(value: number) {
   const factor = Number.isFinite(value) ? value : FALLBACK_TORTUOSITY_FACTOR;
@@ -191,200 +194,6 @@ export function validateRouteDistanceKm(distanceKm: number) {
   if (!Number.isFinite(distanceKm) || distanceKm <= 0 || distanceKm > MAX_ROUTE_DISTANCE_KM) {
     throw new Error('invalid_route_distance');
   }
-}
-
-export function getMapboxToken(): string {
-  if (typeof process === 'undefined' || !process.env) return '';
-  return (
-    process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
-    process.env.MAPBOX_ACCESS_TOKEN ||
-    ''
-  ).trim();
-}
-
-/**
- * Mapbox Directions API (driving-traffic):
- * Free tier provides 100,000 requests/month forever ($0 cost).
- * Provides live real-time traffic and highway corridor routing matching Google Maps.
- */
-async function requestMapboxRoute(
-  baseUrl: string,
-  token: string,
-  origin: RoadRoutePoint,
-  destination: RoadRoutePoint,
-  signal: AbortSignal,
-): Promise<RawRoute | null> {
-  if (!token) return null;
-  // alternatives=true allows Mapbox to explore direct service roads and entrance ramps,
-  // avoiding false U-turn traps on divided highways (e.g. Mall of Egypt).
-  const endpoint = `${baseUrl}/directions/v5/mapbox/driving-traffic/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&alternatives=true&access_token=${encodeURIComponent(token)}`;
-  const response = await fetch(endpoint, {
-    signal,
-    headers: { Accept: 'application/json' },
-  });
-  if (!response.ok) return null;
-
-  const payload = (await response.json()) as {
-    code?: string;
-    routes?: Array<{ distance?: number; duration?: number }>;
-  };
-  if (payload.code !== 'Ok' || !payload.routes || payload.routes.length === 0) return null;
-
-  // Intelligently select optimal candidate route (prefer arterial highway corridors over narrow alleyways)
-  const bestRoute = pickOptimalMapboxRoute(payload.routes);
-  const distanceKm = Number(bestRoute?.distance) / 1000;
-  const minutes = Number(bestRoute?.duration) / 60;
-  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
-
-  return { distanceKm, minutes, modelsCongestion: true };
-}
-
-/**
- * Among alternative routes returned by Mapbox Directions API, intelligently selects the
- * real-world driving route:
- * - Eliminates high-detour options (e.g. multi-km U-turns on divided highways).
- * - Between viable routes with similar duration (within 10% or 120s of the fastest), prefers
- *   the arterial / highway corridor (noticeably higher cruise speed) rather than narrow,
- *   bumpy residential shortcuts with speed bumps.
- * - When speeds are comparable, picks the shorter direct route.
- */
-export function pickOptimalMapboxRoute(
-  routes: Array<{ distance?: number; duration?: number }>,
-): { distance?: number; duration?: number } | undefined {
-  if (routes.length <= 1) return routes[0];
-
-  const fastestDuration = Math.min(...routes.map(r => Number(r.duration) || Infinity));
-
-  // Viable candidates within 10% or 120s of the fastest duration
-  const viable = routes.filter(r => {
-    const dur = Number(r.duration) || Infinity;
-    return dur <= fastestDuration * 1.10 || dur <= fastestDuration + 120;
-  });
-
-  if (viable.length === 1) return viable[0];
-
-  return [...viable].sort((a, b) => {
-    const durA = Number(a.duration) || 1;
-    const durB = Number(b.duration) || 1;
-    const distA = Number(a.distance) || 0;
-    const distB = Number(b.distance) || 0;
-    const speedA = distA / durA;
-    const speedB = distB / durB;
-
-    // If one route has distinctly higher cruise speed (> 5% faster flow),
-    // it represents an arterial highway corridor rather than a residential backstreet
-    const minSpeed = Math.min(speedA, speedB);
-    if (minSpeed > 0 && Math.abs(speedB - speedA) / minSpeed > 0.05) {
-      return speedB - speedA; // higher speed corridor first
-    }
-
-    // Otherwise, when speeds are comparable, pick the shorter direct route
-    return distA - distB;
-  })[0];
-}
-
-/** Valhalla: free FOSSGIS instance, no API key, `Access-Control-Allow-Origin: *`. */
-async function requestValhallaRoute(
-  baseUrl: string,
-  origin: RoadRoutePoint,
-  destination: RoadRoutePoint,
-  signal: AbortSignal,
-): Promise<RawRoute | null> {
-  const query = JSON.stringify({
-    locations: [
-      { lat: origin.lat, lon: origin.lng },
-      { lat: destination.lat, lon: destination.lng },
-    ],
-    costing: 'auto',
-    // Without this the summary comes back in miles and every distance is 1.6x short.
-    directions_options: { units: 'kilometers' },
-  });
-
-  const response = await fetch(`${baseUrl}/route?json=${encodeURIComponent(query)}`, {
-    signal,
-    headers: { Accept: 'application/json' },
-  });
-  if (!response.ok) return null;
-
-  const payload = (await response.json()) as {
-    trip?: { status?: number; summary?: { length?: number; time?: number } };
-  };
-  if (payload.trip?.status !== 0) return null;
-
-  const distanceKm = Number(payload.trip?.summary?.length);
-  const minutes = Number(payload.trip?.summary?.time) / 60;
-  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
-
-  return { distanceKm, minutes, modelsCongestion: true };
-}
-
-async function requestOsrmRoute(
-  baseUrl: string,
-  origin: RoadRoutePoint,
-  destination: RoadRoutePoint,
-  signal: AbortSignal,
-): Promise<RawRoute | null> {
-  const endpoint = `${baseUrl}/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=false&steps=false`;
-  const response = await fetch(endpoint, { signal, headers: { Accept: 'application/json' } });
-  if (!response.ok) return null;
-
-  const payload = (await response.json()) as {
-    code?: string;
-    routes?: Array<{ distance?: number; duration?: number }>;
-  };
-  if (payload.code !== 'Ok') return null;
-
-  const distanceKm = Number(payload.routes?.[0]?.distance) / 1000;
-  const minutes = Number(payload.routes?.[0]?.duration) / 60;
-  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
-
-  return { distanceKm, minutes, modelsCongestion: false };
-}
-
-/**
- * This app's own server. It already applied the traffic factor, so the answer is reported as
- * congestion-aware and is not scaled a second time.
- */
-async function requestProxyRoute(
-  origin: RoadRoutePoint,
-  destination: RoadRoutePoint,
-  tortuosityFactor: number,
-  trafficFactor: number,
-  signal: AbortSignal,
-): Promise<RawRoute | null> {
-  const response = await fetch('/api/road-route', {
-    method: 'POST',
-    signal,
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ origin, destination, tortuosityFactor, trafficFactor }),
-  });
-  if (!response.ok) return null;
-
-  const payload = (await response.json()) as Partial<RoadRouteEstimate>;
-  const distanceKm = Number(payload.distanceKm);
-  const minutes = Number(payload.durationMinutes);
-  if (!Number.isFinite(distanceKm) || !Number.isFinite(minutes)) return null;
-  // The server fell back to its own straight-line guess. Ours is identical and free, so
-  // there is nothing to gain by accepting it as though it were routed.
-  if (payload.isFallback) return null;
-
-  return { distanceKm, minutes, modelsCongestion: true };
-}
-
-/**
- * A road route is always at least the straight line and rarely more than a few times it.
- * Several times longer means a bad router answer or — far more often — coordinates that do
- * not point where the rider thinks they do.
- */
-function isPlausibleRoute(raw: RawRoute, straightDistanceKm: number) {
-  if (raw.distanceKm <= 0 || raw.minutes <= 0) return false;
-  if (raw.distanceKm > MAX_ROUTE_DISTANCE_KM) return false;
-  if (straightDistanceKm <= 0) return false;
-
-  return raw.distanceKm <= Math.max(
-    straightDistanceKm * MAX_ROUTE_TO_STRAIGHT_DISTANCE_RATIO,
-    straightDistanceKm + 25,
-  );
 }
 
 /**
