@@ -5,99 +5,29 @@ import {
   MapPin,
   ClipboardCheck,
   ShieldAlert,
-  ShieldCheck,
   AlertTriangle,
   RefreshCw,
   CheckCircle2,
   XCircle,
-  ChevronDown,
-  ChevronUp,
-  Lock,
-  Smartphone,
-  ExternalLink,
-  HelpCircle,
 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import {
+  styles,
+  type PermissionCheckStatus,
+  type DetectedEnvironment,
+  getDetectedEnvironment,
+} from './permissions/system-permissions-styles';
+import { PermissionsGuidanceBanner } from './permissions/permissions-guidance-banner';
 
-const styles = {
-  content: 'max-w-[380px] w-[92vw] max-h-[85vh] overflow-y-auto rounded-2xl border border-[#14B8A6]/30 bg-[#0A0F1D]/95 text-white p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl space-y-2.5',
-  headerRow: 'flex items-center justify-between gap-2 border-b border-white/[0.08] pb-2',
-  headerStart: 'flex items-center gap-2 min-w-0',
-  headerIconWrap: 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5] border border-[#14B8A6]/30',
-  title: 'text-xs sm:text-sm font-black text-white truncate',
-  subtitle: 'text-[9.5px] text-slate-400 font-medium leading-none mt-0.5',
-  warningBanner: 'rounded-xl border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2',
-  warningIcon: 'h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5',
-  warningText: 'text-[9.5px] leading-relaxed text-amber-200/90 font-medium',
-  cardList: 'space-y-1.5',
-  permissionCard: 'rounded-xl border border-white/8 bg-white/[0.03] p-2.5 transition-colors',
-  cardHeader: 'flex items-center justify-between gap-2',
-  cardTitleWrap: 'flex items-center gap-2 min-w-0',
-  cardIconWrap: 'flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]',
-  cardTitle: 'text-[11px] font-bold text-white leading-tight',
-  cardDesc: 'text-[9px] text-slate-400 leading-tight',
-  statusBadgeGranted: 'inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-black text-emerald-300 shrink-0',
-  statusBadgeDenied: 'inline-flex items-center gap-1 rounded-full bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 text-[9px] font-black text-rose-300 shrink-0',
-  statusBadgePrompt: 'inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[9px] font-black text-amber-300 shrink-0',
-  inlineActionButton: 'h-6 px-2.5 rounded-md bg-[#14B8A6] font-bold text-[10px] text-[#0A0F1D] hover:bg-[#2DD4BF] transition-all active:scale-[0.98] shrink-0',
-  deniedBanner: 'rounded-xl border border-rose-500/25 bg-rose-500/10 p-2 flex items-start gap-2 text-slate-300',
-  instructionsToggle: 'w-full py-0.5 text-[9.5px] font-medium text-slate-400 hover:text-[#14F5D5] flex items-center justify-between transition-colors',
-  instructionsPanel: 'rounded-xl bg-black/50 border border-white/5 p-2 space-y-1 text-[9.5px] text-slate-300 leading-relaxed max-h-32 overflow-y-auto',
-  footerActions: 'pt-1 flex items-center gap-2',
-  refreshButton: 'h-8.5 flex-1 rounded-xl border border-white/10 bg-white/5 font-bold text-[10.5px] text-white hover:bg-white/10 transition-all flex items-center justify-center gap-1.5',
-  closeButton: 'h-8.5 flex-1 rounded-xl bg-[#14B8A6] font-black text-[10.5px] text-[#0A0F1D] hover:bg-[#2DD4BF] transition-all active:scale-[0.98]',
-} as const;
-
-export type PermissionCheckStatus = 'checking' | 'granted' | 'prompt' | 'denied';
-
-export type DetectedEnvironment =
-  | 'telegram'
-  | 'messenger'
-  | 'facebook'
-  | 'instagram'
-  | 'whatsapp'
-  | 'ios-safari'
-  | 'android'
-  | 'other';
-
-function getDetectedEnvironment(): DetectedEnvironment {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') return 'other';
-  const ua = navigator.userAgent || '';
-  const ref = typeof document !== 'undefined' ? document.referrer || '' : '';
-
-  if (/Telegram/i.test(ua) || /t\.me/i.test(ref) || /telegram\.org/i.test(ref)) {
-    return 'telegram';
-  }
-  if (/FBAN|FBAV|FB_IAB|Messenger/i.test(ua)) {
-    return 'messenger';
-  }
-  if (/Instagram/i.test(ua)) {
-    return 'instagram';
-  }
-  if (/WhatsApp/i.test(ua)) {
-    return 'whatsapp';
-  }
-
-  const isIOS =
-    /iPad|iPhone|iPod/.test(ua) ||
-    (typeof navigator.platform === 'string' &&
-      navigator.platform === 'MacIntel' &&
-      navigator.maxTouchPoints > 1);
-
-  if (isIOS) return 'ios-safari';
-  if (/Android/i.test(ua)) return 'android';
-
-  return 'other';
-}
+export type { PermissionCheckStatus, DetectedEnvironment };
 
 export function SystemPermissionsModal() {
   const { isArabic } = useDashboardLanguage();
@@ -108,7 +38,6 @@ export function SystemPermissionsModal() {
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const [isRequestingClipboard, setIsRequestingClipboard] = useState(false);
   const [isSecureContext, setIsSecureContext] = useState(true);
-  const [showInstructions, setShowInstructions] = useState(false);
   const [hasUserDismissed, setHasUserDismissed] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [detectedEnv, setDetectedEnv] = useState<DetectedEnvironment>('other');
@@ -121,11 +50,12 @@ export function SystemPermissionsModal() {
   const checkPermissions = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
-    // 0. Verify HTTPS / Secure Context
-    const secure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const secure =
+      window.isSecureContext ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
     setIsSecureContext(secure);
 
-    // 1. Geolocation Check via Permissions API
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       setLocationStatus('denied');
       setIsOpen(true);
@@ -144,13 +74,9 @@ export function SystemPermissionsModal() {
             setIsOpen(true);
           }
         };
-      } catch {
-        // iOS Safari throws on permissions.query({ name: 'geolocation' })
-        // We do not force prompt or open modal here; let getCurrentPosition check below.
-      }
+      } catch {}
     }
 
-    // Direct active check using getCurrentPosition:
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         () => {
@@ -165,7 +91,6 @@ export function SystemPermissionsModal() {
       );
     }
 
-    // 2. Clipboard Check
     if (typeof navigator === 'undefined' || !navigator.clipboard) {
       setClipboardStatus('denied');
     } else if (navigator.permissions?.query) {
@@ -181,14 +106,79 @@ export function SystemPermissionsModal() {
           }
         };
       } catch {
-        // iOS Safari / Firefox don't support query('clipboard-read') but support user gesture
         setClipboardStatus('prompt');
       }
     } else {
       setClipboardStatus('prompt');
     }
   }, []);
- 
+
+  const requestLocation = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocationStatus('denied');
+      return;
+    }
+
+    setIsRequestingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocationStatus('granted');
+        setIsRequestingLocation(false);
+        if (typeof window !== 'undefined') {
+          try {
+            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            window.localStorage.setItem('radar_last_known_gps', JSON.stringify(loc));
+            window.localStorage.setItem('smart_radar_last_known_location', JSON.stringify(loc));
+          } catch {}
+          window.dispatchEvent(new CustomEvent('system-location-granted'));
+          window.dispatchEvent(new CustomEvent('request-live-location'));
+        }
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setIsRequestingLocation(false);
+          setLocationStatus('denied');
+        } else {
+          navigator.geolocation.getCurrentPosition(
+            () => {
+              setLocationStatus('granted');
+              setIsRequestingLocation(false);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('system-location-granted'));
+                window.dispatchEvent(new CustomEvent('request-live-location'));
+              }
+            },
+            (err2) => {
+              setIsRequestingLocation(false);
+              if (err2.code === err2.PERMISSION_DENIED) {
+                setLocationStatus('denied');
+              }
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+          );
+        }
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }, []);
+
+  const requestClipboard = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) {
+      setClipboardStatus('denied');
+      return;
+    }
+
+    setIsRequestingClipboard(true);
+    try {
+      await navigator.clipboard.readText();
+      setClipboardStatus('granted');
+    } catch {
+      setClipboardStatus('denied');
+    } finally {
+      setIsRequestingClipboard(false);
+    }
+  }, []);
+
   const handleRecheck = useCallback(async () => {
     setIsChecking(true);
     if (locationStatus !== 'granted') {
@@ -199,9 +189,8 @@ export function SystemPermissionsModal() {
     }
     await checkPermissions();
     setTimeout(() => setIsChecking(false), 600);
-  }, [checkPermissions, locationStatus, clipboardStatus]);
+  }, [checkPermissions, locationStatus, clipboardStatus, requestLocation, requestClipboard]);
 
-  // Initial check on mount & system events
   useEffect(() => {
     void checkPermissions();
 
@@ -232,14 +221,12 @@ export function SystemPermissionsModal() {
     };
   }, [checkPermissions]);
 
-  // Evaluate whether to display modal automatically
   useEffect(() => {
     if (hasUserDismissed) return;
 
     const isLocGranted = locationStatus === 'granted';
     const isClipGranted = clipboardStatus === 'granted';
 
-    // Fast check: if location is not granted or clipboard is denied or context is insecure
     if (locationStatus === 'denied' || locationStatus === 'prompt' || clipboardStatus === 'denied') {
       setIsOpen(true);
     } else if (!isSecureContext) {
@@ -249,85 +236,21 @@ export function SystemPermissionsModal() {
     }
   }, [locationStatus, clipboardStatus, isSecureContext, hasUserDismissed]);
 
-  const requestLocation = () => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLocationStatus('denied');
-      return;
-    }
-
-    setIsRequestingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocationStatus('granted');
-        setIsRequestingLocation(false);
-        if (typeof window !== 'undefined') {
-          try {
-            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            window.localStorage.setItem('radar_last_known_gps', JSON.stringify(loc));
-            window.localStorage.setItem('smart_radar_last_known_location', JSON.stringify(loc));
-          } catch {}
-          window.dispatchEvent(new CustomEvent('system-location-granted'));
-          window.dispatchEvent(new CustomEvent('request-live-location'));
-        }
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setIsRequestingLocation(false);
-          setLocationStatus('denied');
-        } else {
-          // Retry with standard accuracy if timeout or unavailable
-          navigator.geolocation.getCurrentPosition(
-            () => {
-              setLocationStatus('granted');
-              setIsRequestingLocation(false);
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('system-location-granted'));
-                window.dispatchEvent(new CustomEvent('request-live-location'));
-              }
-            },
-            (err2) => {
-              setIsRequestingLocation(false);
-              if (err2.code === err2.PERMISSION_DENIED) {
-                setLocationStatus('denied');
-              }
-            },
-            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-          );
-        }
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-    );
-  };
-
-  const requestClipboard = async () => {
-    if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) {
-      setClipboardStatus('denied');
-      return;
-    }
-
-    setIsRequestingClipboard(true);
-    try {
-      await navigator.clipboard.readText();
-      setClipboardStatus('granted');
-    } catch (err: unknown) {
-      setClipboardStatus('denied');
-    } finally {
-      setIsRequestingClipboard(false);
-    }
-  };
-
   const allGranted = locationStatus === 'granted' && clipboardStatus === 'granted';
   const hasAnyDenied = locationStatus === 'denied' || clipboardStatus === 'denied';
 
   if (!mounted) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        setHasUserDismissed(true);
-        setIsOpen(false);
-      }
-    }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          setHasUserDismissed(true);
+          setIsOpen(false);
+        }
+      }}
+    >
       <DialogContent
         className={styles.content}
         dir={isArabic ? 'rtl' : 'ltr'}
@@ -341,7 +264,6 @@ export function SystemPermissionsModal() {
           setIsOpen(false);
         }}
       >
-        {/* Header row */}
         <div className={styles.headerRow}>
           <div className={styles.headerStart}>
             <div className={styles.headerIconWrap}>
@@ -358,7 +280,6 @@ export function SystemPermissionsModal() {
           </div>
         </div>
 
-        {/* Insecure Context (HTTP on mobile) Warning */}
         {!isSecureContext && (
           <div className={styles.warningBanner}>
             <AlertTriangle className={styles.warningIcon} />
@@ -370,7 +291,6 @@ export function SystemPermissionsModal() {
           </div>
         )}
 
-        {/* Permission items list */}
         <div className={styles.cardList}>
           {/* Card 1: GPS Location */}
           <div className={styles.permissionCard}>
@@ -380,9 +300,7 @@ export function SystemPermissionsModal() {
                   <MapPin className="h-3 w-3" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className={styles.cardTitle}>
-                    {isArabic ? 'الموقع الجغرافي (GPS)' : 'Location (GPS)'}
-                  </h4>
+                  <h4 className={styles.cardTitle}>{isArabic ? 'الموقع الجغرافي (GPS)' : 'Location (GPS)'}</h4>
                   <p className={styles.cardDesc}>
                     {isArabic ? 'لحساب المسافات والأسعار' : 'For live routes & pricing'}
                   </p>
@@ -410,8 +328,12 @@ export function SystemPermissionsModal() {
                       className={styles.inlineActionButton}
                     >
                       {isRequestingLocation
-                        ? (isArabic ? 'جاري الفحص...' : '...')
-                        : (isArabic ? 'إعادة المحاولة' : 'Retry')}
+                        ? isArabic
+                          ? 'جاري الفحص...'
+                          : '...'
+                        : isArabic
+                        ? 'إعادة المحاولة'
+                        : 'Retry'}
                     </Button>
                   </div>
                 )}
@@ -424,8 +346,12 @@ export function SystemPermissionsModal() {
                     className={styles.inlineActionButton}
                   >
                     {isRequestingLocation
-                      ? (isArabic ? 'جاري الطلب...' : '...')
-                      : (isArabic ? 'تفعيل الآن' : 'Enable')}
+                      ? isArabic
+                        ? 'جاري الطلب...'
+                        : '...'
+                      : isArabic
+                      ? 'تفعيل الآن'
+                      : 'Enable'}
                   </Button>
                 )}
               </div>
@@ -470,8 +396,12 @@ export function SystemPermissionsModal() {
                       className={styles.inlineActionButton}
                     >
                       {isRequestingClipboard
-                        ? (isArabic ? 'جاري الفحص...' : '...')
-                        : (isArabic ? 'إعادة المحاولة' : 'Retry')}
+                        ? isArabic
+                          ? 'جاري الفحص...'
+                          : '...'
+                        : isArabic
+                        ? 'إعادة المحاولة'
+                        : 'Retry'}
                     </Button>
                   </div>
                 )}
@@ -484,8 +414,12 @@ export function SystemPermissionsModal() {
                     className={styles.inlineActionButton}
                   >
                     {isRequestingClipboard
-                      ? (isArabic ? 'جاري الفحص...' : '...')
-                      : (isArabic ? 'تفعيل الآن' : 'Enable')}
+                      ? isArabic
+                        ? 'جاري الفحص...'
+                        : '...'
+                      : isArabic
+                      ? 'تفعيل الآن'
+                      : 'Enable'}
                   </Button>
                 )}
               </div>
@@ -493,202 +427,12 @@ export function SystemPermissionsModal() {
           </div>
         </div>
 
-        {/* Single Compact Denied Guidance Banner - Tailored to Detected App/Browser */}
-        {hasAnyDenied && (
-          <div className={styles.deniedBanner}>
-            <Lock className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
-            <div className="text-[10px] leading-relaxed text-slate-300 flex-1 space-y-1.5">
-              {detectedEnv === 'telegram' && (
-                <>
-                  <p className="font-bold text-[#14F5D5]">
-                    {isArabic ? '📱 أنت تتصفح من داخل تطبيق تيليجرام (Telegram):' : '📱 You are browsing inside Telegram:'}
-                  </p>
-                  <p>
-                    {isArabic
-                      ? '🧭 الحل الأسرع: اضغط أيقونة البوصلة أسفل يمين الشاشة لفتح الموقع في متصفح Safari.'
-                      : '🧭 Quickest: Tap the Compass icon at bottom-right to open directly in Safari.'}
-                  </p>
-                  <p className="text-amber-200">
-                    {isArabic
-                      ? '⚙️ أو للتشغيل داخل تيليجرام: ادخل (إعدادات الآيفون ➔ تطبيق Telegram ➔ الموقع ➔ أثناء استخدام التطبيق).'
-                      : '⚙️ Or to run in Telegram: (iPhone Settings ➔ Telegram app ➔ Location ➔ While Using the App).'}
-                  </p>
-                </>
-              )}
+        <PermissionsGuidanceBanner
+          hasAnyDenied={hasAnyDenied}
+          detectedEnv={detectedEnv}
+          isArabic={isArabic}
+        />
 
-              {(detectedEnv === 'messenger' || detectedEnv === 'facebook') && (
-                <>
-                  <p className="font-bold text-[#14F5D5]">
-                    {isArabic ? '📱 أنت تتصفح من داخل تطبيق فيسبوك / ماسنجر:' : '📱 Browsing inside Facebook/Messenger:'}
-                  </p>
-                  <p>
-                    {isArabic
-                      ? '🌐 اضغط زر النقاط الثلاث (•••) بالأعلى ➔ اختَر "فتح في المتصفح الخارجي" (Safari / Chrome).'
-                      : '🌐 Tap (•••) at top ➔ "Open in External Browser" (Safari / Chrome).'}
-                  </p>
-                  <p className="text-amber-200">
-                    {isArabic
-                      ? '⚙️ أو في إعدادات الهاتف ➔ تطبيق Messenger ➔ الأذونات ➔ تفعيل الموقع الجغرافي.'
-                      : '⚙️ Or in Phone Settings ➔ Messenger app ➔ Permissions ➔ Allow Location.'}
-                  </p>
-                </>
-              )}
-
-              {detectedEnv === 'instagram' && (
-                <>
-                  <p className="font-bold text-[#14F5D5]">
-                    {isArabic ? '📱 أنت تتصفح من داخل تطبيق إنستغرام (Instagram):' : '📱 Browsing inside Instagram:'}
-                  </p>
-                  <p>
-                    {isArabic
-                      ? '🌐 اضغط زر (•••) بأعلى الشاشة ➔ اختَر "فتح في المتصفح الخارجي" (Open in external browser).'
-                      : '🌐 Tap (•••) at top ➔ "Open in external browser".'}
-                  </p>
-                  <p className="text-amber-200">
-                    {isArabic
-                      ? '⚙️ أو في إعدادات الهاتف ➔ تطبيق Instagram ➔ الأذونات ➔ تفعيل الموقع الجغرافي.'
-                      : '⚙️ Or in Phone Settings ➔ Instagram app ➔ Permissions ➔ Allow Location.'}
-                  </p>
-                </>
-              )}
-
-              {detectedEnv === 'whatsapp' && (
-                <>
-                  <p className="font-bold text-[#14F5D5]">
-                    {isArabic ? '📱 أنت تتصفح من داخل تطبيق واتساب (WhatsApp):' : '📱 Browsing inside WhatsApp:'}
-                  </p>
-                  <p>
-                    {isArabic
-                      ? '🌐 اضغط خيارات المشاركة أو (•••) وافتحه في المتصفح الخارجي (Safari / Chrome).'
-                      : '🌐 Tap share or (•••) and open in external browser (Safari / Chrome).'}
-                  </p>
-                </>
-              )}
-
-              {detectedEnv === 'ios-safari' && (
-                <>
-                  <p className="font-bold text-rose-300">
-                    {isArabic ? 'طريقة فك الحظر في متصفح Safari (الآيفون):' : 'How to unblock in Safari (iPhone):'}
-                  </p>
-                  <p>
-                    {isArabic
-                      ? '1️⃣ اضغط زر (aA) أو (•••) بشريط الرابط ➔ إعدادات موقع الويب ➔ الموقع: اختر "السماح".'
-                      : '1️⃣ Tap (aA) or (•••) in address bar ➔ Website Settings ➔ Location: Select "Allow".'}
-                  </p>
-                  <p className="text-amber-200">
-                    {isArabic
-                      ? '2️⃣ إن استمر الحظر: إعدادات الآيفون ⚙️ ➔ Safari ➔ الموقع ➔ bynkcom.com ➔ السماح.'
-                      : '2️⃣ If still blocked: iPhone Settings ⚙️ ➔ Safari ➔ Location ➔ bynkcom.com ➔ Allow.'}
-                  </p>
-                </>
-              )}
-
-              {detectedEnv === 'android' && (
-                <>
-                  <p className="font-bold text-rose-300">
-                    {isArabic ? 'طريقة فك الحظر في أندرويد (Chrome):' : 'How to unblock on Android (Chrome):'}
-                  </p>
-                  <p>
-                    {isArabic
-                      ? '🔒 اضغط أيقونة القفل أو شريط العنوان ➔ الأذونات ➔ فعّل إذن الموقع الجغرافي.'
-                      : '🔒 Tap the lock icon in address bar ➔ Permissions ➔ Allow Location.'}
-                  </p>
-                </>
-              )}
-
-              {detectedEnv === 'other' && (
-                <>
-                  <p className="font-bold text-rose-300">
-                    {isArabic ? 'الأذونات محظورة في المتصفح أو التطبيق:' : 'Permissions blocked in browser or app:'}
-                  </p>
-                  <p>
-                    {isArabic
-                      ? '🧭 إن كنت داخل تطبيق شات (تيليجرام/ماسنجر): اضغط أيقونة البوصلة 🧭 أو (•••) للفتح في المتصفح الخارجي.'
-                      : '🧭 If in chat app (Telegram/Messenger): Tap Compass icon or (•••) to open in Safari/Chrome.'}
-                  </p>
-                  <p className="text-amber-200">
-                    {isArabic
-                      ? '⚙️ أو ادخل إعدادات الهاتف وفعّل إذن الموقع للتطبيق أو المتصفح الذي تستخدمه.'
-                      : '⚙️ Or open Phone Settings and enable Location permission for your active app/browser.'}
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Browser Settings Help Accordion (Optional) */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowInstructions(prev => !prev)}
-            className={styles.instructionsToggle}
-          >
-            <span className="flex items-center gap-1.5">
-              <HelpCircle className="h-3 w-3 text-[#14F5D5]" />
-              {isArabic ? 'شرح فك الحظر بالتفصيل حسب جهازك' : 'Detailed device instructions'}
-            </span>
-            {showInstructions ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          </button>
-
-          {showInstructions && (
-            <div className={styles.instructionsPanel}>
-              <p className="font-bold text-[#14F5D5]">
-                {isArabic ? '💬 تطبيقات المحادثة (Telegram, Messenger, WhatsApp, Instagram):' : '💬 Chat Apps (Telegram, Messenger, WhatsApp, Instagram):'}
-              </p>
-              <div className="space-y-1.5 text-slate-300 text-[11px] bg-white/[0.04] p-2 rounded-lg border border-white/10">
-                <p className="text-emerald-300 font-bold">
-                  {isArabic
-                    ? '🧭 الخيار الأول (الأسهل والأسرع): اضغط أيقونة البوصلة أسفل الشاشة أو زر (•••) وافتحه في Safari أو المتصفح الخارجي.'
-                    : '🧭 Option 1 (Fastest): Tap the Compass icon at bottom or (•••) to open in Safari or external browser.'}
-                </p>
-                <p>
-                  {isArabic
-                    ? '⚙️ الخيار الثاني (للعمل داخل التطبيق نفسه): ادخل إعدادات الآيفون العامة ➔ ابحث عن اسم التطبيق (Telegram أو Messenger) ➔ الموقع ➔ اختر "أثناء استخدام التطبيق" وفعّل "الموقع الدقيق".'
-                    : '⚙️ Option 2 (To run inside the app): iPhone Settings ➔ Select the app (Telegram or Messenger) ➔ Location ➔ "While Using the App" & ON "Precise Location".'}
-                </p>
-              </div>
-              <p className="font-bold text-white mt-2">
-                {isArabic ? '📱 هواتف iPhone (متصفح Safari):' : '📱 iPhone (Safari):'}
-              </p>
-              <div className="space-y-1 text-slate-300 text-[11px]">
-                <p>
-                  {isArabic
-                    ? '1️⃣ داخل سفاري: اضغط زر (aA) أو (•••) بشريط العنوان ➔ إعدادات موقع الويب ➔ الموقع: اختر "السماح".'
-                    : '1️⃣ In Safari: Tap (aA) or (•••) in address bar ➔ Website Settings ➔ Location: Select "Allow".'}
-                </p>
-                <p>
-                  {isArabic
-                    ? '2️⃣ أو من إعدادات الآيفون ⚙️ ➔ Safari ➔ الموقع ➔ اختر bynkcom.com واجعله "السماح".'
-                    : '2️⃣ Or in iPhone Settings ⚙️ ➔ Safari ➔ Location ➔ Select bynkcom.com and choose "Allow".'}
-                </p>
-                <p className="text-amber-300 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 leading-relaxed">
-                  {isArabic
-                    ? '3️⃣ إعدادات النظام: تأكد من (إعدادات الآيفون ⚙️ ➔ الخصوصية والأمن ➔ خدمات الموقع ➔ مواقع Safari ➔ أثناء استخدام التطبيق مع تفعيل الموقع الدقيق).'
-                    : '3️⃣ System: Check (Settings ⚙️ ➔ Privacy & Security ➔ Location Services ➔ Safari Websites ➔ While Using App & Precise Location ON).'}
-                </p>
-              </div>
-              <p className="font-bold text-white mt-1">
-                {isArabic ? '🤖 هواتف Android (Chrome):' : '🤖 Android (Chrome):'}
-              </p>
-              <p>
-                {isArabic
-                  ? 'اضغط أيقونة القفل 🔒 بجانب الرابط ➔ الأذونات ➔ فعّل الموقع والحافظة.'
-                  : 'Tap lock icon 🔒 ➔ Permissions ➔ Allow Location & Clipboard.'}
-              </p>
-              <p className="font-bold text-white mt-1">
-                {isArabic ? '💻 الكمبيوتر (Windows / Chrome):' : '💻 PC (Windows / Chrome):'}
-              </p>
-              <p>
-                {isArabic
-                  ? 'إعدادات ويندوز ➔ الخصوصية ➔ فعّل "خدمات الموقع". واضغط أيقونة القفل 🔒 بالمتصفح واختر "سماح".'
-                  : 'Windows Settings ➔ Privacy ➔ Turn ON Location. Click lock 🔒 in Chrome ➔ Allow.'}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Actions */}
         <div className={styles.footerActions}>
           <Button
             type="button"
@@ -697,8 +441,16 @@ export function SystemPermissionsModal() {
             disabled={isChecking}
             className={styles.refreshButton}
           >
-            <RefreshCw className={cn("h-3 w-3 text-[#14F5D5]", isChecking && "animate-spin")} />
-            <span>{isChecking ? (isArabic ? 'جاري الفحص...' : 'Checking...') : (isArabic ? 'إعادة الفحص' : 'Re-check')}</span>
+            <RefreshCw className={cn('h-3 w-3 text-[#14F5D5]', isChecking && 'animate-spin')} />
+            <span>
+              {isChecking
+                ? isArabic
+                  ? 'جاري الفحص...'
+                  : 'Checking...'
+                : isArabic
+                ? 'إعادة الفحص'
+                : 'Re-check'}
+            </span>
           </Button>
 
           <Button
@@ -710,8 +462,12 @@ export function SystemPermissionsModal() {
             className={styles.closeButton}
           >
             {allGranted
-              ? (isArabic ? 'تم التفعيل (متابعة)' : 'All Set (Continue)')
-              : (isArabic ? 'المتابعة وتخطي' : 'Skip & Continue')}
+              ? isArabic
+                ? 'تم التفعيل (متابعة)'
+                : 'All Set (Continue)'
+              : isArabic
+              ? 'المتابعة وتخطي'
+              : 'Skip & Continue'}
           </Button>
         </div>
       </DialogContent>
