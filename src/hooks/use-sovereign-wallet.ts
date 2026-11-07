@@ -5,99 +5,26 @@ import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from './use-toast';
 import { useTranslations } from 'next-intl';
+import {
+  type ServerWalletSnapshot,
+  type WalletLoadState,
+  type WalletTransaction,
+  type SubmitWalletReceiptInput,
+  type DelegateChargeInput,
+  isUuid,
+  mapWalletTransactionRow,
+  mapWalletAccountRow,
+} from './wallet-helpers';
+import { useWalletMutations } from './use-wallet-mutations';
 
-interface ServerWalletSnapshot {
-  balance: number;
-  paidMinutesRemaining: number;
-  bonusMinutesRemaining: number;
-  subscriptionHours: number;
-  activePackageName: string;
-  timeBundleExpiresAt: string | null;
-  transactions: WalletTransaction[];
-}
-
-type WalletLoadState = 'idle' | 'loading' | 'ready' | 'missing' | 'error';
-
-interface WalletTransaction {
-  id: string;
-  type: string;
-  amount: number;
-  currency: string;
-  description: string;
-  createdAt: string;
-  status: string;
-  timestamp: number;
-}
-
-interface SubmitWalletReceiptInput {
-  amount: number;
-  channel: string;
-  receiptFile: File;
-}
-
-interface DelegateChargeInput {
-  captainId: string;
-  amount: number;
-  description?: string;
-}
-
-function firstNumber(...values: unknown[]) {
-  for (const value of values) {
-    const numberValue = Number(value);
-    if (Number.isFinite(numberValue)) return numberValue;
-  }
-  return 0;
-}
-
-function firstString(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return '';
-}
-
-function parseTimestamp(value: unknown) {
-  if (typeof value === 'number') return value;
-  if ((value as any)?.seconds) return (value as any).seconds * 1000;
-  const parsed = Date.parse(String(value || ''));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-function mapWalletTransactionRow(row: Record<string, any>, tAuto: any): WalletTransaction {
-  const timestamp = parseTimestamp(row.created_at ?? row.createdAt ?? row.timestamp);
-  return {
-    id: String(row.id),
-    type: row.type || row.transaction_type || 'transaction',
-    amount: firstNumber(row.amount, 0),
-    currency: firstString(row.currency_ar, row.currency, row.currency_code, ''),
-    description: firstString(row.description_ar, row.description, row.memo, tAuto('transactionOnBalance')),
-    createdAt: timestamp
-      ? new Date(timestamp).toLocaleString('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
-      : '',
-    status: row.status || 'completed',
-    timestamp: timestamp || Date.now(),
-  };
-}
-
-function mapWalletAccountRow(row: Record<string, any> | null, transactions: WalletTransaction[] = []): ServerWalletSnapshot | null {
-  if (!row) return null;
-  const paidMinutes = firstNumber(row.paid_minutes_remaining, 0);
-  const bonusMinutes = firstNumber(row.bonus_minutes_remaining, 0);
-
-  return {
-    balance: firstNumber(row.balance, 0),
-    paidMinutesRemaining: paidMinutes,
-    bonusMinutesRemaining: bonusMinutes,
-    subscriptionHours: Number(((paidMinutes + bonusMinutes) / 60).toFixed(3)),
-    activePackageName: firstString(row.active_package_name, ''),
-    timeBundleExpiresAt: firstString(row.time_bundle_expires_at, '') || null,
-    transactions,
-  };
-}
+export type {
+  ServerWalletSnapshot,
+  WalletLoadState,
+  WalletTransaction,
+  SubmitWalletReceiptInput,
+  DelegateChargeInput,
+};
+export { mapWalletTransactionRow, mapWalletAccountRow };
 
 export function useSovereignWallet(user: User | null) {
   const tAuto = useTranslations();
@@ -109,8 +36,6 @@ export function useSovereignWallet(user: User | null) {
   const [walletLoadState, setWalletLoadState] = useState<WalletLoadState>('idle');
   const [walletError, setWalletError] = useState('');
   const [refreshIndex, setRefreshIndex] = useState(0);
-  // Only decides whether the testing control is rendered. The RPC re-reads the same flag
-  // server-side, so hiding the button is cosmetic — turning the flag off is what closes it.
   const [selfTopupEnabled, setSelfTopupEnabled] = useState(false);
   const [radarHourPrice, setRadarHourPrice] = useState(1);
 
@@ -170,8 +95,8 @@ export function useSovereignWallet(user: User | null) {
       active = false;
     };
   }, []);
+
   const userId = user?.uid || '';
-  // Stable ref so the realtime handler can debounce without being a dep
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshWallet = useCallback(() => {
@@ -188,12 +113,19 @@ export function useSovereignWallet(user: User | null) {
     }
 
     if (!isUuid(userId)) {
-      setServerWallet(mapWalletAccountRow({
-        balance: user?.walletBalanceJD ?? 0,
-        paid_minutes_remaining: user?.paidHoursRemaining ?? 0,
-        bonus_minutes_remaining: user?.bonusHoursRemaining ?? 0,
-        active_package_name: user?.activePackageName ?? '',
-      }, Array.isArray(user?.walletTransactions) ? user.walletTransactions.map(t => mapWalletTransactionRow(t, tAuto)) : []));
+      setServerWallet(
+        mapWalletAccountRow(
+          {
+            balance: user?.walletBalanceJD ?? 0,
+            paid_minutes_remaining: user?.paidHoursRemaining ?? 0,
+            bonus_minutes_remaining: user?.bonusHoursRemaining ?? 0,
+            active_package_name: user?.activePackageName ?? '',
+          },
+          Array.isArray(user?.walletTransactions)
+            ? user.walletTransactions.map((t) => mapWalletTransactionRow(t, tAuto))
+            : []
+        )
+      );
       setWalletLoaded(true);
       setWalletLoadState('ready');
       setWalletError('');
@@ -204,9 +136,6 @@ export function useSovereignWallet(user: User | null) {
     let active = true;
 
     async function fetchWalletFromServer() {
-      // Only show the loading spinner on a cold start (first load).
-      // Background re-fetches (triggered by realtime / refreshIndex) keep the
-      // previous values visible to avoid the ... → numbers flicker.
       if (!walletLoaded) {
         setWalletLoadState('loading');
         setWalletError('');
@@ -217,7 +146,9 @@ export function useSovereignWallet(user: User | null) {
         const [{ data: initialWallet, error: walletError }, { data: txData, error: txError }] = await Promise.all([
           supabase
             .from('wallet_accounts')
-            .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,time_bundle_expires_at')
+            .select(
+              'profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,time_bundle_expires_at'
+            )
             .eq('profile_id', userId)
             .maybeSingle(),
           supabase
@@ -235,7 +166,6 @@ export function useSovereignWallet(user: User | null) {
         const currentMins = Number(walletData?.paid_minutes_remaining || 0);
         const hasWelcomePkg = (walletData?.active_package_name || '').includes('ترحيبية');
 
-        // Sovereign auto-claim: If newly registered captain has 0 minutes and never received welcome credit
         if (!hasWelcomePkg && currentMins === 0) {
           try {
             const { data: sessionData } = await supabase.auth.getSession();
@@ -252,7 +182,9 @@ export function useSovereignWallet(user: User | null) {
               if (claimJson?.granted && active) {
                 const { data: refreshedWallet } = await supabase
                   .from('wallet_accounts')
-                  .select('profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,time_bundle_expires_at')
+                  .select(
+                    'profile_id,balance,paid_minutes_remaining,bonus_minutes_remaining,active_package_name,time_bundle_expires_at'
+                  )
                   .eq('profile_id', userId)
                   .maybeSingle();
 
@@ -266,15 +198,16 @@ export function useSovereignWallet(user: User | null) {
           }
         }
 
-        const transactions = Array.isArray(txData) ? txData.map(t => mapWalletTransactionRow(t, tAuto)) : [];
+        const transactions = Array.isArray(txData) ? txData.map((t) => mapWalletTransactionRow(t, tAuto)) : [];
         setServerWallet(mapWalletAccountRow(walletData as Record<string, any> | null, transactions));
         setWalletLoadState(walletData ? 'ready' : 'missing');
-        if (!walletData && (process.env.NODE_ENV !== 'production')) {
+        if (!walletData && process.env.NODE_ENV !== 'production') {
           console.warn(`[Wallet] no wallet_accounts row found for profile_id=${userId}`);
         }
       } catch (error) {
         if (!active) return;
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet] showing empty state because wallet data could not load:', error);
+        if (process.env.NODE_ENV !== 'production')
+          console.warn('[Wallet] showing empty state because wallet data could not load:', error);
         setServerWallet(null);
         setWalletLoadState('error');
         setWalletError(error instanceof Error ? error.message : 'wallet_load_failed');
@@ -291,13 +224,16 @@ export function useSovereignWallet(user: User | null) {
     return () => {
       active = false;
     };
-    // Intentionally omit user?.walletTransactions — it's an array that gets a
-    // new reference on every parent render and would cause this effect to re-run
-    // on every render cycle, creating a loading→ready flicker loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshIndex, user?.activePackageName, user?.bonusHoursRemaining, user?.paidHoursRemaining, user?.walletBalanceJD, userId]);
+  }, [
+    refreshIndex,
+    user?.activePackageName,
+    user?.bonusHoursRemaining,
+    user?.paidHoursRemaining,
+    user?.walletBalanceJD,
+    userId,
+  ]);
 
-  // Listen to cross-system notification wallet refresh event (e.g., when a receipt is approved or topped up)
   useEffect(() => {
     const handleWalletRefresh = () => {
       refreshWallet();
@@ -327,7 +263,7 @@ export function useSovereignWallet(user: User | null) {
           table: 'wallet_accounts',
           filter: `profile_id=eq.${userId}`,
         },
-        (payload) => applyWalletPayload(payload.new as Record<string, any> | null),
+        (payload) => applyWalletPayload(payload.new as Record<string, any> | null)
       )
       .on(
         'postgres_changes',
@@ -337,10 +273,10 @@ export function useSovereignWallet(user: User | null) {
           table: 'wallet_accounts',
           filter: `profile_id=eq.${userId}`,
         },
-        (payload) => applyWalletPayload(payload.new as Record<string, any> | null),
+        (payload) => applyWalletPayload(payload.new as Record<string, any> | null)
       )
       .subscribe((status) => {
-        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && process.env.NODE_ENV !== 'production') {
           console.warn('[Wallet] realtime channel issue:', status);
         }
       });
@@ -356,24 +292,22 @@ export function useSovereignWallet(user: User | null) {
           filter: `profile_id=eq.${userId}`,
         },
         (payload) => {
-          // consume_captain_radar_minutes inserts a row every 20 s while online.
-          // Debounce: skip the full re-fetch for routine radar consumption rows;
-          // only refresh for real deposits/credits that the user cares about.
-          const rowType = (payload.new as Record<string, unknown>)?.type ?? (payload.new as Record<string, unknown>)?.transaction_type ?? '';
+          const rowType =
+            (payload.new as Record<string, unknown>)?.type ??
+            (payload.new as Record<string, unknown>)?.transaction_type ??
+            '';
           const isRoutineConsumption = String(rowType) === 'radar_minute_consumption';
-          if (isRoutineConsumption) return; // wallet_accounts UPDATE already pushed the balance via walletChannel
+          if (isRoutineConsumption) return;
 
-          // Debounce non-routine changes (receipts, vouchers, delegate charges)
-          // to avoid rapid successive refreshes when a batch of rows lands.
           if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
           refreshTimerRef.current = setTimeout(() => {
             refreshTimerRef.current = null;
             refreshWallet();
           }, 800);
-        },
+        }
       )
       .subscribe((status) => {
-        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && (process.env.NODE_ENV !== 'production')) {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && process.env.NODE_ENV !== 'production') {
           console.warn('[Wallet transactions] realtime channel issue:', status);
         }
       });
@@ -385,273 +319,36 @@ export function useSovereignWallet(user: User | null) {
     };
   }, [realtimeInstanceId, refreshWallet, userId]);
 
-  const submitWalletReceipt = useCallback(async (input: SubmitWalletReceiptInput) => {
-    if (!userId) {
-      toast({ variant: 'destructive', title: tAuto('failedToSubmitReceipt'), description: tAuto('pleaseLoginToTryAgain') });
-      return false;
-    }
-
-    if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      toast({ variant: 'destructive', title: tAuto('invalidValue'), description: tAuto('enterValidAmountGtZero') });
-      return false;
-    }
-
-    setLoading(true);
-    try {
-      const extension = input.receiptFile.name.split('.').pop()?.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'jpg';
-      const receiptPath = `${userId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-      const { error: uploadError } = await supabase.storage.from('receipts').upload(receiptPath, input.receiptFile, {
-        cacheControl: '3600',
-        contentType: input.receiptFile.type || 'image/jpeg',
-        upsert: false,
-      });
-      if (uploadError) throw uploadError;
-
-      const isEgypt = user?.countryId === 2 || String(user?.phone || '').startsWith('+20');
-      const resolvedCurrencyCode = user?.currencyEn || (isEgypt ? 'EGP' : 'JOD');
-      const resolvedCurrencyAr = user?.currencyAr || (isEgypt ? 'ج.م' : 'د.أ');
-
-      const { error: insertError } = await supabase.from('wallet_transactions').insert({
-        profile_id: userId,
-        type: 'receipt',
-        transaction_type: 'receipt',
-        amount: input.amount,
-        currency_code: resolvedCurrencyCode,
-        currency_ar: resolvedCurrencyAr,
-        status: 'PENDING',
-        description_ar: tAuto('receiptAwaitingReview'),
-        payment_channel: input.channel,
-        receipt_path: receiptPath,
-        metadata: {
-          original_file_name: input.receiptFile.name,
-          file_size: input.receiptFile.size,
-        },
-      });
-      if (insertError) throw insertError;
-
-      toast({ title: tAuto('receiptSubmitted'), description: tAuto('receiptAwaitingReviewMsg') });
-      refreshWallet();
-      return true;
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Receipt]', error);
-      toast({ variant: 'destructive', title: tAuto('failedToSubmitReceipt'), description: tAuto('checkConnectionTryAgain') });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshWallet, toast, user?.currencyAr, user?.currencyEn, userId]);
-
-  const redeemVoucherCode = useCallback(async (code: string) => {
-    if (!code.trim()) {
-      toast({ variant: 'destructive', title: tAuto('codeRequired'), description: tAuto('enterRechargeCodeTryAgain') });
-      return false;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.rpc('redeem_voucher_code', { p_code: code.trim().toUpperCase() });
-      if (error) throw error;
-      toast({ title: tAuto('codeActivated'), description: tAuto('codeValueAddedToAccount') });
-      refreshWallet();
-      return true;
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Voucher]', error);
-      toast({ variant: 'destructive', title: tAuto('failedToActivateCode'), description: tAuto('verifyCodeOrTryAgain') });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshWallet, toast, tAuto]);
-
-  const delegateChargeCaptain = useCallback(async (input: DelegateChargeInput) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.rpc('delegate_charge_captain', {
-        p_captain_id: input.captainId,
-        p_amount: input.amount,
-        p_description: input.description || null,
-      });
-      if (error) throw error;
-      refreshWallet();
-      return true;
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Delegate Charge]', error);
-      toast({ variant: 'destructive', title: tAuto('failedToRechargeBalance'), description: tAuto('operationNotExecutedByServer') });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshWallet, toast, tAuto]);
-
-  /**
-   * TESTING ONLY. Credits the signed-in captain's own wallet with no approver.
-   *
-   * Gated server-side by app_flags.captain_self_topup and capped per call; when the flag is
-   * off the RPC raises `self_topup_disabled` and this surfaces that as a plain message
-   * rather than a generic failure. `selfTopupEnabled` below is only used to hide the
-   * control — the flag that actually matters is the one the RPC checks.
-   */
-  const selfTopup = useCallback(async (amount: number, minutes: number) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('captain_self_topup', {
-        p_amount: Number(amount) || 0,
-        p_minutes: Math.round(Number(minutes) || 0),
-      });
-      if (error) throw error;
-      const res = data as { balance?: number; paidMinutesRemaining?: number; minutesCredited?: number; amountCredited?: number } | null;
-      const amountNum = Number(amount) || 0;
-      const minutesNum = Math.round(Number(minutes) || 0);
-      const creditedMins = res?.minutesCredited ?? minutesNum;
-      const creditedBal = res?.amountCredited ?? amountNum;
-      setServerWallet((current) => (current ? {
-        ...current,
-        balance: res?.balance ?? (current.balance + creditedBal),
-        paidMinutesRemaining: res?.paidMinutesRemaining ?? (current.paidMinutesRemaining + creditedMins),
-        subscriptionHours: Number((((res?.paidMinutesRemaining ?? (current.paidMinutesRemaining + creditedMins)) + current.bonusMinutesRemaining) / 60).toFixed(3)),
-      } : null));
-      toast({
-        title: tAuto('walletRecharged'),
-        description: tAuto('amountAddedToCashBalanceAllocatable'),
-      });
-      refreshWallet();
-      return true;
-    } catch (error) {
-      const message = String((error as { message?: string })?.message || '');
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Self Topup]', error);
-      toast({
-        variant: 'destructive',
-        title: tAuto('failedTestRecharge'),
-        description: message.includes('self_topup_disabled')
-          ? tAuto('selfTopupDisabled')
-          : message.includes('above_test_limit')
-            ? tAuto('aboveTestLimit')
-            : message.includes('amount_below_one_minute')
-              ? tAuto('amountBelowOneMinute')
-              : tAuto('operationNotExecutedByServer'),
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshWallet, toast, tAuto]);
-
-  /**
-   * Allocates a custom cash amount from wallet_accounts.balance into radar minutes.
-   */
-  const allocateBalanceToMinutes = useCallback(async (amount: number) => {
-    if (!amount || amount <= 0) {
-      toast({ variant: 'destructive', title: tAuto('invalidAmount'), description: tAuto('enterAmountGtZero') });
-      return false;
-    }
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('allocate_cash_balance_to_minutes', { p_amount: Number(amount) });
-      if (error) throw error;
-      const result = data as { success?: boolean; minutesGranted?: number; paidMinutesRemaining?: number; remainingBalance?: number } | null;
-      if (result?.success) {
-        setServerWallet((current) => (current ? {
-          ...current,
-          balance: result.remainingBalance ?? Math.max(0, current.balance - amount),
-          paidMinutesRemaining: result.paidMinutesRemaining ?? (current.paidMinutesRemaining + (result.minutesGranted ?? 0)),
-          subscriptionHours: Number((((result.paidMinutesRemaining ?? (current.paidMinutesRemaining + (result.minutesGranted ?? 0))) + current.bonusMinutesRemaining) / 60).toFixed(3)),
-        } : null));
-
-        toast({
-          title: tAuto('radarTimeAllocated'),
-          description: tAuto('amountDeductedAndMinutesAdded', { amount, minutes: result.minutesGranted ?? 0 }),
-        });
-      }
-      refreshWallet();
-      return true;
-    } catch (error) {
-      const message = String((error as { message?: string })?.message || '');
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Allocate Balance]', error);
-      toast({
-        variant: 'destructive',
-        title: tAuto('failedToAllocate'),
-        description: message.includes('insufficient_balance')
-          ? tAuto('insufficientCashBalance')
-          : tAuto('allocationNotExecuted'),
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshWallet, toast, tAuto]);
-
-  /**
-   * Converts any stranded cash balance (wallet_accounts.balance) into radar minutes.
-   * Called when the captain has a positive balance that was never auto-converted
-   * (e.g. was topped-up before the cash→minutes migration was applied).
-   */
-  const convertBalanceToMinutes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('convert_wallet_balance_to_minutes');
-      if (error) throw error;
-      const result = data as { success?: boolean; minutesGranted?: number; paidMinutesRemaining?: number; newBalance?: number; reason?: string } | null;
-      if (result?.success) {
-        setServerWallet((current) => (current ? {
-          ...current,
-          balance: result.newBalance ?? 0,
-          paidMinutesRemaining: result.paidMinutesRemaining ?? (current.paidMinutesRemaining + (result.minutesGranted ?? 0)),
-          subscriptionHours: Number((((result.paidMinutesRemaining ?? (current.paidMinutesRemaining + (result.minutesGranted ?? 0))) + current.bonusMinutesRemaining) / 60).toFixed(3)),
-        } : null));
-
-        if ((result.minutesGranted ?? 0) > 0) {
-          toast({
-            title: tAuto('balanceConverted'),
-            description: tAuto('balanceConvertedToRadarMinutes', { minutes: result.minutesGranted ?? 0 }),
-          });
-        }
-      } else if (result?.reason === 'balance_already_zero') {
-        toast({ title: tAuto('zeroBalance'), description: tAuto('noCashBalanceToConvert') });
-      }
-      refreshWallet();
-      return true;
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Wallet Convert Balance]', error);
-      toast({
-        variant: 'destructive',
-        title: tAuto('failedToConvert'),
-        description: tAuto('balanceNotConvertedTryAgainOrContactAgent'),
-      });
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshWallet, toast, tAuto]);
-
-
-
-  const rejectClientMutation = useCallback(async (..._args: unknown[]) => {
-    toast({
-      variant: 'destructive',
-      title: tAuto('failedToModifyBalance'),
-      description: tAuto('balanceModificationOnlyFromServer'),
-    });
-    return false;
-  }, [toast, tAuto]);
+  const {
+    submitWalletReceipt,
+    redeemVoucherCode,
+    delegateChargeCaptain,
+    selfTopup,
+    allocateBalanceToMinutes,
+    convertBalanceToMinutes,
+    rejectClientMutation,
+  } = useWalletMutations({
+    user,
+    userId,
+    setLoading,
+    setServerWallet,
+    refreshWallet,
+    toast,
+    tAuto,
+  });
 
   const isDriver = user?.role === 'driver';
   const balanceJD = serverWallet?.balance ?? 0;
   const rawPaidMinutesRemaining = serverWallet?.paidMinutesRemaining ?? 0;
   const bonusMinutesRemaining = serverWallet?.bonusMinutesRemaining ?? 0;
-  // Direct conversion formula from cash balance to equivalent radar minutes
   const cashEquivalentMinutes = radarHourPrice > 0 ? Math.floor((balanceJD * 60) / radarHourPrice) : 0;
-  // Total paid minutes combines raw paid minutes plus direct cash-equivalent minutes
   const paidMinutesRemaining = rawPaidMinutesRemaining + cashEquivalentMinutes;
   const totalUsableMinutes = paidMinutesRemaining + bonusMinutesRemaining;
   const subscriptionHours = Number((totalUsableMinutes / 60).toFixed(3));
   const activePackageName = serverWallet?.activePackageName || '';
   const timeBundleExpiresAt = serverWallet?.timeBundleExpiresAt || null;
   const hasActiveTimeBundle =
-    totalUsableMinutes > 0
-    && (!timeBundleExpiresAt || Date.parse(timeBundleExpiresAt) > Date.now());
-  // True when the captain has unconverted cash sitting in balance (legacy top-ups
-  // before the cash→minutes migration). The wallet tab uses this to show a
-  // "convert balance to time" action banner.
+    totalUsableMinutes > 0 && (!timeBundleExpiresAt || Date.parse(timeBundleExpiresAt) > Date.now());
   const hasStrandedBalance = walletLoadState === 'ready' && balanceJD > 0;
   const transactions = useMemo(() => serverWallet?.transactions ?? [], [serverWallet?.transactions]);
 
