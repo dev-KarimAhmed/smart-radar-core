@@ -12,21 +12,11 @@ import {
   KeyRound,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   RefreshCw,
-  ExternalLink,
-  Eye,
   Loader2,
   Volume2,
   VolumeX,
-  X,
-  Clock,
-  Sparkles,
-  Phone,
   Shield,
-  Layers,
-  ArrowUpRight,
-  Info,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,78 +28,23 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import {
+  type AdminNotificationItem,
+  type NotificationsSummary,
+  playNotificationChime,
+} from './notifications/admin-notification-types';
+import { NotificationItemCard } from './notifications/notification-item-card';
+import { QuickReceiptReviewDialog } from './notifications/quick-receipt-review-dialog';
+import { NotificationFilterTabs, type NotificationCategoryFilter } from './notifications/notification-filter-tabs';
 
-export interface AdminNotificationItem {
-  id: string;
-  category: 'RECEIPT' | 'CAPTAIN' | 'PASSWORD_RESET' | 'SYSTEM';
-  title: string;
-  description: string;
-  createdAt: string;
-  severity: 'urgent' | 'warning' | 'info';
-  targetTab: 'wallet' | 'captains' | 'riders' | 'admins';
-  targetSubtab?: string;
-  isRead: boolean;
-  payload: {
-    transactionId?: string;
-    profileId?: string;
-    amount?: number;
-    currency?: string;
-    currencyCode?: string;
-    channel?: string;
-    receiptPath?: string;
-    receiptImageUrl?: string | null;
-    captainName?: string;
-    captainPhone?: string;
-    captainSerial?: string;
-    governorate?: string;
-    district?: string;
-    captainId?: string;
-    plateNumber?: string;
-    vehicleBrand?: string;
-    vehicleModel?: string;
-    claimedPhone?: string;
-    adminNote?: string;
-  };
-}
-
-interface NotificationsSummary {
-  totalUnread: number;
-  pendingReceiptsCount: number;
-  pendingCaptainsCount: number;
-  pendingResetsCount: number;
-  unreadSystemCount: number;
-}
-
-function playNotificationChime() {
-  try {
-    const audio = new Audio('/sounds/notification.mp3');
-    audio.volume = 0.6;
-    audio.play().catch(() => {
-      // Fallback: Web Audio API synth chime (zero external dependencies)
-      try {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
-      } catch {}
-    });
-  } catch {}
-}
+export type { AdminNotificationItem, NotificationsSummary } from './notifications/admin-notification-types';
+export { playNotificationChime } from './notifications/admin-notification-types';
+export { NotificationItemCard } from './notifications/notification-item-card';
+export { QuickReceiptReviewDialog } from './notifications/quick-receipt-review-dialog';
+export { NotificationFilterTabs } from './notifications/notification-filter-tabs';
 
 export function AdminNotificationCenter() {
   const t = useTranslations('adminNotifications');
@@ -191,7 +126,7 @@ export function AdminNotificationCenter() {
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  // Supabase Realtime subscriptions for instantaneous zero-latency updates
+  // Supabase Realtime subscriptions
   useEffect(() => {
     const channel = supabase
       .channel('admin-radar-notifications-stream')
@@ -237,7 +172,7 @@ export function AdminNotificationCenter() {
     return () => {
       void channel.unsubscribe();
     };
-  }, [fetchNotifications, soundEnabled, toast]);
+  }, [fetchNotifications, soundEnabled, toast, t]);
 
   const toggleSound = () => {
     setSoundEnabled((prev) => {
@@ -265,7 +200,7 @@ export function AdminNotificationCenter() {
     const amt = item.payload.amount || 0;
     setReviewItem(item);
     setCreditType('MINUTES');
-    setMinutesValue(Math.round(amt * 60)); // Default: 60 mins per 1 currency unit
+    setMinutesValue(Math.round(amt * 60));
     setAdminNote('');
     setRejectMode(false);
     setRejectionReason('');
@@ -297,7 +232,6 @@ export function AdminNotificationCenter() {
         description: data.message || t('toastApprovedDesc'),
       });
 
-      // Optimistic update
       setNotifications((prev) => prev.filter((n) => n.id !== reviewItem.id));
       setSummary((prev) => ({
         ...prev,
@@ -305,7 +239,6 @@ export function AdminNotificationCenter() {
         pendingReceiptsCount: Math.max(0, prev.pendingReceiptsCount - 1),
       }));
 
-      // Trigger cross-system refresh
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('radar-wallet-refresh'));
       }
@@ -347,7 +280,6 @@ export function AdminNotificationCenter() {
         description: t('toastRejectedDesc'),
       });
 
-      // Optimistic update
       setNotifications((prev) => prev.filter((n) => n.id !== reviewItem.id));
       setSummary((prev) => ({
         ...prev,
@@ -355,7 +287,6 @@ export function AdminNotificationCenter() {
         pendingReceiptsCount: Math.max(0, prev.pendingReceiptsCount - 1),
       }));
 
-      // Trigger cross-system refresh
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('radar-wallet-refresh'));
       }
@@ -373,7 +304,6 @@ export function AdminNotificationCenter() {
     }
   };
 
-  // Filtered notifications list
   const filteredNotifications = notifications.filter((item) => {
     if (filterTab === 'ALL') return true;
     return item.category === filterTab;
@@ -383,7 +313,7 @@ export function AdminNotificationCenter() {
 
   return (
     <>
-      {/* ================= Notifications Trigger Button ================= */}
+      {/* Notifications Trigger Button */}
       <Button
         type="button"
         variant="ghost"
@@ -416,7 +346,7 @@ export function AdminNotificationCenter() {
         )}
       </Button>
 
-      {/* ================= Main Notifications Center Dialog ================= */}
+      {/* Main Notifications Center Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-2xl bg-[#0B0F19]/98 border border-teal-500/30 text-white shadow-2xl rounded-2xl p-0 overflow-hidden backdrop-blur-2xl max-h-[85vh] flex flex-col" dir={direction}>
           {/* Header */}
@@ -443,7 +373,6 @@ export function AdminNotificationCenter() {
 
               {/* Action buttons in header */}
               <div className="flex items-center gap-1.5">
-                {/* Sound Toggle */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -459,7 +388,6 @@ export function AdminNotificationCenter() {
                   {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 </Button>
 
-                {/* Refresh Button */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -475,83 +403,12 @@ export function AdminNotificationCenter() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 pt-2 overflow-x-auto pb-1 scrollbar-none">
-              <button
-                type="button"
-                onClick={() => setFilterTab('ALL')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  filterTab === 'ALL'
-                    ? 'bg-teal-500 text-[#0B0F19] shadow-[0_0_12px_rgba(20,184,166,0.3)]'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                }`}
-              >
-                <span>{t('tabAll')}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'ALL' ? 'bg-[#0B0F19]/20 text-[#0B0F19]' : 'bg-white/10 text-slate-300'}`}>
-                  {summary.totalUnread}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFilterTab('RECEIPT')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  filterTab === 'RECEIPT'
-                    ? 'bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.3)]'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                }`}
-              >
-                <ReceiptText className="w-3.5 h-3.5" />
-                <span>{t('tabReceipts')}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'RECEIPT' ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                  {summary.pendingReceiptsCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFilterTab('CAPTAIN')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  filterTab === 'CAPTAIN'
-                    ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                }`}
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>{t('tabCaptains')}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'CAPTAIN' ? 'bg-black/20 text-black' : 'bg-cyan-500/20 text-cyan-300'}`}>
-                  {summary.pendingCaptainsCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFilterTab('PASSWORD_RESET')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  filterTab === 'PASSWORD_RESET'
-                    ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                }`}
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>{t('tabResets')}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'PASSWORD_RESET' ? 'bg-black/20 text-black' : 'bg-amber-500/20 text-amber-300'}`}>
-                  {summary.pendingResetsCount}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFilterTab('SYSTEM')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  filterTab === 'SYSTEM'
-                    ? 'bg-teal-500 text-black shadow-[0_0_12px_rgba(20,184,166,0.3)]'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-                }`}
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>{t('tabSystem')}</span>
-              </button>
-            </div>
+            <NotificationFilterTabs
+              filterTab={filterTab}
+              setFilterTab={setFilterTab}
+              summary={summary}
+              t={t}
+            />
           </DialogHeader>
 
           {/* Notifications List Content */}
@@ -572,149 +429,15 @@ export function AdminNotificationCenter() {
                 </div>
               </div>
             ) : (
-              filteredNotifications.map((item) => {
-                const isReceipt = item.category === 'RECEIPT';
-                const isCaptain = item.category === 'CAPTAIN';
-                const isReset = item.category === 'PASSWORD_RESET';
-
-                return (
-                  <div
-                    key={item.id}
-                    className={`rounded-2xl border p-4 transition-all hover:border-white/20 bg-black/40 flex flex-col sm:flex-row items-start justify-between gap-4 ${
-                      isReceipt
-                        ? 'border-emerald-500/30 hover:bg-emerald-950/10'
-                        : isCaptain
-                        ? 'border-cyan-500/30 hover:bg-cyan-950/10'
-                        : isReset
-                        ? 'border-amber-500/30 hover:bg-amber-950/10'
-                        : 'border-white/10 hover:bg-white/[0.02]'
-                    }`}
-                  >
-                    {/* Right: Icon + Details */}
-                    <div className="flex items-start gap-3 w-full sm:w-auto flex-1">
-                      {/* Category Icon */}
-                      <div
-                        className={`h-10 w-10 shrink-0 rounded-xl border flex items-center justify-center mt-0.5 ${
-                          isReceipt
-                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                            : isCaptain
-                            ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
-                            : isReset
-                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                            : 'bg-white/10 border-white/20 text-slate-300'
-                        }`}
-                      >
-                        {isReceipt ? (
-                          <ReceiptText className="w-5 h-5" />
-                        ) : isCaptain ? (
-                          <UserCheck className="w-5 h-5" />
-                        ) : isReset ? (
-                          <KeyRound className="w-5 h-5" />
-                        ) : (
-                          <AlertTriangle className="w-5 h-5" />
-                        )}
-                      </div>
-
-                      {/* Info Block */}
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-xs sm:text-sm font-black text-white">{item.title}</h4>
-                          <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {item.createdAt ? new Date(item.createdAt).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : ''}
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-slate-300 leading-relaxed">{item.description}</p>
-
-                        {/* Extra detail chips */}
-                        {isReceipt && (
-                          <div className="flex items-center gap-2 pt-1 flex-wrap">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-                              {t('amount')}: {item.payload.amount} {item.payload.currency}
-                            </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/5 text-slate-300 border border-white/10">
-                              {t('channel')}: {item.payload.channel}
-                            </span>
-                            {item.payload.captainPhone && (
-                              <span className="text-[10px] font-mono text-slate-400 bg-black/40 px-2 py-0.5 rounded-lg border border-white/5" dir="ltr">
-                                {item.payload.captainPhone}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {isCaptain && (
-                          <div className="flex items-center gap-2 pt-1 flex-wrap">
-                            {item.payload.plateNumber && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
-                                {t('plate')}: {item.payload.plateNumber}
-                              </span>
-                            )}
-                            {item.payload.vehicleBrand && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/5 text-slate-300 border border-white/10">
-                                {item.payload.vehicleBrand} {item.payload.vehicleModel}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Left: Action Buttons */}
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
-                      {isReceipt && (
-                        <>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => handleOpenReceiptReview(item)}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-black font-black text-xs h-8 px-3 rounded-xl transition-all shadow-[0_0_12px_rgba(16,185,129,0.2)]"
-                          >
-                            <Eye className="w-3.5 h-3.5 ml-1" />
-                            <span>{t('reviewAndApprove')}</span>
-                          </Button>
-
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleNavigateToTab('wallet', 'receipts')}
-                            className="border-white/10 hover:bg-white/10 text-slate-300 text-xs h-8 px-2.5 rounded-xl"
-                            title={t('goToReceipts')}
-                          >
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                          </Button>
-                        </>
-                      )}
-
-                      {isCaptain && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => handleNavigateToTab('captains')}
-                          className="bg-cyan-500 hover:bg-cyan-600 text-black font-black text-xs h-8 px-3 rounded-xl transition-all shadow-[0_0_12px_rgba(6,182,212,0.2)]"
-                        >
-                          <UserCheck className="w-3.5 h-3.5 ml-1" />
-                          <span>{t('reviewCaptain')}</span>
-                        </Button>
-                      )}
-
-                      {isReset && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => handleNavigateToTab('captains')}
-                          className="bg-amber-500 hover:bg-amber-600 text-black font-black text-xs h-8 px-3 rounded-xl transition-all"
-                        >
-                          <KeyRound className="w-3.5 h-3.5 ml-1" />
-                          <span>{t('reviewRequest')}</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
+              filteredNotifications.map((item) => (
+                <NotificationItemCard
+                  key={item.id}
+                  item={item}
+                  t={t}
+                  onOpenReceiptReview={handleOpenReceiptReview}
+                  onNavigateToTab={handleNavigateToTab}
+                />
+              ))
             )}
           </div>
 
@@ -737,224 +460,27 @@ export function AdminNotificationCenter() {
         </DialogContent>
       </Dialog>
 
-      {/* ================= Quick Receipt Review Dialog ================= */}
-      {reviewItem && (
-        <Dialog open={Boolean(reviewItem)} onOpenChange={(open) => !open && setReviewItem(null)}>
-          <DialogContent className="sm:max-w-xl bg-[#0B0F19] border border-emerald-500/40 text-white shadow-2xl rounded-2xl p-5" dir={direction}>
-            <DialogHeader className={cn("space-y-1.5 border-b border-white/10 pb-3", isArabic ? "text-right" : "text-left")}>
-              <div className="flex items-center gap-2 text-emerald-400">
-                <ReceiptText className="w-5 h-5 text-emerald-400" />
-                <DialogTitle className="text-base sm:text-lg font-black text-white">
-                  {t('reviewModalTitle')}
-                </DialogTitle>
-              </div>
-              <DialogDescription className="text-slate-400 text-xs">
-                {t('reviewModalDesc')}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2">
-              {/* Receipt Image Preview */}
-              <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/80 flex items-center justify-center min-h-52 max-h-72">
-                {reviewItem.payload.receiptImageUrl ? (
-                  <img
-                    src={reviewItem.payload.receiptImageUrl}
-                    alt={t('tabReceipts')}
-                    className="max-h-72 w-full object-contain cursor-pointer hover:opacity-95 transition"
-                    onClick={() => {
-                      if (typeof window !== 'undefined' && reviewItem.payload.receiptImageUrl) {
-                        window.open(reviewItem.payload.receiptImageUrl, '_blank');
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-6 text-slate-500 text-xs gap-1">
-                    <ReceiptText className="w-8 h-8 text-slate-600" />
-                    <span>{t('noImage')}</span>
-                  </div>
-                )}
-
-                {reviewItem.payload.receiptImageUrl && (
-                  <a
-                    href={reviewItem.payload.receiptImageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="absolute top-2.5 left-2.5 bg-black/70 hover:bg-black text-white text-[10px] font-bold px-2 py-1 rounded-lg border border-white/20 flex items-center gap-1 backdrop-blur-md"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span>{t('fullSize')}</span>
-                  </a>
-                )}
-              </div>
-
-              {/* Transaction & Captain Details Summary */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-black/50 border border-white/5 text-xs font-mono">
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">{t('captainLabel')}</span>
-                  <span className="font-bold text-white block truncate">{reviewItem.payload.captainName}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">{t('phoneLabel')}</span>
-                  <span className="font-bold text-slate-300 block" dir="ltr">{reviewItem.payload.captainPhone}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">{t('channelLabel')}</span>
-                  <span className="font-bold text-emerald-400 block">{reviewItem.payload.channel}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 block font-sans">{t('amountLabel')}</span>
-                  <span className="font-bold text-amber-300 block text-sm">
-                    {reviewItem.payload.amount} {reviewItem.payload.currency}
-                  </span>
-                </div>
-              </div>
-
-              {/* Toggle Modes: Approval vs Rejection */}
-              {!rejectMode ? (
-                <div className="space-y-3 pt-2">
-                  <Label className={cn("text-xs font-bold text-slate-300 block", isArabic ? "text-right" : "text-left")}>
-                    {t('creditMethodLabel')}
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCreditType('MINUTES');
-                        setMinutesValue(Math.round((reviewItem.payload.amount || 0) * 60));
-                      }}
-                      className={`p-2.5 rounded-xl border text-start transition-all ${
-                        creditType === 'MINUTES'
-                          ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/50'
-                          : 'border-white/10 bg-black/40 text-slate-400'
-                      }`}
-                    >
-                      <span className="text-xs font-bold block">{t('minutesOption')}</span>
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">{t('minutesOptionDesc', { currency: reviewItem.payload.currency || '' })}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setCreditType('CASH')}
-                      className={`p-2.5 rounded-xl border text-start transition-all ${
-                        creditType === 'CASH'
-                          ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/50'
-                          : 'border-white/10 bg-black/40 text-slate-400'
-                      }`}
-                    >
-                      <span className="text-xs font-bold block">{t('cashOption')}</span>
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">{t('cashOptionDesc', { amount: reviewItem.payload.amount || 0, currency: reviewItem.payload.currency || '' })}</span>
-                    </button>
-                  </div>
-
-                  {creditType === 'MINUTES' && (
-                    <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
-                      <Label className="text-[11px] font-bold text-slate-400">{t('minutesCountLabel')}</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={minutesValue}
-                        onChange={(e) => setMinutesValue(Number(e.target.value) || 0)}
-                        className="bg-black/60 border-white/10 text-white font-mono text-xs h-9 rounded-xl text-start"
-                      />
-                    </div>
-                  )}
-
-                  <div className={cn("space-y-1", isArabic ? "text-right" : "text-left")}>
-                    <Label className="text-[11px] font-bold text-slate-400">{t('adminNoteLabel')}</Label>
-                    <Input
-                      type="text"
-                      placeholder={t('adminNotePlaceholder')}
-                      value={adminNote}
-                      onChange={(e) => setAdminNote(e.target.value)}
-                      className="bg-black/60 border-white/10 text-white text-xs h-9 rounded-xl text-start"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className={cn("space-y-2 pt-2", isArabic ? "text-right" : "text-left")}>
-                  <Label className="text-xs font-bold text-rose-400 block">{t('rejectionReasonLabel')}</Label>
-                  <Input
-                    type="text"
-                    placeholder={t('rejectionReasonPlaceholder')}
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    className="bg-black/60 border-rose-500/40 focus:border-rose-500 text-white text-xs h-10 rounded-xl text-start"
-                    autoFocus
-                  />
-                  <p className="text-[10px] text-slate-400">{t('rejectionNotice')}</p>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter className="flex-row gap-2 sm:justify-start pt-3 border-t border-white/10">
-              {!rejectMode ? (
-                <>
-                  <Button
-                    type="button"
-                    disabled={processingAction}
-                    onClick={handleApproveReceipt}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-black font-black text-xs sm:text-sm h-10 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                  >
-                    {processingAction ? (
-                      <>
-                        <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
-                        {t('approving')}
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
-                        {t('approveButton')}
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={processingAction}
-                    onClick={() => setRejectMode(true)}
-                    className="border-rose-500/30 text-rose-400 hover:bg-rose-500/10 h-10 rounded-xl text-xs font-bold"
-                  >
-                    {t('rejectButton')}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    disabled={processingAction || !rejectionReason.trim()}
-                    onClick={handleRejectReceipt}
-                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs sm:text-sm h-10 rounded-xl transition-all"
-                  >
-                    {processingAction ? (
-                      <>
-                        <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
-                        {t('rejecting')}
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
-                        {t('confirmRejectButton')}
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={processingAction}
-                    onClick={() => setRejectMode(false)}
-                    className="border-white/10 text-slate-300 hover:bg-white/5 h-10 rounded-xl text-xs"
-                  >
-                    {t('backToApprove')}
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Quick Receipt Review Dialog */}
+      <QuickReceiptReviewDialog
+        reviewItem={reviewItem}
+        onClose={() => setReviewItem(null)}
+        direction={direction}
+        isArabic={isArabic}
+        t={t}
+        creditType={creditType}
+        setCreditType={setCreditType}
+        minutesValue={minutesValue}
+        setMinutesValue={setMinutesValue}
+        adminNote={adminNote}
+        setAdminNote={setAdminNote}
+        rejectMode={rejectMode}
+        setRejectMode={setRejectMode}
+        rejectionReason={rejectionReason}
+        setRejectionReason={setRejectionReason}
+        processingAction={processingAction}
+        onApproveReceipt={handleApproveReceipt}
+        onRejectReceipt={handleRejectReceipt}
+      />
     </>
   );
 }
-
