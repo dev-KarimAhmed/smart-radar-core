@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { parseNotificationContent } from '@/shared/utils/notification-i18n';
 import { playNotificationSound } from '@/shared/utils/notification-sound';
 import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
-import { recordAdminNotificationSeen } from '@/features/account/services/legal-log-service';
+import { recordAdminNotificationSeen } from '@/shared/services/legal-log-service';
 
 export interface AppNotification {
   id: string;
