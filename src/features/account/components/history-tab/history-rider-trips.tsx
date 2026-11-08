@@ -138,25 +138,30 @@ export function HistoryRiderTrips({
       {/* Top accent bar matching #14B8A6 */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/50 to-transparent" />
 
-      <CardHeader className="p-5 pb-3">
-        <div className="flex items-center justify-between gap-3">
+      <CardHeader className="p-4 sm:p-5 pb-3.5 sm:pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] shadow-[0_0_15px_rgba(20,245,213,0.15)]">
               <FileText className="h-5 w-5" />
             </div>
-            <div className="min-w-0">
-              <CardTitle className="text-base font-black text-white flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base font-black text-white font-sans">
                 {t('recentTripsTitle')}
               </CardTitle>
-              <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed font-sans">
+              <CardDescription className="hidden sm:block text-xs text-slate-400 mt-0.5 leading-relaxed font-sans">
                 {t('recentTripsDesc')}
               </CardDescription>
             </div>
           </div>
 
-          <span className="shrink-0 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 text-xs font-bold text-[#14F5D5] shadow-sm font-mono">
-            {riderHistoricalTrips.length} {t('tripCount')}
-          </span>
+          <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-white/[0.05] sm:border-0 shrink-0">
+            <CardDescription className="sm:hidden text-xs text-slate-400 leading-relaxed font-sans truncate min-w-0 flex-1">
+              {t('recentTripsDesc')}
+            </CardDescription>
+            <span className="shrink-0 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 sm:px-3 py-1 text-xs font-bold text-[#14F5D5] shadow-sm font-mono">
+              {riderHistoricalTrips.length} {t('tripCount')}
+            </span>
+          </div>
         </div>
       </CardHeader>
 

@@ -50,8 +50,17 @@ export function captainDashboardReducer(
   action: CaptainDashboardAction,
 ): CaptainDashboardState {
   switch (action.type) {
-    case 'OPEN_RADAR':
-      return { ...state, screen: state.selectedRequest ? 'ACTIVE_TRIP' : 'RADAR_MAP' };
+    case 'OPEN_RADAR': {
+      const isTripActive =
+        state.tripStep === 'ACCEPTED' ||
+        state.tripStep === 'ARRIVED' ||
+        state.tripStep === 'STARTED';
+      return {
+        ...state,
+        screen: isTripActive ? 'ACTIVE_TRIP' : 'RADAR_MAP',
+        selectedRequest: isTripActive ? state.selectedRequest : null,
+      };
+    }
 
     case 'OPEN_WALLET':
       return { ...state, screen: 'WALLET' };
