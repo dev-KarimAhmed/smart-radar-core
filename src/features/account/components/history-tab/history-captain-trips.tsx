@@ -15,17 +15,19 @@ const styles = {
   container: "space-y-6",
   card: "relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white",
   accentBar: "absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/50 to-transparent",
-  header: "p-5 pb-3",
+  header: "p-4 sm:p-5 pb-3.5 sm:pb-3",
   headerButton: "w-full text-right cursor-pointer select-none transition-colors hover:bg-white/[0.02]",
-  headerRow: "flex items-center justify-between gap-3",
+  headerRow: "flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3",
   headerInfo: "flex items-center gap-3 min-w-0",
   iconBox: "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] shadow-[0_0_15px_rgba(20,245,213,0.15)]",
   icon: "h-5 w-5",
-  titleBox: "min-w-0",
-  title: "text-base font-black text-white flex items-center gap-2 font-sans",
-  desc: "text-xs text-slate-400 mt-0.5 leading-relaxed font-sans",
-  actionsBox: "flex items-center gap-2",
-  countBadge: "shrink-0 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 text-xs font-bold text-[#14F5D5] shadow-sm font-mono",
+  titleBox: "min-w-0 flex-1",
+  title: "text-base font-black text-white font-sans",
+  descDesktop: "hidden sm:block text-xs text-slate-400 mt-0.5 leading-relaxed font-sans",
+  descMobile: "sm:hidden text-xs text-slate-400 leading-relaxed font-sans truncate min-w-0 flex-1",
+  actionsRow: "flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-white/[0.05] sm:border-0 shrink-0",
+  actionsGroup: "flex items-center gap-2 shrink-0",
+  countBadge: "shrink-0 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 sm:px-3 py-1 text-xs font-bold text-[#14F5D5] shadow-sm font-mono",
   chevronBox: "flex h-8 w-8 items-center justify-center rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 text-[#14F5D5] transition-all hover:bg-[#14B8A6]/20 shrink-0",
   chevronIcon: "h-4 w-4 transition-transform duration-200",
   chevronRotated: "rotate-180",
@@ -154,6 +156,7 @@ export function HistoryCaptainTrips({
           aria-expanded={isExpanded}
         >
           <div className={styles.headerRow}>
+            {/* Top on Mobile: Icon + Full Title */}
             <div className={styles.headerInfo}>
               <div className={styles.iconBox}>
                 <FileText className={styles.icon} />
@@ -162,18 +165,25 @@ export function HistoryCaptainTrips({
                 <CardTitle className={styles.title}>
                   {t('captainSectionTitle')}
                 </CardTitle>
-                <CardDescription className={styles.desc}>
+                <CardDescription className={styles.descDesktop}>
                   {t('captainSectionDesc')}
                 </CardDescription>
               </div>
             </div>
 
-            <div className={styles.actionsBox}>
-              <Badge variant="outline" className={styles.countBadge}>
-                {captainHistoricalTrips.length} {isArabic ? t('tripCount') : 'trips'}
-              </Badge>
-              <div className={styles.chevronBox}>
-                <ChevronDown className={cn(styles.chevronIcon, isExpanded && styles.chevronRotated)} />
+            {/* Bottom on Mobile: Subtitle + Badge + Chevron */}
+            <div className={styles.actionsRow}>
+              <CardDescription className={styles.descMobile}>
+                {t('captainSectionDesc')}
+              </CardDescription>
+
+              <div className={styles.actionsGroup}>
+                <Badge variant="outline" className={styles.countBadge}>
+                  {captainHistoricalTrips.length} {isArabic ? t('tripCount') : 'trips'}
+                </Badge>
+                <div className={styles.chevronBox}>
+                  <ChevronDown className={cn(styles.chevronIcon, isExpanded && styles.chevronRotated)} />
+                </div>
               </div>
             </div>
           </div>

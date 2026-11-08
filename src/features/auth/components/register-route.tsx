@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowRight,
   Eye,
   EyeOff,
   Languages,
@@ -27,12 +28,12 @@ import { getLandingPageUrl } from '@/lib/constants';
 const styles = {
   style161_1: "relative min-h-screen overflow-hidden bg-[#0B0F19] text-slate-100",
   style163_2: "pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.20),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(45,212,191,0.08),transparent_28%)]",
-  style169_3: "fixed top-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#161F30]/70 px-4 text-sm font-bold text-slate-100 shadow-2xl backdrop-blur-xl transition hover:border-[#14B8A6] hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50",
-  style170_4: "left-4",
-  style170_5: "right-4",
-  style173_6: "h-4 w-4 text-[#14B8A6]",
+  style169_3: "inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-[#161F30]/80 px-3.5 py-1.5 text-xs font-bold text-slate-100 shadow-lg backdrop-blur-xl transition hover:border-[#14B8A6] hover:shadow-[0_0_15px_rgba(20,184,166,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14B8A6]/50",
+  style170_4: "",
+  style170_5: "",
+  style173_6: "h-3.5 w-3.5 text-[#14B8A6]",
   style177_7: "relative z-10 flex min-h-screen w-full items-center justify-center px-0 py-0 sm:px-6 sm:py-10",
-  style178_8: "flex h-screen w-full max-w-md flex-col justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 shadow-2xl backdrop-blur-xl sm:my-12 sm:h-auto sm:min-h-0 sm:rounded-3xl sm:p-8",
+  style178_8: "flex min-h-screen w-full max-w-md flex-col justify-start sm:justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 pt-5 shadow-2xl backdrop-blur-xl sm:my-12 sm:min-h-0 sm:rounded-3xl sm:p-8",
   style179_9: "mb-7 text-center",
   style180_10: "mx-auto mb-4 flex items-center justify-center",
   brandLogoImg: "h-14 sm:h-16 w-auto object-contain drop-shadow-[0_4px_20px_rgba(20,184,166,0.35)] select-none",
@@ -233,18 +234,30 @@ export function RegisterRoute({
     >
       <div className={styles.style163_2} />
 
-      <button
-        type="button"
-        aria-label={t.languageAria}
-        onClick={() => setLanguage(isArabic ? 'en' : 'ar')}
-        className={cn(styles.style169_3, isArabic ? styles.style170_4 : styles.style170_5)}
-      >
-        <Languages className={styles.style173_6} aria-hidden="true" />
-        {t.languageButton}
-      </button>
-
       <section className={styles.style177_7}>
         <div className={styles.style178_8}>
+          {/* Top navigation row: Back & Language switcher */}
+          <div className="flex w-full items-center justify-between mb-3">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#94A3B8] transition-colors hover:text-white"
+              onClick={() => router.push('/auth')}
+            >
+              <ArrowRight className={cn("h-3.5 w-3.5 text-[#14B8A6]", isArabic ? "" : "rotate-180")} />
+              <span>{isArabic ? 'رجوع' : 'Back'}</span>
+            </button>
+
+            <button
+              type="button"
+              aria-label={t.languageAria}
+              onClick={() => setLanguage(isArabic ? 'en' : 'ar')}
+              className={styles.style169_3}
+            >
+              <Languages className={styles.style173_6} aria-hidden="true" />
+              <span>{t.languageButton}</span>
+            </button>
+          </div>
+
           <header className={styles.style179_9}>
             <div className={styles.style180_10}>
               <a
