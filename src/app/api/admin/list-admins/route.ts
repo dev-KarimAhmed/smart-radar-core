@@ -28,7 +28,11 @@ export async function GET(req: Request) {
 
     const mappedAdmins = (admins || []).map((adm) => {
       const rank = getAdminRank(adm);
-      const isPrimary = adm.id === PRIMARY_SOVEREIGN_ADMIN_ID || adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
+      const isPrimary =
+        adm.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
+        adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE ||
+        adm.phone === '+201551981977' ||
+        adm.phone === '201551981977';
       const sectors = getAdminAllowedSectors(adm);
       return {
         id: adm.id,

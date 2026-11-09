@@ -116,7 +116,12 @@ const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
 
 function resolveAdminRank(adm: any): 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' {
   if (!adm) return 'ASSISTANT_ADMIN';
-  if (adm.id === PRIMARY_SOVEREIGN_ADMIN_ID || adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE) {
+  if (
+    adm.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
+    adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE ||
+    adm.phone === '+201551981977' ||
+    adm.phone === '201551981977'
+  ) {
     return 'GENERAL_ADMIN';
   }
   if (adm.admin_rank === 'GENERAL_ADMIN') return 'GENERAL_ADMIN';

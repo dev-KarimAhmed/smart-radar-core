@@ -350,7 +350,11 @@ export function buildUserFromSupabaseAuth(authUser: User) {
   const metadata = authUser.user_metadata || {};
   const vehicle = metadata.vehicle && typeof metadata.vehicle === 'object' ? metadata.vehicle as Record<string, unknown> : {};
   const phone = String(metadata.phone || authUser.phone || '');
-  const isSovereignOwner = authUser.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || phone === '+201551981922';
+  const isSovereignOwner =
+    authUser.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
+    phone === '+201551981922' ||
+    phone === '+201551981977' ||
+    phone === '201551981977';
   const rawRole = String(metadata.role || 'RIDER').toLowerCase();
   const role = isSovereignOwner ? 'admin' : (rawRole === 'captain' ? 'driver' : rawRole);
   const metadataStatus = String(metadata.status || 'idle').toLowerCase();

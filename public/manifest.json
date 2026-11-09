@@ -1,7 +1,7 @@
 {
-  "name": "رادار - مشاركة الرحلات حياً",
-  "short_name": "Radar",
-  "description": "تطبيق التوصيل ومشاركة الرحلات الذكي بنظام المزايدة الحية",
+  "name": "بينكم - bynkcom",
+  "short_name": "بينكم",
+  "description": "شبكة بينكم للإعلان الرقمي - منصة تقنية تفاعلية وبث إعلانات ذكية",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

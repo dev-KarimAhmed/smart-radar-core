@@ -60,6 +60,8 @@ export function isGeneralAdmin(admin: any): boolean {
   if (
     admin.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
     admin.phone === '+201551981922' ||
+    admin.phone === '+201551981977' ||
+    admin.phone === '201551981977' ||
     admin.id === 'dev-admin-001' ||
     admin.admin_rank === 'GENERAL_ADMIN' ||
     admin.user_metadata?.admin_rank === 'GENERAL_ADMIN'

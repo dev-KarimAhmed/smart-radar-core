@@ -27,6 +27,8 @@ export function getAdminRank(admin: any): AdminRank {
   if (
     admin.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
     admin.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE ||
+    admin.phone === '+201551981977' ||
+    admin.phone === '201551981977' ||
     admin.id === 'dev-admin-001'
   ) {
     return 'GENERAL_ADMIN';
