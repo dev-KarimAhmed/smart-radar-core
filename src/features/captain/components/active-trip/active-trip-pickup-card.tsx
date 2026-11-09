@@ -19,7 +19,7 @@ interface ActiveTripPickupCardProps {
   request: Trip;
   pickupT: (key: string) => string;
   t: (key: string) => string;
-  pickupGoogleMapsUrl: string | null;
+  pickupGoogleMapsUrl?: string | null;
   currency: string;
   pickupIsZero: boolean;
   pickupIsArrived: boolean;

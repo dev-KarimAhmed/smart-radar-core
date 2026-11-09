@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
-import { useDashboardLanguage } from '@/features/admin/context/dashboard-language-context';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { requestTranslation } from '@/features/admin/lib/translation-service';
 import type { CaptainUser } from './captains-types';
 import type { WelcomeHoursConfigState } from './dialogs/captain-welcome-hours-dialog';

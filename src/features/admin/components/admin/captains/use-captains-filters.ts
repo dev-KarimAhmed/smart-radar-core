@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useDashboardLanguage } from '@/features/admin/context/dashboard-language-context';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
 import type { CaptainUser } from './captains-types';
 import { fetchCaptainsApi, updateCaptainLanguageApi } from './captain-api-actions';

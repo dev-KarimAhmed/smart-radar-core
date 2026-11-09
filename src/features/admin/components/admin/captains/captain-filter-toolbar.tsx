@@ -196,9 +196,9 @@ export const CaptainFilterToolbar: React.FC<CaptainFilterToolbarProps> = ({
       {/* Geographic Filtering Bar */}
       <GeoFilterBar
         geoLookup={geoLookup}
-        selectedCountry={selectedCountry}
-        selectedGovernorate={selectedGovernorate}
-        selectedDistrict={selectedDistrict}
+        selectedCountry={selectedCountry !== undefined && selectedCountry !== null ? String(selectedCountry) : ''}
+        selectedGovernorate={selectedGovernorate !== undefined && selectedGovernorate !== null ? String(selectedGovernorate) : ''}
+        selectedDistrict={selectedDistrict !== undefined && selectedDistrict !== null ? String(selectedDistrict) : ''}
         onCountryChange={handleCountryChange}
         onGovernorateChange={handleGovernorateChange}
         onDistrictChange={handleDistrictChange}

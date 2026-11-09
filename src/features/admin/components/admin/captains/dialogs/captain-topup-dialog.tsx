@@ -22,7 +22,7 @@ import { CaptainUser, getCaptainCurrency } from '../captains-types';
 
 interface CaptainTopupDialogProps {
   captain: CaptainUser | null;
-  open: boolean;
+  open?: boolean;
   onClose: () => void;
   isArabic: boolean;
   direction: 'rtl' | 'ltr';
@@ -33,9 +33,11 @@ interface CaptainTopupDialogProps {
   cashBalanceToAdd: number;
   setCashBalanceToAdd: (c: number) => void;
   extendDays: number;
+  setExtendDays?: (d: number) => void;
   submittingAction: boolean;
-  onTopupMinutes: (captainId: string, minutes: number, extendDays: number) => Promise<boolean>;
-  onTopupCash: (captainId: string, amount: number, currency: string) => Promise<boolean>;
+  executeAdminAction?: (payload: Record<string, any>, successMsg: string) => Promise<boolean>;
+  onTopupMinutes?: (captainId: string, minutes: number, extendDays: number) => Promise<boolean>;
+  onTopupCash?: (captainId: string, amount: number, currency: string) => Promise<boolean>;
   t: (key: any, values?: any) => string;
 }
 
@@ -52,7 +54,9 @@ export function CaptainTopupDialog({
   cashBalanceToAdd,
   setCashBalanceToAdd,
   extendDays,
+  setExtendDays,
   submittingAction,
+  executeAdminAction,
   onTopupMinutes,
   onTopupCash,
   t,
@@ -61,7 +65,7 @@ export function CaptainTopupDialog({
   const capCurr = getCaptainCurrency(captain, isArabic);
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open ?? Boolean(captain)} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
         className={cn(
           "max-w-md bg-[#0B0F19] border border-[#14B8A6]/40 text-white rounded-3xl p-6",
@@ -235,11 +239,27 @@ export function CaptainTopupDialog({
               disabled={submittingAction || (topupMode === 'minutes' ? minutesToAdd <= 0 : cashBalanceToAdd <= 0)}
               onClick={async () => {
                 if (topupMode === 'minutes') {
-                  const ok = await onTopupMinutes(captain.id, minutesToAdd, extendDays);
-                  if (ok) onClose();
+                  if (onTopupMinutes) {
+                    const ok = await onTopupMinutes(captain.id, minutesToAdd, extendDays);
+                    if (ok) onClose();
+                  } else if (executeAdminAction) {
+                    const ok = await executeAdminAction(
+                      { action: 'TOPUP_HOURS', captainId: captain.id, minutesToAdd, extendDays },
+                      t('topupSuccess') || 'تم الشحن بنجاح'
+                    );
+                    if (ok) onClose();
+                  }
                 } else {
-                  const ok = await onTopupCash(captain.id, cashBalanceToAdd, capCurr);
-                  if (ok) onClose();
+                  if (onTopupCash) {
+                    const ok = await onTopupCash(captain.id, cashBalanceToAdd, capCurr);
+                    if (ok) onClose();
+                  } else if (executeAdminAction) {
+                    const ok = await executeAdminAction(
+                      { action: 'TOPUP_CASH', captainId: captain.id, cashAmount: cashBalanceToAdd, currency: capCurr },
+                      t('topupSuccess') || 'تم الشحن بنجاح'
+                    );
+                    if (ok) onClose();
+                  }
                 }
               }}
               className={cn(

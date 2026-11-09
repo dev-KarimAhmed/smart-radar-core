@@ -34,7 +34,7 @@ interface ActiveTripStepFlowProps {
   onStartTrip: () => void;
   onCompleteTrip: () => void;
   onOpenCancelConfirm: () => void;
-  t: (key: string, values?: Record<string, unknown>) => string;
+  t: (key: any, values?: any) => string;
 }
 
 export function ActiveTripStepFlow({

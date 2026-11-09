@@ -273,7 +273,7 @@ export function ActiveTripTracker({
         request={request}
         pickupT={pickupT}
         t={t}
-        pickupGoogleMapsUrl={pickupGoogleMapsUrl}
+        pickupGoogleMapsUrl={pickupGoogleMapsUrl || null}
         currency={currency}
         pickupIsZero={pickupIsZero}
         pickupIsArrived={pickupIsArrived}
@@ -286,10 +286,9 @@ export function ActiveTripTracker({
       {/* In-app navigation map */}
       <div className={cn("mt-4", isFullScreen && "hidden")}>
         <PickupNavigationMap
+          language={language}
           driverLocation={driverLocation}
-          targetLocation={isEnRouteToDropoff ? (dropoffCoords || null) : pickupLocation}
-          targetLabel={isEnRouteToDropoff ? (request.dropoff || 'الوجهة') : (request.pickupLabel || pickupT('pickupLocation'))}
-          isApproaching={pickupIsZero}
+          pickupLocation={isEnRouteToDropoff ? (dropoffCoords || null) : pickupLocation}
           mode={isEnRouteToDropoff ? 'dropoff' : 'pickup'}
         />
       </div>

@@ -21,7 +21,7 @@ import { CaptainUser } from '../captains-types';
 
 interface CaptainSecurityDialogProps {
   captain: CaptainUser | null;
-  open: boolean;
+  open?: boolean;
   onClose: () => void;
   isArabic: boolean;
   direction: 'rtl' | 'ltr';
@@ -30,9 +30,10 @@ interface CaptainSecurityDialogProps {
   targetTier: string;
   setTargetTier: (tier: string) => void;
   submittingAction: boolean;
-  onResetPenalties: (captainId: string) => Promise<boolean>;
-  onForceClearTrip: (captainId: string) => Promise<boolean>;
-  onSaveSecuritySettings: (captainId: string, status: string, tier: string) => Promise<boolean>;
+  executeAdminAction?: (payload: Record<string, any>, successMsg: string) => Promise<boolean>;
+  onResetPenalties?: (captainId: string) => Promise<boolean>;
+  onForceClearTrip?: (captainId: string) => Promise<boolean>;
+  onSaveSecuritySettings?: (captainId: string, status: string, tier: string) => Promise<boolean>;
   t: (key: any, values?: any) => string;
 }
 
@@ -47,6 +48,7 @@ export function CaptainSecurityDialog({
   targetTier,
   setTargetTier,
   submittingAction,
+  executeAdminAction,
   onResetPenalties,
   onForceClearTrip,
   onSaveSecuritySettings,
@@ -55,7 +57,7 @@ export function CaptainSecurityDialog({
   if (!captain) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open ?? Boolean(captain)} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
         className={cn(
           "max-w-md bg-[#0B0F19] border border-amber-500/40 text-white rounded-3xl p-6",
@@ -139,7 +141,11 @@ export function CaptainSecurityDialog({
               size="sm"
               disabled={submittingAction}
               onClick={async () => {
-                await onResetPenalties(captain.id);
+                if (onResetPenalties) {
+                  await onResetPenalties(captain.id);
+                } else if (executeAdminAction) {
+                  await executeAdminAction({ action: 'RESET_PENALTIES', captainId: captain.id }, t('penaltiesResetSuccess') || 'تم تصفير العقوبات');
+                }
               }}
               className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] h-8 rounded-xl font-bold cursor-pointer"
             >
@@ -160,7 +166,11 @@ export function CaptainSecurityDialog({
                 size="sm"
                 disabled={submittingAction}
                 onClick={async () => {
-                  await onForceClearTrip(captain.id);
+                  if (onForceClearTrip) {
+                    await onForceClearTrip(captain.id);
+                  } else if (executeAdminAction) {
+                    await executeAdminAction({ action: 'FORCE_CLEAR_TRIP', captainId: captain.id }, t('tripClearedSuccess') || 'تم فك تعليق الرحلة');
+                  }
                 }}
                 className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] h-8 rounded-xl font-bold cursor-pointer"
               >
@@ -183,8 +193,16 @@ export function CaptainSecurityDialog({
               type="button"
               disabled={submittingAction}
               onClick={async () => {
-                const ok = await onSaveSecuritySettings(captain.id, targetStatus, targetTier);
-                if (ok) onClose();
+                if (onSaveSecuritySettings) {
+                  const ok = await onSaveSecuritySettings(captain.id, targetStatus, targetTier);
+                  if (ok) onClose();
+                } else if (executeAdminAction) {
+                  const ok = await executeAdminAction(
+                    { action: 'UPDATE_CAPTAIN_SECURITY', captainId: captain.id, status: targetStatus, tier: targetTier },
+                    t('securitySavedSuccess') || 'تم حفظ الإجراءات الأمنية'
+                  );
+                  if (ok) onClose();
+                }
               }}
               className="bg-amber-500 hover:bg-amber-400 text-black font-black text-xs h-10 px-5 rounded-xl shadow-lg shadow-amber-500/20 cursor-pointer"
             >

@@ -1,4 +1,4 @@
-import { useDashboardLanguage } from '@/features/admin/context/dashboard-language-context';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useCaptainsFilters } from './use-captains-filters';
 import { useCaptainsDialogs } from './use-captains-dialogs';
 

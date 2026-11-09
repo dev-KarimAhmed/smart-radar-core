@@ -25,7 +25,7 @@ import { CaptainUser } from '../captains-types';
 
 interface CaptainMessageDialogProps {
   captain: CaptainUser | null;
-  open: boolean;
+  open?: boolean;
   onClose: () => void;
   isArabic: boolean;
   direction: 'rtl' | 'ltr';
@@ -40,9 +40,11 @@ interface CaptainMessageDialogProps {
   messageType: 'info' | 'admin_message' | 'warning' | 'urgent';
   setMessageType: (t: 'info' | 'admin_message' | 'warning' | 'urgent') => void;
   isTranslatingDirect: boolean;
-  onTranslateDirect: () => Promise<void>;
+  handleTranslateDirect?: () => Promise<void>;
+  onTranslateDirect?: () => Promise<void>;
   submittingMessage: boolean;
-  onSendMessage: () => Promise<void>;
+  executeAdminAction?: (payload: Record<string, any>, successMsg: string) => Promise<boolean>;
+  onSendMessage?: () => Promise<void>;
   t: (key: any, values?: any) => string;
 }
 
@@ -63,15 +65,17 @@ export function CaptainMessageDialog({
   messageType,
   setMessageType,
   isTranslatingDirect,
+  handleTranslateDirect,
   onTranslateDirect,
   submittingMessage,
+  executeAdminAction,
   onSendMessage,
   t,
 }: CaptainMessageDialogProps) {
   if (!captain) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open ?? Boolean(captain)} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
         className={cn(
           "max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl",
@@ -250,7 +254,7 @@ export function CaptainMessageDialog({
               <button
                 type="button"
                 disabled={isTranslatingDirect || !messageBody.trim()}
-                onClick={onTranslateDirect}
+                onClick={handleTranslateDirect || onTranslateDirect}
                 className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#14F5D5] bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 border border-[#14B8A6]/30 px-2 py-0.5 rounded-lg transition-all cursor-pointer disabled:opacity-40"
                 title={isArabic ? 'توليد الترجمة الإنجليزية تلقائياً' : 'Auto-generate English translation'}
               >
@@ -323,7 +327,25 @@ export function CaptainMessageDialog({
             <Button
               type="button"
               disabled={submittingMessage || !messageBody.trim()}
-              onClick={onSendMessage}
+              onClick={async () => {
+                if (onSendMessage) {
+                  await onSendMessage();
+                } else if (executeAdminAction) {
+                  const ok = await executeAdminAction(
+                    {
+                      action: 'SEND_MESSAGE',
+                      captainId: captain.id,
+                      title: messageTitle,
+                      titleEn: messageTitleEn,
+                      body: messageBody,
+                      bodyEn: messageBodyEn,
+                      messageType,
+                    },
+                    t('messageSentSuccess') || 'تم إرسال الرسالة بنجاح'
+                  );
+                  if (ok) onClose();
+                }
+              }}
               className="bg-teal-500 hover:bg-teal-600 text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-teal-500/20 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
             >
               {submittingMessage ? (

@@ -22,7 +22,8 @@ import { cn } from '@/lib/utils';
 
 interface CaptainBulkTopupDialogProps {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  onOpenChange?: (open: boolean) => void;
   isArabic: boolean;
   direction: 'rtl' | 'ltr';
   bulkScope: 'all' | 'selected' | 'filtered';
@@ -31,19 +32,27 @@ interface CaptainBulkTopupDialogProps {
   setBulkTopupType: (type: 'minutes' | 'cash') => void;
   bulkMinutes: number;
   setBulkMinutes: (m: number) => void;
+  bulkExtendDays?: number;
+  setBulkExtendDays?: (d: number) => void;
   bulkCashAmount: number;
   setBulkCashAmount: (amt: number) => void;
   submittingBulkTopup: boolean;
-  totalCaptainsCount: number;
-  selectedCount: number;
-  filteredCount: number;
-  onConfirmBulkTopup: () => Promise<void>;
+  totalCaptainsCount?: number;
+  selectedCount?: number;
+  filteredCount?: number;
+  captains?: any[];
+  filteredCaptains?: any[];
+  selectedCaptainIds?: Set<string>;
+  getTargetCount?: (scope: 'all' | 'selected' | 'filtered') => number;
+  handleBulkTopup?: () => Promise<void>;
+  onConfirmBulkTopup?: () => Promise<void>;
   t: (key: any, values?: any) => string;
 }
 
 export function CaptainBulkTopupDialog({
   open,
   onClose,
+  onOpenChange,
   isArabic,
   direction,
   bulkScope,
@@ -52,26 +61,35 @@ export function CaptainBulkTopupDialog({
   setBulkTopupType,
   bulkMinutes,
   setBulkMinutes,
+  bulkExtendDays,
+  setBulkExtendDays,
   bulkCashAmount,
   setBulkCashAmount,
   submittingBulkTopup,
   totalCaptainsCount,
   selectedCount,
   filteredCount,
+  captains,
+  filteredCaptains,
+  selectedCaptainIds,
+  getTargetCount: getTargetCountProp,
+  handleBulkTopup,
   onConfirmBulkTopup,
   t,
 }: CaptainBulkTopupDialogProps) {
   const getTargetCount = (scope: 'all' | 'selected' | 'filtered'): number => {
-    if (scope === 'all') return totalCaptainsCount;
-    if (scope === 'selected') return selectedCount;
-    if (scope === 'filtered') return filteredCount;
+    if (getTargetCountProp) return getTargetCountProp(scope);
+    if (scope === 'all') return totalCaptainsCount ?? captains?.length ?? 0;
+    if (scope === 'selected') return selectedCount ?? selectedCaptainIds?.size ?? 0;
+    if (scope === 'filtered') return filteredCount ?? filteredCaptains?.length ?? 0;
     return 0;
   };
 
   const targetCount = getTargetCount(bulkScope);
+  const handleConfirm = handleBulkTopup || onConfirmBulkTopup;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={onOpenChange ?? ((isOpen) => !isOpen && onClose?.())}>
       <DialogContent
         className={cn(
           "max-w-lg bg-[#0B0F19] border border-[#14B8A6]/30 text-white rounded-3xl p-6",
@@ -298,7 +316,7 @@ export function CaptainBulkTopupDialog({
                 targetCount === 0 ||
                 (bulkTopupType === 'minutes' ? bulkMinutes <= 0 : bulkCashAmount <= 0)
               }
-              onClick={onConfirmBulkTopup}
+              onClick={handleConfirm}
               className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-10 px-6 rounded-xl shadow-lg shadow-[#14B8A6]/20 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
             >
               {submittingBulkTopup ? (

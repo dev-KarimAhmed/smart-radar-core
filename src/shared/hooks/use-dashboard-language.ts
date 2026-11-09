@@ -28,7 +28,7 @@ export function useDashboardLanguage() {
   const setLanguage = useCallback((nextLanguage: AppLanguage) => setLocale(nextLanguage), [setLocale]);
 
   return {
-    direction: language === 'ar' ? 'rtl' : 'ltr',
+    direction: (language === 'ar' ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
     isArabic: language === 'ar',
     language,
     setLanguage,

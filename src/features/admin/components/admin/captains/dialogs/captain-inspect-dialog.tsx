@@ -24,13 +24,14 @@ import { CaptainUser } from '../captains-types';
 
 interface CaptainInspectDialogProps {
   captain: CaptainUser | null;
-  open: boolean;
+  open?: boolean;
   onClose: () => void;
   isArabic: boolean;
   direction: 'rtl' | 'ltr';
-  getVerificationBadge: (status: string) => React.ReactNode;
-  submittingAction: boolean;
-  onApproveCaptain: (captainId: string) => Promise<boolean>;
+  getVerificationBadge?: (status: string) => React.ReactNode;
+  submittingAction?: boolean;
+  onApproveCaptain?: (captainId: string) => Promise<boolean>;
+  executeAdminAction?: (payload: Record<string, any>, successMsg: string) => Promise<boolean>;
   t: (key: any, values?: any) => string;
 }
 
@@ -41,14 +42,15 @@ export function CaptainInspectDialog({
   isArabic,
   direction,
   getVerificationBadge,
-  submittingAction,
+  submittingAction = false,
   onApproveCaptain,
+  executeAdminAction,
   t,
 }: CaptainInspectDialogProps) {
   if (!captain) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open ?? Boolean(captain)} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent
         className={cn(
           "max-w-2xl bg-[#0B0F19] border border-[#14B8A6]/30 text-white rounded-3xl p-6",
@@ -79,7 +81,7 @@ export function CaptainInspectDialog({
                   </DialogDescription>
                 </div>
               </div>
-              <div>{getVerificationBadge(captain.verification_status)}</div>
+              <div>{getVerificationBadge ? getVerificationBadge(captain.verification_status) : null}</div>
             </div>
           </DialogHeader>
 
@@ -201,8 +203,16 @@ export function CaptainInspectDialog({
               type="button"
               disabled={submittingAction}
               onClick={async () => {
-                const ok = await onApproveCaptain(captain.id);
-                if (ok) onClose();
+                if (onApproveCaptain) {
+                  const ok = await onApproveCaptain(captain.id);
+                  if (ok) onClose();
+                } else if (executeAdminAction) {
+                  const ok = await executeAdminAction(
+                    { action: 'APPROVE_VERIFICATION', captainId: captain.id },
+                    t('captainApprovedSuccess') || 'تمت الموافقة بنجاح'
+                  );
+                  if (ok) onClose();
+                }
               }}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-9 rounded-xl px-5 shadow-lg shadow-emerald-600/20 cursor-pointer"
             >
