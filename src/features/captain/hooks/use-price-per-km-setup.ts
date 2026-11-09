@@ -140,6 +140,17 @@ export function usePricePerKmSetup(
     let active = true;
     setIsLoaded(false);
 
+    // Read from localStorage first for instant offline readiness (SC55 / Offline-First)
+    try {
+      const cached = localStorage.getItem(`radar_captain_tariff_${user.uid}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          setTariff((prev) => ({ ...prev, ...parsed }));
+        }
+      }
+    } catch {}
+
     async function loadTariff() {
       try {
         const { data, error } = await supabase.rpc('get_captain_tariff_context');
@@ -226,9 +237,22 @@ export function usePricePerKmSetup(
         setTariff((previous) => ({ ...previous, minBaseFare }));
         return { saved: false, reason: 'base_fare_below_market_minimum', minBaseFare };
       }
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff save]', updateError);
-      return { saved: false, reason: 'unknown' };
+      if ((process.env.NODE_ENV !== 'production')) console.warn('[Captain tariff save offline fallback]', updateError);
     }
+
+    // Persist locally for offline-first resilience (SC55 / Offline-First)
+    try {
+      localStorage.setItem(
+        `radar_captain_tariff_${user.uid}`,
+        JSON.stringify({
+          baseFare: value.baseFare,
+          pricePerKm: value.pricePerKm,
+          pricePerMin: value.pricePerMin,
+          includedKm: value.includedKm,
+          pricingMode: mode,
+        })
+      );
+    } catch {}
 
     // Sync with Supabase Auth user metadata in background (non-blocking so modal confirms instantly)
     void (async () => {

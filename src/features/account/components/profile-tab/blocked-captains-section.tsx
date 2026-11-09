@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ShieldAlert, ShieldCheck, UserX, Star, Phone, Ban, ChevronDown, ChevronUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useBlockedCaptains } from '../../hooks/use-blocked-captains';
 
 interface BlockedCaptainsSectionProps {
@@ -33,31 +34,39 @@ export function BlockedCaptainsSection({ isArabic }: BlockedCaptainsSectionProps
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-rose-500/50 to-transparent" />
 
       <CardHeader 
-        className="p-5 pb-3 cursor-pointer select-none" 
+        className="p-4 sm:p-5 pb-3.5 sm:pb-3 cursor-pointer select-none transition-colors hover:bg-white/[0.02]" 
         onClick={handleToggle}
       >
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+          {/* Top on Mobile: Icon + Full Title */}
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
               <ShieldAlert className="h-5 w-5" />
             </div>
-            <div className="min-w-0">
-              <CardTitle className="text-base font-black text-white flex items-center gap-2">
-                {isArabic ? 'كباتن معلنين فقدوا مصداقية إعلانهم' : t('blockedCaptains')}
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base font-black text-white font-sans">
+                {isArabic ? 'الكباتن المحظورون' : t('blockedCaptains')}
               </CardTitle>
-              <CardDescription className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">
-                {isArabic ? 'قائمة بمن لا ترغب التعامل معهم' : t('blockedCaptainsDesc')}
+              <CardDescription className="hidden sm:block text-xs text-slate-400 mt-0.5 leading-relaxed font-sans">
+                {isArabic ? 'قائمة بالكباتن المحظورين من الظهور على خريطتك' : t('blockedCaptainsDesc')}
               </CardDescription>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="shrink-0 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-300 flex items-center gap-1.5 shadow-sm">
-              <Ban className="h-3 w-3 text-rose-400" />
-              <span>{blockedCaptains.length}</span>
-            </span>
-            <div className="text-rose-400/70">
-              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          {/* Bottom on Mobile: Subtitle + Badge + Chevron */}
+          <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-white/[0.05] sm:border-0 shrink-0">
+            <CardDescription className="sm:hidden text-xs text-slate-400 leading-relaxed font-sans truncate min-w-0 flex-1">
+              {isArabic ? 'قائمة بالكباتن المحظورين' : 'Blocked captains list'}
+            </CardDescription>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="shrink-0 rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 sm:px-3 py-1 text-xs font-bold text-rose-300 flex items-center gap-1.5 shadow-sm font-mono">
+                <Ban className="h-3 w-3 text-rose-400 shrink-0" />
+                <span>{blockedCaptains.length} {isArabic ? 'محظور' : 'blocked'}</span>
+              </span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-400 transition-all hover:bg-rose-500/20 shrink-0">
+                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")} />
+              </div>
             </div>
           </div>
         </div>

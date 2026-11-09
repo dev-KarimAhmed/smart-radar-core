@@ -58,15 +58,18 @@ function formatReceiptDate(isoString: string, isArabic = true) {
 const styles = {
   card: 'relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white',
   accentBar: 'absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent shadow-[0_0_12px_rgba(16,185,129,0.5)]',
-  header: 'p-5 pb-3',
+  header: 'p-4 sm:p-5 pb-3.5 sm:pb-3',
   headerButton: 'w-full text-right cursor-pointer select-none transition-colors hover:bg-white/[0.02]',
-  headerRow: 'flex items-center justify-between gap-3',
+  headerRow: 'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3',
   headerInfo: 'flex items-center gap-3 min-w-0',
   iconBox: 'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]',
   icon: 'h-5 w-5',
-  title: 'text-base font-black text-white flex items-center gap-2 font-sans',
-  desc: 'text-xs text-slate-400 mt-0.5 leading-relaxed font-sans',
-  countBadge: 'shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300 shadow-sm font-mono',
+  title: 'text-base font-black text-white font-sans',
+  descDesktop: 'hidden sm:block text-xs text-slate-400 mt-0.5 leading-relaxed font-sans',
+  descMobile: 'sm:hidden text-xs text-slate-400 leading-relaxed font-sans truncate min-w-0 flex-1',
+  actionsRow: 'flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-white/[0.05] sm:border-0 shrink-0',
+  actionsGroup: 'flex items-center gap-2 shrink-0',
+  countBadge: 'shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 sm:px-3 py-1 text-xs font-bold text-emerald-300 shadow-sm font-mono',
   chevronBox: 'flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 transition-all hover:bg-emerald-500/20 shrink-0',
   chevronIcon: 'h-4 w-4 transition-transform duration-200',
   chevronRotated: 'rotate-180',
@@ -156,45 +159,39 @@ export function HistoryFinancialReceipts({ isArabic = true }: HistoryFinancialRe
             className={styles.headerButton}
           >
             <div className={styles.headerRow}>
+              {/* Top on Mobile: Icon + Full Title */}
               <div className={styles.headerInfo}>
                 <div className={styles.iconBox}>
                   <ReceiptText className={styles.icon} />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <CardTitle className={styles.title}>
-                    <span>{isArabic ? 'سجل آخر خمسة إيصالات مالية' : 'Last 5 Financial Invoices'}</span>
-                    <Badge variant="outline" className="border-emerald-500/40 text-emerald-300 text-[10px] px-2 py-0.5">
-                      {isArabic ? 'سجل المالية' : 'Financial'}
-                    </Badge>
+                    {isArabic ? 'سجل الإيصالات المالية' : 'Financial Receipts Log'}
                   </CardTitle>
-                  <CardDescription className={styles.desc}>
+                  <CardDescription className={styles.descDesktop}>
                     {isArabic
-                      ? 'سجل توثيق عمليات شحن الرصيد الرقمي والمحلي وحالتها المالية'
-                      : 'Records of recent wallet recharges, invoices, and transaction statuses'}
+                      ? 'سجل عمليات شحن الرصيد الرقمي والمحلي وحالتها'
+                      : 'Records of wallet recharges, invoices & statuses'}
                   </CardDescription>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void fetchReceipts(true);
-                  }}
-                  disabled={isLoading}
-                  className="p-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 transition-all cursor-pointer"
-                  title={isArabic ? 'تحديث السجل' : 'Refresh'}
-                >
-                  <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin text-emerald-400')} />
-                </button>
+              {/* Bottom on Mobile: Subtitle + Badge + Chevron */}
+              <div className={styles.actionsRow}>
+                <CardDescription className={styles.descMobile}>
+                  {isArabic
+                    ? 'شحن الرصيد الرقمي والمحلي وحالتها'
+                    : 'Wallet recharges & invoice statuses'}
+                </CardDescription>
 
-                <span className={styles.countBadge}>
-                  {receipts.length}/5 {isArabic ? 'إيصال' : 'receipts'}
-                </span>
+                <div className={styles.actionsGroup}>
+                  <span className={styles.countBadge}>
+                    {receipts.length} {isArabic ? 'إيصال' : 'receipts'}
+                  </span>
 
-                <div className={styles.chevronBox}>
-                  <ChevronDown className={cn(styles.chevronIcon, isExpanded && styles.chevronRotated)} />
+                  <div className={styles.chevronBox}>
+                    <ChevronDown className={cn(styles.chevronIcon, isExpanded && styles.chevronRotated)} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -203,6 +200,22 @@ export function HistoryFinancialReceipts({ isArabic = true }: HistoryFinancialRe
 
         {isExpanded && (
           <CardContent className={styles.content}>
+            {/* Toolbar inside expanded content */}
+            <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-white/5">
+              <span className="text-xs text-slate-400 font-sans font-medium">
+                {isArabic ? `إجمالي الإيصالات: ${receipts.length}` : `Total invoices: ${receipts.length}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => void fetchReceipts(true)}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-semibold text-emerald-300 transition-all cursor-pointer disabled:opacity-50"
+                title={isArabic ? 'تحديث السجل' : 'Refresh'}
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
+                <span>{isArabic ? 'تحديث' : 'Refresh'}</span>
+              </button>
+            </div>
             {isLoading && receipts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-slate-400 gap-2">
                 <RefreshCw className="h-6 w-6 animate-spin text-emerald-400" />
