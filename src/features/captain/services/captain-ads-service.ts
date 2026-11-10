@@ -337,12 +337,17 @@ export function getCaptainAdPackage(captainId: string): CaptainAdPackage {
   }
 }
 
-export function subscribeCaptainAdPackage(captainId: string): CaptainAdPackage {
+export function subscribeCaptainAdPackage(
+  captainId: string,
+  _packageId: 'PACKAGE_A' = 'PACKAGE_A',
+  durationDays = 30
+): CaptainAdPackage {
   const now = new Date();
-  const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const expires = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
   const pkg: CaptainAdPackage = {
     ...AD_PACKAGE_A_DETAILS,
     status: 'ACTIVE',
+    durationDays,
     subscribedAt: now.toISOString(),
     expiresAt: expires.toISOString(),
   };
