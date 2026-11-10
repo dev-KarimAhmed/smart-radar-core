@@ -1,5 +1,6 @@
 import { parsePhoneNumberFromString, getExampleNumber, type CountryCode } from 'libphonenumber-js';
 import phoneNumberExamples from 'libphonenumber-js/mobile/examples';
+import { isSaudiPhoneNumber, isSaudiCountryCode, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 import {
   getCountryIsoCode,
   type SupabaseCountryRow,
@@ -27,7 +28,7 @@ export function normalizePhoneForCountry(
   country: SupabaseCountryRow | null,
   tAuto?: (key: string) => string,
 ) {
-  let trimmed = rawPhone.trim().replace(/[\s()-]/g, '');
+  let trimmed = String(rawPhone || '').trim().replace(/[\s()\-]/g, '');
   const getMsg = (key: string, fallback: string) => {
     try {
       return tAuto ? tAuto(key) : fallback;
@@ -45,7 +46,15 @@ export function normalizePhoneForCountry(
     trimmed = '+' + trimmed.slice(2);
   }
 
+  // Reject Saudi phone numbers and country
+  if (isSaudiPhoneNumber(trimmed) || isSaudiPhoneNumber(rawPhone) || isSaudiCountryCode(country?.country_code || country?.iso2)) {
+    return { ok: false as const, message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected };
+  }
+
   const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
+  if (isoCode === 'SA') {
+    return { ok: false as const, message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected };
+  }
 
   try {
     // Strategy 1: Parse with given country ISO code if provided
@@ -59,10 +68,10 @@ export function normalizePhoneForCountry(
       }
     }
 
-    // Strategy 3: If still invalid and no + prefix, try fallback to common regional countries (JO, EG, SA)
+    // Strategy 3: If still invalid and no + prefix, try fallback to allowed regional countries (JO, EG)
     if (!parsed || !parsed.isValid()) {
       if (!trimmed.startsWith('+')) {
-        for (const fallbackIso of ['JO', 'EG', 'SA'] as CountryCode[]) {
+        for (const fallbackIso of ['JO', 'EG'] as CountryCode[]) {
           if (fallbackIso === isoCode) continue;
           const candidate = parsePhoneNumberFromString(trimmed, fallbackIso);
           if (candidate && candidate.isValid()) {
@@ -76,6 +85,9 @@ export function normalizePhoneForCountry(
     // Strategy 4: If starts with + and has 8-15 digits, accept directly
     if (!parsed || !parsed.isValid()) {
       if (/^\+[1-9]\d{7,14}$/.test(trimmed)) {
+        if (isSaudiPhoneNumber(trimmed)) {
+          return { ok: false as const, message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected };
+        }
         return { ok: true as const, phone: trimmed };
       }
       return {
@@ -86,9 +98,16 @@ export function normalizePhoneForCountry(
       };
     }
 
+    if (isSaudiPhoneNumber(parsed.number) || parsed.country === 'SA') {
+      return { ok: false as const, message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected };
+    }
+
     return { ok: true as const, phone: parsed.number };
   } catch {
     if (/^\+[1-9]\d{7,14}$/.test(trimmed)) {
+      if (isSaudiPhoneNumber(trimmed)) {
+        return { ok: false as const, message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected };
+      }
       return { ok: true as const, phone: trimmed };
     }
     return { ok: false as const, message: getMsg('key_286d6c55', 'رقم الهاتف غير صحيح.') };
@@ -96,20 +115,25 @@ export function normalizePhoneForCountry(
 }
 
 export function toSupabaseAuthRole(
-  role: RegistrationRole
+  role: RegistrationRole | string | null | undefined
 ): 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN' {
-  if (role === 'driver') return 'CAPTAIN';
-  if (role === 'advertiser') return 'ADVERTISER';
-  if (role === 'delegate') return 'DELEGATE';
-  if (role === 'admin') return 'ADMIN';
+  if (!role) return 'RIDER';
+  const normalized = String(role).trim().toLowerCase();
+  if (normalized === 'driver' || normalized === 'captain') return 'CAPTAIN';
+  if (normalized === 'advertiser') return 'ADVERTISER';
+  if (normalized === 'delegate') return 'DELEGATE';
+  if (normalized === 'admin') return 'ADMIN';
   return 'RIDER';
 }
 
-export function getDemoPhoneForCountry(country: SupabaseCountryRow | null): string {
+export function getDemoPhoneForCountry(country?: SupabaseCountryRow | null): string {
+  if (!country || isSaudiCountryCode(country.country_code || country.iso2)) {
+    return '+962790000000';
+  }
   const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
-  if (isoCode) {
+  if (isoCode && isoCode !== 'SA') {
     const example = getExampleNumber(isoCode, phoneNumberExamples);
-    if (example) return example.number;
+    if (example && !isSaudiPhoneNumber(example.number)) return example.number;
   }
 
   return '+962790000000';

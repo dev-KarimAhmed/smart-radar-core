@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendAccountConfirmationEmail } from '@/server/services/email-service';
 import { getAppOrigin } from '@/lib/utils';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 
 export async function POST(req: Request) {
   try {
@@ -10,6 +11,13 @@ export async function POST(req: Request) {
     const rawEmail = String(body.email || '').trim().toLowerCase();
     const rawPhone = String(body.phone || '').trim().replace(/[\s()-]/g, '');
     const providedUserId = String(body.userId || '').trim();
+
+    if (isSaudiPhoneNumber(rawPhone)) {
+      return NextResponse.json(
+        { success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected },
+        { status: 400 }
+      );
+    }
 
     if (!providedUserId && !rawEmail && !rawPhone) {
       return NextResponse.json(

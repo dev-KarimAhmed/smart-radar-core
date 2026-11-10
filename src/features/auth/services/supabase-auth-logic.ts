@@ -1,4 +1,5 @@
 import type { AuthError, User } from '@supabase/supabase-js';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 
@@ -68,6 +69,13 @@ export function normalizeInternationalPhone(phone: string) {
 
 export function validatePhoneAndPassword(phone: string, password: string) {
   const normalizedPhone = normalizeInternationalPhone(phone);
+
+  if (isSaudiPhoneNumber(normalizedPhone) || isSaudiPhoneNumber(phone)) {
+    return {
+      ok: false as const,
+      message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected,
+    };
+  }
 
   if (!PHONE_REGEX.test(normalizedPhone)) {
     return {
