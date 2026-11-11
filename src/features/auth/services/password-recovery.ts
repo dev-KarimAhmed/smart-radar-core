@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase-client';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 
 /**
  * Client side of password recovery. Every call goes to the Express routes in
@@ -65,6 +66,9 @@ async function readError(response: Response, fallback: string) {
  * registered, so callers must not branch on it — there is nothing to branch on.
  */
 export async function requestPasswordRecovery(phone: string, email?: string) {
+  if (isSaudiPhoneNumber(phone)) {
+    throw new Error(SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected);
+  }
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   try {
     const { data } = await supabase.auth.getSession();

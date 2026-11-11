@@ -3,6 +3,7 @@ import { Router, type Request } from 'express';
 
 import { requireRole } from './supabase-identity';
 import { sendPasswordResetEmail, getSenderFromEmail } from '../services/email-service';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '../../core/logic/saudi-restriction';
 
 /**
  * Password recovery for a phone-only login.
@@ -163,7 +164,14 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     return res.status(503).json({ success: false, error: 'خدمة استرجاع كلمة المرور غير متاحة حالياً.' });
   }
 
+  if (isSaudiPhoneNumber(req.body?.phone)) {
+    return res.status(400).json({ success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected });
+  }
+
   let digits = phoneDigits(req.body?.phone);
+  if (digits.startsWith('966')) {
+    return res.status(400).json({ success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected });
+  }
   const claimedEmail = String(req.body?.email ?? '').trim().toLowerCase();
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(claimedEmail);
 

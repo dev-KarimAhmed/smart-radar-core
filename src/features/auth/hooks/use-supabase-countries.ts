@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
+import { isSaudiCountryCode } from '@/core/logic/saudi-restriction';
 
 export interface SupabaseCountryRow {
   id: number;
@@ -25,7 +26,13 @@ export function normalizeCountries(rows: unknown): SupabaseCountryRow[] {
   return Array.isArray(rows)
     ? rows
         .map((row) => row as Partial<SupabaseCountryRow>)
-        .filter((row): row is SupabaseCountryRow => Number.isInteger(row.id))
+        .filter((row): row is SupabaseCountryRow => {
+          if (!Number.isInteger(row.id)) return false;
+          if (isSaudiCountryCode(row.country_code || row.iso2 || row.code || row.phone_code || row.name_ar || row.name_en)) {
+            return false;
+          }
+          return true;
+        })
     : [];
 }
 

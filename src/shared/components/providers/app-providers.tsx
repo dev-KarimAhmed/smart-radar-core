@@ -6,6 +6,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { RouteErrorBoundary } from '@/shared/components/layout/route-error-boundary';
 import { QueryProvider } from '@/shared/components/providers/query-provider';
 import { DeferredClientTools } from './deferred-client-tools';
+import { SaudiGeoGuard } from '@/shared/components/guards/saudi-geo-guard';
 
 const styles = {
   shell: 'contents',
@@ -16,10 +17,12 @@ export function AppProviders({ children }: PropsWithChildren) {
     <QueryProvider>
       <LocaleProvider>
         <AuthProvider>
-          <div className={styles.shell} data-app-shell>
-            <RouteErrorBoundary>{children}</RouteErrorBoundary>
-            <DeferredClientTools />
-          </div>
+          <SaudiGeoGuard>
+            <div className={styles.shell} data-app-shell>
+              <RouteErrorBoundary>{children}</RouteErrorBoundary>
+              <DeferredClientTools />
+            </div>
+          </SaudiGeoGuard>
         </AuthProvider>
       </LocaleProvider>
     </QueryProvider>
