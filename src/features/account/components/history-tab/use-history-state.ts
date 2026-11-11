@@ -19,6 +19,8 @@ import {
   getHistoryVehicleInfo,
   parseTripTimestamp,
   fetchRowsByIds,
+  fetchSafeCaptainCardsMap,
+  fetchSafeCounterpartProfilesMap,
   enrichCaptainDetails,
   getTripHistoryId,
   appendUniqueTrips,
@@ -254,11 +256,37 @@ export function useHistoryState() {
             } else if (ledgerRows && ledgerRows.length > 0) {
               const captainIds = Array.from(new Set(ledgerRows.map((row: any) => row.captain_id).filter(Boolean)));
               const requestIds = Array.from(new Set(ledgerRows.map((row: any) => row.request_id).filter(Boolean)));
-              const [captainMap, captainProfileMap, requestMap] = await Promise.all([
-                fetchRowsByIds('profiles', captainIds),
-                fetchRowsByIds('captain_profiles', captainIds),
+              const [rpcCardsMap, rpcProfilesMap, requestMap] = await Promise.all([
+                fetchSafeCaptainCardsMap(captainIds),
+                fetchSafeCounterpartProfilesMap(captainIds),
                 fetchRowsByIds('ride_requests', requestIds),
               ]);
+
+              let captainMap: Map<string, any>;
+              let captainProfileMap: Map<string, any>;
+
+              if (rpcCardsMap !== null || rpcProfilesMap !== null) {
+                captainProfileMap = rpcCardsMap ?? new Map<string, any>();
+                captainMap = new Map<string, any>();
+                for (const cid of captainIds) {
+                  const card = rpcCardsMap?.get(cid);
+                  const prof = rpcProfilesMap?.get(cid);
+                  if (card || prof) {
+                    captainMap.set(cid, {
+                      ...(card || {}),
+                      ...(prof || {}),
+                      id: cid,
+                      full_name: prof?.full_name || card?.full_name,
+                      phone: prof?.phone || '',
+                    });
+                  }
+                }
+              } else {
+                [captainMap, captainProfileMap] = await Promise.all([
+                  fetchRowsByIds('profiles', captainIds),
+                  fetchRowsByIds('captain_profiles', captainIds),
+                ]);
+              }
 
               const ledgerTrips = ledgerRows.map((row: any) => {
                 const req = row.request_id ? requestMap.get(row.request_id) : null;
@@ -319,10 +347,11 @@ export function useHistoryState() {
             } else if (ledgerRows && ledgerRows.length > 0) {
               const riderIds = Array.from(new Set(ledgerRows.map((row: any) => row.rider_id).filter(Boolean)));
               const requestIds = Array.from(new Set(ledgerRows.map((row: any) => row.request_id).filter(Boolean)));
-              const [riderMap, requestMap] = await Promise.all([
-                fetchRowsByIds('profiles', riderIds),
+              const [rpcRiderMap, requestMap] = await Promise.all([
+                fetchSafeCounterpartProfilesMap(riderIds),
                 fetchRowsByIds('ride_requests', requestIds),
               ]);
+              const riderMap = rpcRiderMap ?? (await fetchRowsByIds('profiles', riderIds));
 
               const ledgerTrips = ledgerRows.map((row: any) => {
                 const req = row.request_id ? requestMap.get(row.request_id) : null;
@@ -357,11 +386,7 @@ export function useHistoryState() {
           try {
             const { data, error } = await supabase
               .from('ride_requests')
-              .select(`
-                *,
-                rider:profiles!rider_id(id, full_name, phone, rating),
-                captain:profiles!accepted_captain_id(id, full_name, phone, rating)
-              `)
+              .select('*')
               .eq(userColumn, user!.uid)
               .eq('status', 'COMPLETED')
               .order('created_at', { ascending: false });
@@ -369,7 +394,16 @@ export function useHistoryState() {
             if (error) {
               if (process.env.NODE_ENV !== 'production') console.warn('[HistoryTab query notice]', error.message);
             } else if (data) {
-              fetchedData = appendUniqueTrips(fetchedData, data);
+              let rowsToAppend = data;
+              if (isCaptain && data.length > 0) {
+                const rIds = Array.from(new Set(data.map((r: any) => r.rider_id).filter(Boolean)));
+                const rMap = (await fetchSafeCounterpartProfilesMap(rIds)) ?? (await fetchRowsByIds('profiles', rIds));
+                rowsToAppend = data.map((r: any) => ({
+                  ...r,
+                  rider: r.rider_id ? rMap.get(r.rider_id) || r.rider : r.rider,
+                }));
+              }
+              fetchedData = appendUniqueTrips(fetchedData, rowsToAppend);
             }
           } catch (supabaseError) {
             if ((process.env.NODE_ENV !== 'production')) console.warn('[HistoryTab Supabase Fetch Failed, falling back to local]', supabaseError);
@@ -435,7 +469,9 @@ export function useHistoryState() {
             ));
             if (unpopulatedRiderIds.length > 0) {
               try {
-                const riderMap = await fetchRowsByIds('profiles', unpopulatedRiderIds);
+                const riderMap =
+                  (await fetchSafeCounterpartProfilesMap(unpopulatedRiderIds)) ??
+                  (await fetchRowsByIds('profiles', unpopulatedRiderIds));
                 fetchedData = fetchedData.map(item => {
                   const targetRiderId = item.rider_id || item.riderId;
                   if (targetRiderId && riderMap.has(targetRiderId)) {

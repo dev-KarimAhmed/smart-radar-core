@@ -6,6 +6,7 @@ import { fetchFavoriteCaptainIds } from '../../services/favorite-captains';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import type { CountryRow, DistrictRow, GovernorateRow, ProfileKey, ProfileRow } from './profile-shared';
 import { getProfileName, normalizeRows, numberOrEmpty, saveProfile, fetchProfileByUserId, normalizeInternationalPhone, mapProfileSaveError } from './profile-shared';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 import { useTranslations } from 'next-intl';
 import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
 
@@ -211,6 +212,15 @@ export function useProfileState() {
     const nextCountryId = Number(countryId);
     const nextGovernorateId = Number(governorateId);
     const nextDistrictId = Number(districtId);
+
+    if (isSaudiPhoneNumber(phone) || isSaudiPhoneNumber(emergencyWhatsappContact)) {
+      toast({
+        variant: 'destructive',
+        title: isArabic ? 'رقم هاتف غير مدعوم' : 'Unsupported Phone Number',
+        description: isArabic ? SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected : SAUDI_RESTRICTION_MESSAGES.en.phoneRejected,
+      });
+      return;
+    }
 
     if (!fullName.trim()) {
       toast({

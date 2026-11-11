@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 
 export async function POST(req: Request) {
   try {
@@ -14,6 +15,13 @@ export async function POST(req: Request) {
     if (!/^\d{6}$/.test(rawCode)) {
       return NextResponse.json(
         { success: false, error: 'يرجى إدخال كود التفعيل المكون من 6 أرقام بشكل صحيح.' },
+        { status: 400 }
+      );
+    }
+
+    if (isSaudiPhoneNumber(rawPhone)) {
+      return NextResponse.json(
+        { success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected },
         { status: 400 }
       );
     }

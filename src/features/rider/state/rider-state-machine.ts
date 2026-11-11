@@ -109,6 +109,7 @@ export type RiderMachineAction =
   | { type: 'OPEN_FAVORITE_CAPTAINS' }
   | { type: 'RETURN_TO_MAP' }
   | { type: 'CLEAR_AUTO_RETRY' }
+  | { type: 'HYDRATE_CAPTAIN_PHONE'; captainId: string; phone: string }
   | { type: 'RESET_TO_IDLE' };
 
 const RIDER_STATE_STORAGE_KEY = 'radar_active_rider_machine_state';
@@ -487,6 +488,23 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'CLEAR_AUTO_RETRY':
       return { ...state, autoRetryRequested: false };
+
+    case 'HYDRATE_CAPTAIN_PHONE': {
+      if (!state.activeTrip || !action.phone) return state;
+      if (state.activeTrip.captainId && action.captainId && state.activeTrip.captainId !== action.captainId) {
+        return state;
+      }
+      return {
+        ...state,
+        activeTrip: {
+          ...state.activeTrip,
+          captainPhone: action.phone,
+          captain: state.activeTrip.captain
+            ? { ...state.activeTrip.captain, phone: action.phone }
+            : { phone: action.phone },
+        },
+      };
+    }
 
     case 'RESET_TO_IDLE':
       if (typeof window !== 'undefined') {

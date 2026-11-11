@@ -586,11 +586,13 @@ async function cancelActiveRequestBeforeLogout(user: SovereignUser | null) {
         await supabase
           .from('ride_offers')
           .update({ status: 'CANCELLED' })
-          .eq('captain_id', user.uid);
+          .eq('captain_id', user.uid)
+          .neq('status', 'ACCEPTED');
         await supabase
           .from('ride_offers')
           .delete()
-          .eq('captain_id', user.uid);
+          .eq('captain_id', user.uid)
+          .neq('status', 'ACCEPTED');
         try {
           await supabase.rpc('set_captain_status', { p_status: 'IDLE' });
         } catch {

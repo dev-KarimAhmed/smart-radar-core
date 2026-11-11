@@ -1,5 +1,6 @@
 import * as yup from 'yup';
 import { isValidPhoneNumber, type CountryCode } from 'libphonenumber-js/min';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 
 // The subset of next-intl's `useTranslations()` return value these schemas need.
 // Kept as a plain function type (instead of importing next-intl's own type) so
@@ -85,6 +86,9 @@ export function getCaptainPersonalSchema(t: CaptainValidationT) {
       .string()
       .trim()
       .required(t('phoneRequired'))
+      .test('not-saudi-phone', SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected, (value) => {
+        return !isSaudiPhoneNumber(value);
+      })
       .test('is-valid-phone', t('phoneInvalid'), function testPhone(value) {
         if (!hasCountryCodePrefix(value)) {
           return this.createError({ message: t('phoneMissingCountryCode') });

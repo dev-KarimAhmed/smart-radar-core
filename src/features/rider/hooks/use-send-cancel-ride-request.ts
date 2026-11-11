@@ -3,6 +3,7 @@ import { latLngToCell } from 'h3-js';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import { calculateHaversineKm, type RoadRouteEstimate } from '@/lib/road-route';
 import {
@@ -256,9 +257,10 @@ export function useSendCancelRideRequest(params: {
               try {
                 await cancelRideRequest(supabase, staleId);
               } catch {
+                const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
                 await fetch('/api/trip/mutual-cancel', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: authHeaders,
                   body: JSON.stringify({ requestId: staleId, cancelledByRole: 'rider' }),
                 }).catch(() => {});
               }

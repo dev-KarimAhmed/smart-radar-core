@@ -49,6 +49,8 @@ export function AdminRoute() {
     user?.adminRank === 'GENERAL_ADMIN' ||
     user?.adminRank === 'ASSISTANT_ADMIN' ||
     user?.phone === '+201551981922' ||
+    user?.phone === '+201551981977' ||
+    user?.phone === '201551981977' ||
     user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
     user?.uid === 'demo-admin-001'
   );

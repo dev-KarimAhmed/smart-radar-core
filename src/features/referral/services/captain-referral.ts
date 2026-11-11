@@ -221,19 +221,43 @@ export async function getCaptainReferredRiders(): Promise<ReferredRiderInfo[]> {
 export async function getCaptainFavoriteRiders(): Promise<ReferredRiderInfo[]> {
   const { data, error } = await supabase
     .from('captain_favorite_riders')
-    .select('rider_id, created_at, profiles:rider_id(id, full_name, phone, serial_id, rating, rating_count)')
+    .select('rider_id, created_at')
     .order('created_at', { ascending: false });
 
-  if (error || !data) return [];
-  return data.map((row: any) => ({
-    rider_id: row.rider_id,
-    rider_name: row.profiles?.full_name,
-    rider_phone: row.profiles?.phone,
-    rider_serial: row.profiles?.serial_id,
-    linked_at: row.created_at,
-    rating: row.profiles?.rating,
-    rating_count: row.profiles?.rating_count,
-  }));
+  if (error || !data || data.length === 0) return [];
+
+  const riderIds = Array.from(
+    new Set(data.map((row: any) => String(row?.rider_id || '')).filter(Boolean))
+  );
+
+  const profileMap = new Map<string, any>();
+  if (riderIds.length > 0) {
+    try {
+      const { data: safeProfiles, error: rpcErr } = await supabase.rpc('get_safe_counterpart_profiles', {
+        p_user_ids: riderIds,
+      });
+      if (!rpcErr && Array.isArray(safeProfiles)) {
+        for (const prof of safeProfiles) {
+          if (prof?.id) profileMap.set(String(prof.id), prof);
+        }
+      }
+    } catch {
+      // Safe fallback: return favorite link rows even if profile hydration fails
+    }
+  }
+
+  return data.map((row: any) => {
+    const profile = profileMap.get(String(row.rider_id || ''));
+    return {
+      rider_id: row.rider_id,
+      rider_name: profile?.full_name,
+      rider_phone: profile?.phone,
+      rider_serial: profile?.serial_id,
+      linked_at: row.created_at,
+      rating: profile?.rating,
+      rating_count: profile?.rating_count,
+    };
+  });
 }
 
 const LAST_ACTIVITY_SYNC_KEY = 'radar_rider_last_activity_sync';

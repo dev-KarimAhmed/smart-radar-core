@@ -5,6 +5,7 @@ import { sendAccountConfirmationEmail, sendCaptainContractEmail } from '@/server
 import { saveCaptainContract } from '@/server/services/contract-pdf-service';
 import { getAppOrigin } from '@/lib/utils';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
+import { isSaudiPhoneNumber, isSaudiCountryCode, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,6 +30,13 @@ export async function POST(req: Request) {
     const captainProfile = body.captainProfile || null;
 
     // 1. Validations
+    if (isSaudiPhoneNumber(normalizedPhone) || isSaudiPhoneNumber(rawPhone) || isSaudiCountryCode(body.countryCode || body.isoCode)) {
+      return NextResponse.json(
+        { success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected },
+        { status: 400 }
+      );
+    }
+
     if (!PHONE_REGEX.test(normalizedPhone)) {
       return NextResponse.json(
         { success: false, error: 'يرجى كتابة رقم الهاتف بصيغة دولية، مثل +962790000000 أو +201000000000.' },

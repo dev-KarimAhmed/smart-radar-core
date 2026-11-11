@@ -11,6 +11,8 @@ assert.equal(normalizeInternationalPhone('00962 79 000 0000'), '+962790000000');
 assert.equal(normalizeInternationalPhone('00201000000000'), '+201000000000');
 assert.equal(validatePhoneAndPassword('+962790000000', '123').ok, false);
 assert.equal(validatePhoneAndPassword('00962790000000', '123456').ok, true);
+assert.equal(validatePhoneAndPassword('+966500000000', '123456').ok, false, 'Saudi phone must be rejected');
+assert.equal(validatePhoneAndPassword('00966500000000', '123456').ok, false, 'Saudi 00966 must be rejected');
 
 assert.equal(
   mapSupabaseAuthError({ message: 'role_mismatch:CAPTAIN:RIDER' }),

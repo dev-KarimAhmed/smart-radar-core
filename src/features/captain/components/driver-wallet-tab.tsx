@@ -28,6 +28,7 @@ import {
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { supabase } from '@/lib/supabase-client';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import { cn } from '@/lib/utils';
 import {
   CAPTAIN_PAYMENT_CHANNELS,
@@ -112,7 +113,10 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
         if (user?.governorate) params.append('governorate', user.governorate);
         if (user?.district) params.append('district', user.district);
 
-        const res = await fetch(`/api/captain/wallet-directory?${params.toString()}`);
+        const authHeaders = await getSupabaseAuthHeaders();
+        const res = await fetch(`/api/captain/wallet-directory?${params.toString()}`, {
+          headers: authHeaders,
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (isMounted && data.success) {
@@ -132,7 +136,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
     return () => {
       isMounted = false;
     };
-  }, [user?.countryId, user?.governorate, user?.district]);
+  }, [user?.uid, user?.countryId, user?.governorate, user?.district]);
 
   // Unified Effective Channels (Dynamic from DB with static fallback)
   const effectiveChannels = React.useMemo(() => {
@@ -191,7 +195,10 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
     if (!captainId) return;
     if (showLoading) setIsLoadingReceipts(true);
     try {
-      const res = await fetch(`/api/captain/receipts?captainId=${encodeURIComponent(captainId)}`);
+      const authHeaders = await getSupabaseAuthHeaders();
+      const res = await fetch(`/api/captain/receipts?captainId=${encodeURIComponent(captainId)}`, {
+        headers: authHeaders,
+      });
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && Array.isArray(data.receipts)) {

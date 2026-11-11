@@ -1,57 +1,53 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
+import { getVerifiedUser } from '@/shared/server/api-auth-guard';
 
 export const dynamic = 'force-dynamic';
 
+// Cutoff timestamp matching /api/auth/login email verification rollout
+const EMAIL_CONFIRM_CUTOFF_MS = 1792769400000;
+
 export async function POST(req: Request) {
   try {
-    const authHeader = req.headers.get('Authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
-    if (!token) {
+    const caller = await getVerifiedUser(req);
+    if (!caller) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized: Bearer token required' },
+        { success: false, error: 'Unauthorized: Valid active session required' },
         { status: 401 }
       );
     }
 
-    const { data: authData, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !authData?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized: Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const userId = authData.user.id;
-
-    // Verify user role is CAPTAIN
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profile?.role !== 'CAPTAIN') {
+    if (caller.role !== 'CAPTAIN' && caller.role !== 'DRIVER') {
       return NextResponse.json(
         { success: false, error: 'Feature only available for captains' },
         { status: 403 }
       );
     }
 
-    const result = await grantNewCaptainWelcomeCredit(userId);
+    const userEmail = caller.rawUser.email || (caller.rawUser.user_metadata?.email as string | undefined);
+    const createdAtMs = caller.rawUser.created_at ? new Date(caller.rawUser.created_at).getTime() : 0;
+    const isPreFeatureAccount = createdAtMs > 0 && createdAtMs < EMAIL_CONFIRM_CUTOFF_MS;
+    const isPhoneOnlyAccount = !userEmail || !userEmail.includes('@');
+    const requiresEmailConfirmation = !isPreFeatureAccount && !isPhoneOnlyAccount;
+
+    if (requiresEmailConfirmation && !caller.rawUser.email_confirmed_at) {
+      return NextResponse.json(
+        { success: false, error: 'Email confirmation required before claiming welcome credit' },
+        { status: 403 }
+      );
+    }
+
+    const result = await grantNewCaptainWelcomeCredit(caller.id);
 
     return NextResponse.json({
       success: true,
       ...result,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[CaptainWelcomeCredit API] Error:', err);
     return NextResponse.json(
-      { success: false, error: err?.message || 'Internal server error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
-

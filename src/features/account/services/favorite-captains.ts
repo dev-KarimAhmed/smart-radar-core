@@ -137,7 +137,20 @@ export async function setFavoriteCaptain(
 
   const riderId = await getEffectiveRiderId();
 
-  // 1. Write immediately to Dexie favoriteCaptainIds & favoriteCaptains
+  // 1. Sync favorite relationship to Supabase first when favouriting so RLS-gated card/profile RPCs succeed
+  let syncedRemote = false;
+  if (riderId && isFavorite) {
+    try {
+      const { error: upsertErr } = await supabase
+        .from('rider_favorite_captains')
+        .upsert({ rider_id: riderId, captain_id: captainId }, { onConflict: 'rider_id,captain_id' });
+      syncedRemote = !upsertErr;
+    } catch (serverError) {
+      if (process.env.NODE_ENV !== 'production') console.warn('[Favorites] Early server sync notice:', serverError);
+    }
+  }
+
+  // 2. Write immediately to Dexie favoriteCaptainIds & favoriteCaptains
   if (isFavorite) {
     try {
       await dexieDb.favoriteCaptainIds.put({ captainId, heartedAt: Date.now() });
@@ -153,22 +166,32 @@ export async function setFavoriteCaptain(
         let vehicleInfo = captainMeta?.vehicle || 'مركبة معتمدة';
 
         try {
-          const { data: prof } = await supabase
-            .from('profiles')
-            .select('full_name, phone, role, serial_id, vehicle_model, vehicle_plate')
-            .eq('id', captainId)
-            .maybeSingle();
+          const [{ data: safeCards }, { data: safeProfiles }] = await Promise.all([
+            supabase.rpc('get_safe_captain_cards', { p_captain_ids: [captainId] }),
+            supabase.rpc('get_safe_counterpart_profiles', { p_user_ids: [captainId] }),
+          ]);
 
-          if (prof) {
-            if (prof.full_name) captainName = prof.full_name;
-            if (prof.phone) captainPhone = prof.phone;
-            if (prof.serial_id) serialId = prof.serial_id;
-            if (prof.vehicle_model || prof.vehicle_plate) {
-              vehicleInfo = [prof.vehicle_model, prof.vehicle_plate].filter(Boolean).join(' - ');
-            }
+          const safeCard = Array.isArray(safeCards) && safeCards.length > 0
+            ? (safeCards[0] as Record<string, unknown>)
+            : null;
+          const safeProf = Array.isArray(safeProfiles) && safeProfiles.length > 0
+            ? (safeProfiles[0] as Record<string, unknown>)
+            : null;
+
+          if (safeCard?.full_name) captainName = String(safeCard.full_name);
+          else if (safeProf?.full_name) captainName = String(safeProf.full_name);
+
+          if (safeProf?.phone) captainPhone = String(safeProf.phone);
+          if (safeCard?.serial_id) serialId = String(safeCard.serial_id);
+          else if (safeProf?.serial_id) serialId = String(safeProf.serial_id);
+
+          const vehicleModel = safeCard?.vehicle_model || safeCard?.vehicle_brand;
+          const plateNumber = safeCard?.plate_number;
+          if (vehicleModel || plateNumber) {
+            vehicleInfo = [vehicleModel, plateNumber].filter(Boolean).join(' - ');
           }
         } catch {
-          // ignore
+          // Non-blocking fallback when offline or RPC unavailable
         }
 
         await dexieDb.favoriteCaptains.add({
@@ -202,8 +225,8 @@ export async function setFavoriteCaptain(
     window.dispatchEvent(new CustomEvent('radar_favorites_updated', { detail: { captainId, isFavorite } }));
   }
 
-  // 2. Sync to Supabase in background
-  if (riderId) {
+  // 3. Sync removal or retry upsert to Supabase
+  if (riderId && !syncedRemote) {
     try {
       if (isFavorite) {
         await supabase

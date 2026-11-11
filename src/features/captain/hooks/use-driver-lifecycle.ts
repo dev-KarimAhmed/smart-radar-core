@@ -157,18 +157,6 @@ export function useDriverLifecycle(user: User | null) {
         } catch {}
       }
 
-      // 3. Fallback direct profile update if needed
-      if (!isSuccess) {
-        const targetStatusUpper = data.status.toUpperCase();
-        const { error: directErr } = await supabase
-          .from('profiles')
-          .update({ status: targetStatusUpper })
-          .eq('id', user.uid);
-        if (!directErr) {
-          isSuccess = true;
-        }
-      }
-
       if (!isSuccess) {
         toast({
           variant: 'destructive',
@@ -181,8 +169,8 @@ export function useDriverLifecycle(user: User | null) {
       setDriverStatus(data.status);
 
       if (data.status === 'idle') {
-        void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid);
-        void supabase.from('ride_offers').delete().eq('captain_id', user.uid);
+        void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid).neq('status', 'ACCEPTED');
+        void supabase.from('ride_offers').delete().eq('captain_id', user.uid).neq('status', 'ACCEPTED');
       }
 
       return true;
@@ -290,8 +278,8 @@ export function useDriverLifecycle(user: User | null) {
       changeDriverStatus(desiredStatus);
       if (user?.uid) {
         if (desiredStatus === 'idle') {
-          void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid);
-          void supabase.from('ride_offers').delete().eq('captain_id', user.uid);
+          void supabase.from('ride_offers').update({ status: 'CANCELLED' }).eq('captain_id', user.uid).neq('status', 'ACCEPTED');
+          void supabase.from('ride_offers').delete().eq('captain_id', user.uid).neq('status', 'ACCEPTED');
         }
         void addCaptainSovereignLog(
           user.uid,
