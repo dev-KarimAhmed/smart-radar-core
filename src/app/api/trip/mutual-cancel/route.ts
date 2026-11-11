@@ -1,9 +1,35 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getVerifiedUser } from '@/shared/server/api-auth-guard';
+import { normalizeCancelRole } from '@/shared/hooks/mutual-cancellation-helpers';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ALLOWED_ACTIONS = new Set(['REQUEST', 'ACCEPT', 'DECLINE', 'REVOKE']);
+
+async function broadcastMutualCancelEvent(
+  requestId: string,
+  event: 'REQUEST_CANCEL' | 'DECLINE_CANCEL' | 'REVOKE_CANCEL' | 'ACCEPT_CANCEL',
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const channel = supabaseAdmin.channel(`trip-mutual-cancel-${requestId}`, {
+    config: { broadcast: { ack: false } },
+  });
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    if (typeof channel?.httpSend !== 'function') return;
+    await Promise.race([
+      channel.httpSend(event, payload),
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, 350);
+      }),
+    ]);
+  } catch {
+    // Non-fatal real-time wakeup; persisted DB state and polling remain the SSOT
+  } finally {
+    if (timer) clearTimeout(timer);
+    await supabaseAdmin.removeChannel(channel).catch(() => {});
+  }
+}
 
 export async function GET(req: Request) {
   try {
@@ -43,7 +69,7 @@ export async function GET(req: Request) {
       success: true,
       requestId: data.id,
       status: data.status,
-      cancel_requested_by: data.cancel_requested_by || null,
+      cancel_requested_by: normalizeCancelRole(data.cancel_requested_by),
       cancel_request_time: data.cancel_request_time || null,
     });
   } catch (error) {
@@ -118,6 +144,7 @@ export async function POST(req: Request) {
     if (action === 'REQUEST') {
       let rpcSucceeded = false;
       let shouldFallback = false;
+      let rpcCancelRequestedBy: unknown = role;
       try {
         const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
           p_request_id: requestId,
@@ -139,6 +166,7 @@ export async function POST(req: Request) {
               { status: 400 }
             );
           }
+          rpcCancelRequestedBy = rpcPayload?.cancel_requested_by ?? role;
           rpcSucceeded = true;
         } else if (isMissingRpcFunctionError(rpcErr)) {
           shouldFallback = true;
@@ -168,10 +196,18 @@ export async function POST(req: Request) {
         }
       }
 
+      const confirmedRole = normalizeCancelRole(rpcCancelRequestedBy) ?? role;
+      await broadcastMutualCancelEvent(requestId, 'REQUEST_CANCEL', {
+        fromRole: confirmedRole,
+        tripDurationMinutes,
+        timestamp: Date.now(),
+        source: 'server',
+      });
+
       return NextResponse.json({
         success: true,
         action: 'REQUEST',
-        cancel_requested_by: role,
+        cancel_requested_by: confirmedRole,
         requestId,
       });
     }
@@ -228,6 +264,16 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: `${action.toLowerCase()}_failed` }, { status: 500 });
         }
       }
+
+      await broadcastMutualCancelEvent(
+        requestId,
+        action === 'DECLINE' ? 'DECLINE_CANCEL' : 'REVOKE_CANCEL',
+        {
+          fromRole: role,
+          timestamp: Date.now(),
+          source: 'server',
+        },
+      );
 
       return NextResponse.json({
         success: true,
@@ -304,6 +350,13 @@ export async function POST(req: Request) {
       })
       .eq('request_id', requestId)
       .neq('status', 'ACCEPTED');
+
+    await broadcastMutualCancelEvent(requestId, 'ACCEPT_CANCEL', {
+      fromRole: role,
+      tripDurationMinutes,
+      timestamp: Date.now(),
+      source: 'server',
+    });
 
     return NextResponse.json({
       success: true,

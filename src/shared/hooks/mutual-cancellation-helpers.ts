@@ -20,7 +20,10 @@ export type MutualCancelMutationOutcome =
   | { ok: false; errorCode: string };
 
 export function normalizeCancelRole(value: unknown): MutualCancelRole | null {
-  return value === 'captain' || value === 'rider' ? value : null;
+  if (typeof value !== 'string') return null;
+  const lower = value.trim().toLowerCase();
+  if (lower === 'captain' || lower === 'rider') return lower;
+  return null;
 }
 
 export function normalizeTerminalTripStatus(value: unknown): 'CANCELLED' | 'COMPLETED' | null {

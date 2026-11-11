@@ -9,6 +9,7 @@ import { cancelRideRequest, fetchRideOffers, subscribeToRideRequestStatus } from
 import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
+import { normalizeCancelRole } from '@/shared/hooks/mutual-cancellation-helpers';
 
 /**
  * Owns the server ride-request status subscription that drives most
@@ -55,11 +56,21 @@ export function useRideRequestStatusSync(params: {
   // The status-subscription effect below only re-subscribes when requestId
   // changes (the same id spans accepted -> arrived -> started), so its
   // closure would otherwise see a stale `state.screen` from whenever the
-  // subscription was created. Read the live value through this ref instead.
+  // subscription was created. Read the live values through these refs instead.
   const screenRef = React.useRef(state.screen);
   React.useEffect(() => {
     screenRef.current = state.screen;
   }, [state.screen]);
+
+  const activeTripRef = React.useRef(state.activeTrip);
+  React.useEffect(() => {
+    activeTripRef.current = state.activeTrip;
+  }, [state.activeTrip]);
+
+  const pendingAcceptedOfferIdRef = React.useRef(state.pendingAcceptedOfferId);
+  React.useEffect(() => {
+    pendingAcceptedOfferIdRef.current = state.pendingAcceptedOfferId;
+  }, [state.pendingAcceptedOfferId]);
 
   const openDestination = React.useCallback(() => {
     dispatch({ type: 'OPEN_DESTINATION' });
@@ -186,7 +197,7 @@ export function useRideRequestStatusSync(params: {
             type: 'SERVER_STATUS_ACCEPTED',
             row: {
               ...row,
-              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || state.pendingAcceptedOfferId,
+              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
             },
           });
           if (status === 'ACCEPTED') {
@@ -280,19 +291,22 @@ export function useRideRequestStatusSync(params: {
         || status === 'ACTIVE'
         || status === 'IN_PROGRESS'
       ) {
-        const currentActiveStatus = state.activeTrip?.status?.toUpperCase();
+        const liveActiveTrip = activeTripRef.current;
+        const liveScreen = screenRef.current;
+        const currentActiveStatus = liveActiveTrip?.status?.toUpperCase();
         const hasStatusChanged = currentActiveStatus !== status;
-        const hasArrivalChanged = Boolean(row.arrived_at) && !state.activeTrip?.arrivedAtMs;
-        const hasStartChanged = Boolean(row.started_at) && !state.activeTrip?.startedAtMs;
-        const hasCancelRequestChanged = (row.cancel_requested_by ?? null) !== (state.activeTrip?.cancel_requested_by ?? null);
+        const hasArrivalChanged = Boolean(row.arrived_at) && !liveActiveTrip?.arrivedAtMs;
+        const hasStartChanged = Boolean(row.started_at) && !liveActiveTrip?.startedAtMs;
+        const hasCancelRequestChanged =
+          normalizeCancelRole(row.cancel_requested_by) !== normalizeCancelRole(liveActiveTrip?.cancel_requested_by);
 
-        if (state.screen !== 'TRIP_ACTIVE' || hasStatusChanged || hasArrivalChanged || hasStartChanged || hasCancelRequestChanged) {
+        if (liveScreen !== 'TRIP_ACTIVE' || hasStatusChanged || hasArrivalChanged || hasStartChanged || hasCancelRequestChanged) {
           dispatch({
             type: 'SERVER_STATUS_ACCEPTED',
             row: {
               ...row,
-              accepted_offer_id: row.accepted_offer_id || state.pendingAcceptedOfferId,
-              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || state.pendingAcceptedOfferId,
+              accepted_offer_id: row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
+              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
             },
           });
           if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {

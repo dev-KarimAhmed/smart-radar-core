@@ -2,6 +2,7 @@ import React from 'react';
 import type { SovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import type { Offer } from '@/core/types';
 import { toEpochMs } from '@/shared/services/trip-countdown';
+import { normalizeCancelRole } from '@/shared/hooks/mutual-cancellation-helpers';
 
 export type RiderMachineScreen =
   | 'IDLE_MAP'
@@ -289,7 +290,7 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     captain: selectedOffer?.captain || rowCaptain || existing?.captain || null,
     status: String(acceptedRow.status || existing?.status || 'ACCEPTED').toUpperCase(),
     cancel_requested_by: Object.prototype.hasOwnProperty.call(acceptedRow, 'cancel_requested_by')
-      ? ((acceptedRow.cancel_requested_by as any) ?? null)
+      ? normalizeCancelRole(acceptedRow.cancel_requested_by)
       : (existing?.cancel_requested_by ?? null),
   };
 }

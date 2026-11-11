@@ -83,6 +83,13 @@ export function TripActiveScreen({
   const { toast } = useToast();
   const [isConfirmingDirectCancel, setIsConfirmingDirectCancel] = React.useState(false);
   const [isDirectCancelling, setIsDirectCancelling] = React.useState(false);
+  const cancelBannerRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (mutualCancel.pendingRequestFrom === 'captain') {
+      cancelBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [mutualCancel.pendingRequestFrom]);
 
   const handleDirectCancelRider = React.useCallback(async () => {
     setIsDirectCancelling(true);
@@ -250,6 +257,61 @@ export function TripActiveScreen({
         </div>
       </div>
 
+      {/* 1.2. تنبيه طلب الإلغاء بالتوافق المشترك في أعلى الشاشة لظهوره فوراً دون الحاجة للتمرير */}
+      {mutualCancel.pendingRequestFrom === 'captain' ? (
+        <div ref={cancelBannerRef} className="space-y-3 rounded-2xl border-2 border-amber-500/60 bg-amber-950/40 p-4 shadow-xl shadow-amber-950/40">
+          <div className="flex items-center gap-2 text-amber-300 font-black text-sm">
+            <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
+            <span>{isArabic ? 'الكابتن المعلن يطلب إلغاء الرحلة!' : 'Captain requested trip cancellation!'}</span>
+          </div>
+          <p className="text-xs text-amber-100/90 leading-relaxed">
+            {isArabic
+              ? 'طلب الكابتن المعلن إلغاء الرحلة بالتوافق المشترك. هل توافق على إلغاء الرحلة؟'
+              : 'The captain has requested mutual cancellation. Do you agree to cancel?'}
+          </p>
+          <div className="flex gap-2.5 pt-1">
+            <button
+              type="button"
+              disabled={mutualCancel.isProcessing || isCancellingRideRequest}
+              onClick={mutualCancel.acceptCancel}
+              className="h-10 flex-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-xs font-black text-slate-950 transition cursor-pointer disabled:opacity-50"
+            >
+              {mutualCancel.isProcessing || isCancellingRideRequest
+                ? (isArabic ? 'جاري الإلغاء...' : 'Cancelling...')
+                : (isArabic ? 'موافق على الإلغاء' : 'Accept Cancel')}
+            </button>
+            <button
+              type="button"
+              disabled={mutualCancel.isProcessing || isCancellingRideRequest}
+              onClick={mutualCancel.declineCancel}
+              className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition cursor-pointer"
+            >
+              {isArabic ? 'رفض الإلغاء' : 'Decline'}
+            </button>
+          </div>
+        </div>
+      ) : mutualCancel.pendingRequestFrom === 'rider' ? (
+        <div className="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+          <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-sm">
+            <Clock className="h-4 w-4 animate-spin text-amber-400" />
+            <span>{isArabic ? 'تم إرسال طلب الإلغاء... بانتظار موافقة الكابتن المعلن' : 'Cancellation requested... waiting for captain'}</span>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            {isArabic
+              ? 'يتطلب إلغاء الرحلة موافقة الطرفين. الكابتن المعلن يراجع طلبك الآن.'
+              : 'Cancelling requires mutual agreement. Waiting for captain confirmation.'}
+          </p>
+          <button
+            type="button"
+            disabled={mutualCancel.isProcessing}
+            onClick={mutualCancel.revokeCancel}
+            className="h-9 px-4 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10"
+          >
+            {isArabic ? 'تراجع عن طلب الإلغاء' : 'Revoke Request'}
+          </button>
+        </div>
+      ) : null}
+
       {/* 1.5. إعلانات الكابتن الترويجية - تظهر في شاشة التفاصيل وتختفي فور بدء الرحلة */}
       {!tripHasStarted && (activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId) ? (
         <CaptainTripAdsViewer
@@ -384,60 +446,8 @@ export function TripActiveScreen({
           <span>{isArabic ? 'اتصال بالكابتن المعلن' : 'Call Captain'}</span>
         </a>
 
-        {/* إلغاء الطلب بالتوافق المشترك أو زر SOS إذا بدأت الرحلة */}
-        {mutualCancel.pendingRequestFrom === 'captain' ? (
-          <div className="space-y-3 rounded-2xl border-2 border-amber-500/60 bg-amber-950/40 p-4 shadow-xl shadow-amber-950/40">
-            <div className="flex items-center gap-2 text-amber-300 font-black text-sm">
-              <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
-              <span>{isArabic ? 'الكابتن المعلن يطلب إلغاء الرحلة!' : 'Captain requested trip cancellation!'}</span>
-            </div>
-            <p className="text-xs text-amber-100/90 leading-relaxed">
-              {isArabic
-                ? 'طلب الكابتن المعلن إلغاء الرحلة بالتوافق المشترك. هل توافق على إلغاء الرحلة؟'
-                : 'The captain has requested mutual cancellation. Do you agree to cancel?'}
-            </p>
-            <div className="flex gap-2.5 pt-1">
-              <button
-                type="button"
-                disabled={mutualCancel.isProcessing || isCancellingRideRequest}
-                onClick={mutualCancel.acceptCancel}
-                className="h-10 flex-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-xs font-black text-slate-950 transition cursor-pointer disabled:opacity-50"
-              >
-                {mutualCancel.isProcessing || isCancellingRideRequest
-                  ? (isArabic ? 'جاري الإلغاء...' : 'Cancelling...')
-                  : (isArabic ? 'موافق على الإلغاء' : 'Accept Cancel')}
-              </button>
-              <button
-                type="button"
-                disabled={mutualCancel.isProcessing || isCancellingRideRequest}
-                onClick={mutualCancel.declineCancel}
-                className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition cursor-pointer"
-              >
-                {isArabic ? 'رفض الإلغاء' : 'Decline'}
-              </button>
-            </div>
-          </div>
-        ) : mutualCancel.pendingRequestFrom === 'rider' ? (
-          <div className="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-sm">
-              <Clock className="h-4 w-4 animate-spin text-amber-400" />
-              <span>{isArabic ? 'تم إرسال طلب الإلغاء... بانتظار موافقة الكابتن المعلن' : 'Cancellation requested... waiting for captain'}</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {isArabic
-                ? 'يتطلب إلغاء الرحلة موافقة الطرفين. الكابتن المعلن يراجع طلبك الآن.'
-                : 'Cancelling requires mutual agreement. Waiting for captain confirmation.'}
-            </p>
-            <button
-              type="button"
-              disabled={mutualCancel.isProcessing}
-              onClick={mutualCancel.revokeCancel}
-              className="h-9 px-4 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10"
-            >
-              {isArabic ? 'تراجع عن طلب الإلغاء' : 'Revoke Request'}
-            </button>
-          </div>
-        ) : !tripHasStarted ? (
+        {/* زر الإلغاء قبل البدء أو زر SOS وطلب الإلغاء بالتوافق بعد بدء الرحلة */}
+        {!mutualCancel.pendingRequestFrom && !tripHasStarted ? (
           !isConfirmingDirectCancel ? (
             <button
               type="button"
@@ -477,7 +487,7 @@ export function TripActiveScreen({
               </div>
             </div>
           )
-        ) : (
+        ) : tripHasStarted ? (
           <div className="space-y-2.5">
             <button
               type="button"
@@ -487,17 +497,19 @@ export function TripActiveScreen({
               <ShieldCheck className="h-5 w-5 animate-pulse" />
               <span>{t('emergency.sosButton')}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => void mutualCancel.requestCancel()}
-              disabled={isCancellingRideRequest || mutualCancel.isProcessing}
-              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs py-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
-            >
-              <X className="h-3.5 w-3.5 text-rose-400" />
-              <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة بالتوافق' : 'Request Mutual Cancellation')}</span>
-            </button>
+            {!mutualCancel.pendingRequestFrom && (
+              <button
+                type="button"
+                onClick={() => void mutualCancel.requestCancel()}
+                disabled={isCancellingRideRequest || mutualCancel.isProcessing}
+                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs py-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+              >
+                <X className="h-3.5 w-3.5 text-rose-400" />
+                <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة بالتوافق' : 'Request Mutual Cancellation')}</span>
+              </button>
+            )}
           </div>
-        )}
+        ) : null}
 
         {/* روابط السوشيال إن وجدت في الأسفل */}
         {(activeTrip.captain?.facebook_url || activeTrip.captain?.instagram_url) && (

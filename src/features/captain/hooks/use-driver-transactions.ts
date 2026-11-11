@@ -11,6 +11,7 @@ import { generateWeeklyReport, type CaptainRankName } from '../services/captain-
 import { toEpochMs } from '@/shared/services/trip-countdown';
 import { getServerTime } from '@/lib/server-time';
 import { setCaptainCancelCooldown, clearCaptainCancelCooldown, calculateRemainingCooldown, getCaptainCancelCooldown } from '../services/captain-cancel-cooldown';
+import { normalizeCancelRole } from '@/shared/hooks/mutual-cancellation-helpers';
 
 type RideOfferRow = Record<string, unknown>;
 type RideRequestRow = Record<string, unknown>;
@@ -1135,10 +1136,7 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
       ? String(row.pricing_preference).toUpperCase() as 'APP' | 'TAXI' | 'FREE'
       : null),
     seats: toNumber(row.number_of_riders) ?? toNumber(row.seats) ?? 1,
-    cancel_requested_by:
-      row.cancel_requested_by === 'rider' || row.cancel_requested_by === 'captain'
-        ? row.cancel_requested_by
-        : null,
+    cancel_requested_by: normalizeCancelRole(row.cancel_requested_by),
     cancel_request_time: typeof row.cancel_request_time === 'string' ? row.cancel_request_time : null,
   };
 }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   interpretMutualCancelMutationResult,
+  normalizeCancelRole,
   resolveRealtimeRideRequestUpdate,
   shouldAcceptServerSyncResult,
 } from './mutual-cancellation-helpers';
@@ -166,6 +167,53 @@ import {
       cancel_requested_by: null,
     }),
     { ok: true, isClosed: false, cancelRequestedBy: null },
+  );
+}
+
+// 9. Case-insensitive role normalization works across all helpers for DB uppercase strings
+{
+  assert.equal(normalizeCancelRole('CAPTAIN'), 'captain');
+  assert.equal(normalizeCancelRole('RIDER'), 'rider');
+  assert.equal(normalizeCancelRole(' captain '), 'captain');
+  assert.equal(normalizeCancelRole('Rider'), 'rider');
+  assert.equal(normalizeCancelRole('ADMIN'), null);
+  assert.equal(normalizeCancelRole(''), null);
+  assert.equal(normalizeCancelRole(null), null);
+
+  assert.deepEqual(
+    shouldAcceptServerSyncResult({
+      pollEpoch: 4,
+      currentEpoch: 4,
+      inFlightMutations: 0,
+      serverStatus: 'TRIP_ACTIVE',
+      serverCancelRequestedBy: 'CAPTAIN',
+      postCommitLock: null,
+      nowMs: 12_000,
+    }),
+    {
+      accept: true,
+      nextPendingFrom: 'captain',
+      terminalStatus: null,
+    },
+  );
+
+  assert.deepEqual(
+    resolveRealtimeRideRequestUpdate({
+      newRow: { id: 'req-upper', status: 'TRIP_ACTIVE', cancel_requested_by: 'CAPTAIN' },
+      inFlightMutations: 0,
+      postCommitLock: null,
+      nowMs: 12_000,
+    }),
+    { kind: 'pending', nextPendingFrom: 'captain' },
+  );
+
+  assert.deepEqual(
+    interpretMutualCancelMutationResult(true, {
+      success: true,
+      action: 'REQUEST',
+      cancel_requested_by: 'RIDER',
+    }),
+    { ok: true, isClosed: false, cancelRequestedBy: 'rider' },
   );
 }
 

@@ -176,4 +176,53 @@ assert.equal(resetFromCancelled.screen, 'IDLE_MAP');
 assert.equal(resetFromCancelled.activeTrip, null);
 assert.equal(resetFromCancelled.autoRetryRequested, undefined);
 
+// SERVER_STATUS_ACCEPTED and REHYDRATE_ACTIVE_TRIP normalize uppercase cancel_requested_by and clear on explicit null
+{
+  const activeWithUppercaseCancel = riderDashboardReducer(activeTripState, {
+    type: 'SERVER_STATUS_ACCEPTED',
+    row: {
+      id: 'req-active-1',
+      status: 'TRIP_ACTIVE',
+      accepted_driver_id: 'driver-1',
+      cancel_requested_by: 'CAPTAIN',
+    },
+  });
+  assert.equal(activeWithUppercaseCancel.activeTrip?.cancel_requested_by, 'captain');
+
+  const partialRowOmittedCancel = riderDashboardReducer(activeWithUppercaseCancel, {
+    type: 'SERVER_STATUS_ACCEPTED',
+    row: {
+      id: 'req-active-1',
+      status: 'TRIP_ACTIVE',
+      accepted_driver_id: 'driver-1',
+    },
+  });
+  assert.equal(partialRowOmittedCancel.activeTrip?.cancel_requested_by, 'captain');
+
+  const clearedByNull = riderDashboardReducer(partialRowOmittedCancel, {
+    type: 'SERVER_STATUS_ACCEPTED',
+    row: {
+      id: 'req-active-1',
+      status: 'TRIP_ACTIVE',
+      accepted_driver_id: 'driver-1',
+      cancel_requested_by: null,
+    },
+  });
+  assert.equal(clearedByNull.activeTrip?.cancel_requested_by, null);
+
+  const rehydratedWithCancel = riderDashboardReducer(createInitialRiderMachineState(), {
+    type: 'REHYDRATE_ACTIVE_TRIP',
+    requestId: 'req-rehydrate-1',
+    offers: [],
+    row: {
+      id: 'req-rehydrate-1',
+      status: 'TRIP_ACTIVE',
+      accepted_captain_id: 'captain-9',
+      cancel_requested_by: 'CAPTAIN',
+    },
+  });
+  assert.equal(rehydratedWithCancel.screen, 'TRIP_ACTIVE');
+  assert.equal(rehydratedWithCancel.activeTrip?.cancel_requested_by, 'captain');
+}
+
 console.log('rider reducer checks passed');

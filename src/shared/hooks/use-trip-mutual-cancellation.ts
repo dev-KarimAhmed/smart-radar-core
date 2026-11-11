@@ -15,6 +15,7 @@ import {
 import {
   interpretMutualCancelMutationResult,
   type MutualCancelRole,
+  normalizeCancelRole,
   type PostCommitExpectationLock,
   resolveRealtimeRideRequestUpdate,
   shouldAcceptServerSyncResult,
@@ -102,8 +103,9 @@ export function useTripMutualCancellation({
   onCancelledConfirmed,
 }: UseTripMutualCancellationProps): UseTripMutualCancellationReturn {
   const { toast } = useToast();
+  const normalizedInitialCancelBy = normalizeCancelRole(initialCancelRequestedBy);
   const [pendingRequestFrom, setPendingRequestFrom] = useState<MutualCancelRole | null>(
-    initialCancelRequestedBy || null
+    normalizedInitialCancelBy
   );
   const pendingFromRef = useRef<MutualCancelRole | null>(pendingRequestFrom);
   useEffect(() => {
@@ -114,30 +116,29 @@ export function useTripMutualCancellation({
   const inFlightMutationsRef = useRef(0);
   const postCommitLockRef = useRef<PostCommitExpectationLock | null>(null);
   const confirmedCancelHandledRef = useRef(false);
+  const lastNotifiedCounterpartyRef = useRef<MutualCancelRole | null>(null);
+  const lastResolutionToastRef = useRef<{ event: 'DECLINE_CANCEL' | 'REVOKE_CANCEL'; atMs: number } | null>(null);
 
-  const lastInitialRef = useRef(initialCancelRequestedBy);
+  const lastInitialRef = useRef<MutualCancelRole | null>(normalizedInitialCancelBy);
   useEffect(() => {
     if (inFlightMutationsRef.current > 0) {
-      lastInitialRef.current = initialCancelRequestedBy;
+      lastInitialRef.current = normalizedInitialCancelBy;
       return;
     }
 
     const lock = postCommitLockRef.current;
-    if (lock && Date.now() < lock.untilMs && (initialCancelRequestedBy || null) !== lock.expectedPendingFrom) {
-      lastInitialRef.current = initialCancelRequestedBy;
+    if (lock && Date.now() < lock.untilMs && normalizedInitialCancelBy !== lock.expectedPendingFrom) {
+      lastInitialRef.current = normalizedInitialCancelBy;
       return;
     }
 
-    if (initialCancelRequestedBy === 'rider' || initialCancelRequestedBy === 'captain') {
-      setPendingRequestFrom(initialCancelRequestedBy);
-    } else if (
-      initialCancelRequestedBy === null &&
-      (lastInitialRef.current === 'rider' || lastInitialRef.current === 'captain')
-    ) {
+    if (normalizedInitialCancelBy) {
+      setPendingRequestFrom(normalizedInitialCancelBy);
+    } else if (lastInitialRef.current !== null) {
       setPendingRequestFrom(null);
     }
-    lastInitialRef.current = initialCancelRequestedBy;
-  }, [initialCancelRequestedBy]);
+    lastInitialRef.current = normalizedInitialCancelBy;
+  }, [normalizedInitialCancelBy]);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -214,24 +215,67 @@ export function useTripMutualCancellation({
     }
   }, []);
 
+  // Notify the counterparty exactly once per incoming request regardless of transport
+  // (Realtime broadcast, server httpSend, postgres_changes, GET poll, RLS fallback, or initial prop).
+  useEffect(() => {
+    if (pendingRequestFrom && pendingRequestFrom !== role) {
+      if (lastNotifiedCounterpartyRef.current !== pendingRequestFrom) {
+        lastNotifiedCounterpartyRef.current = pendingRequestFrom;
+        playAlertSound();
+        toastRef.current({
+          title: role === 'captain' ? 'الراكب يطلب إلغاء الرحلة' : 'الكابتن يطلب إلغاء الرحلة',
+          description: 'يتطلب الإلغاء موافقة الطرفين. يرجى تأكيد أو رفض الطلب.',
+          variant: 'warning',
+          duration: 8000,
+        });
+      }
+    } else {
+      lastNotifiedCounterpartyRef.current = null;
+    }
+  }, [pendingRequestFrom, role]);
+
   // Initial and periodic sync with server database (SSOT)
   const syncServerStatus = useCallback(async (targetId: string) => {
     if (inFlightMutationsRef.current > 0) return;
     const pollEpoch = mutationEpochRef.current;
 
     try {
+      let serverStatus: unknown;
+      let serverCancelRequestedBy: unknown;
+      let resolved = false;
+
       const { res, data } = await fetchWithSupabaseAuthRetry(
         `/api/trip/mutual-cancel?requestId=${encodeURIComponent(targetId)}`,
         { method: 'GET', requireAuthForInitialTry: true },
       );
-      if (!res?.ok || !data?.success) return;
+      if (res?.ok && data?.success) {
+        serverStatus = data.status;
+        serverCancelRequestedBy = data.cancel_requested_by;
+        resolved = true;
+      } else {
+        // Fallback read under RLS if API auth headers or endpoint failed transiently
+        const { data: rowData, error: rowErr } = await supabase
+          .from('ride_requests')
+          .select('id, status, cancel_requested_by')
+          .eq('id', targetId)
+          .maybeSingle();
+
+        if (!rowErr && rowData) {
+          const row = rowData as Record<string, unknown>;
+          serverStatus = row.status;
+          serverCancelRequestedBy = row.cancel_requested_by;
+          resolved = true;
+        }
+      }
+
+      if (!resolved) return;
 
       const decision = shouldAcceptServerSyncResult({
         pollEpoch,
         currentEpoch: mutationEpochRef.current,
         inFlightMutations: inFlightMutationsRef.current,
-        serverStatus: data.status,
-        serverCancelRequestedBy: data.cancel_requested_by,
+        serverStatus,
+        serverCancelRequestedBy,
         postCommitLock: postCommitLockRef.current,
         nowMs: Date.now(),
       });
@@ -251,26 +295,20 @@ export function useTripMutualCancellation({
       }
 
       const requestedBy = decision.nextPendingFrom;
-      if (requestedBy === 'captain' || requestedBy === 'rider') {
-        setPendingRequestFrom((prev) => {
-          if (prev !== requestedBy && requestedBy !== role) {
-            playAlertSound();
-          }
-          return requestedBy;
-        });
-      } else {
-        setPendingRequestFrom(null);
-      }
+      setPendingRequestFrom(requestedBy ?? null);
     } catch {
       // Ignore background network errors
     }
-  }, [applyCaptainFreeze, role, triggerCancelledConfirmedOnce]);
+  }, [applyCaptainFreeze, triggerCancelledConfirmedOnce]);
 
   useEffect(() => {
+    let isEffectActive = true;
     mutationEpochRef.current += 1;
     inFlightMutationsRef.current = 0;
     postCommitLockRef.current = null;
     confirmedCancelHandledRef.current = false;
+    lastNotifiedCounterpartyRef.current = null;
+    lastResolutionToastRef.current = null;
 
     if (!requestId) {
       setPendingRequestFrom(null);
@@ -299,53 +337,60 @@ export function useTripMutualCancellation({
 
     channel
       .on('broadcast', { event: 'REQUEST_CANCEL' }, (payload) => {
-        const fromRole = payload.payload?.fromRole;
-        if ((fromRole === 'captain' || fromRole === 'rider') && fromRole !== role) {
+        if (!isEffectActive) return;
+        const fromRole = normalizeCancelRole(payload.payload?.fromRole);
+        if (fromRole && fromRole !== role) {
           mutationEpochRef.current += 1;
           postCommitLockRef.current = { expectedPendingFrom: fromRole, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
           setPendingRequestFrom(fromRole);
-          playAlertSound();
-          toastRef.current({
-            title: role === 'captain' ? 'الراكب يطلب إلغاء الرحلة' : 'الكابتن يطلب إلغاء الرحلة',
-            description: 'يتطلب الإلغاء موافقة الطرفين. يرجى تأكيد أو رفض الطلب.',
-            variant: 'warning',
-            duration: 8000,
-          });
         }
       })
       .on('broadcast', { event: 'DECLINE_CANCEL' }, (payload) => {
-        const fromRole = payload.payload?.fromRole;
+        if (!isEffectActive) return;
+        const fromRole = normalizeCancelRole(payload.payload?.fromRole);
         if (fromRole && fromRole !== role) {
           mutationEpochRef.current += 1;
           postCommitLockRef.current = { expectedPendingFrom: null, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
           setPendingRequestFrom(null);
-          toastRef.current({
-            title: 'تم رفض طلب إلغاء الرحلة',
-            description: role === 'captain'
-              ? 'رفض الراكب طلب الإلغاء، وتستمر الرحلة كالمعتاد.'
-              : 'رفض الكابتن طلب الإلغاء، وتستمر الرحلة كالمعتاد.',
-            variant: 'default',
-            duration: 6000,
-          });
+          const nowMs = Date.now();
+          const prevToast = lastResolutionToastRef.current;
+          if (!prevToast || prevToast.event !== 'DECLINE_CANCEL' || nowMs - prevToast.atMs >= 4000) {
+            lastResolutionToastRef.current = { event: 'DECLINE_CANCEL', atMs: nowMs };
+            toastRef.current({
+              title: 'تم رفض طلب إلغاء الرحلة',
+              description: role === 'captain'
+                ? 'رفض الراكب طلب الإلغاء، وتستمر الرحلة كالمعتاد.'
+                : 'رفض الكابتن طلب الإلغاء، وتستمر الرحلة كالمعتاد.',
+              variant: 'default',
+              duration: 6000,
+            });
+          }
         }
       })
       .on('broadcast', { event: 'REVOKE_CANCEL' }, (payload) => {
-        const fromRole = payload.payload?.fromRole;
+        if (!isEffectActive) return;
+        const fromRole = normalizeCancelRole(payload.payload?.fromRole);
         if (fromRole && fromRole !== role) {
           mutationEpochRef.current += 1;
           postCommitLockRef.current = { expectedPendingFrom: null, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
           setPendingRequestFrom(null);
-          toastRef.current({
-            title: 'تراجع عن طلب الإلغاء',
-            description: role === 'captain'
-              ? 'تراجع الراكب عن طلب إلغاء الرحلة.'
-              : 'تراجع الكابتن عن طلب إلغاء الرحلة.',
-            variant: 'default',
-            duration: 5000,
-          });
+          const nowMs = Date.now();
+          const prevToast = lastResolutionToastRef.current;
+          if (!prevToast || prevToast.event !== 'REVOKE_CANCEL' || nowMs - prevToast.atMs >= 4000) {
+            lastResolutionToastRef.current = { event: 'REVOKE_CANCEL', atMs: nowMs };
+            toastRef.current({
+              title: 'تراجع عن طلب الإلغاء',
+              description: role === 'captain'
+                ? 'تراجع الراكب عن طلب إلغاء الرحلة.'
+                : 'تراجع الكابتن عن طلب إلغاء الرحلة.',
+              variant: 'default',
+              duration: 5000,
+            });
+          }
         }
       })
       .on('broadcast', { event: 'ACCEPT_CANCEL' }, async (payload) => {
+        if (!isEffectActive) return;
         mutationEpochRef.current += 1;
         setPendingRequestFrom(null);
         if (role === 'captain') {
@@ -363,6 +408,7 @@ export function useTripMutualCancellation({
           filter: `id=eq.${requestId}`,
         },
         (payload) => {
+          if (!isEffectActive) return;
           const decision = resolveRealtimeRideRequestUpdate({
             newRow: payload.new as Record<string, unknown> | undefined,
             inFlightMutations: inFlightMutationsRef.current,
@@ -381,30 +427,45 @@ export function useTripMutualCancellation({
             return;
           }
 
-          const cancelBy = decision.nextPendingFrom;
-          if (cancelBy === 'captain' || cancelBy === 'rider') {
-            setPendingRequestFrom((prev) => {
-              if (prev !== cancelBy && cancelBy !== role) {
-                playAlertSound();
-              }
-              return cancelBy;
-            });
-          } else {
-            setPendingRequestFrom(null);
-          }
+          setPendingRequestFrom(decision.nextPendingFrom ?? null);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (!isEffectActive) return;
+        if (status === 'SUBSCRIBED') {
+          void syncServerStatus(requestId);
+        } else if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && process.env.NODE_ENV !== 'production') {
+          console.warn('[useTripMutualCancellation] Realtime subscription notice:', status, err);
+        }
+      });
 
     channelRef.current = channel;
 
-    // 3. Periodic safety poll (every 3 seconds) for background reconciliation
+    // 3. Periodic safety poll (every 3 seconds) + immediate sync on foreground/network resume
     const pollInterval = setInterval(() => {
       void syncServerStatus(requestId);
     }, 3000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void syncServerStatus(requestId);
+      }
+    };
+    const onFocus = () => {
+      void syncServerStatus(requestId);
+    };
+    const onOnline = () => {
+      void syncServerStatus(requestId);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onOnline);
 
     return () => {
+      isEffectActive = false;
       clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onOnline);
       channelRef.current = null;
       void supabase.removeChannel(channel);
     };
