@@ -130,22 +130,34 @@ export function useDriverTripLifecycle({
     setDriverStatus?.('busy');
 
     if (trip.riderId) {
-      const { data: riderProfile } = await supabase
-        .from('profiles')
-        .select('id,full_name,phone,rating,country_id,governorate_id,district_id')
-        .eq('id', trip.riderId)
-        .maybeSingle();
+      let riderRow: Record<string, unknown> | null = null;
+      try {
+        const { data: rpcProfiles, error: rpcError } = await supabase.rpc('get_safe_counterpart_profiles', {
+          p_user_ids: [trip.riderId],
+        });
+        if (!rpcError && Array.isArray(rpcProfiles) && rpcProfiles.length > 0) {
+          riderRow = rpcProfiles[0] as Record<string, unknown>;
+        } else if (rpcError) {
+          const { data: riderProfile } = await supabase
+            .from('profiles')
+            .select('id,full_name,phone,rating,country_id,governorate_id,district_id')
+            .eq('id', trip.riderId)
+            .maybeSingle();
+          riderRow = (riderProfile as Record<string, unknown> | null) ?? null;
+        }
+      } catch {
+        // Non-blocking fallback
+      }
 
-      if (riderProfile) {
-        const row = riderProfile as Record<string, unknown>;
+      if (riderRow) {
         setAcceptedRider({
-          uid: String(row.id),
+          uid: String(riderRow.id),
           role: 'rider',
-          name: String(row.full_name || 'Rider'),
-          phone: String(row.phone || ''),
-          governorate: String(row.governorate_id || ''),
-          district: String(row.district_id || ''),
-          rating: Number(row.rating || 5),
+          name: String(riderRow.full_name || 'Rider'),
+          phone: String(riderRow.phone || ''),
+          governorate: String(riderRow.governorate_id || ''),
+          district: String(riderRow.district_id || ''),
+          rating: Number(riderRow.rating || 5),
         });
       }
     }

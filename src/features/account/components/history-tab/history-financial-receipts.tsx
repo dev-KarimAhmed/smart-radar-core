@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase-client';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 
 export interface FinancialReceiptRecord {
   id: string;
@@ -99,7 +100,10 @@ export function HistoryFinancialReceipts({ isArabic = true }: HistoryFinancialRe
     if (!captainId) return;
     if (showLoading) setIsLoading(true);
     try {
-      const res = await fetch(`/api/captain/receipts?captainId=${encodeURIComponent(captainId)}`);
+      const authHeaders = await getSupabaseAuthHeaders();
+      const res = await fetch(`/api/captain/receipts?captainId=${encodeURIComponent(captainId)}`, {
+        headers: authHeaders,
+      });
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && Array.isArray(data.receipts)) {

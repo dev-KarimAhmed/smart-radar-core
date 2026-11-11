@@ -175,12 +175,12 @@ export async function handleUpdateVerification(userId: string, body: any) {
 }
 
 export async function handleTopupMinutes(userId: string, body: any) {
-  const minutes = Number(body.minutes);
-  if (isNaN(minutes) || minutes <= 0) {
+  const minutes = Math.round(Number(body.minutes));
+  if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 50_000) {
     return NextResponse.json({ success: false, error: 'عدد الدقائق غير صحيح' }, { status: 400 });
   }
 
-  const extendDays = Number(body.extendDays || 30);
+  const extendDays = Math.min(365, Math.max(1, Math.round(Number(body.extendDays || 30))));
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + extendDays);
 
@@ -235,7 +235,7 @@ export async function handleTopupMinutes(userId: string, body: any) {
 
 export async function handleAdjustBalance(userId: string, body: any) {
   const amount = Number(body.amount);
-  if (isNaN(amount)) {
+  if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 50_000) {
     return NextResponse.json({ success: false, error: 'المبلغ غير صحيح' }, { status: 400 });
   }
 
@@ -264,8 +264,11 @@ export async function handleAdjustBalance(userId: string, body: any) {
   await insertDualNotification({
     id: `notif_adjust_bal_${userId}_${Date.now()}`,
     user_id: userId,
-    title: 'إيداع نقدي في المحفظة 💰',
-    description: `تم إيداع مبلغ (${amount}) في محفظتك بنجاح من قبل الإدارة. الرصيد المالي الحالي: ${newBalance.toFixed(2)}.`,
+    title: amount < 0 ? 'خصم مالي من المحفظة 💰' : 'إيداع نقدي في المحفظة 💰',
+    description:
+      amount < 0
+        ? `تم خصم مبلغ (${Math.abs(amount)}) من محفظتك من قبل الإدارة. الرصيد المالي الحالي: ${newBalance.toFixed(2)}.`
+        : `تم إيداع مبلغ (${amount}) في محفظتك بنجاح من قبل الإدارة. الرصيد المالي الحالي: ${newBalance.toFixed(2)}.`,
     type: 'admin_message',
     is_read: false,
     created_at: new Date().toISOString(),

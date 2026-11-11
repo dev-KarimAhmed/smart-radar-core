@@ -14,9 +14,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useRegistration } from '../../hooks/use-registration';
-import { useAuth } from '@/hooks/use-auth';
 import { navigateAuth } from '@/lib/auth-routing';
-import type { User } from '@/core/types';
 
 import { cn } from '@/lib/utils';
 import { getLandingPageUrl } from '@/lib/constants';
@@ -134,129 +132,8 @@ const roleConfig: Array<{
     { key: 'delegate', Icon: Store, disabled: true },
   ];
 
-const demoUsers: Array<{
-  role: User['role'];
-  label: string;
-  description: string;
-  user: User;
-}> = [
-    {
-      role: 'rider',
-      label: 'Rider demo',
-      description: 'Requests, wallet, ride history',
-      user: {
-        uid: 'demo-rider-001',
-        serial_id: 'P-1001',
-        phone: '+962790000001',
-        role: 'rider',
-        name: 'Demo Rider',
-        countryId: 1,
-        currencyAr: 'د.أ',
-        currencyEn: 'JOD',
-        governorate: 'عمّان',
-        district: 'الجامعة',
-        isBufferActive: false,
-        rating: 5,
-        walletBalanceJD: 42.5,
-        ratingSum: 48,
-        ratingCount: 10,
-        favoriteDrivers: ['demo-driver-001'],
-      },
-    },
-    {
-      role: 'driver',
-      label: 'Captain demo',
-      description: 'Driver radar, pricing, hours',
-      user: {
-        uid: 'demo-driver-001',
-        serial_id: 'D-1001',
-        phone: '+962790000002',
-        role: 'driver',
-        name: 'Demo Captain',
-        governorate: 'عمّان',
-        district: 'الجامعة',
-        status: 'idle',
-        isBufferActive: false,
-        rating: 4.9,
-        rank: 'Gold',
-        paidHoursRemaining: 540,
-        bonusHoursRemaining: 60,
-        subscriptionHours: 10,
-        walletBalanceJD: 128,
-        vehicle: {
-          year: 2023,
-          plate: '77-12345',
-          make: 'Toyota Corolla Hybrid',
-          color: 'White',
-        },
-        affiliation: {
-          type: 'independent',
-          name: 'مستقل',
-        },
-      },
-    },
-    {
-      role: 'advertiser',
-      label: 'Advertiser demo',
-      description: 'Campaign portal and ad tools',
-      user: {
-        uid: 'demo-advertiser-001',
-        serial_id: 'A-1001',
-        phone: '+962790000003',
-        role: 'advertiser',
-        name: 'Demo Advertiser',
-        governorate: 'عمّان',
-        district: 'الجامعة',
-        isBufferActive: false,
-        rating: 5,
-        walletBalanceJD: 250,
-        companyName: 'bynkcom Ads',
-        commercialRegister: 'CR-88294-A',
-        adLicense: 'LIC-990-2026',
-        businessType: 'commercial',
-      },
-    },
-    {
-      role: 'delegate',
-      label: 'Delegate demo',
-      description: 'Field onboarding cockpit',
-      user: {
-        uid: 'demo-delegate-001',
-        serial_id: 'M-1001',
-        phone: '+962790000004',
-        role: 'delegate',
-        name: 'Demo Delegate',
-        governorate: 'عمّان',
-        district: 'وادي السير',
-        isBufferActive: false,
-        rating: 4.8,
-        referralCode: 'RAD-JOR-777',
-        referredCount: 142,
-        pendingDues: 85.5,
-        walletBalanceJD: 85.5,
-      },
-    },
-    {
-      role: 'admin',
-      label: 'Admin demo',
-      description: 'Owner control dashboard',
-      user: {
-        uid: 'demo-admin-001',
-        serial_id: 'S-1001',
-        phone: '+962790000005',
-        role: 'admin',
-        name: 'Demo Admin',
-        governorate: 'عمّان',
-        district: 'الجامعة',
-        isBufferActive: false,
-        rating: 5,
-      },
-    },
-  ];
-
 export function RoleStep() {
   const { setRole, lang, setLang } = useRegistration();
-  const { loginAsMockUser } = useAuth();
   const currentLang = lang as Lang;
   const content = copy[currentLang];
   const isArabic = currentLang === 'ar';
@@ -267,20 +144,6 @@ export function RoleStep() {
   const handleRoleSelect = (role: RoleKey) => {
     setRole(role);
     navigateAuth('login', role);
-  };
-
-  const openDemoDashboard = (user: User) => {
-    const roleRoutes: Partial<Record<User['role'], string>> = {
-      rider: '/rider',
-      driver: '/captain',
-      advertiser: '/advertiser/dashboard',
-      delegate: '/delegate',
-      admin: '/admin',
-    };
-    window.history.replaceState(null, '', roleRoutes[user.role] || '/');
-    window.location.hash = '#';
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    loginAsMockUser(user);
   };
 
   return (

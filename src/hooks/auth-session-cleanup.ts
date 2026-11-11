@@ -6,15 +6,6 @@ import { DASHBOARD_LANGUAGE_KEY } from './use-dashboard-language';
 export function getInitialUserFromCache(): SovereignUser | null {
   if (typeof window === 'undefined') return null;
   try {
-    const rawMock =
-      window.localStorage.getItem('radar_sovereign_mock_user') ||
-      window.sessionStorage.getItem('radar_sovereign_mock_user');
-    if (process.env.NODE_ENV !== 'production' && rawMock) {
-      const parsedMock = JSON.parse(rawMock);
-      if (parsedMock && (parsedMock.role === 'admin' || parsedMock.adminRank === 'GENERAL_ADMIN')) {
-        return parsedMock as SovereignUser;
-      }
-    }
     const raw =
       window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
       window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY);
@@ -60,11 +51,13 @@ export async function cancelActiveRequestBeforeLogout(user: SovereignUser | null
         await supabase
           .from('ride_offers')
           .update({ status: 'CANCELLED' })
-          .eq('captain_id', user.uid);
+          .eq('captain_id', user.uid)
+          .neq('status', 'ACCEPTED');
         await supabase
           .from('ride_offers')
           .delete()
-          .eq('captain_id', user.uid);
+          .eq('captain_id', user.uid)
+          .neq('status', 'ACCEPTED');
         try {
           await supabase.rpc('set_captain_status', { p_status: 'IDLE' });
         } catch {}

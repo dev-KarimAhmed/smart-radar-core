@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { isMissingRpcError, isValidUuid } from '@/shared/server/api-auth-guard';
 import { encodeNotificationPayload, resolveDynamicNotification } from '@/shared/utils/notification-i18n';
 
 export async function sendCaptainNotification(userId: string, id: string, title: string, description: string, type: string) {
@@ -26,17 +27,18 @@ export async function sendCaptainNotification(userId: string, id: string, title:
 
 export async function handleApproveReceipt(admin: { id: string }, body: any) {
   const { transactionId, creditType = 'MINUTES', minutesToGrant, adminNote } = body;
-  if (!transactionId) {
-    return NextResponse.json({ success: false, error: 'معرف معاملة الإيصال مطلوب' }, { status: 400 });
+  if (!isValidUuid(transactionId)) {
+    return NextResponse.json({ success: false, error: 'معرف معاملة الإيصال غير صالح' }, { status: 400 });
   }
 
-  const minsNum = creditType === 'MINUTES' ? (Number(minutesToGrant) || 0) : 0;
+  const normalizedCreditType = creditType === 'CASH' ? 'CASH' : 'MINUTES';
+  const minsNum = normalizedCreditType === 'MINUTES' ? (Number(minutesToGrant) || 0) : 0;
 
   // Try atomic PostgreSQL RPC first
   try {
     const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('approve_wallet_receipt', {
       p_transaction_id: transactionId,
-      p_credit_type: creditType,
+      p_credit_type: normalizedCreditType,
       p_minutes: minsNum,
       p_admin_id: admin.id,
       p_admin_note: adminNote || null,
@@ -48,7 +50,7 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
       const creditedAmount = rpcRes.amount_credited || rpcRes.amount || 0;
       const cur = rpcRes.currency || 'د.أ';
 
-      const notifMsg = creditType === 'MINUTES'
+      const notifMsg = normalizedCreditType === 'MINUTES'
         ? `تمت الموافقة على إيصالك وتغذية حسابك بـ ${grantedMinutes} دقيقة.`
         : `تمت الموافقة على إيصالك وإيداع ${creditedAmount} ${cur} في رصيد محفظتك النقدي.`;
 
@@ -62,16 +64,33 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
 
       return NextResponse.json({
         success: true,
-        message: creditType === 'MINUTES'
+        message: normalizedCreditType === 'MINUTES'
           ? `تم اعتماد الإيصال بنجاح وتخصيص ${grantedMinutes} دقيقة رادار للكابتن المعلن.`
           : `تم اعتماد الإيصال وإيداع ${creditedAmount} ${cur} في رصيد الكابتن المعلن.`,
       });
+    }
+
+    if (!rpcErr && rpcRes && rpcRes.success === false) {
+      const errCode = String(rpcRes.error || '');
+      const status = errCode === 'transaction_not_found' ? 404 : 400;
+      const message =
+        errCode === 'already_processed'
+          ? 'تمت معالجة هذا الإيصال مسبقاً.'
+          : errCode === 'transaction_not_found'
+            ? 'معاملة الإيصال غير موجودة'
+            : 'تعذر اعتماد إيصال الشحن.';
+      return NextResponse.json({ success: false, error: message }, { status });
+    }
+
+    if (rpcErr && !isMissingRpcError(rpcErr)) {
+      console.error('[Admin Notifications API] approve_wallet_receipt RPC error:', rpcErr);
+      return NextResponse.json({ success: false, error: 'تعذر اعتماد إيصال الشحن في قاعدة البيانات.' }, { status: 500 });
     }
   } catch (rpcCatch) {
     console.warn('[Admin Notifications API] approve_wallet_receipt RPC warning, falling back to direct update:', rpcCatch);
   }
 
-  // Fallback: Fetch transaction
+  // Fallback: Fetch transaction (used only if RPC is absent)
   const { data: tx, error: txErr } = await supabaseAdmin
     .from('wallet_transactions')
     .select('*')
@@ -87,6 +106,9 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
   }
 
   const captainId = tx.profile_id;
+  if (!isValidUuid(captainId)) {
+    return NextResponse.json({ success: false, error: 'معرف الكابتن المرتبط بالإيصال غير صالح' }, { status: 400 });
+  }
   const amount = Number(tx.amount || 0);
 
   // Resolve captain's currency
@@ -107,7 +129,7 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
     .eq('profile_id', captainId)
     .maybeSingle();
 
-  if (creditType === 'MINUTES') {
+  if (normalizedCreditType === 'MINUTES') {
     const grantedMins = Number(minutesToGrant) > 0 ? Number(minutesToGrant) : Math.round(amount * 60);
     const currentMins = Number(existingWallet?.paid_minutes_remaining || 0);
     const newMins = currentMins + grantedMins;
@@ -115,7 +137,43 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
 
-    await supabaseAdmin.from('wallet_accounts').upsert({
+    // Atomically claim PENDING status before mutating balance to block double-approval races
+    const { data: claimedTx, error: updateTxErr } = await supabaseAdmin
+      .from('wallet_transactions')
+      .update({
+        status: 'COMPLETED',
+        currency_ar: captainCurrency,
+        currency_code: captainCurrencyCode,
+        description_ar: `تمت الموافقة على الإيصال وتخصيص ${grantedMins} دقيقة رادار.`,
+        metadata: {
+          ...(tx.metadata || {}),
+          approved_by: admin.id,
+          approved_at: new Date().toISOString(),
+          credit_type: 'MINUTES',
+          minutes_credited: grantedMins,
+          currency: captainCurrency,
+          admin_note: adminNote || null,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', transactionId)
+      .eq('status', 'PENDING')
+      .select('id')
+      .maybeSingle();
+
+    if (updateTxErr) {
+      console.error('[Admin Notifications API] Failed to claim pending receipt:', updateTxErr);
+      return NextResponse.json({
+        success: false,
+        error: 'فشل تحديث حالة الإيصال في قاعدة البيانات.',
+      }, { status: 400 });
+    }
+
+    if (!claimedTx) {
+      return NextResponse.json({ success: false, error: 'تمت معالجة هذا الإيصال مسبقاً.' }, { status: 409 });
+    }
+
+    const { error: walletUpsertErr } = await supabaseAdmin.from('wallet_accounts').upsert({
       profile_id: captainId,
       paid_minutes_remaining: newMins,
       currency_code: captainCurrencyCode,
@@ -124,29 +182,15 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'profile_id' });
 
-    const { error: updateTxErr } = await supabaseAdmin.from('wallet_transactions').update({
-      status: 'COMPLETED',
-      currency_ar: captainCurrency,
-      currency_code: captainCurrencyCode,
-      description_ar: `تمت الموافقة على الإيصال وتخصيص ${grantedMins} دقيقة رادار.`,
-      metadata: {
-        ...(tx.metadata || {}),
-        approved_by: admin.id,
-        approved_at: new Date().toISOString(),
-        credit_type: 'MINUTES',
-        minutes_credited: grantedMins,
-        currency: captainCurrency,
-        admin_note: adminNote || null,
-      },
-      updated_at: new Date().toISOString(),
-    }).eq('id', transactionId);
-
-    if (updateTxErr) {
-      console.error('[Admin Notifications API] Failed to update transaction status:', updateTxErr);
-      return NextResponse.json({
-        success: false,
-        error: `فشل تحديث حالة الإيصال في قاعدة البيانات: ${updateTxErr.message}. يرجى تطبيق كود الـ SQL في Supabase أولاً.`,
-      }, { status: 400 });
+    if (walletUpsertErr) {
+      console.error('[Admin Notifications API] Failed to credit minutes wallet_accounts:', walletUpsertErr);
+      await supabaseAdmin.from('wallet_transactions').update({
+        status: tx.status,
+        description_ar: tx.description_ar,
+        metadata: tx.metadata,
+        updated_at: new Date().toISOString(),
+      }).eq('id', transactionId);
+      return NextResponse.json({ success: false, error: 'فشل إضافة دقائق الإيصال إلى المحفظة.' }, { status: 500 });
     }
 
     await sendCaptainNotification(
@@ -166,36 +210,58 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
     const currentBalance = Number(existingWallet?.balance || 0);
     const newBalance = Number((currentBalance + amount).toFixed(2));
 
-    await supabaseAdmin.from('wallet_accounts').upsert({
+    // Atomically claim PENDING status before mutating balance to block double-approval races
+    const { data: claimedTx, error: updateTxErr } = await supabaseAdmin
+      .from('wallet_transactions')
+      .update({
+        status: 'COMPLETED',
+        currency_ar: captainCurrency,
+        currency_code: captainCurrencyCode,
+        description_ar: `تمت الموافقة على الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في الرصيد النقدي.`,
+        metadata: {
+          ...(tx.metadata || {}),
+          approved_by: admin.id,
+          approved_at: new Date().toISOString(),
+          credit_type: 'CASH',
+          amount_credited: amount,
+          currency: captainCurrency,
+          admin_note: adminNote || null,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', transactionId)
+      .eq('status', 'PENDING')
+      .select('id')
+      .maybeSingle();
+
+    if (updateTxErr) {
+      console.error('[Admin Notifications API] Failed to claim pending cash receipt:', updateTxErr);
+      return NextResponse.json({
+        success: false,
+        error: 'فشل تحديث حالة الإيصال في قاعدة البيانات.',
+      }, { status: 400 });
+    }
+
+    if (!claimedTx) {
+      return NextResponse.json({ success: false, error: 'تمت معالجة هذا الإيصال مسبقاً.' }, { status: 409 });
+    }
+
+    const { error: walletUpsertErr } = await supabaseAdmin.from('wallet_accounts').upsert({
       profile_id: captainId,
       balance: newBalance,
       currency_code: captainCurrencyCode,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'profile_id' });
 
-    const { error: updateTxErr } = await supabaseAdmin.from('wallet_transactions').update({
-      status: 'COMPLETED',
-      currency_ar: captainCurrency,
-      currency_code: captainCurrencyCode,
-      description_ar: `تمت الموافقة على الإيصال وإيداع ${amount.toFixed(2)} ${captainCurrency} في الرصيد النقدي.`,
-      metadata: {
-        ...(tx.metadata || {}),
-        approved_by: admin.id,
-        approved_at: new Date().toISOString(),
-        credit_type: 'CASH',
-        amount_credited: amount,
-        currency: captainCurrency,
-        admin_note: adminNote || null,
-      },
-      updated_at: new Date().toISOString(),
-    }).eq('id', transactionId);
-
-    if (updateTxErr) {
-      console.error('[Admin Notifications API] Failed to update transaction status:', updateTxErr);
-      return NextResponse.json({
-        success: false,
-        error: `فشل تحديث حالة الإيصال في قاعدة البيانات: ${updateTxErr.message}. يرجى تطبيق كود الـ SQL في Supabase أولاً.`,
-      }, { status: 400 });
+    if (walletUpsertErr) {
+      console.error('[Admin Notifications API] Failed to credit cash wallet_accounts:', walletUpsertErr);
+      await supabaseAdmin.from('wallet_transactions').update({
+        status: tx.status,
+        description_ar: tx.description_ar,
+        metadata: tx.metadata,
+        updated_at: new Date().toISOString(),
+      }).eq('id', transactionId);
+      return NextResponse.json({ success: false, error: 'فشل إضافة قيمة الإيصال إلى المحفظة.' }, { status: 500 });
     }
 
     await sendCaptainNotification(
@@ -215,8 +281,8 @@ export async function handleApproveReceipt(admin: { id: string }, body: any) {
 
 export async function handleRejectReceipt(admin: { id: string }, body: any) {
   const { transactionId, rejectionReason } = body;
-  if (!transactionId) {
-    return NextResponse.json({ success: false, error: 'معرف معاملة الإيصال مطلوب' }, { status: 400 });
+  if (!isValidUuid(transactionId)) {
+    return NextResponse.json({ success: false, error: 'معرف معاملة الإيصال غير صالح' }, { status: 400 });
   }
 
   const reason = rejectionReason || 'الإيصال غير واضح أو المبلغ لا يطابق عملية التحويل.';
@@ -244,6 +310,23 @@ export async function handleRejectReceipt(admin: { id: string }, body: any) {
         message: 'تم رفض الإيصال وإشعار الكابتن المعلن بسبب الرفض.',
       });
     }
+
+    if (!rpcErr && rpcRes && rpcRes.success === false) {
+      const errCode = String(rpcRes.error || '');
+      const status = errCode === 'transaction_not_found' ? 404 : 400;
+      const message =
+        errCode === 'already_processed'
+          ? 'تمت معالجة هذا الإيصال مسبقاً.'
+          : errCode === 'transaction_not_found'
+            ? 'معاملة الإيصال غير موجودة'
+            : 'تعذر رفض إيصال الشحن.';
+      return NextResponse.json({ success: false, error: message }, { status });
+    }
+
+    if (rpcErr && !isMissingRpcError(rpcErr)) {
+      console.error('[Admin Notifications API] reject_wallet_receipt RPC error:', rpcErr);
+      return NextResponse.json({ success: false, error: 'تعذر رفض إيصال الشحن في قاعدة البيانات.' }, { status: 500 });
+    }
   } catch (rpcCatch) {
     console.warn('[Admin Notifications API] reject_wallet_receipt RPC warning, falling back to direct update:', rpcCatch);
   }
@@ -262,24 +345,34 @@ export async function handleRejectReceipt(admin: { id: string }, body: any) {
     return NextResponse.json({ success: false, error: 'تمت معالجة هذا الإيصال مسبقاً.' }, { status: 400 });
   }
 
-  const { error: updateTxErr } = await supabaseAdmin.from('wallet_transactions').update({
-    status: 'REJECTED',
-    description_ar: `تم رفض الإيصال: ${reason}`,
-    metadata: {
-      ...(tx.metadata || {}),
-      rejected_by: admin.id,
-      rejected_at: new Date().toISOString(),
-      rejection_reason: reason,
-    },
-    updated_at: new Date().toISOString(),
-  }).eq('id', transactionId);
+  const { data: updatedRow, error: updateTxErr } = await supabaseAdmin
+    .from('wallet_transactions')
+    .update({
+      status: 'REJECTED',
+      description_ar: `تم رفض الإيصال: ${reason}`,
+      metadata: {
+        ...(tx.metadata || {}),
+        rejected_by: admin.id,
+        rejected_at: new Date().toISOString(),
+        rejection_reason: reason,
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', transactionId)
+    .eq('status', 'PENDING')
+    .select('id')
+    .maybeSingle();
 
   if (updateTxErr) {
     console.error('[Admin Notifications API] Failed to reject receipt in database:', updateTxErr);
     return NextResponse.json({
       success: false,
-      error: `فشل رفض الإيصال في قاعدة البيانات: ${updateTxErr.message}. يرجى تطبيق كود الـ SQL في Supabase أولاً.`,
+      error: 'فشل رفض الإيصال في قاعدة البيانات.',
     }, { status: 400 });
+  }
+
+  if (!updatedRow) {
+    return NextResponse.json({ success: false, error: 'تمت معالجة هذا الإيصال مسبقاً.' }, { status: 409 });
   }
 
   await sendCaptainNotification(

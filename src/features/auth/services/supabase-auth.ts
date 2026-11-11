@@ -214,90 +214,64 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   const validation = validatePhoneAndPassword(input.phone, input.password);
   if (!validation.ok) throw new Error(validation.message);
 
+  setSupabaseRememberSession(input.rememberMe ?? shouldRememberSupabaseSession());
+
   const { supabase } = await import('@/lib/supabase-client');
 
-  let currentDeviceId = '';
   if (typeof window !== 'undefined') {
-    currentDeviceId = window.localStorage.getItem('radar_device_id') || '';
+    let currentDeviceId = window.localStorage.getItem('radar_device_id') || '';
     if (!currentDeviceId) {
       currentDeviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
       window.localStorage.setItem('radar_device_id', currentDeviceId);
     }
   }
 
-  // Attempt 1: Direct phone login
-  let signInRes = await supabase.auth.signInWithPassword({
-    phone: validation.phone,
-    password: input.password,
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      phone: validation.phone,
+      password: input.password,
+      expectedRole: input.expectedRole,
+    }),
   });
 
-  // Attempt 2 Fallback: If phone login fails, check if the user registered with an email
-  // (e.g. Supabase instance email-primary configuration or phone formatting variant in auth)
-  if (signInRes.error) {
-    const isCredentialsOrPhoneErr =
-      (signInRes.error as any).code === 'invalid_credentials' ||
-      (signInRes.error.message || '').toLowerCase().includes('invalid login') ||
-      (signInRes.error.message || '').toLowerCase().includes('invalid credentials') ||
-      (signInRes.error.message || '').toLowerCase().includes('phone');
+  let resData: any = null;
+  try {
+    resData = await response.json();
+  } catch {
+    throw new Error('حدث خطأ في استجابة الخادم أثناء تسجيل الدخول. حاول مرة أخرى.');
+  }
 
-    if (isCredentialsOrPhoneErr) {
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('phone', validation.phone)
-          .maybeSingle();
-
-        if (profile?.email && profile.email.includes('@')) {
-          const emailSignInRes = await supabase.auth.signInWithPassword({
-            email: profile.email.trim().toLowerCase(),
-            password: input.password,
-          });
-          if (!emailSignInRes.error && emailSignInRes.data?.user) {
-            signInRes = emailSignInRes;
-          }
-        }
-      } catch (fallbackErr) {
-        // Fallback check failed, proceed with original error
-      }
+  if (!response.ok || !resData?.success || !resData?.session?.access_token || !resData?.session?.refresh_token) {
+    if (resData?.code === 'email_not_confirmed' || resData?.error === 'email_not_confirmed') {
+      const unconfirmedErr = new Error('email_not_confirmed');
+      (unconfirmedErr as any).email = resData?.email;
+      (unconfirmedErr as any).phone = resData?.phone || validation.phone;
+      throw unconfirmedErr;
     }
-  }
 
-  if (signInRes.error) throw signInRes.error;
-  const data = signInRes.data;
-
-  // Grandfathering: Accounts created before the email verification rollout (or legacy phone-only accounts)
-  // are permanently exempt from email confirmation blocking to prevent existing users from being locked out.
-  const userEmail = data.user?.email || (data.user?.user_metadata?.email as string | undefined);
-  const userCreatedAtMs = data.user?.created_at ? new Date(data.user.created_at).getTime() : 0;
-  // Cutoff timestamp for email verification rollout: Oct 23, 2026 15:30:00 UTC (1792769400000 ms)
-  const isPreFeatureAccount = userCreatedAtMs > 0 && userCreatedAtMs < 1792769400000;
-  const isPhoneOnlyAccount = !userEmail || !userEmail.includes('@');
-  const requiresEmailConfirmation = !isPreFeatureAccount && !isPhoneOnlyAccount;
-
-  if (data.user && requiresEmailConfirmation && !data.user.email_confirmed_at) {
-    await supabase.auth.signOut();
-    clearSupabaseSessionCache();
-    const unconfirmedErr = new Error('email_not_confirmed');
-    (unconfirmedErr as any).email = userEmail;
-    (unconfirmedErr as any).phone = validation.phone;
-    throw unconfirmedErr;
-  }
-
-  if (input.expectedRole && data.user) {
-    const rawRole = (data.user.user_metadata?.role as string) || 'RIDER';
-    const userRole = rawRole.toUpperCase();
-    const isOwner = data.user.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' || data.user.phone === '+201551981922' || data.user.user_metadata?.phone === '+201551981922';
-    if (userRole !== input.expectedRole && !(isOwner && input.expectedRole === 'ADMIN')) {
-      await supabase.auth.signOut();
-      clearSupabaseSessionCache();
-      throw new Error(`role_mismatch:${userRole}:${input.expectedRole}`);
+    const err = new Error(resData?.error || 'رقم الهاتف أو كلمة المرور غير صحيحة.');
+    if (resData?.code) {
+      (err as any).code = resData.code;
     }
+    throw err;
   }
 
-  await syncCaptainProfileFromAuthUser(data.user);
+  const { data, error: sessionErr } = await supabase.auth.setSession({
+    access_token: resData.session.access_token,
+    refresh_token: resData.session.refresh_token,
+  });
+
+  if (sessionErr) throw sessionErr;
+
+  const authenticatedUser = data.user || resData.user;
+  await syncCaptainProfileFromAuthUser(authenticatedUser);
   cacheSupabaseSession(data.session);
-  return data;
+  return {
+    user: authenticatedUser,
+    session: data.session,
+  };
 }
 
 export function cacheSupabaseSession(session: Session | null) {

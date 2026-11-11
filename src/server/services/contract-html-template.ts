@@ -1,5 +1,14 @@
 import type { CaptainContractData } from './contract-pdf-service';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Standard, universal Arabic date and time formatter using Western Arabic digits
  * and pan-Arab Gregorian month names (avoiding confusing Eastern numerals or regional Syriac names).
@@ -26,9 +35,16 @@ export function formatContractDate(dateInput?: string | Date | number): string {
  * strictly complying with the Unified Captain Terms & Privacy Document.
  */
 export function buildCaptainContractHtml(data: CaptainContractData, contractHash: string): string {
-  const serial = 'BYNK-CAP-' + data.captainId.slice(0, 8).toUpperCase();
-  const dateFormatted = formatContractDate(data.acceptedAt);
-  const version = data.contractVersion || 'V1.0-Unified';
+  const serial = escapeHtml('BYNK-CAP-' + String(data.captainId || '').slice(0, 8).toUpperCase());
+  const dateFormatted = escapeHtml(formatContractDate(data.acceptedAt));
+  const version = escapeHtml(data.contractVersion || 'V1.0-Unified');
+  const safeHash = escapeHtml(contractHash);
+  const fullName = escapeHtml(data.fullName || '-');
+  const phone = escapeHtml(data.phone || '-');
+  const nationalId = escapeHtml(data.nationalIdNumber || 'مسجل إلكترونياً');
+  const plateNumber = escapeHtml(data.plateNumber || 'مركبة مستقلة معتمدة');
+  const vehicleInfo = escapeHtml(`${data.vehicleMake || ''} ${data.vehicleModel || ''} (${data.vehicleYear || '-'})`.trim());
+  const ipAddress = escapeHtml(data.ipAddress || 'شبكة آمنة معتمدة');
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -271,11 +287,11 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
 
         <div class="party-card">
           <h4>الطرف الثاني: الكابتن المعلن (المشترك الموثق)</h4>
-          <div class="info-row"><span class="info-label">الاسم الكامل:</span><span class="info-value">${data.fullName || '-'}</span></div>
-          <div class="info-row"><span class="info-label">رقم الهاتف:</span><span class="info-value" dir="ltr">${data.phone || '-'}</span></div>
-          <div class="info-row"><span class="info-label">الرقم الوطني / الهوية:</span><span class="info-value">${data.nationalIdNumber || 'مسجل إلكترونياً'}</span></div>
-          <div class="info-row"><span class="info-label">رقم لوحة المركبة:</span><span class="info-value">${data.plateNumber || 'مركبة مستقلة معتمدة'}</span></div>
-          <div class="info-row"><span class="info-label">طراز ولون المركبة:</span><span class="info-value">${data.vehicleMake || ''} ${data.vehicleModel || ''} (${data.vehicleYear || '-'})</span></div>
+          <div class="info-row"><span class="info-label">الاسم الكامل:</span><span class="info-value">${fullName}</span></div>
+          <div class="info-row"><span class="info-label">رقم الهاتف:</span><span class="info-value" dir="ltr">${phone}</span></div>
+          <div class="info-row"><span class="info-label">الرقم الوطني / الهوية:</span><span class="info-value">${nationalId}</span></div>
+          <div class="info-row"><span class="info-label">رقم لوحة المركبة:</span><span class="info-value">${plateNumber}</span></div>
+          <div class="info-row"><span class="info-label">طراز ولون المركبة:</span><span class="info-value">${vehicleInfo}</span></div>
         </div>
       </div>
 
@@ -345,11 +361,11 @@ export function buildCaptainContractHtml(data: CaptainContractData, contractHash
           تم توقيع هذا العقد إلكترونياً عبر مفتاح التحقق المشفر وخوارزمية التجزئة الآمنة SHA-256
         </div>
         <div class="hash-badge">
-          ${contractHash}
+          ${safeHash}
         </div>
         <div style="display: flex; justify-content: space-around; margin-top: 10px; font-size: 11.5px; color: #CBD5E1;">
           <div><strong style="color: #94A3B8;">تاريخ ووقت القبول:</strong> ${dateFormatted}</div>
-          <div><strong style="color: #94A3B8;">عنوان النبض الرقمي:</strong> ${data.ipAddress || 'شبكة آمنة معتمدة'}</div>
+          <div><strong style="color: #94A3B8;">عنوان النبض الرقمي:</strong> ${ipAddress}</div>
           <div><strong style="color: #94A3B8;">حالة الاعتماد:</strong> <span style="color: #10B981; font-weight: 800;">ساري وموثق قانونياً</span></div>
         </div>
         <div style="color: #10B981; font-size: 12.5px; margin-top: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px;">

@@ -1,61 +1,37 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
+import { getVerifiedUser } from '@/shared/server/api-auth-guard';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const requestedStatus = String(body.status || '').toLowerCase().trim();
-    const explicitUid = body.uid ? String(body.uid) : null;
 
     if (requestedStatus !== 'active' && requestedStatus !== 'idle') {
       return NextResponse.json({ success: false, error: 'invalid_captain_status' }, { status: 400 });
     }
 
-    // 1. Resolve user ID from Authorization header or explicitUid
-    let uid: string | null = null;
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
-    if (token) {
-      try {
-        const { data: authData } = await supabaseAdmin.auth.getUser(token);
-        if (authData?.user?.id) {
-          uid = authData.user.id;
-        }
-      } catch {}
-    }
-
-    if (!uid && explicitUid) {
-      uid = explicitUid;
-    }
-
-    if (!uid) {
+    const caller = await getVerifiedUser(req, { allowSuspended: true });
+    if (!caller) {
       return NextResponse.json({ success: false, error: 'authentication_required' }, { status: 401 });
     }
 
-    // 2. Fetch current profile to ensure user is a captain and not banned/suspended
-    const { data: profile, error: pErr } = await supabaseAdmin
-      .from('profiles')
-      .select('id, role, status, rank_audit_log')
-      .eq('id', uid)
-      .maybeSingle();
-
-    if (pErr || !profile) {
-      return NextResponse.json({ success: false, error: 'captain_profile_not_found' }, { status: 404 });
+    if (caller.role !== 'CAPTAIN' && caller.role !== 'DRIVER') {
+      return NextResponse.json({ success: false, error: 'only_captains_can_update_status' }, { status: 403 });
     }
 
-    const currentStatus = String(profile.status || '').toUpperCase();
-    if (currentStatus === 'BANNED') {
-      return NextResponse.json({ success: false, error: 'captain_account_banned' }, { status: 403 });
-    }
-    if (currentStatus === 'SUSPENDED' && requestedStatus === 'active') {
+    const uid = caller.id;
+    const isAccountSuspended =
+      caller.status === 'SUSPENDED' ||
+      (Array.isArray(caller.rankAuditLog) && caller.rankAuditLog.includes('ACCOUNT_SUSPENDED'));
+
+    if (isAccountSuspended && requestedStatus === 'active') {
       return NextResponse.json({ success: false, error: 'captain_account_suspended' }, { status: 403 });
     }
 
     const targetStatusUpper = requestedStatus.toUpperCase();
 
-    // 3. Update profile status in profiles table
     const { error: updateErr } = await supabaseAdmin
       .from('profiles')
       .update({
@@ -65,12 +41,11 @@ export async function POST(req: Request) {
       .eq('id', uid);
 
     if (updateErr) {
-      return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
+      console.error('[captain/set-status] profile update error:', updateErr);
+      return NextResponse.json({ success: false, error: 'status_update_failed' }, { status: 500 });
     }
 
-    // 4. Ensure wallet account has future expiration so other legacy checks don't complain
     if (requestedStatus === 'active') {
-      // Ensure welcome hours if brand new captain
       try {
         await grantNewCaptainWelcomeCredit(uid);
       } catch {}
@@ -84,15 +59,16 @@ export async function POST(req: Request) {
         })
         .eq('profile_id', uid);
     } else if (requestedStatus === 'idle') {
-      // Cancel/delete pending ride offers
       await supabaseAdmin
         .from('ride_offers')
         .update({ status: 'CANCELLED' })
-        .eq('captain_id', uid);
+        .eq('captain_id', uid)
+        .neq('status', 'ACCEPTED');
       await supabaseAdmin
         .from('ride_offers')
         .delete()
-        .eq('captain_id', uid);
+        .eq('captain_id', uid)
+        .neq('status', 'ACCEPTED');
     }
 
     return NextResponse.json({
@@ -101,8 +77,9 @@ export async function POST(req: Request) {
       profile_id: uid,
       has_active_bundle: true,
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message || 'internal_error' }, { status: 500 });
+  } catch (err) {
+    console.error('[captain/set-status] unexpected error:', err);
+    return NextResponse.json({ success: false, error: 'internal_error' }, { status: 500 });
   }
 }
 

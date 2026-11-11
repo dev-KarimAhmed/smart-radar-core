@@ -1,10 +1,15 @@
 import { Router } from 'express';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { db } from '../../lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { requireRole } from './supabase-identity';
+import { doc, getDoc, updateDoc, arrayUnion, addDoc, collection, query, where, getDocs, limit, runTransaction } from 'firebase/firestore';
 import {
-  verifyFirebaseIdToken,
+  getPurposeHmacKey,
+  getSafeAppOrigin,
+  timingSafeCompare,
+} from '../../shared/server/api-auth-guard';
+import { requireExpressRole } from './supabase-identity';
+import {
+  createScopedRateLimiter,
   rateLimiterMiddleware,
   acquireBackendLock,
   releaseBackendLock,
@@ -12,45 +17,46 @@ import {
 
 export const delegateExpressRouter = Router();
 
-// Server-Side Sovereign Cryptographic Integrity Engine
-export function generateIntegritySignatureServer(delegateId: string, count: number, referralCode: string, homeDistrict?: string, currentH3Cell?: string) {
-  const SECRET_SALT = "SOVEREIGN_RADAR_ROUTER_SECURE_SALT_2026";
-  const rawString = `${delegateId}:${count}:${referralCode}:${homeDistrict || ''}:${currentH3Cell || ''}:${SECRET_SALT}`;
-  let hash = 0;
-  for (let i = 0; i < rawString.length; i++) {
-    const char = rawString.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
+const magicVerifyRateLimiter = createScopedRateLimiter('magic-link-verify', 10, 60_000);
+
+function parseSafeDocId(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 128 || trimmed.includes('/') || trimmed.includes('..')) {
+    return null;
   }
-  return `SIG-HEX-${Math.abs(hash).toString(16).toUpperCase()}`;
+  return trimmed;
+}
+
+// Server-Side Sovereign Cryptographic HMAC Integrity Engine
+export function generateIntegritySignatureServer(
+  delegateId: string,
+  count: number,
+  referralCode: string,
+  homeDistrict?: string,
+  currentH3Cell?: string,
+): string {
+  const hmacKey = getPurposeHmacKey('DELEGATE_INTEGRITY_SECRET', 'delegate-signature');
+  const rawPayload = `${delegateId}:${count}:${referralCode}:${homeDistrict || ''}:${currentH3Cell || ''}`;
+  const digest = crypto
+    .createHmac('sha256', hmacKey)
+    .update(rawPayload, 'utf8')
+    .digest('hex')
+    .slice(0, 24)
+    .toUpperCase();
+  return `SIG-HMAC-${digest}`;
 }
 
 // SECURE EXECUTIVE DELEGATE DUES SETTLEMENT [RAD-CMD-088]
 delegateExpressRouter.post('/clear-delegate-dues', rateLimiterMiddleware, async (req, res) => {
-  const { delegateId, idToken } = req.body;
+  const authorized = await requireExpressRole(req, ['ADMIN', 'OWNER']);
+  if (!authorized.ok) {
+    return res.status(authorized.status).json({ success: false, error: authorized.error });
+  }
+
+  const delegateId = parseSafeDocId(req.body?.delegateId);
   if (!delegateId) {
     return res.status(400).json({ success: false, error: 'المندوب غير محدد لتسوية المستحقات' });
-  }
-
-  if (!idToken) {
-    return res.status(401).json({ success: false, error: 'المصادقة الأمنية مطلوبة لتسوية المستحقات المالية.' });
-  }
-  const requesterUid = await verifyFirebaseIdToken(idToken);
-  if (!requesterUid) {
-    return res.status(401).json({ success: false, error: 'رمز الجلسة غير صالح أو منتهي الصلاحية.' });
-  }
-
-  const requesterRef = doc(db, 'users', requesterUid);
-  const requesterSnap = await getDoc(requesterRef);
-  const reqData = requesterSnap.exists() ? requesterSnap.data() : null;
-  const reqRole = reqData?.role;
-
-  const isAuthorized = requesterUid === delegateId ||
-    reqRole === 'admin' ||
-    reqRole === 'owner';
-
-  if (!isAuthorized) {
-    return res.status(403).json({ success: false, error: 'غير مصرح لك بتنفيذ هذه التسوية المالية.' });
   }
 
   const lockKey = `clear-dues-${delegateId}`;
@@ -67,23 +73,24 @@ delegateExpressRouter.post('/clear-delegate-dues', rateLimiterMiddleware, async 
     }
 
     const data = delSnap.data();
-    const rawDues = data?.pendingDues || 0;
+    const rawDues = Number(data?.pendingDues || 0);
 
-    if (rawDues <= 0) {
+    if (!Number.isFinite(rawDues) || rawDues <= 0) {
       return res.status(400).json({ success: false, error: '🚨 عطل مالي: لا توجد مستحقات مالية معلقة لتصفيتها أو صرفها لهذا المندوب حالياً!' });
     }
 
-    const delRate = data?.deletionRate || 0;
+    const delRateRaw = Number(data?.deletionRate || 0);
+    const delRate = Number.isFinite(delRateRaw) && delRateRaw >= 0 ? Math.min(100, delRateRaw) : 0;
     const penaltyAmount = rawDues * (delRate / 100) * 0.40;
     const withdrawableBalance = Math.max(0, rawDues - penaltyAmount);
 
     const settlementRecord = {
       netSettled: withdrawableBalance,
-      rawDues: rawDues,
-      penaltyAmount: penaltyAmount,
+      rawDues,
+      penaltyAmount,
       deletionRate: delRate,
       timestamp: new Date().toISOString(),
-      settledBy: 'owner'
+      settledBy: authorized.caller.userId,
     };
 
     await updateDoc(delRef, {
@@ -92,10 +99,10 @@ delegateExpressRouter.post('/clear-delegate-dues', rateLimiterMiddleware, async 
       settledBalances: arrayUnion(settlementRecord)
     });
 
-    if (data?.userId) {
+    if (typeof data?.userId === 'string' && parseSafeDocId(data.userId)) {
       const userRef = doc(db, 'users', data.userId);
       await updateDoc(userRef, { pendingDues: 0 });
-    } else if (data?.phone) {
+    } else if (typeof data?.phone === 'string' && data.phone.trim()) {
       const userQuery = query(collection(db, 'users'), where('phone', '==', data.phone), limit(1));
       const userSnap = await getDocs(userQuery);
       if (!userSnap.empty) {
@@ -103,38 +110,64 @@ delegateExpressRouter.post('/clear-delegate-dues', rateLimiterMiddleware, async 
       }
     }
 
-    console.log(`[Sovereign Core] Cleared dues for delegate ${delegateId}. Net settled: ${withdrawableBalance}`);
+    console.log(`[Sovereign Core] Cleared dues for delegate ${delegateId} by ${authorized.caller.userId}. Net settled: ${withdrawableBalance}`);
     return res.json({
       success: true,
       message: 'تم تصفية وتصفير مستحقات المندوب بنجاح وتسجيل العملية في الأرشيف المالي',
       netSettled: withdrawableBalance
     });
-  } catch (err: any) {
-    console.error("[Clear Delegate Dues Error]:", err);
-    return res.status(500).json({ success: false, error: err.message });
+  } catch (err: unknown) {
+    console.error('[Clear Delegate Dues Error]:', err);
+    return res.status(500).json({ success: false, error: 'تعذّر إتمام التسوية المالية للمندوب.' });
   } finally {
     releaseBackendLock(lockKey);
   }
 });
 
 // API to verify delegates signatures server-side
-delegateExpressRouter.post('/verify-signatures', rateLimiterMiddleware, (req, res) => {
-  const { delegates } = req.body;
-  if (!Array.isArray(delegates)) {
+delegateExpressRouter.post('/verify-signatures', rateLimiterMiddleware, async (req, res) => {
+  const authorized = await requireExpressRole(req, ['ADMIN', 'OWNER']);
+  if (!authorized.ok) {
+    return res.status(authorized.status).json({ success: false, error: authorized.error });
+  }
+
+  const delegates = req.body?.delegates;
+  if (!Array.isArray(delegates) || delegates.length > 200) {
     return res.status(400).json({ success: false, error: 'تنسيق البيانات غير صالح للتحقق.' });
   }
 
   const results: Record<string, boolean> = {};
   for (const d of delegates) {
-    if (!d.id) continue;
-    if (d.referredCount === undefined || d.referredCount === null || !d.referralCode || !d.integritySignature) {
-      results[d.id] = false;
+    if (!d || typeof d !== 'object') continue;
+    const delegateId = parseSafeDocId((d as Record<string, unknown>).id);
+    if (!delegateId) continue;
+
+    const referredCount = (d as Record<string, unknown>).referredCount;
+    const referralCode = (d as Record<string, unknown>).referralCode;
+    const integritySignature = (d as Record<string, unknown>).integritySignature;
+
+    if (
+      typeof referredCount !== 'number' ||
+      !Number.isFinite(referredCount) ||
+      typeof referralCode !== 'string' ||
+      !referralCode ||
+      typeof integritySignature !== 'string' ||
+      !integritySignature
+    ) {
+      results[delegateId] = false;
       continue;
     }
-    const homeDistrict = d.homeDistrict || d.district || 'وادي السير';
-    const currentH3Cell = d.currentH3Cell || '0x892f35ffffffff';
-    const expected = generateIntegritySignatureServer(d.id, d.referredCount, d.referralCode, homeDistrict, currentH3Cell);
-    results[d.id] = d.integritySignature === expected;
+
+    const homeDistrictRaw = (d as Record<string, unknown>).homeDistrict || (d as Record<string, unknown>).district || 'وادي السير';
+    const currentH3CellRaw = (d as Record<string, unknown>).currentH3Cell || '0x892f35ffffffff';
+    const expected = generateIntegritySignatureServer(
+      delegateId,
+      referredCount,
+      referralCode,
+      String(homeDistrictRaw),
+      String(currentH3CellRaw),
+    );
+    results[delegateId] = timingSafeCompare(integritySignature, expected);
   }
 
   return res.json({ success: true, results });
@@ -142,26 +175,14 @@ delegateExpressRouter.post('/verify-signatures', rateLimiterMiddleware, (req, re
 
 // 1. RECONCILE AND SIGN DELEGATE (Server-Authoritative Cryptographic Integrity)
 delegateExpressRouter.post('/reconcile-and-sign', rateLimiterMiddleware, async (req, res) => {
-  const { delegateId, actorRole, actorUid, idToken } = req.body;
+  const authorized = await requireExpressRole(req, ['ADMIN', 'OWNER']);
+  if (!authorized.ok) {
+    return res.status(authorized.status).json({ success: false, error: authorized.error });
+  }
+
+  const delegateId = parseSafeDocId(req.body?.delegateId);
   if (!delegateId) {
     return res.status(400).json({ success: false, error: 'المندوب غير محدد لتأكيد العداد والتحقق' });
-  }
-
-  if (!idToken) {
-    return res.status(401).json({ success: false, error: 'المصادقة الأمنية مطلوبة لإغلاق العدادات.' });
-  }
-  const requesterUid = await verifyFirebaseIdToken(idToken);
-  if (!requesterUid) {
-    return res.status(401).json({ success: false, error: 'رمز الجلسة غير صالح أو منتهي الصلاحية.' });
-  }
-
-  const requesterRef = doc(db, 'users', requesterUid);
-  const requesterSnap = await getDoc(requesterRef);
-  const reqData = requesterSnap.exists() ? requesterSnap.data() : null;
-  const reqRole = reqData?.role;
-
-  if (reqRole !== 'admin' && reqRole !== 'owner') {
-    return res.status(403).json({ success: false, error: 'غير مصرح لك بتوقيع وإغلاق عدادات المناديب.' });
   }
 
   const lockKey = `reconcile-sign-${delegateId}`;
@@ -177,13 +198,14 @@ delegateExpressRouter.post('/reconcile-and-sign', rateLimiterMiddleware, async (
     }
 
     const delegateData = delSnap.data();
-    const referralCode = delegateData.referralCode || '';
-    const homeDistrict = delegateData.homeDistrict || delegateData.district || 'وادي السير';
-    const currentH3Cell = delegateData.currentH3Cell || '0x892f35ffffffff';
+    const referralCode = String(delegateData.referralCode || '');
+    const homeDistrict = String(delegateData.homeDistrict || delegateData.district || 'وادي السير');
+    const currentH3Cell = String(delegateData.currentH3Cell || '0x892f35ffffffff');
 
     const usersQuery = query(
       collection(db, 'users'),
-      where('role', '==', 'driver')
+      where('role', '==', 'driver'),
+      limit(2000)
     );
     const usersSnap = await getDocs(usersQuery);
 
@@ -194,7 +216,7 @@ delegateExpressRouter.post('/reconcile-and-sign', rateLimiterMiddleware, async (
         d.usedReferralCode === referralCode;
     }).length;
 
-    const finalCount = actualCount > 0 ? actualCount : (delegateData.referredCount || 0);
+    const finalCount = actualCount > 0 ? actualCount : Number(delegateData.referredCount || 0);
     const signature = generateIntegritySignatureServer(delegateId, finalCount, referralCode, homeDistrict, currentH3Cell);
 
     await updateDoc(delRef, {
@@ -204,22 +226,21 @@ delegateExpressRouter.post('/reconcile-and-sign', rateLimiterMiddleware, async (
       currentH3Cell
     });
 
-    const actorName = actorUid || 'SYSTEM_SOVEREIGN_ADMIN';
     await addDoc(collection(db, 'audit_ledger'), {
       action: 'DELEGATE_INTEGRITY_SIGN_AND_RECONCILE',
-      delegateId: delegateId,
+      delegateId,
       delegateName: delegateData.name || 'سفير ميداني',
-      referralCode: referralCode,
+      referralCode,
       previousCount: delegateData.referredCount || 0,
       reconciledCount: finalCount,
       signature,
-      actor: actorName,
+      actor: authorized.caller.userId,
       timestamp: new Date().toISOString(),
       verified: true,
       protocol: 'RAD-RECONCILE-99'
     });
 
-    console.log(`[Sovereign Core] Reconciled and signed delegate ${delegateId}. Count: ${finalCount}. Signature: ${signature}`);
+    console.log(`[Sovereign Core] Reconciled and signed delegate ${delegateId} by ${authorized.caller.userId}. Count: ${finalCount}`);
 
     return res.json({
       success: true,
@@ -227,9 +248,9 @@ delegateExpressRouter.post('/reconcile-and-sign', rateLimiterMiddleware, async (
       integritySignature: signature,
       message: 'تمت مصادقة ومطابقة وتوقيع العدادات تشفيرياً عبر الخادم بنجاح.'
     });
-  } catch (err: any) {
-    console.error("[Reconcile and Sign Error]:", err);
-    return res.status(500).json({ success: false, error: err.message });
+  } catch (err: unknown) {
+    console.error('[Reconcile and Sign Error]:', err);
+    return res.status(500).json({ success: false, error: 'تعذّر توقيع ومطابقة عدادات المندوب.' });
   } finally {
     releaseBackendLock(lockKey);
   }
@@ -237,24 +258,25 @@ delegateExpressRouter.post('/reconcile-and-sign', rateLimiterMiddleware, async (
 
 // 2. GENERATE MAGIC LINK (Server-Authoritative Ticket Inception)
 delegateExpressRouter.post('/generate-magic-link', rateLimiterMiddleware, async (req, res) => {
-  const authorized = await requireRole(req, ['ADMIN', 'OWNER']);
+  const authorized = await requireExpressRole(req, ['ADMIN', 'OWNER']);
   if (!authorized.ok) {
     return res.status(authorized.status).json({ success: false, error: authorized.error });
   }
 
-  const { delegateId, delegateName, expiryHours } = req.body;
-  if (!delegateId || !delegateName) {
+  const delegateId = parseSafeDocId(req.body?.delegateId);
+  const delegateName = typeof req.body?.delegateName === 'string' ? req.body.delegateName.trim() : '';
+  const rawHours = Number(req.body?.expiryHours);
+  const hours = Number.isFinite(rawHours) ? Math.min(168, Math.max(1, Math.round(rawHours))) : 24;
+
+  if (!delegateId || !delegateName || delegateName.length > 120) {
     return res.status(400).json({ success: false, error: 'المعطيات غير مكتملة لتوليد الرابط السحري' });
   }
 
   try {
-    const hours = expiryHours || 24;
     const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
-    const token = crypto.randomBytes(16).toString('hex');
+    const token = crypto.randomBytes(24).toString('hex');
 
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host || 'localhost:3000';
-    const originUrl = `${protocol}://${host}`;
+    const originUrl = getSafeAppOrigin(req);
     const magicLinkUrl = `${originUrl}/#magic-login?token=${token}`;
 
     const newLink = {
@@ -277,23 +299,28 @@ delegateExpressRouter.post('/generate-magic-link', rateLimiterMiddleware, async 
       link: newLink,
       message: 'تم توليد الرابط السحري بنجاح وتأمينه داخل البوابة السحابية للرادار.'
     });
-  } catch (err: any) {
-    console.error("[Generate Magic Link Error]:", err);
-    return res.status(500).json({ success: false, error: err.message });
+  } catch (err: unknown) {
+    console.error('[Generate Magic Link Error]:', err);
+    return res.status(500).json({ success: false, error: 'تعذّر توليد الرابط السحري حالياً.' });
   }
 });
 
 // 3. VERIFY MAGIC LINK (Server-Authoritative Authentication Handshake)
-delegateExpressRouter.post('/verify-magic-link', rateLimiterMiddleware, async (req, res) => {
-  const { token } = req.body;
-  if (!token) {
-    return res.status(400).json({ success: false, error: 'رمز الدخول غير متوفر للتحقق' });
+delegateExpressRouter.post('/verify-magic-link', magicVerifyRateLimiter, async (req, res) => {
+  const rawToken = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+  if (!rawToken || !/^[a-f0-9]{16,128}$/i.test(rawToken)) {
+    return res.status(400).json({ success: false, error: 'رمز الدخول غير صالح للتحقق' });
+  }
+
+  const lockKey = `magic-verify-${rawToken}`;
+  if (!acquireBackendLock(lockKey)) {
+    return res.status(429).json({ success: false, error: 'جاري التحقق من الرابط السحري.' });
   }
 
   try {
     const q = query(
       collection(db, 'delegate_links'),
-      where('token', '==', token),
+      where('token', '==', rawToken),
       where('status', '==', 'active'),
       limit(1)
     );
@@ -304,23 +331,51 @@ delegateExpressRouter.post('/verify-magic-link', rateLimiterMiddleware, async (r
     }
 
     const linkDoc = qSnap.docs[0];
-    const linkData = linkDoc.data();
-    const expiresAt = new Date(linkData.expiresAt);
+    const linkRef = doc(db, 'delegate_links', linkDoc.id);
     const serverNow = new Date();
 
-    if (expiresAt < serverNow) {
-      await updateDoc(doc(db, 'delegate_links', linkDoc.id), { status: 'expired' });
+    const txOutcome = await runTransaction(db, async (tx) => {
+      const freshSnap = await tx.get(linkRef);
+      if (!freshSnap.exists()) {
+        return { outcome: 'invalid' as const };
+      }
+      const linkData = freshSnap.data();
+      if (
+        String(linkData.status || '').toLowerCase() !== 'active' ||
+        !timingSafeCompare(String(linkData.token || ''), rawToken)
+      ) {
+        return { outcome: 'invalid' as const };
+      }
+
+      const expiresAt = new Date(linkData.expiresAt);
+      if (Number.isNaN(expiresAt.getTime()) || expiresAt < serverNow) {
+        tx.update(linkRef, { status: 'expired' });
+        return { outcome: 'expired' as const };
+      }
+
+      tx.update(linkRef, {
+        status: 'used',
+        usedAt: serverNow.toISOString(),
+      });
+      return { outcome: 'valid' as const, linkData };
+    });
+
+    if (txOutcome.outcome === 'invalid') {
+      return res.status(404).json({ success: false, error: 'رمز الدخول السحري غير صالح أو تم استهلاكه مسبقاً.' });
+    }
+    if (txOutcome.outcome === 'expired') {
       return res.status(410).json({ success: false, error: 'عذراً، انتهت صلاحية الرابط السحري زمنيّاً لحماية الخصوصية.' });
     }
 
-    await updateDoc(doc(db, 'delegate_links', linkDoc.id), { status: 'used' });
+    const { linkData } = txOutcome;
 
-    const delegateRef = doc(db, 'delegates', linkData.delegateId);
-    const delegateSnap = await getDoc(delegateRef);
-
-    let delegateProfile = null;
-    if (delegateSnap.exists()) {
-      delegateProfile = { id: delegateSnap.id, ...delegateSnap.data() };
+    let delegateProfile: Record<string, unknown> | null = null;
+    if (typeof linkData.delegateId === 'string' && parseSafeDocId(linkData.delegateId)) {
+      const delegateRef = doc(db, 'delegates', linkData.delegateId);
+      const delegateSnap = await getDoc(delegateRef);
+      if (delegateSnap.exists()) {
+        delegateProfile = { id: delegateSnap.id, ...delegateSnap.data() };
+      }
     }
 
     return res.json({
@@ -332,47 +387,31 @@ delegateExpressRouter.post('/verify-magic-link', rateLimiterMiddleware, async (r
       delegateProfile,
       message: 'تم التحقق السحري من هويتك كوكيل سيادي بنجاح مبرهن!'
     });
-  } catch (err: any) {
-    console.error("[Verify Magic Link Error]:", err);
-    return res.status(500).json({ success: false, error: err.message });
+  } catch (err: unknown) {
+    console.error('[Verify Magic Link Error]:', err);
+    return res.status(500).json({ success: false, error: 'تعذّر التحقق من رمز الدخول السحري.' });
+  } finally {
+    releaseBackendLock(lockKey);
   }
 });
 
 // 4. SECURE DELEGATE TASK STATE TRANSITION ENFORCER (Server-Side State Machine)
 delegateExpressRouter.post('/delegate-task-transition', rateLimiterMiddleware, async (req, res) => {
-  let { taskId, targetStatus, delegateId, actorUid, actorRole } = req.body;
-
-  const authHeader = req.headers.authorization;
-  let verifiedUid: string | null = null;
-  let verifiedRole = 'delegate';
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const idToken = authHeader.split('Bearer ')[1];
-    verifiedUid = await verifyFirebaseIdToken(idToken);
-    if (!verifiedUid) {
-      return res.status(401).json({ success: false, error: '🚨 اختراق أمني: رمز التحقق الرقمي منتهي الصلاحية أو تم التلاعب به!' });
-    }
-
-    const userRef = doc(db, 'users', verifiedUid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      return res.status(404).json({ success: false, error: '🚨 اختراق أمني: الملف الشخصي للمستخدم غير موجود!' });
-    }
-    const userData = userSnap.data();
-    verifiedRole = userData.role || 'delegate';
-
-    delegateId = verifiedUid;
-    actorUid = verifiedUid;
-    actorRole = verifiedRole;
-  } else {
-    if (!taskId.startsWith('tsk-sim')) {
-      return res.status(401).json({ success: false, error: '🚨 اختراق أمني: ترويسة التحقق الأمنية الرقمية (Authorization Token) مطلوبة للمهام الفعلية!' });
-    }
+  const authorized = await requireExpressRole(req, ['ADMIN', 'OWNER', 'DELEGATE']);
+  if (!authorized.ok) {
+    return res.status(authorized.status).json({ success: false, error: authorized.error });
   }
 
-  if (!taskId || !targetStatus || !delegateId) {
+  const taskId = parseSafeDocId(req.body?.taskId);
+  const targetStatus = typeof req.body?.targetStatus === 'string' ? req.body.targetStatus.trim().toLowerCase() : '';
+
+  if (!taskId || !targetStatus) {
     return res.status(400).json({ success: false, error: 'المعطيات غير مكتملة لتحديث حالة المهمة.' });
   }
+
+  const verifiedUid = authorized.caller.userId;
+  const verifiedRole = authorized.caller.role.toLowerCase();
+  const isAdminCaller = verifiedRole === 'admin' || verifiedRole === 'owner';
 
   const lockKey = `task-transition-${taskId}`;
   if (!acquireBackendLock(lockKey)) {
@@ -388,14 +427,14 @@ delegateExpressRouter.post('/delegate-task-transition', rateLimiterMiddleware, a
     }
 
     const taskData = taskSnap.data();
-    const currentStatus = taskData.status || 'pending';
+    const currentStatus = String(taskData.status || 'pending').toLowerCase();
 
-    if (actorRole !== 'admin' && taskData.delegateId !== delegateId) {
+    if (!isAdminCaller && taskData.delegateId !== verifiedUid) {
       await addDoc(collection(db, 'audit_ledger'), {
         timestamp: new Date().toISOString(),
-        actorId: delegateId,
+        actorId: verifiedUid,
         action: 'UNAUTHORIZED_TASK_ACCESS_ATTEMPT_SERVER',
-        details: { taskId, targetDelegateId: taskData.delegateId, attemptedBy: delegateId },
+        details: { taskId, targetDelegateId: taskData.delegateId, attemptedBy: verifiedUid },
         securityClearance: 'CRITICAL_SECURITY_ALERT'
       });
 
@@ -415,13 +454,8 @@ delegateExpressRouter.post('/delegate-task-transition', rateLimiterMiddleware, a
         return res.status(400).json({ success: false, error: `خطأ في آلة الحالات: لا يمكن إكمال مهمة بحالة ${currentStatus}.` });
       }
     } else if (targetStatus === 'closed') {
-      if (actorRole !== 'admin') {
-        const userRef = doc(db, 'users', actorUid || delegateId);
-        const userSnap = await getDoc(userRef);
-        const userData = userSnap.data();
-        if (!userData || userData.role !== 'admin') {
-          return res.status(403).json({ success: false, error: 'صلاحيات غير كافية: إغلاق المهام وصرف المستحقات متاح فقط للمشرفين والمالك.' });
-        }
+      if (!isAdminCaller) {
+        return res.status(403).json({ success: false, error: 'صلاحيات غير كافية: إغلاق المهام وصرف المستحقات متاح فقط للمشرفين والمالك.' });
       }
     } else {
       return res.status(400).json({ success: false, error: `حالة غير معروفة للمهمة: ${targetStatus}` });
@@ -429,16 +463,16 @@ delegateExpressRouter.post('/delegate-task-transition', rateLimiterMiddleware, a
 
     await updateDoc(taskRef, { status: targetStatus });
 
-    const integrityHash = `TXN-TASK-${taskId.substring(0, 6)}-${targetStatus.toUpperCase()}-${Date.now()}`;
+    const integrityHash = `TXN-TASK-${taskId.substring(0, 6)}-${targetStatus.toUpperCase()}-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 
     await addDoc(collection(db, 'audit_ledger'), {
       action: `TASK_TRANSITION_${targetStatus.toUpperCase()}`,
-      taskId: taskId,
-      delegateId: delegateId,
+      taskId,
+      delegateId: taskData.delegateId || verifiedUid,
       previousStatus: currentStatus,
       newStatus: targetStatus,
-      actor: actorUid || delegateId,
-      actorRole: actorRole || 'delegate',
+      actor: verifiedUid,
+      actorRole: verifiedRole,
       integrityHash,
       timestamp: new Date().toISOString(),
       verified: true,
@@ -451,9 +485,9 @@ delegateExpressRouter.post('/delegate-task-transition', rateLimiterMiddleware, a
       integrityHash,
       message: 'تم تحديث حالة المهمة بأمان تام من خلال جدار الحماية السحابي الموحد.'
     });
-  } catch (err: any) {
-    console.error("[Task Transition Error]:", err);
-    return res.status(500).json({ success: false, error: err.message });
+  } catch (err: unknown) {
+    console.error('[Task Transition Error]:', err);
+    return res.status(500).json({ success: false, error: 'تعذّر تحديث حالة المهمة حالياً.' });
   } finally {
     releaseBackendLock(lockKey);
   }

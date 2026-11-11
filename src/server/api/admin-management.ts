@@ -1,4 +1,5 @@
 import { Router, type Request } from 'express';
+import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '../../core/logic/saudi-restriction';
 import { requireRole } from './supabase-identity';
 
 export const adminManagementRouter = Router();
@@ -30,15 +31,22 @@ function normalizePhone(phone: string): string {
   return cleaned;
 }
 
+const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
+const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
+
 /**
  * POST /api/admin/create-sub-admin
  * Secure endpoint to create an administrator account.
- * Requires caller to hold role 'ADMIN' in public.profiles.
+ * Requires caller to hold GENERAL_ADMIN rank.
  */
 adminManagementRouter.post('/admin/create-sub-admin', async (req: Request, res) => {
   const authorized = await requireRole(req, ['ADMIN', 'OWNER']);
   if (!authorized.ok) {
     return res.status(authorized.status).json({ success: false, error: authorized.error });
+  }
+
+  if (!authorized.caller.isGeneralAdmin && authorized.caller.userId !== PRIMARY_SOVEREIGN_ADMIN_ID) {
+    return res.status(403).json({ success: false, error: 'إنشاء حسابات المشرفين متاح فقط للمشرف العام.' });
   }
 
   const config = serviceConfig();
@@ -48,7 +56,7 @@ adminManagementRouter.post('/admin/create-sub-admin', async (req: Request, res) 
 
   const { fullName, phone, password } = req.body;
 
-  if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 3) {
+  if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 3 || fullName.trim().length > 100) {
     return res.status(400).json({ success: false, error: 'يرجى كتابة الاسم الكامل للمشرف (3 أحرف على الأقل).' });
   }
 
@@ -56,11 +64,17 @@ adminManagementRouter.post('/admin/create-sub-admin', async (req: Request, res) 
     return res.status(400).json({ success: false, error: 'يرجى إدخال رقم هاتف صالح بصيغة دولية.' });
   }
 
-  if (!password || typeof password !== 'string' || password.length < 8) {
-    return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 8 خانات.' });
+  const normalizedPhone = normalizePhone(phone);
+  if (isSaudiPhoneNumber(normalizedPhone)) {
+    return res.status(400).json({ success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected });
+  }
+  if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
+    return res.status(400).json({ success: false, error: 'صيغة رقم الهاتف الدولي غير صالحة.' });
   }
 
-  const normalizedPhone = normalizePhone(phone);
+  if (!password || typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    return res.status(400).json({ success: false, error: 'كلمة المرور يجب ألا تقل عن 8 خانات.' });
+  }
 
   try {
     // 1. Call Supabase Auth Admin API using service_role key
@@ -84,11 +98,11 @@ adminManagementRouter.post('/admin/create-sub-admin', async (req: Request, res) 
     const data = await response.json();
 
     if (!response.ok) {
-      const msg = data?.msg || data?.message || data?.error_description || '';
+      const msg = String(data?.msg || data?.message || data?.error_description || '');
       if (msg.includes('already exists') || msg.includes('phone_exists')) {
         return res.status(409).json({ success: false, error: 'رقم الهاتف هذا مسجل بالفعل لحساب آخر في النظام.' });
       }
-      return res.status(response.status).json({ success: false, error: msg || 'فشل إنشاء حساب المشرف في خدمة المصادقة.' });
+      return res.status(response.status).json({ success: false, error: 'فشل إنشاء حساب المشرف في خدمة المصادقة.' });
     }
 
     const createdUser = data;
@@ -105,22 +119,17 @@ adminManagementRouter.post('/admin/create-sub-admin', async (req: Request, res) 
         createdAt: createdUser.created_at || new Date().toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Admin Management Error - create-sub-admin]:', error);
-    return res.status(500).json({ success: false, error: error?.message || 'حدث خطأ غير متوقع أثناء معالجة الطلب.' });
+    return res.status(500).json({ success: false, error: 'حدث خطأ غير متوقع أثناء معالجة الطلب.' });
   }
 });
-
-const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
-const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
 
 function resolveAdminRank(adm: any): 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN' {
   if (!adm) return 'ASSISTANT_ADMIN';
   if (
     adm.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
-    adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE ||
-    adm.phone === '+201551981977' ||
-    adm.phone === '201551981977'
+    adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE
   ) {
     return 'GENERAL_ADMIN';
   }
@@ -192,9 +201,9 @@ adminManagementRouter.get('/admin/list-admins', async (req: Request, res) => {
       callerRank,
       callerId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Admin Management Error - list-admins]:', error);
-    return res.status(500).json({ success: false, error: error?.message || 'خطأ داخلي في الخادم.' });
+    return res.status(500).json({ success: false, error: 'خطأ داخلي في الخادم.' });
   }
 });
 

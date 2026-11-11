@@ -60,11 +60,7 @@ export function isGeneralAdmin(admin: any): boolean {
   if (
     admin.id === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
     admin.phone === '+201551981922' ||
-    admin.phone === '+201551981977' ||
-    admin.phone === '201551981977' ||
-    admin.id === 'dev-admin-001' ||
-    admin.admin_rank === 'GENERAL_ADMIN' ||
-    admin.user_metadata?.admin_rank === 'GENERAL_ADMIN'
+    admin.admin_rank === 'GENERAL_ADMIN'
   ) {
     return true;
   }
@@ -81,12 +77,12 @@ export function getAdminAllowedSectors(admin: any): AdminSectorId[] {
     return [...ALL_SECTOR_IDS];
   }
 
-  const raw = admin.allowed_sectors || admin.user_metadata?.allowed_sectors;
+  const raw = admin.allowed_sectors;
   if (Array.isArray(raw) && raw.length > 0) {
     return raw.filter((s) => ALL_SECTOR_IDS.includes(s as AdminSectorId)) as AdminSectorId[];
   }
 
-  // Default fallback for assistant admins
+  // Default fallback for assistant admins without explicit sector overrides
   return ['captains', 'riders'];
 }
 

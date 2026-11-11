@@ -1,32 +1,29 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { isValidUuid } from '@/shared/server/api-auth-guard';
 import {
-  verifyAdminCaller,
+  requireAdminAccess,
   getAdminRank,
+  invalidateAdminCache,
   PRIMARY_SOVEREIGN_ADMIN_ID,
   PRIMARY_SOVEREIGN_ADMIN_PHONE,
 } from '@/lib/admin-auth-verifier';
 import { ALL_SECTOR_IDS, AdminSectorId } from '@/features/admin/lib/admin-permissions';
 
 export async function POST(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
-    return NextResponse.json({ success: false, error: 'Unauthorized: Admin privileges required' }, { status: 401 });
-  }
-
-  const callerRank = getAdminRank(admin);
-  if (callerRank !== 'GENERAL_ADMIN') {
+  const access = await requireAdminAccess(req, { requireGeneralAdmin: true });
+  if (!access.ok) {
     return NextResponse.json(
-      { success: false, error: 'غير مصرح: المشرف العام فقط يملك صلاحية تعديل صلاحيات القطاعات' },
-      { status: 403 }
+      { success: false, error: access.status === 403 ? 'غير مصرح: المشرف العام فقط يملك صلاحية تعديل صلاحيات القطاعات' : access.error },
+      { status: access.status }
     );
   }
 
   try {
     const { adminId, allowedSectors, adminRank } = await req.json();
 
-    if (!adminId) {
-      return NextResponse.json({ success: false, error: 'معرف المشرف مطلوب' }, { status: 400 });
+    if (!isValidUuid(adminId)) {
+      return NextResponse.json({ success: false, error: 'معرف المشرف غير صالح' }, { status: 400 });
     }
 
     // Protect primary sovereign admin from having permissions stripped
@@ -50,16 +47,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'لا يمكن تعديل صلاحيات المشرف العام السيادي الأساسي' }, { status: 403 });
     }
 
-    let targetRank = adminRank;
-    if (!targetRank) {
+    let targetRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
+    if (adminRank === 'GENERAL_ADMIN' || adminRank === 'ASSISTANT_ADMIN') {
+      targetRank = adminRank;
+    } else {
       targetRank = getAdminRank(targetProfile);
     }
 
+    const filteredSectors: AdminSectorId[] = Array.isArray(allowedSectors)
+      ? allowedSectors.filter((s: unknown): s is AdminSectorId => typeof s === 'string' && ALL_SECTOR_IDS.includes(s as AdminSectorId))
+      : [];
+
     const finalSectors: AdminSectorId[] = targetRank === 'GENERAL_ADMIN'
       ? [...ALL_SECTOR_IDS]
-      : (Array.isArray(allowedSectors)
-          ? allowedSectors.filter((s: string) => ALL_SECTOR_IDS.includes(s as AdminSectorId))
-          : ['captains', 'riders']);
+      : (filteredSectors.length > 0 ? filteredSectors : ['captains', 'riders']);
 
     const rankAuditValue = targetRank === 'GENERAL_ADMIN' ? 'RANK_GENERAL_ADMIN' : 'RANK_ASSISTANT_ADMIN';
     const currentAudit = Array.isArray(targetProfile.rank_audit_log)
@@ -91,6 +92,8 @@ export async function POST(req: Request) {
       console.warn('[update-admin-permissions] user metadata update warn:', metaErr);
     }
 
+    invalidateAdminCache(adminId);
+
     return NextResponse.json({
       success: true,
       adminId,
@@ -99,7 +102,8 @@ export async function POST(req: Request) {
       message: 'تم تحديث صلاحيات القطاعات للمشرف بنجاح.',
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'فشل تحديث الصلاحيات' }, { status: 500 });
+    console.error('[update-admin-permissions] error:', error);
+    return NextResponse.json({ success: false, error: 'فشل تحديث الصلاحيات' }, { status: 500 });
   }
 }
 

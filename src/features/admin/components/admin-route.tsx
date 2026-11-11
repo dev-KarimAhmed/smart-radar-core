@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth/contract';
 import { useTranslations } from "next-intl";
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { ShieldCheck, Lock, Phone, LogOut, Zap, Loader2 } from 'lucide-react';
+import { ShieldCheck, Lock, Phone, LogOut, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { signInRiderWithPhone } from '@/features/auth/services/supabase-auth';
@@ -34,7 +34,7 @@ const styles = {
 
 export function AdminRoute() {
   const tAuto = useTranslations('auto');
-  const { loading, user, logout, loginAsMockUser } = useAuth();
+  const { loading, user, logout } = useAuth();
   const { toast } = useToast();
   const { isArabic, direction } = useDashboardLanguage();
 
@@ -49,39 +49,8 @@ export function AdminRoute() {
     user?.adminRank === 'GENERAL_ADMIN' ||
     user?.adminRank === 'ASSISTANT_ADMIN' ||
     user?.phone === '+201551981922' ||
-    user?.phone === '+201551981977' ||
-    user?.phone === '201551981977' ||
-    user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
-    user?.uid === 'demo-admin-001'
+    user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a'
   );
-
-  const handleDevBypass = () => {
-    // Sovereign Owner account directly matching primary profile in database
-    const sovereignUser = {
-      uid: '70b4a26f-10ac-4888-8df6-c3a5ad824b8a',
-      serial_id: 'M-1264',
-      phone: '+201551981922',
-      role: 'admin' as const,
-      adminRank: 'GENERAL_ADMIN' as const,
-      name: 'المدير العام',
-      countryId: 1,
-      currencyAr: 'د.أ',
-      currencyEn: 'JOD',
-      governorate: '1',
-      district: '1',
-      isBufferActive: false,
-      rating: 5,
-      status: 'active' as const,
-    };
-
-    loginAsMockUser(sovereignUser);
-    toast({
-      title: isArabic ? '⚡ مرحباً بالمدير العام' : '⚡ Welcome General Admin',
-      description: isArabic
-        ? 'تم الدخول بحسابك الأساسي (المدير العام - +201551981922) بنجاح.'
-        : 'Logged in as General Admin (+201551981922) successfully.',
-    });
-  };
 
   const handleSwitchAccount = async () => {
     try {
@@ -165,20 +134,6 @@ export function AdminRoute() {
               </p>
             </div>
           )}
-
-          {/* Sovereign Admin instant bypass button */}
-          <Button
-            type="button"
-            onClick={handleDevBypass}
-            className="w-full h-12 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-teal-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Zap className="w-4 h-4 fill-current text-slate-950" />
-            <span>
-              {isArabic
-                ? '⚡ دخول فوري كمسؤول المنظومة (+201551981922)'
-                : '⚡ Enter as System Admin (+201551981922)'}
-            </span>
-          </Button>
 
           {/* If user is signed in with another role, offer logout & switch */}
           {user && (

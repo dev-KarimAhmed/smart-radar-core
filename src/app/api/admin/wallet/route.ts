@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { requireAdminAccess } from '@/lib/admin-auth-verifier';
+import { isValidStorageRelativePath, isValidUuid } from '@/shared/server/api-auth-guard';
 import {
   generateVoucherCode,
   sendCaptainNotification,
@@ -18,9 +19,9 @@ export {
 } from './wallet-mutations';
 
 export async function GET(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
-    return NextResponse.json({ success: false, error: 'Unauthorized: Admin privileges required' }, { status: 401 });
+  const access = await requireAdminAccess(req, { sector: 'wallet' });
+  if (!access.ok) {
+    return NextResponse.json({ success: false, error: access.error }, { status: access.status });
   }
 
   const { searchParams } = new URL(req.url);
@@ -138,7 +139,7 @@ export async function GET(req: Request) {
 
             let signedImageUrl = null;
 
-            if (tx.receipt_path) {
+            if (tx.receipt_path && isValidStorageRelativePath(tx.receipt_path)) {
               try {
                 const { data: signData } = await supabaseAdmin.storage
                   .from('receipts')
@@ -278,15 +279,16 @@ export async function GET(req: Request) {
     }
   } catch (error: any) {
     console.error('[Admin Wallet API] GET error:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'فشل تحميل بيانات المحفظة' }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
-    return NextResponse.json({ success: false, error: 'Unauthorized: Admin privileges required' }, { status: 401 });
+  const access = await requireAdminAccess(req, { sector: 'wallet' });
+  if (!access.ok) {
+    return NextResponse.json({ success: false, error: access.error }, { status: access.status });
   }
+  const { admin } = access;
 
   let body: any;
   try {
@@ -301,21 +303,21 @@ export async function POST(req: Request) {
     switch (action) {
       // 1. Approve a pending receipt
       case 'approve_receipt':
-        return await handleApproveReceipt(admin, body);
+        return await handleApproveReceipt({ id: String(admin.id || '') }, body);
 
       // 2. Reject a pending receipt
       case 'reject_receipt':
-        return await handleRejectReceipt(admin, body);
+        return await handleRejectReceipt({ id: String(admin.id || '') }, body);
 
       // 3. Direct Top-up to any Captain
       case 'direct_topup':
-        return await handleDirectTopup(admin, body);
+        return await handleDirectTopup({ id: String(admin.id || '') }, body);
 
       // 4. Generate Vouchers in bulk
       case 'generate_vouchers': {
         const { count = 1, minutesValue = 60 } = body;
-        const totalToCreate = Math.min(50, Math.max(1, Number(count) || 1));
-        const mins = Math.max(15, Number(minutesValue) || 60);
+        const totalToCreate = Math.min(50, Math.max(1, Math.round(Number(count)) || 1));
+        const mins = Math.min(10_080, Math.max(15, Math.round(Number(minutesValue)) || 60));
 
         const newVouchers: any[] = [];
         for (let i = 0; i < totalToCreate; i++) {
@@ -365,19 +367,22 @@ export async function POST(req: Request) {
       // 6. Direct notification/message to captain regarding financial operations
       case 'send_message': {
         const { captainId, title, message, type } = body;
-        if (!captainId || !message || !String(message).trim()) {
-          return NextResponse.json({ success: false, error: 'captainId ونص الرسالة مطلوبان' }, { status: 400 });
+        if (!isValidUuid(captainId) || !message || !String(message).trim()) {
+          return NextResponse.json({ success: false, error: 'captainId صالح ونص الرسالة مطلوبان' }, { status: 400 });
         }
 
-        const msgTitle = title && String(title).trim() ? String(title).trim() : 'إشعار مالي من إدارة المنظومة';
+        const ALLOWED_TYPES = new Set(['admin_message', 'admin_announcement', 'warning', 'urgent', 'info', 'deposit_confirmed']);
+        const rawType = typeof type === 'string' ? type.trim() : '';
+        const safeType = ALLOWED_TYPES.has(rawType) ? rawType : 'admin_message';
+        const msgTitle = title && String(title).trim() ? String(title).trim().slice(0, 160) : 'إشعار مالي من إدارة المنظومة';
 
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from('user_notifications')
           .insert({
             user_id: captainId,
             title: msgTitle,
-            description: String(message).trim(),
-            type: type || 'admin_message',
+            description: String(message).trim().slice(0, 2000),
+            type: safeType,
             is_read: false,
             created_at: new Date().toISOString(),
           })
@@ -394,10 +399,10 @@ export async function POST(req: Request) {
       }
 
       default:
-        return NextResponse.json({ success: false, error: `إجراء غير معروف: ${action}` }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'إجراء غير معروف' }, { status: 400 });
     }
   } catch (error: any) {
     console.error('[Admin Wallet API] POST error:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Server mutation error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'فشل تنفيذ العملية المالية' }, { status: 500 });
   }
 }

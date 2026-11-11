@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import { useToast } from '@/hooks/use-toast';
 import {
   setCaptainCancelCooldown,
@@ -136,7 +137,10 @@ export function useTripMutualCancellation({
   // Initial and periodic sync with server database (SSOT)
   const syncServerStatus = useCallback(async (targetId: string) => {
     try {
-      const res = await fetch(`/api/trip/mutual-cancel?requestId=${encodeURIComponent(targetId)}`);
+      const authHeaders = await getSupabaseAuthHeaders();
+      const res = await fetch(`/api/trip/mutual-cancel?requestId=${encodeURIComponent(targetId)}`, {
+        headers: authHeaders,
+      });
       if (!res.ok) return;
       const data = await res.json();
       if (data?.success) {
@@ -308,9 +312,10 @@ export function useTripMutualCancellation({
       }
 
       // 2. Persist to server (SSOT database)
+      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
       await fetch('/api/trip/mutual-cancel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ requestId, action: 'REQUEST', cancelledByRole: role, tripDurationMinutes: duration }),
       });
 
@@ -352,9 +357,10 @@ export function useTripMutualCancellation({
 
       // 3. Execute server-side cancellation via mutual-cancel API endpoint
       try {
+        const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
         await fetch('/api/trip/mutual-cancel', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({ requestId, action: 'ACCEPT', cancelledByRole: role, tripDurationMinutes: duration }),
         });
       } catch (apiErr) {
@@ -402,9 +408,10 @@ export function useTripMutualCancellation({
       }
 
       // Persist decline to server (clears cancel_requested_by)
+      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
       await fetch('/api/trip/mutual-cancel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ requestId, action: 'DECLINE', cancelledByRole: role }),
       });
 
@@ -437,9 +444,10 @@ export function useTripMutualCancellation({
       }
 
       // Persist revoke to server (clears cancel_requested_by)
+      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
       await fetch('/api/trip/mutual-cancel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ requestId, action: 'REVOKE', cancelledByRole: role }),
       });
 

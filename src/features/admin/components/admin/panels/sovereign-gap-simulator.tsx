@@ -24,6 +24,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { DriverData } from '@/hooks/admin/useSovereignDashboard';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { getFirebaseIdToken, getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 
 const styles = {
   style181_1: "bg-[#050505] border border-[#00ffcc]/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8",
@@ -115,10 +116,18 @@ export function SovereignGapSimulator({
 
     setIsProcessing(true);
     try {
+      const [authHeaders, idToken] = await Promise.all([
+        getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+        getFirebaseIdToken(),
+      ]);
       const response = await fetch('/api/commute-driver', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driverUid: targetDriver.uid, targetDistrict })
+        headers: authHeaders,
+        body: JSON.stringify({
+          driverUid: targetDriver.uid,
+          targetDistrict,
+          ...(idToken ? { idToken } : {}),
+        })
       });
       const data = await response.json();
 
@@ -161,10 +170,18 @@ export function SovereignGapSimulator({
 
     setIsProcessing(true);
     try {
+      const [authHeaders, idToken] = await Promise.all([
+        getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+        getFirebaseIdToken(),
+      ]);
       const response = await fetch('/api/redeem-voucher', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driverUid: targetDriver.uid, voucherCode })
+        headers: authHeaders,
+        body: JSON.stringify({
+          driverUid: targetDriver.uid,
+          voucherCode,
+          ...(idToken ? { idToken } : {}),
+        })
       });
       const data = await response.json();
 

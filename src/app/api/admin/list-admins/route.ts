@@ -4,6 +4,7 @@ import {
   verifyAdminCaller,
   getAdminRank,
   getAdminAllowedSectors,
+  hasAdminSectorAccess,
   PRIMARY_SOVEREIGN_ADMIN_ID,
   PRIMARY_SOVEREIGN_ADMIN_PHONE,
 } from '@/lib/admin-auth-verifier';
@@ -17,6 +18,17 @@ export async function GET(req: Request) {
   try {
     const callerRank = getAdminRank(admin);
     const callerAllowedSectors = getAdminAllowedSectors(admin);
+    const canViewAdminsList = callerRank === 'GENERAL_ADMIN' || hasAdminSectorAccess(admin, 'admins');
+
+    if (!canViewAdminsList) {
+      return NextResponse.json({
+        success: true,
+        admins: [],
+        callerRank,
+        callerId: admin.id,
+        callerAllowedSectors,
+      });
+    }
 
     const { data: admins, error } = await supabaseAdmin
       .from('profiles')
@@ -30,9 +42,7 @@ export async function GET(req: Request) {
       const rank = getAdminRank(adm);
       const isPrimary =
         adm.id === PRIMARY_SOVEREIGN_ADMIN_ID ||
-        adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE ||
-        adm.phone === '+201551981977' ||
-        adm.phone === '201551981977';
+        adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE;
       const sectors = getAdminAllowedSectors(adm);
       return {
         id: adm.id,
@@ -56,7 +66,8 @@ export async function GET(req: Request) {
       callerAllowedSectors,
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed' }, { status: 500 });
+    console.error('[list-admins] error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to load administrators' }, { status: 500 });
   }
 }
 

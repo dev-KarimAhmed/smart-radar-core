@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { requireAdminAccess } from '@/lib/admin-auth-verifier';
 import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 import {
   WELCOME_HOURS_FLAG_KEY,
@@ -19,11 +19,11 @@ export {
 export type { WelcomeHoursConfig };
 
 export async function GET(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
+  const access = await requireAdminAccess(req, { sector: 'captains' });
+  if (!access.ok) {
     return NextResponse.json(
-      { success: false, error: 'Unauthorized: Admin privileges required' },
-      { status: 401 }
+      { success: false, error: access.error },
+      { status: access.status }
     );
   }
 
@@ -31,21 +31,23 @@ export async function GET(req: Request) {
     const config = await getWelcomeHoursConfig();
     return NextResponse.json({ success: true, ...config });
   } catch (err: any) {
+    console.error('[WelcomeHours API] GET error:', err);
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to fetch welcome hours configuration' },
+      { success: false, error: 'Failed to fetch welcome hours configuration' },
       { status: 500 }
     );
   }
 }
 
 export async function POST(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
+  const access = await requireAdminAccess(req, { sector: 'captains' });
+  if (!access.ok) {
     return NextResponse.json(
-      { success: false, error: 'Unauthorized: Admin privileges required' },
-      { status: 401 }
+      { success: false, error: access.error },
+      { status: access.status }
     );
   }
+  const { admin } = access;
 
   try {
     const body = await req.json();
@@ -55,9 +57,9 @@ export async function POST(req: Request) {
       // 1. Grant welcome hours to existing captains with 0 balance
       const config = await getWelcomeHoursConfig();
       const customHours = body.hours !== undefined ? Number(body.hours) : config.hours;
-      const hoursToGrant = Math.max(0, isNaN(customHours) ? 20 : customHours);
-      const minutesToGrant = hoursToGrant * 60;
-      const validityDays = Math.max(1, Number(body.validityDays || config.validityDays || 30));
+      const hoursToGrant = Math.min(1_000, Math.max(0, isNaN(customHours) ? 20 : customHours));
+      const minutesToGrant = Math.round(hoursToGrant * 60);
+      const validityDays = Math.min(365, Math.max(1, Math.round(Number(body.validityDays || config.validityDays || 30))));
 
       if (minutesToGrant <= 0) {
         return NextResponse.json(
@@ -165,9 +167,9 @@ export async function POST(req: Request) {
 
     // Default Action: Update welcome hours settings
     const enabled = Boolean(body.enabled !== undefined ? body.enabled : true);
-    const hours = Math.max(0, Number(body.hours ?? DEFAULT_WELCOME_HOURS_CONFIG.hours));
-    const minutes = hours * 60;
-    const validityDays = Math.max(1, Number(body.validityDays ?? DEFAULT_WELCOME_HOURS_CONFIG.validityDays));
+    const hours = Math.min(1_000, Math.max(0, Number(body.hours ?? DEFAULT_WELCOME_HOURS_CONFIG.hours) || 0));
+    const minutes = Math.round(hours * 60);
+    const validityDays = Math.min(365, Math.max(1, Math.round(Number(body.validityDays ?? DEFAULT_WELCOME_HOURS_CONFIG.validityDays) || 30)));
 
     const notePayload = {
       hours,
@@ -205,7 +207,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error('[WelcomeHours API] Error saving configuration:', err);
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to update welcome hours configuration' },
+      { success: false, error: 'Failed to update welcome hours configuration' },
       { status: 500 }
     );
   }

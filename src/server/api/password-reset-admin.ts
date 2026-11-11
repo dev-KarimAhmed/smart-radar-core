@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { Router } from 'express';
+import { isValidUuid } from '../../shared/server/api-auth-guard';
 import { requireRole } from './supabase-identity';
 import {
   TOKEN_TTL_MINUTES,
@@ -61,17 +62,17 @@ passwordResetAdminRouter.post('/password-reset/reject', async (req, res) => {
   }
 
   const requestId = String(req.body?.requestId ?? '').trim();
-  const reason = String(req.body?.reason ?? '').trim();
-  if (!requestId) {
+  const reason = String(req.body?.reason ?? '').trim().slice(0, 500);
+  if (!isValidUuid(requestId)) {
     return res.status(400).json({ success: false, error: 'الطلب غير محدد.' });
   }
 
   try {
-    await fetch(
+    const rejectRes = await fetch(
       `${config.url}/rest/v1/password_reset_requests?id=eq.${encodeURIComponent(requestId)}&status=eq.PENDING`,
       {
         method: 'PATCH',
-        headers: { ...serviceHeaders(config.serviceKey), Prefer: 'return=minimal' },
+        headers: { ...serviceHeaders(config.serviceKey), Prefer: 'return=representation' },
         body: JSON.stringify({
           status: 'REJECTED',
           verification_note: reason || 'مرفوض بدون سبب مسجّل',
@@ -81,6 +82,11 @@ passwordResetAdminRouter.post('/password-reset/reject', async (req, res) => {
         signal: AbortSignal.timeout(8_000),
       },
     );
+
+    const rejected = (await rejectRes.json()) as unknown[];
+    if (!rejectRes.ok || !Array.isArray(rejected) || rejected.length === 0) {
+      return res.status(409).json({ success: false, error: 'الطلب غير موجود أو تمت معالجته مسبقاً.' });
+    }
 
     await auditReset(config, {
       request_id: requestId,
@@ -112,8 +118,8 @@ passwordResetAdminRouter.post('/password-reset/issue', async (req, res) => {
   }
 
   const requestId = String(req.body?.requestId ?? '').trim();
-  const verificationNote = String(req.body?.verificationNote ?? '').trim();
-  if (!requestId) {
+  const verificationNote = String(req.body?.verificationNote ?? '').trim().slice(0, 500);
+  if (!isValidUuid(requestId)) {
     return res.status(400).json({ success: false, error: 'الطلب غير محدد.' });
   }
   if (verificationNote.length < 10) {
@@ -125,6 +131,9 @@ passwordResetAdminRouter.post('/password-reset/issue', async (req, res) => {
       `${config.url}/rest/v1/password_reset_requests?id=eq.${encodeURIComponent(requestId)}&select=id,profile_id,status&limit=1`,
       { headers: serviceHeaders(config.serviceKey), signal: AbortSignal.timeout(8_000) },
     );
+    if (!lookup.ok) {
+      return res.status(502).json({ success: false, error: 'تعذّر التحقق من الطلب حالياً.' });
+    }
     const [request] = (await lookup.json()) as Array<{ id: string; profile_id: string | null; status: string }>;
 
     if (!request) {

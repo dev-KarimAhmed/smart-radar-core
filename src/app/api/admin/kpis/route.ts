@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { requireAdminAccess } from '@/features/admin/lib/admin-auth-server';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
 export async function GET(req: Request) {
   try {
-    const admin = await verifyAdminCaller(req);
-    if (!admin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAdminAccess(req);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const [driversRes, ridersRes, delegatesRes] = await Promise.all([
@@ -50,9 +50,9 @@ export async function GET(req: Request) {
         systemHealth: '100% مستقر',
       },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[Admin KPIs API Error]:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

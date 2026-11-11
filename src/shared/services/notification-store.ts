@@ -54,13 +54,6 @@ const storeListeners = new Set<() => void>();
 export function getInitialUserId(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const rawMock =
-      window.localStorage.getItem('radar_sovereign_mock_user') ||
-      window.sessionStorage.getItem('radar_sovereign_mock_user');
-    if (rawMock) {
-      const parsedMock = JSON.parse(rawMock);
-      if (parsedMock?.uid) return String(parsedMock.uid);
-    }
     const raw =
       window.localStorage.getItem('radar_supabase_auth_session') ||
       window.sessionStorage.getItem('radar_supabase_auth_session');

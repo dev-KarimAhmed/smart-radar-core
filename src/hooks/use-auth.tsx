@@ -34,7 +34,6 @@ interface AuthContextType {
   loading: boolean;
   promoData: any;
   logout: () => Promise<void>;
-  loginAsMockUser: (user: SovereignUser) => void;
   isSovereign: boolean;
   isCaptain: boolean;
   isPassenger: boolean;
@@ -264,16 +263,6 @@ function AuthContent({ children }: { children: ReactNode }) {
   useSessionTakeoverListener({ user, forceKickoutRef, toast });
   usePreferredLanguageSync(user?.uid);
 
-  const loginAsMockUser = useCallback((mockUser: SovereignUser) => {
-    if (process.env.NODE_ENV === 'production') return;
-    setUser(mockUser);
-    setLoading(false);
-    if (typeof window !== 'undefined' && mockUser?.uid) {
-      window.localStorage.setItem('radar_admin_active_id', mockUser.uid);
-      window.localStorage.setItem('radar_sovereign_mock_user', JSON.stringify(mockUser));
-    }
-  }, []);
-
   const logout = useCallback(async () => {
     setLogoutDialogOpen(true);
   }, []);
@@ -339,7 +328,6 @@ function AuthContent({ children }: { children: ReactNode }) {
       loading,
       promoData,
       logout,
-      loginAsMockUser,
       isSovereign,
       isCaptain,
       isPassenger,
@@ -352,7 +340,6 @@ function AuthContent({ children }: { children: ReactNode }) {
       loading,
       promoData,
       logout,
-      loginAsMockUser,
       isSovereign,
       isCaptain,
       isPassenger,
