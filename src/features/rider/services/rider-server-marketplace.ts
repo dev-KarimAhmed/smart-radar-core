@@ -217,14 +217,46 @@ export async function createRideRequest(client: SupabaseInsertLike, payload: Rid
 }
 
 export async function fetchRideOffers(client: SupabaseMarketplaceRpcLike, requestId: string): Promise<Offer[]> {
-  const { data, error } = await client.rpc('get_passenger_bids', {
-    p_request_id: requestId,
-  });
+  let rows: Record<string, unknown>[] | null = null;
 
-  if (error) throw error;
-  if (!Array.isArray(data)) return [];
+  if (typeof window !== 'undefined' && typeof fetch === 'function') {
+    try {
+      const { getSupabaseAuthHeaders } = await import('@/shared/services/supabase-auth-headers');
+      const headers = await getSupabaseAuthHeaders();
+      if (headers.Authorization) {
+        const res = await fetch(`/api/trip/offers?requestId=${encodeURIComponent(requestId)}`, {
+          method: 'GET',
+          headers,
+          cache: 'no-store',
+        });
+        const json = await res.json().catch(() => null);
+        if (res.ok && json?.success && Array.isArray(json.offers)) {
+          rows = json.offers as Record<string, unknown>[];
+        } else if (res.status >= 400 && res.status < 500 && typeof json?.error === 'string' && json.error) {
+          throw new Error(json.error);
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && (err.message === 'not_request_owner' || err.message === 'valid_request_id_required')) {
+        throw err;
+      }
+      // Fall back to direct RPC when the API route is unreachable or in unauthenticated environments.
+    }
+  }
 
-  const enrichedRows = await enrichRideOfferRows(client as unknown as SupabaseFromLike, data as Record<string, unknown>[]);
+  if (rows === null) {
+    const { data, error } = await client.rpc('get_passenger_bids', {
+      p_request_id: requestId,
+    });
+
+    if (error) throw error;
+    if (!Array.isArray(data)) return [];
+    rows = data as Record<string, unknown>[];
+  }
+
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+
+  const enrichedRows = await enrichRideOfferRows(client as unknown as SupabaseFromLike, rows);
   return enrichedRows.map(mapRideOfferRow).filter(Boolean) as Offer[];
 }
 
@@ -234,6 +266,38 @@ export async function acceptRideOffer(
 ) {
   if (!input.requestId || !input.offerId) {
     throw new Error('ride_offer_id_required');
+  }
+
+  if (typeof window !== 'undefined' && typeof fetch === 'function') {
+    try {
+      const { getSupabaseAuthHeaders } = await import('@/shared/services/supabase-auth-headers');
+      const headers = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
+      if (headers.Authorization) {
+        const res = await fetch('/api/trip/accept-offer', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            requestId: input.requestId,
+            offerId: input.offerId,
+          }),
+        });
+        const json = await res.json().catch(() => null);
+        if (res.ok && json?.success) {
+          return json.data;
+        }
+        if (typeof json?.error === 'string' && json.error && json.error !== 'internal_server_error') {
+          throw new Error(json.error);
+        }
+        if (res.status >= 400 && res.status < 500) {
+          throw new Error('accept_offer_failed');
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && !/failed to fetch|networkerror|network request failed/i.test(err.message)) {
+        throw err;
+      }
+      // Network failure reaching Next.js API -> fall through to direct Supabase RPC
+    }
   }
 
   const { data, error } = await client.rpc('accept_ride_offer', {
@@ -415,6 +479,10 @@ export function mapRiderMarketplaceError(error: unknown) {
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
+
+  if (message.includes('captain_already_busy') || message.includes('captain_no_longer_available')) {
+    return 'تم قبول رحلة أخرى لهذا الكابتن بالفعل. اختر عرضاً آخر متاحاً.';
+  }
 
   if (message.includes('ride_offer_id_required') || message.includes('offer_id_required')) {
     return 'بيانات العرض غير مكتملة. انتظر تحديث العروض ثم حاول مرة أخرى.';

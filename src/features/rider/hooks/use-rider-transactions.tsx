@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Offer, Trip, User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useTranslations } from 'next-intl';
+import { acceptRideOffer } from '../services/rider-server-marketplace';
 
 const styles = {
   root: "",
@@ -100,15 +101,15 @@ export function useRiderTransactions(
   }, [toast]);
 
   const selectOffer = useCallback(async (offer: Offer) => {
-    if (!trip?.id) return;
+    const offerId = offer?.id;
+    if (!trip?.id || !offerId) return;
     await withLock('offer', async () => {
       setIsSelectingOffer(true);
       try {
-        const { error } = await supabase.rpc('accept_ride_offer', {
-          p_request_id: trip.id,
-          p_offer_id: offer.id,
+        await acceptRideOffer(supabase, {
+          requestId: trip.id,
+          offerId,
         });
-        if (error) throw error;
         toast({ title: t('offerAcceptedTitle'), description: t('offerAcceptedDesc'), variant: 'success', duration: 12000 });
       } catch {
         toast({ variant: 'destructive', title: t('offerAcceptFailedTitle'), description: t('offerAcceptFailedDesc') });
@@ -116,7 +117,7 @@ export function useRiderTransactions(
         setIsSelectingOffer(false);
       }
     });
-  }, [toast, trip?.id, withLock]);
+  }, [t, toast, trip?.id, withLock]);
 
   return {
     requestRide,

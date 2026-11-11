@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import {
+  acceptRideOffer,
   buildRideRequestInsertPayload,
   calculateServerFare,
   createRideRequest,
   fetchAvailableCaptainPresence,
   mapRiderMarketplaceError,
 } from './rider-server-marketplace';
+import { getLocalizedMarketplaceError } from './rider-offer-presentation';
 
 const origin = { lat: 31.9539, lng: 35.9106 };
 const destination = { lat: 31.9586, lng: 35.8684 };
@@ -203,6 +205,34 @@ const clampedCaptains = await fetchAvailableCaptainPresence(
   { centerH3Cell: testCenterH3, countryId: 2, ringSize: 10, nowMs: now }
 );
 assert.equal(clampedCaptains.length, 9);
+
+assert.equal(
+  mapRiderMarketplaceError({ message: 'captain_already_busy' }),
+  'تم قبول رحلة أخرى لهذا الكابتن بالفعل. اختر عرضاً آخر متاحاً.',
+);
+assert.equal(
+  mapRiderMarketplaceError({ message: 'captain_no_longer_available' }),
+  'تم قبول رحلة أخرى لهذا الكابتن بالفعل. اختر عرضاً آخر متاحاً.',
+);
+assert.equal(
+  getLocalizedMarketplaceError({ message: 'captain_already_busy' }, 'en', {
+    permissionDenied: 'perm',
+    authRequired: 'auth',
+    network: 'net',
+    fareCalculation: 'fare',
+    missingColumns: 'cols',
+    invalidStatus: 'status',
+    foreignKeyMismatch: 'fk',
+    duplicateActive: 'dup',
+    generic: 'gen',
+  }),
+  'This captain has already accepted another ride. Please choose another available offer.',
+);
+
+await assert.rejects(
+  () => acceptRideOffer(rpcClient as any, { requestId: 'req-1', offerId: '' }),
+  { message: 'ride_offer_id_required' },
+);
 
 console.log('rider server marketplace checks passed');
 

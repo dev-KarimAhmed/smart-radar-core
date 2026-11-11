@@ -47,6 +47,30 @@ export function getLocalizedMarketplaceError(error: unknown, language: AppLangua
     .join(' ')
     .toLowerCase();
 
+  if (message.includes('captain_already_busy') || message.includes('captain_no_longer_available')) {
+    return 'This captain has already accepted another ride. Please choose another available offer.';
+  }
+
+  if (message.includes('ride_offer_id_required') || message.includes('offer_id_required')) {
+    return 'Offer details are incomplete. Wait for offers to refresh and try again.';
+  }
+
+  if (message.includes('ride_offer_not_found')) {
+    return 'This offer is no longer available. Wait for a new offer and try again.';
+  }
+
+  if (message.includes('ride_offer_not_pending')) {
+    return 'This offer has already been handled. Choose another available offer.';
+  }
+
+  if (message.includes('ride_request_not_accepting_offers')) {
+    return 'Cannot accept this offer right now because the trip status has changed. Refresh and try again.';
+  }
+
+  if (message.includes('not_request_owner')) {
+    return 'You cannot perform this action for this request. Please sign in with the right account.';
+  }
+
   if (message.includes('42501') || message.includes('row-level security') || message.includes('permission denied')) {
     return labels.permissionDenied;
   }

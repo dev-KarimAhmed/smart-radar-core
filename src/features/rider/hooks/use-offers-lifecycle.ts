@@ -365,6 +365,7 @@ export function useOffersLifecycle(
     } catch (error) {
 
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Accept Offer]', error);
+      void refreshOffers();
       toast({
         variant: 'destructive',
         title: t('offers.acceptFailedTitle'),
@@ -383,7 +384,7 @@ export function useOffersLifecycle(
     } finally {
       setAcceptingOfferId(null);
     }
-  }, [dispatch, language, state.requestId, t, toast]);
+  }, [dispatch, language, refreshOffers, state.requestId, t, toast]);
 
   const reset = React.useCallback(() => {
 

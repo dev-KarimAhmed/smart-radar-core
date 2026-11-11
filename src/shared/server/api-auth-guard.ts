@@ -62,6 +62,27 @@ export function createEphemeralSupabaseAnonClient(): SupabaseClient {
   });
 }
 
+export function createUserScopedSupabaseClient(accessToken: string): SupabaseClient {
+  const url = readEnvTrimmed('NEXT_PUBLIC_SUPABASE_URL');
+  const anonKey = readEnvTrimmed('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+  if (!url || !anonKey) {
+    throw new Error('[security] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+
+  return createClient(url, anonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
 function getHeaderValue(req: { headers: Headers | Record<string, unknown> }, name: string): string {
   const headers = req?.headers;
   if (!headers) return '';

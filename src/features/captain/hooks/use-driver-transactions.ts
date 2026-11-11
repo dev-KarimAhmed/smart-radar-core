@@ -28,6 +28,13 @@ function describeOfferSubmitError(rawMessage: string | undefined, t: any) {
   const message = String(rawMessage || '');
   const limit = message.match(/:\s*([\d.]+)\s*$/)?.[1];
 
+  if (message.includes('captain_already_busy')) {
+    return {
+      title: t('errorCaptainBusyTitle'),
+      description: t('errorCaptainBusyDesc'),
+    };
+  }
+
   if (message.includes('captain_too_far_from_pickup')) {
     return {
       title: t('errorTooFarTitle'),
@@ -201,6 +208,28 @@ export function useDriverTransactions(
     clearPendingOffer();
     setDriverStatus?.('busy');
 
+    if (captainId && trip.id) {
+      void (async () => {
+        try {
+          const nowIso = new Date().toISOString();
+          await supabase
+            .from('ride_offers')
+            .update({ status: 'CANCELLED', updated_at: nowIso })
+            .eq('captain_id', captainId)
+            .neq('request_id', trip.id)
+            .eq('status', 'PENDING');
+          await supabase
+            .from('ride_offers')
+            .delete()
+            .eq('captain_id', captainId)
+            .neq('request_id', trip.id)
+            .in('status', ['PENDING', 'CANCELLED']);
+        } catch {
+          // Non-blocking defense-in-depth cleanup
+        }
+      })();
+    }
+
     if (trip.riderId) {
       let riderRow: Record<string, unknown> | null = null;
       try {
@@ -233,7 +262,7 @@ export function useDriverTransactions(
         });
       }
     }
-  }, [clearPendingOffer, setDriverStatus]);
+  }, [captainId, clearPendingOffer, setDriverStatus]);
 
   // Checks whether any of the captain's pending offer requests are still active on the radar or accepted.
   // Supports multiple concurrent offers to different riders.
@@ -624,6 +653,15 @@ export function useDriverTransactions(
       return false;
     }
 
+    if (activeReqRef.current) {
+      toast({
+        variant: 'destructive',
+        title: t('errorCaptainBusyTitle'),
+        description: t('errorCaptainBusyDesc'),
+      });
+      return false;
+    }
+
     if ((pendingOffersCount[payload.tripId] || 0) > 0) {
       toast({
         variant: 'destructive',
@@ -648,6 +686,31 @@ export function useDriverTransactions(
     setIsSubmittingOffer(true);
 
     try {
+      const { data: activeTrips } = await supabase
+        .from('ride_requests')
+        .select('id, status, started_at, updated_at, created_at')
+        .eq('accepted_captain_id', captainId)
+        .not('status', 'in', '("COMPLETED","CANCELLED")')
+        .order('updated_at', { ascending: false })
+        .limit(3);
+
+      const nowMs = Date.now();
+      const hasBusyTrip = Array.isArray(activeTrips) && activeTrips.some((row) => {
+        const st = String((row as Record<string, unknown>)?.status || '').toUpperCase();
+        if (!['ACCEPTED', 'EN_ROUTE', 'ARRIVED', 'STARTED', 'TRIP_ACTIVE', 'ACTIVE', 'IN_PROGRESS'].includes(st)) {
+          return false;
+        }
+        const rec = row as Record<string, unknown>;
+        const touchRaw = rec.started_at || rec.updated_at || rec.created_at;
+        if (!touchRaw) return true;
+        const touchMs = Date.parse(String(touchRaw));
+        return !Number.isFinite(touchMs) || nowMs - touchMs <= 4 * 60 * 60 * 1000;
+      });
+
+      if (hasBusyTrip) {
+        throw new Error('captain_already_busy');
+      }
+
       const { error } = await supabase.rpc('submit_ride_offer', {
         p_request_id: payload.tripId,
         p_offer_price: Number(payload.offerPrice),

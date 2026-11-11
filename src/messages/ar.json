@@ -1756,6 +1756,8 @@
     "errorInvalidWaitTimeDesc": "حدد عدد ثواني ظهور العرض (على الأقل {min} ثواني) ثم حاول مرة أخرى.",
     "errorPendingOfferTitle": "لديك عرض قيد الانتظار",
     "errorPendingOfferDesc": "انتظر رد المستخدم على عرضك الحالي قبل تقديم عرض جديد.",
+    "errorCaptainBusyTitle": "لديك رحلة نشطة حالياً",
+    "errorCaptainBusyDesc": "لا يمكنك تقديم عرض جديد أثناء وجود رحلة نشطة حالياً.",
     "errorDuplicateOfferTitle": "تم تقديم عرض بالفعل لهذا الراكب",
     "errorDuplicateOfferDesc": "لقد قدمت عرضاً بالفعل لهذا الراكب. يمكنك إلغاء العرض أولاً لتعديله أو تقديم عروض لركاب آخرين.",
     "offerSubmittedTitle": "تم إرسال العرض",
