@@ -66,7 +66,9 @@ export function useCaptainRegistrationSubmit({
             toast({
               variant: 'destructive',
               title: t('errorTitle'),
-              description: 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول أو استخدام رقم آخر.',
+              description: isArabic
+                ? 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول أو استخدام رقم آخر.'
+                : 'Phone number is already registered to another account. Please sign in or use another number.',
             });
             setStep(1);
             setIsSubmitting(false);
@@ -77,7 +79,9 @@ export function useCaptainRegistrationSubmit({
             toast({
               variant: 'destructive',
               title: t('errorTitle'),
-              description: 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.',
+              description: isArabic
+                ? 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.'
+                : 'Email address is already registered to another account. Please use a different email.',
             });
             setStep(1);
             setIsSubmitting(false);
@@ -87,13 +91,19 @@ export function useCaptainRegistrationSubmit({
           const newErrors: Record<string, string> = {};
 
           if (availability.national_id_taken) {
-            newErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+            newErrors.nationalIdNumber = isArabic
+              ? 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.'
+              : 'National ID number is already registered. Please verify or use another number.';
           }
           if (availability.license_taken) {
-            newErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+            newErrors.licenseNumber = isArabic
+              ? 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.'
+              : 'Driver license number is already registered. Please verify or use another number.';
           }
           if (availability.plate_taken) {
-            newErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.';
+            newErrors.plate = isArabic
+              ? 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.'
+              : 'Vehicle plate number is already registered to another vehicle. Please check or use another plate.';
           }
 
           if (Object.keys(newErrors).length > 0) {
@@ -206,13 +216,19 @@ export function useCaptainRegistrationSubmit({
       const newVehicleErrors: Record<string, string> = {};
 
       if (errText.includes('national_id') || errText.includes('هوية')) {
-        newVehicleErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.';
+        newVehicleErrors.nationalIdNumber = isArabic
+          ? 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.'
+          : 'National ID number is already registered.';
       }
       if (errText.includes('license') || errText.includes('رخصة')) {
-        newVehicleErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً.';
+        newVehicleErrors.licenseNumber = isArabic
+          ? 'رقم رخصة القيادة مسجل بالفعل مسبقاً.'
+          : 'Driver license number is already registered.';
       }
       if (errText.includes('plate') || errText.includes('لوحة')) {
-        newVehicleErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.';
+        newVehicleErrors.plate = isArabic
+          ? 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.'
+          : 'Vehicle plate number is already registered.';
       }
 
       if (
@@ -220,7 +236,9 @@ export function useCaptainRegistrationSubmit({
         errText.includes('missing_email') ||
         (errText.includes('email') && (errText.includes('مسجل') || errText.includes('مسبق') || errText.includes('already exists') || errText.includes('taken')))
       ) {
-        errorMsg = 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.';
+        errorMsg = isArabic
+          ? 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.'
+          : 'Email address is already registered to another account. Please use a different email.';
         setStep(1);
       }
 
@@ -235,24 +253,40 @@ export function useCaptainRegistrationSubmit({
             p_phone: personal.phone?.trim() || null,
           });
           if (availability?.phone_taken) {
-            errorMsg = 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.';
+            errorMsg = isArabic
+              ? 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.'
+              : 'Phone number is already registered. Please sign in instead of creating a new account.';
             setStep(1);
           }
           if (availability?.email_taken) {
-            errorMsg = 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.';
+            errorMsg = isArabic
+              ? 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.'
+              : 'Email address is already registered to another account. Please use a different email.';
             setStep(1);
           }
           if (availability?.national_id_taken) {
-            newVehicleErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.';
-            errorMsg = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+            newVehicleErrors.nationalIdNumber = isArabic
+              ? 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.'
+              : 'National ID number is already registered.';
+            errorMsg = isArabic
+              ? 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.'
+              : 'National ID number is already registered. Please verify or use another number.';
           }
           if (availability?.license_taken) {
-            newVehicleErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً.';
-            errorMsg = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+            newVehicleErrors.licenseNumber = isArabic
+              ? 'رقم رخصة القيادة مسجل بالفعل مسبقاً.'
+              : 'Driver license number is already registered.';
+            errorMsg = isArabic
+              ? 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.'
+              : 'Driver license number is already registered. Please verify or use another number.';
           }
           if (availability?.plate_taken) {
-            newVehicleErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.';
-            errorMsg = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.';
+            newVehicleErrors.plate = isArabic
+              ? 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.'
+              : 'Vehicle plate number is already registered.';
+            errorMsg = isArabic
+              ? 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.'
+              : 'Vehicle plate number is already registered to another vehicle. Please check or use another plate.';
           }
         } catch {}
       }

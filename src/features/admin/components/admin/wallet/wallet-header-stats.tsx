@@ -287,7 +287,7 @@ export function WalletHeaderStats({
             )}
           >
             <CreditCard className="w-4 h-4" />
-            <span>أرقام التحويل</span>
+            <span>{t('subtabChannels')}</span>
           </Button>
 
           <Button
@@ -302,7 +302,7 @@ export function WalletHeaderStats({
             )}
           >
             <UserCheck className="w-4 h-4" />
-            <span>المناديب المالية</span>
+            <span>{t('subtabDelegates')}</span>
           </Button>
         </div>
 

@@ -10,6 +10,8 @@ import { getLandingPageUrl } from '@/lib/constants';
 
 function ConfirmContent() {
   const searchParams = useSearchParams();
+  const langParam = searchParams?.get('lang') || 'ar';
+  const isArabic = langParam !== 'en';
   const [status, setStatus] = useState<'verifying' | 'success' | 'already' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -26,7 +28,10 @@ function ConfirmContent() {
         if (error) {
           if (isMounted) {
             setStatus('error');
-            setErrorMessage(errorDescription || 'انتهت صلاحية رابط التأكيد أو تم استخدامه بالفعل.');
+            setErrorMessage(
+              errorDescription ||
+                (isArabic ? 'انتهت صلاحية رابط التأكيد أو تم استخدامه بالفعل.' : 'Confirmation link has expired or was already used.')
+            );
           }
           return;
         }
@@ -71,19 +76,26 @@ function ConfirmContent() {
         if (!tokenHash && !hash.includes('access_token=')) {
           if (isMounted) {
             setStatus('error');
-            setErrorMessage('رابط التأكيد غير مكتمل أو انتهت صلاحيته.');
+            setErrorMessage(
+              isArabic ? 'رابط التأكيد غير مكتمل أو انتهت صلاحيته.' : 'Confirmation link is incomplete or has expired.'
+            );
           }
           return;
         }
 
         if (isMounted) {
           setStatus('error');
-          setErrorMessage('تعذر التحقق من صلاحية رابط التفعيل.');
+          setErrorMessage(
+            isArabic ? 'تعذر التحقق من صلاحية رابط التفعيل.' : 'Could not verify the activation link.'
+          );
         }
       } catch (err: any) {
         if (isMounted) {
           setStatus('error');
-          setErrorMessage(err?.message || 'حدث خطأ أثناء محاولة التحقق من الرابط.');
+          setErrorMessage(
+            err?.message ||
+              (isArabic ? 'حدث خطأ أثناء محاولة التحقق من الرابط.' : 'An error occurred while verifying the link.')
+          );
         }
       }
     }
@@ -108,10 +120,8 @@ function ConfirmContent() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [searchParams]);
+  }, [isArabic, searchParams]);
 
-  const langParam = searchParams?.get('lang') || 'ar';
-  const isArabic = langParam !== 'en';
   const roleParam = searchParams?.get('role') || '';
   const loginUrl = roleParam === 'captain' || roleParam === 'driver' ? '/login/driver' : '/';
 
@@ -130,7 +140,7 @@ function ConfirmContent() {
           >
             <Image
               src="/icons/logo-header.png"
-              alt="بينكم - bynkcom"
+              alt={isArabic ? "بينكم - bynkcom" : "bynkcom"}
               width={180}
               height={50}
               priority
@@ -202,7 +212,7 @@ function ConfirmContent() {
 
         <div className="pt-4 border-t border-white/5 flex items-center justify-center gap-1.5 text-xs text-slate-500">
           <ShieldCheck className="h-4 w-4 text-[#14B8A6]" />
-          <span>{isArabic ? 'منظومة الحماية والأمان الموحدة — بينكم © 2026' : 'Unified Security & Safety System — Bynkcom © 2026'}</span>
+          <span>{isArabic ? 'منظومة الحماية والأمان الموحدة — بينكم © 2026' : 'Unified Security & Safety System — bynkcom © 2026'}</span>
         </div>
       </div>
     </div>

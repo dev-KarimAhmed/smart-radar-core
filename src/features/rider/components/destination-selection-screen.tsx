@@ -311,7 +311,9 @@ export function DestinationSelectionScreen({
 
       {isSameLocation && selectedDestinationCoords && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-xs font-bold text-amber-300">
-          ⚠️ موقع الوجهة مطابق لموقعك الحالي. يرجى البحث أو اختيار وجهة تريد الذهاب إليها.
+          {isArabic
+            ? '⚠️ موقع الوجهة مطابق لموقعك الحالي. يرجى البحث أو اختيار وجهة تريد الذهاب إليها.'
+            : '⚠️ Destination matches your current location. Please search or select a different destination.'}
         </div>
       )}
 

@@ -228,7 +228,7 @@ export function CaptainMessageDialog({
                     "Please renew driving license or vehicle documents to avoid account suspension.",
                     "Your account has been audited and verified successfully.",
                     "Administrative notice: Please avoid canceling accepted trips to preserve your account stability.",
-                    "Appreciation from byncom Administration for your exemplary service and commitment.",
+                    "Appreciation from bynkcom Administration for your exemplary service and commitment.",
                     "Please ensure GPS high-accuracy mode is enabled during active duty.",
                   ]
               ).map((tpl, idx) => (
@@ -341,7 +341,7 @@ export function CaptainMessageDialog({
                       bodyEn: messageBodyEn,
                       messageType,
                     },
-                    t('messageSentSuccess') || 'تم إرسال الرسالة بنجاح'
+                    t('messageSentSuccess') || (isArabic ? 'تم إرسال الرسالة بنجاح' : 'Message sent successfully')
                   );
                   if (ok) onClose();
                 }

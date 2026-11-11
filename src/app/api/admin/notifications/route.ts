@@ -283,46 +283,4 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
-    return NextResponse.json({ success: false, error: 'Unauthorized: Admin privileges required' }, { status: 401 });
-  }
 
-  try {
-    const body = await req.json();
-    const { action } = body;
-
-    // 1. APPROVE RECEIPT directly from notification center
-    if (action === 'APPROVE_RECEIPT') {
-      if (!hasAdminSectorAccess(admin, 'wallet')) {
-        return NextResponse.json({ success: false, error: 'غير مصرح باعتماد إيصالات المحفظة' }, { status: 403 });
-      }
-      return await handleApproveReceipt({ id: String(admin.id || '') }, body);
-    }
-
-    // 2. REJECT RECEIPT directly from notification center
-    if (action === 'REJECT_RECEIPT') {
-      if (!hasAdminSectorAccess(admin, 'wallet')) {
-        return NextResponse.json({ success: false, error: 'غير مصرح برفض إيصالات المحفظة' }, { status: 403 });
-      }
-      return await handleRejectReceipt({ id: String(admin.id || '') }, body);
-    }
-
-    // 3. MARK ALL SYSTEM NOTIFICATIONS AS READ
-    if (action === 'MARK_ALL_READ') {
-      await supabaseAdmin
-        .from('user_notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('user_id', admin.id)
-        .eq('is_read', false);
-
-      return NextResponse.json({ success: true, message: 'تم تعليم جميع الإشعارات كمقروءة.' });
-    }
-
-    return NextResponse.json({ success: false, error: 'إجراء غير مدعوم' }, { status: 400 });
-  } catch (error: any) {
-    console.error('[Admin Notifications POST Error]:', error);
-    return NextResponse.json({ success: false, error: 'فشلت معالجة الإشعار' }, { status: 500 });
-  }
-}

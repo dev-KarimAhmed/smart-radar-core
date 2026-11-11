@@ -129,7 +129,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
 
     const validation = validateAdImageFile(file);
     if (!validation.valid) {
-      setImageError(validation.error || 'ملف غير صالح');
+      setImageError(validation.error || (isArabic ? 'ملف غير صالح' : 'Invalid file'));
       return;
     }
 
@@ -138,7 +138,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
       setImageUrl(dataUrl);
       setImageError(null);
     } catch {
-      setImageError('فشل قراءة ملف الصورة');
+      setImageError(isArabic ? 'فشل قراءة ملف الصورة' : 'Failed to read image file');
     }
   };
 
@@ -154,7 +154,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
 
   const handleSaveAd = async () => {
     if (!imageUrl) {
-      setImageError('يرجى اختيار صورة للإعلان');
+      setImageError(isArabic ? 'يرجى اختيار صورة للإعلان' : 'Please select an ad image');
       return;
     }
 

@@ -410,7 +410,7 @@ export function WalletTab() {
 
                 <div className={styles.style270_77}>
                   <span className={tx.amount >= 0 ? styles.style271_78 : styles.style271_79}>
-                    {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(tx.currency === tAuto('key_d54c0ef8') ? 1 : 2)} {tx.currency}
+                    {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(isHourCurrency(tx.currency, tAuto('key_d54c0ef8')) ? 1 : 2)} {tx.currency}
                   </span>
                   <span className={styles.style274_80}>{tx.status}</span>
                 </div>
@@ -484,6 +484,24 @@ function formatMinutes(totalMinutes: number, language: 'ar' | 'en') {
   const hours = Math.floor(safeMinutes / 60);
   const minutes = safeMinutes % 60;
   return language === 'ar' ? `${hours} س ${minutes} د` : `${hours}h ${minutes}m`;
+}
+
+function isHourCurrency(currency: unknown, translatedHour: string): boolean {
+  const normalized = String(currency || '').trim().toLowerCase();
+  if (!normalized) return false;
+  if (
+    normalized === 'ساعة' ||
+    normalized === 'ساعات' ||
+    normalized === 'س' ||
+    normalized === 'hour' ||
+    normalized === 'hours' ||
+    normalized === 'hr' ||
+    normalized === 'hrs'
+  ) {
+    return true;
+  }
+  const translated = String(translatedHour || '').trim().toLowerCase();
+  return Boolean(translated && normalized === translated);
 }
 
 

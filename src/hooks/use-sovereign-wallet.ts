@@ -5,6 +5,7 @@ import type { User } from '@/core/types';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from './use-toast';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from './use-dashboard-language';
 import {
   type ServerWalletSnapshot,
   type WalletLoadState,
@@ -28,6 +29,7 @@ export { mapWalletTransactionRow, mapWalletAccountRow };
 
 export function useSovereignWallet(user: User | null) {
   const tAuto = useTranslations();
+  const { isArabic } = useDashboardLanguage();
   const { toast } = useToast();
   const realtimeInstanceId = useMemo(() => Math.random().toString(36).slice(2), []);
   const [loading, setLoading] = useState(false);
@@ -122,7 +124,7 @@ export function useSovereignWallet(user: User | null) {
             active_package_name: user?.activePackageName ?? '',
           },
           Array.isArray(user?.walletTransactions)
-            ? user.walletTransactions.map((t) => mapWalletTransactionRow(t, tAuto))
+            ? user.walletTransactions.map((t) => mapWalletTransactionRow(t, tAuto, isArabic))
             : []
         )
       );
@@ -198,7 +200,9 @@ export function useSovereignWallet(user: User | null) {
           }
         }
 
-        const transactions = Array.isArray(txData) ? txData.map((t) => mapWalletTransactionRow(t, tAuto)) : [];
+        const transactions = Array.isArray(txData)
+          ? txData.map((t) => mapWalletTransactionRow(t, tAuto, isArabic))
+          : [];
         setServerWallet(mapWalletAccountRow(walletData as Record<string, any> | null, transactions));
         setWalletLoadState(walletData ? 'ready' : 'missing');
         if (!walletData && process.env.NODE_ENV !== 'production') {
@@ -226,6 +230,7 @@ export function useSovereignWallet(user: User | null) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    isArabic,
     refreshIndex,
     user?.activePackageName,
     user?.bonusHoursRemaining,

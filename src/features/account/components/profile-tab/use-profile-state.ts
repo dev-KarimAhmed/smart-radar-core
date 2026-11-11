@@ -285,7 +285,7 @@ export function useProfileState() {
         userId: user.uid,
         userSerialId: user.serial_id,
         actionType: 'PROFILE_UPDATE',
-        actionLabel: 'تعديل بيانات الحساب الشخصي',
+        actionLabel: isArabic ? 'تعديل بيانات الحساب الشخصي' : 'Edit Profile Information',
         isArabic,
       });
 

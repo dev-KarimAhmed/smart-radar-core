@@ -227,11 +227,11 @@ export function mapProfileSaveError(error: unknown) {
     .toLowerCase();
 
   if (code === '42501' || message.includes('row-level security') || message.includes('permission denied')) {
-    return 'profileTab.errors.permissionDenied';
+    return 'errors.permissionDenied';
   }
 
   if (code === 'pgrst204' || message.includes('could not find') || message.includes('schema cache') || message.includes('column')) {
-    return 'profileTab.errors.missingFields';
+    return 'errors.missingFields';
   }
 
   if (
@@ -241,18 +241,18 @@ export function mapProfileSaveError(error: unknown) {
     message.includes('governorate_id') ||
     message.includes('district_id')
   ) {
-    return 'profileTab.errors.invalidLocation';
+    return 'errors.invalidLocation';
   }
 
   if (code === '23505' || message.includes('duplicate')) {
-    return 'profileTab.errors.duplicateProfile';
+    return 'errors.duplicateProfile';
   }
 
   if (message.includes('failed to fetch') || message.includes('network')) {
-    return 'profileTab.errors.networkError';
+    return 'errors.networkError';
   }
 
-  return 'profileTab.errors.genericUpdateError';
+  return 'errors.genericUpdateError';
 }
 
 export function normalizeInternationalPhone(value: string) {

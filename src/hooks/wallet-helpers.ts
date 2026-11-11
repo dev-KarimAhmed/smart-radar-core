@@ -59,16 +59,28 @@ export function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-export function mapWalletTransactionRow(row: Record<string, any>, tAuto: (key: string) => string): WalletTransaction {
+export function mapWalletTransactionRow(
+  row: Record<string, any>,
+  tAuto: (key: string) => string,
+  isArabic = true
+): WalletTransaction {
   const timestamp = parseTimestamp(row.created_at ?? row.createdAt ?? row.timestamp);
   return {
     id: String(row.id),
     type: row.type || row.transaction_type || 'transaction',
     amount: firstNumber(row.amount, 0),
-    currency: firstString(row.currency_ar, row.currency, row.currency_code, ''),
-    description: firstString(row.description_ar, row.description, row.memo, tAuto('transactionOnBalance')),
+    currency: isArabic
+      ? firstString(row.currency_ar, row.currency, row.currency_code, '')
+      : firstString(row.currency_en, row.currency_code, row.currency, row.currency_ar, ''),
+    description: firstString(
+      isArabic ? row.description_ar : row.description_en,
+      row.description,
+      row.description_ar,
+      row.memo,
+      tAuto('transactionOnBalance')
+    ),
     createdAt: timestamp
-      ? new Date(timestamp).toLocaleString('ar', {
+      ? new Date(timestamp).toLocaleString(isArabic ? 'ar' : 'en', {
           hour: '2-digit',
           minute: '2-digit',
           day: '2-digit',

@@ -142,9 +142,9 @@ export function CaptainTopupDialog({
                 <label className="text-xs font-bold text-slate-300 block">{t('quickMinutesPackLabel')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { m: 60, label: `+60 ${t('minuteUnit')}`, sub: isArabic ? 'ساعة رادار' : '1 Flight Hour' },
-                    { m: 300, label: `+300 ${t('minuteUnit')}`, sub: isArabic ? '5 ساعات' : '5 Flight Hours' },
-                    { m: 600, label: `+600 ${t('minuteUnit')}`, sub: isArabic ? '10 ساعات' : '10 Flight Hours' },
+                    { m: 60, label: `+60 ${t('minuteUnit')}`, sub: isArabic ? 'ساعة رادار' : '1 Radar Hour' },
+                    { m: 300, label: `+300 ${t('minuteUnit')}`, sub: isArabic ? '5 ساعات' : '5 Radar Hours' },
+                    { m: 600, label: `+600 ${t('minuteUnit')}`, sub: isArabic ? '10 ساعات' : '10 Radar Hours' },
                     { m: 1440, label: `+1440 ${t('minuteUnit')}`, sub: isArabic ? '24 ساعة (يوم)' : '24 Hours (Full Day)' },
                   ].map((pkg) => (
                     <button
@@ -245,7 +245,7 @@ export function CaptainTopupDialog({
                   } else if (executeAdminAction) {
                     const ok = await executeAdminAction(
                       { action: 'TOPUP_HOURS', captainId: captain.id, minutesToAdd, extendDays },
-                      t('topupSuccess') || 'تم الشحن بنجاح'
+                      t('topupSuccess') || (isArabic ? 'تم الشحن بنجاح' : 'Top-up completed successfully')
                     );
                     if (ok) onClose();
                   }
@@ -256,7 +256,7 @@ export function CaptainTopupDialog({
                   } else if (executeAdminAction) {
                     const ok = await executeAdminAction(
                       { action: 'TOPUP_CASH', captainId: captain.id, cashAmount: cashBalanceToAdd, currency: capCurr },
-                      t('topupSuccess') || 'تم الشحن بنجاح'
+                      t('topupSuccess') || (isArabic ? 'تم الشحن بنجاح' : 'Top-up completed successfully')
                     );
                     if (ok) onClose();
                   }

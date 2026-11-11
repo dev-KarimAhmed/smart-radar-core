@@ -92,19 +92,19 @@ export function useCaptainsFilters() {
           });
         }
       } else {
-        throw new Error(data?.error || 'فشل تحميل بيانات الكباتن المعلنين');
+        throw new Error(data?.error || (isArabic ? 'فشل تحميل بيانات الكباتن المعلنين' : 'Failed to load captains data'));
       }
     } catch (err: any) {
       console.warn('[DriversManagementTab] fetch error:', err);
       toast({
         variant: 'destructive',
-        title: 'خطأ استدعاء الأسطول',
-        description: err.message || 'تعذر جلب بيانات الكباتن المعلنين من قاعدة البيانات',
+        title: isArabic ? 'خطأ استدعاء الأسطول' : 'Fleet Fetch Error',
+        description: err.message || (isArabic ? 'تعذر جلب بيانات الكباتن المعلنين من قاعدة البيانات' : 'Unable to fetch captains from database'),
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [isArabic, toast]);
 
   useEffect(() => {
     void fetchCaptains();

@@ -36,12 +36,14 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { styles } from './kill-switch-panel-styles';
 
 
 export function KillSwitchPanel() {
     const tAuto = useTranslations('auto');
   const { toast } = useToast();
+  const { direction } = useDashboardLanguage();
   const {
     isRadarActive,
     toggleKillSwitch,
@@ -152,7 +154,7 @@ export function KillSwitchPanel() {
   };
 
   return (
-    <div className={styles.style143_1} dir="rtl">
+    <div className={styles.style143_1} dir={direction}>
       {/* ⚠️ GATE-GUARDED MASTER EMERGENCY KILL SWITCH */}
       <Card className={styles.style145_2}>
         <CardHeader className={styles.style146_3}>

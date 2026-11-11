@@ -36,7 +36,9 @@ export function useCaptainsDialogs({
   const [messageCaptain, setMessageCaptain] = useState<CaptainUser | null>(null);
 
   // Message modal inputs
-  const [messageTitle, setMessageTitle] = useState('رسالة من إدارة المنظومة');
+  const [messageTitle, setMessageTitle] = useState(
+    isArabic ? 'رسالة من إدارة المنظومة' : 'Message from System Administration'
+  );
   const [messageBody, setMessageBody] = useState('');
   const [messageTitleEn, setMessageTitleEn] = useState('');
   const [messageBodyEn, setMessageBodyEn] = useState('');
@@ -69,7 +71,9 @@ export function useCaptainsDialogs({
   const [submittingBulkTopup, setSubmittingBulkTopup] = useState(false);
 
   // Bulk Message inputs
-  const [bulkMsgTitle, setBulkMsgTitle] = useState('إشعار من إدارة المنظومة');
+  const [bulkMsgTitle, setBulkMsgTitle] = useState(
+    isArabic ? 'إشعار من إدارة المنظومة' : 'Notice from System Administration'
+  );
   const [bulkMsgBody, setBulkMsgBody] = useState('');
   const [bulkMsgTitleEn, setBulkMsgTitleEn] = useState('');
   const [bulkMsgBodyEn, setBulkMsgBodyEn] = useState('');
@@ -118,14 +122,19 @@ export function useCaptainsDialogs({
       });
       toast({
         title: t('welcomeHoursSavedToast'),
-        description: data.message || `تم ضبط رصيد الترحيب إلى ${welcomeConfig.hours} ساعة بنجاح.`,
+        description:
+          data.message ||
+          (isArabic
+            ? `تم ضبط رصيد الترحيب إلى ${welcomeConfig.hours} ساعة بنجاح.`
+            : `Welcome credit set to ${welcomeConfig.hours} hours successfully.`),
       });
       setIsWelcomeHoursOpen(false);
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في الحفظ',
-        description: err.message || 'تعذر حفظ إعدادات رصيد الترحيب',
+        title: isArabic ? 'خطأ في الحفظ' : 'Save Error',
+        description:
+          err.message || (isArabic ? 'تعذر حفظ إعدادات رصيد الترحيب' : 'Failed to save welcome credit settings'),
       });
     } finally {
       setSavingWelcomeConfig(false);
@@ -152,8 +161,10 @@ export function useCaptainsDialogs({
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ أثناء المنح',
-        description: err.message || 'تعذر منح الرصيد للكباتن المسجلين',
+        title: isArabic ? 'خطأ أثناء المنح' : 'Grant Error',
+        description:
+          err.message ||
+          (isArabic ? 'تعذر منح الرصيد للكباتن المسجلين' : 'Failed to grant credit to registered captains'),
       });
     } finally {
       setApplyingToExisting(false);
@@ -174,14 +185,18 @@ export function useCaptainsDialogs({
       setMessageTitleEn(tTitle);
       setMessageBodyEn(tBody);
       toast({
-        title: '🌐 تم إنشاء الترجمة الإنجليزية بنجاح',
-        description: 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.',
+        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English translation generated',
+        description: isArabic
+          ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.'
+          : 'You can review or edit the translated English text before sending.',
       });
     } catch {
       toast({
         variant: 'destructive',
-        title: 'تعذر توليد الترجمة',
-        description: 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.',
+        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation failed',
+        description: isArabic
+          ? 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.'
+          : 'Please enter the English text manually or try again later.',
       });
     } finally {
       setIsTranslatingDirect(false);
@@ -198,14 +213,18 @@ export function useCaptainsDialogs({
       setBulkMsgTitleEn(tTitle);
       setBulkMsgBodyEn(tBody);
       toast({
-        title: '🌐 تم إنشاء الترجمة الإنجليزية بنجاح',
-        description: 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.',
+        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English translation generated',
+        description: isArabic
+          ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.'
+          : 'You can review or edit the translated English text before sending.',
       });
     } catch {
       toast({
         variant: 'destructive',
-        title: 'تعذر توليد الترجمة',
-        description: 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.',
+        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation failed',
+        description: isArabic
+          ? 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.'
+          : 'Please enter the English text manually or try again later.',
       });
     } finally {
       setIsTranslatingBulk(false);
@@ -217,7 +236,7 @@ export function useCaptainsDialogs({
     try {
       const result = await executeCaptainAdminActionApi(payload);
       toast({
-        title: '⚡ تم تنفيذ الإجراء بنجاح',
+        title: isArabic ? '⚡ تم تنفيذ الإجراء بنجاح' : '⚡ Action executed successfully',
         description: result.message || successMsg,
       });
       await fetchCaptains(true);
@@ -225,8 +244,8 @@ export function useCaptainsDialogs({
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'فشل العملية',
-        description: err.message || 'تعذر تطبيق الإجراء',
+        title: isArabic ? 'فشل العملية' : 'Operation Failed',
+        description: err.message || (isArabic ? 'تعذر تطبيق الإجراء' : 'Failed to apply action'),
       });
       return false;
     } finally {
@@ -253,16 +272,20 @@ export function useCaptainsDialogs({
     if (bulkScope === 'selected' && (!targetIds || targetIds.length === 0)) {
       toast({
         variant: 'destructive',
-        title: 'تنبيه',
-        description: 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.',
+        title: isArabic ? 'تنبيه' : 'Notice',
+        description: isArabic
+          ? 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.'
+          : 'Please select at least one captain first.',
       });
       return;
     }
     if (bulkScope === 'filtered' && (!targetIds || targetIds.length === 0)) {
       toast({
         variant: 'destructive',
-        title: 'تنبيه',
-        description: 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.',
+        title: isArabic ? 'تنبيه' : 'Notice',
+        description: isArabic
+          ? 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.'
+          : 'No captains match the current filters.',
       });
       return;
     }
@@ -283,16 +306,21 @@ export function useCaptainsDialogs({
 
       const result = await executeCaptainAdminActionApi(payload);
       toast({
-        title: '⚡ تم الشحن بنجاح',
-        description: result.message || 'تم تحديث أرصدة الكباتن المعلنين وإشعارهم بنجاح.',
+        title: isArabic ? '⚡ تم الشحن بنجاح' : '⚡ Top-up Completed',
+        description:
+          result.message ||
+          (isArabic
+            ? 'تم تحديث أرصدة الكباتن المعلنين وإشعارهم بنجاح.'
+            : 'Captain balances updated and notifications sent successfully.'),
       });
       setIsBulkTopupOpen(false);
       await fetchCaptains(true);
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في الشحن الجماعي',
-        description: err.message || 'تعذر إتمام عملية الشحن الجماعي',
+        title: isArabic ? 'خطأ في الشحن الجماعي' : 'Bulk Top-Up Error',
+        description:
+          err.message || (isArabic ? 'تعذر إتمام عملية الشحن الجماعي' : 'Failed to complete bulk top-up'),
       });
     } finally {
       setSubmittingBulkTopup(false);
@@ -303,8 +331,8 @@ export function useCaptainsDialogs({
     if (!bulkMsgBody.trim()) {
       toast({
         variant: 'destructive',
-        title: 'نص الرسالة مطلوب',
-        description: 'يرجى كتابة نص الإشعار قبل الإرسال.',
+        title: isArabic ? 'نص الرسالة مطلوب' : 'Message text required',
+        description: isArabic ? 'يرجى كتابة نص الإشعار قبل الإرسال.' : 'Please enter the message body before sending.',
       });
       return;
     }
@@ -313,16 +341,20 @@ export function useCaptainsDialogs({
     if (bulkScope === 'selected' && (!targetIds || targetIds.length === 0)) {
       toast({
         variant: 'destructive',
-        title: 'تنبيه',
-        description: 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.',
+        title: isArabic ? 'تنبيه' : 'Notice',
+        description: isArabic
+          ? 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.'
+          : 'Please select at least one captain first.',
       });
       return;
     }
     if (bulkScope === 'filtered' && (!targetIds || targetIds.length === 0)) {
       toast({
         variant: 'destructive',
-        title: 'تنبيه',
-        description: 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.',
+        title: isArabic ? 'تنبيه' : 'Notice',
+        description: isArabic
+          ? 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.'
+          : 'No captains match the current filters.',
       });
       return;
     }
@@ -341,8 +373,12 @@ export function useCaptainsDialogs({
 
       const result = await executeCaptainAdminActionApi(payload);
       toast({
-        title: '📢 تم إرسال الإشعار اللحظي',
-        description: result.message || 'تم بث الإشعار بنجاح إلى جميع الكباتن المعلنين المحددين.',
+        title: isArabic ? '📢 تم إرسال الإشعار اللحظي' : '📢 Broadcast Sent',
+        description:
+          result.message ||
+          (isArabic
+            ? 'تم بث الإشعار بنجاح إلى جميع الكباتن المعلنين المحددين.'
+            : 'Notification sent successfully to all selected captains.'),
       });
       setIsBulkMessageOpen(false);
       setBulkMsgBody('');
@@ -351,8 +387,8 @@ export function useCaptainsDialogs({
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في إرسال الإشعار الجماعي',
-        description: err.message || 'تعذر إرسال الإشعار الجماعي',
+        title: isArabic ? 'خطأ في إرسال الإشعار الجماعي' : 'Bulk Broadcast Error',
+        description: err.message || (isArabic ? 'تعذر إرسال الإشعار الجماعي' : 'Failed to send bulk broadcast'),
       });
     } finally {
       setSubmittingBulkMsg(false);

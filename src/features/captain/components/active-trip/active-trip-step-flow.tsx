@@ -83,13 +83,13 @@ export function ActiveTripStepFlow({
                 <span>{t('rendezvousPoint') || 'نقطة الالتقاء'}:</span>
               </span>
               <span className="font-black text-white text-end max-w-[65%] truncate">
-                {request.pickupLabel || request.dropoff || 'نقطة الالتقاء'}
+                {request.pickupLabel || request.dropoff || (t('rendezvousPoint') || (language === 'ar' ? 'نقطة الالتقاء' : 'Pickup Point'))}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-300 border-t border-slate-800 pt-2">
               <span className="text-slate-400">{t('serviceDuration') || 'مدة الخدمة'}:</span>
               <span className="font-bold font-mono text-cyan-300">
-                {tripDurationMinutes} {language === 'ar' ? 'دقيقة' : 'min'} {request.estimatedDistance ? `(${request.estimatedDistance} ${language === 'ar' ? 'كيلوا' : 'km'})` : ''}
+                {tripDurationMinutes} {language === 'ar' ? 'دقيقة' : 'min'} {request.estimatedDistance ? `(${request.estimatedDistance} ${language === 'ar' ? 'كم' : 'km'})` : ''}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-300 border-t border-slate-800 pt-2">

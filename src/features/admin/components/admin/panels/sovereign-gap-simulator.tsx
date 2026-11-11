@@ -25,15 +25,16 @@ import { DriverData } from '@/hooks/admin/useSovereignDashboard';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { getFirebaseIdToken, getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
+import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 
 const styles = {
   style181_1: "bg-[#050505] border border-[#00ffcc]/15 shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden mt-8",
   style182_2: "bg-zinc-950 border-b border-[#00ffcc]/10 p-5",
   style183_3: "text-[#00ffcc] text-base font-extrabold flex items-center gap-2",
   style184_4: "w-5 h-5 text-[#00ffcc]",
-  style187_5: "text-gray-400 text-xs leading-relaxed text-right",
+  style187_5: "text-gray-400 text-xs leading-relaxed text-start",
   style191_6: "p-6 space-y-8",
-  style192_7: "grid grid-cols-1 md:grid-cols-2 gap-6 text-right",
+  style192_7: "grid grid-cols-1 md:grid-cols-2 gap-6 text-start",
   style195_8: "bg-zinc-950 p-5 rounded-xl border border-white/5 space-y-4",
   style196_9: "flex items-center gap-2 border-b border-white/5 pb-3",
   style197_10: "w-5 h-5 text-amber-400",
@@ -57,11 +58,11 @@ const styles = {
   style255_26: "w-full bg-zinc-900 border border-white/10 rounded-lg p-2.5 text-xs text-white",
   style267_27: "text-[11px] text-gray-400 block font-bold",
   style268_28: "space-y-1",
-  style274_29: "bg-zinc-900 border-white/10 text-xs text-white placeholder-gray-600 h-9 text-right",
+  style274_29: "bg-zinc-900 border-white/10 text-xs text-white placeholder-gray-600 h-9 text-start",
   style277_30: "text-[9px] text-[#00ffcc] block cursor-pointer",
   style278_31: "underline font-bold",
   style285_32: "w-full bg-[#00ffcc] hover:bg-[#00ffcc]/80 text-black font-black text-xs h-9 mt-2 cursor-pointer",
-  style295_33: "bg-zinc-900/40 border border-white/5 p-4 rounded-xl space-y-2 text-right",
+  style295_33: "bg-zinc-900/40 border border-white/5 p-4 rounded-xl space-y-2 text-start",
   style296_34: "text-xs font-bold text-gray-300",
   style297_35: "text-[11px] text-gray-400 space-y-1",
   style298_36: "flex items-center gap-1.5",
@@ -70,7 +71,7 @@ const styles = {
   style303_39: "text-[#00ffcc]",
   style306_40: "flex items-center gap-1.5 font-sans",
   style307_41: "text-[#ff3366]",
-  style308_42: "text-right",
+  style308_42: "text-start",
   style308_43: "text-red-400",
 } as const;
 
@@ -94,6 +95,7 @@ export function SovereignGapSimulator({
 }: SovereignGapSimulatorProps) {
     const tAuto = useTranslations('auto');
   const { toast } = useToast();
+  const { direction } = useDashboardLanguage();
   const t = useTranslations('adminTab.simulator');
 
   // Simulated operations states
@@ -218,7 +220,7 @@ export function SovereignGapSimulator({
         </CardDescription>
       </CardHeader>
       <CardContent className={styles.style191_6}>
-        <div className={styles.style192_7} dir="rtl">
+        <div className={styles.style192_7} dir={direction}>
 
           {/* 1. Regional Commute Card */}
           <div className={styles.style195_8}>

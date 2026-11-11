@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useDashboardLanguage } from "@/hooks/use-dashboard-language";
 
 const styles = {
   style83_1: "fixed inset-0 z-[150] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md",
@@ -107,6 +108,7 @@ type PaymentMode = "receipt" | "voucher";
 export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGatewayProps) {
     const tAuto = useTranslations('auto');
     const t = useTranslations('auto');
+  const { isArabic } = useDashboardLanguage();
   const { user } = useAuth();
   const { submitWalletReceipt, redeemVoucherCode, loading } = useSovereignWallet(user);
   const [mode, setMode] = useState<PaymentMode>("receipt");
@@ -116,7 +118,10 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
   const [voucherCode, setVoucherCode] = useState("");
   const [completedMessage, setCompletedMessage] = useState("");
 
-  const currencyLabel = useMemo(() => user?.currencyAr || user?.currencyEn || "عملة", [user?.currencyAr, user?.currencyEn]);
+  const currencyLabel = useMemo(
+    () => (isArabic ? user?.currencyAr || user?.currencyEn || "د.أ" : user?.currencyEn || user?.currencyAr || "JOD"),
+    [isArabic, user?.currencyAr, user?.currencyEn]
+  );
 
   if (!isOpen) return null;
 
@@ -131,7 +136,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
     });
 
     if (ok) {
-      setCompletedMessage("تم إرسال الإيصال للمراجعة.");
+      setCompletedMessage(isArabic ? "تم إرسال الإيصال للمراجعة." : "Receipt submitted for review.");
       onSuccess?.();
     }
   };
@@ -139,7 +144,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
   const submitVoucher = async () => {
     const ok = await redeemVoucherCode(voucherCode);
     if (ok) {
-      setCompletedMessage("تم تفعيل كود الشحن.");
+      setCompletedMessage(isArabic ? "تم تفعيل كود الشحن." : "Recharge code activated.");
       onSuccess?.();
     }
   };
@@ -153,7 +158,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
 
   return (
     <div className={styles.style83_1}>
-      <Card className={styles.style84_2} dir="rtl">
+      <Card className={cn(styles.style84_2, isArabic ? "text-right" : "text-left")} dir={isArabic ? "rtl" : "ltr"}>
         <CardHeader className={styles.style85_3}>
           <div className={styles.style86_4}>
             <div className={styles.style87_5}>
@@ -237,14 +242,14 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                       ))}
                     </div>
                     <div className={styles.style167_35}>
-                      <span className={styles.style168_36}>{currencyLabel}</span>
+                      <span className={cn(styles.style168_36, !isArabic && "left-auto right-3")}>{currencyLabel}</span>
                       <Input
                         type="number"
                         min="0"
                         step="0.01"
                         value={amount}
                         onChange={(event) => setAmount(event.target.value)}
-                        className={styles.style175_37}
+                        className={cn(styles.style175_37, !isArabic && "pr-20 pl-3 text-left")}
                       />
                     </div>
                   </div>
@@ -259,6 +264,7 @@ export function GeoPaymentGateway({ isOpen, onClose, onSuccess }: GeoPaymentGate
                           onClick={() => setSelectedChannel(channel.id)}
                           className={cn(
                             styles.style189_41,
+                            !isArabic && "text-left",
                             selectedChannel === channel.id
                               ? styles.style191_42
                               : styles.style192_43,

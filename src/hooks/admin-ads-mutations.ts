@@ -16,6 +16,7 @@ interface AdsMutationsOptions {
   setIsProcessing: (val: boolean) => void;
   toast: (props: { variant?: 'default' | 'destructive'; title?: string; description?: string }) => void;
   tAuto: (key: string, values?: Record<string, any>) => string;
+  isArabic?: boolean;
 }
 
 export function useAdminAdsMutations({
@@ -27,6 +28,7 @@ export function useAdminAdsMutations({
   setIsProcessing,
   toast,
   tAuto,
+  isArabic = true,
 }: AdsMutationsOptions) {
   // 1. Pause / Play
   const toggleAdStatus = useCallback(
@@ -39,19 +41,27 @@ export function useAdminAdsMutations({
         const newStatus = isCurrentlyActive ? 'paused' : 'active';
         const isMock = adId.startsWith('promo-') || adId.startsWith('mock-') || localPromos.some((p) => p.id === adId);
 
+        const statusLabel = isArabic
+          ? newStatus === 'active'
+            ? 'نشطة ●'
+            : 'موقوفة مؤقتاً ||'
+          : newStatus === 'active'
+            ? 'Active ●'
+            : 'Paused ||';
+
         if (isMock) {
           updateLocalPromos((prev) => prev.map((a) => (a.id === adId ? { ...a, status: newStatus } : a)));
           toast({
-            title: 'تعديل حالة الإعلان الملاحي',
-            description: `الحملة الآن: ${newStatus === 'active' ? 'نشطة ●' : 'موقوفة مؤقتاً ||'}.`,
+            title: isArabic ? 'تعديل حالة الإعلان الملاحي' : 'Campaign Status Updated',
+            description: isArabic ? `الحملة الآن: ${statusLabel}.` : `Campaign is now: ${statusLabel}.`,
           });
         } else {
           try {
             const adRef = doc(db, 'promos', adId);
             await updateDoc(adRef, { status: newStatus });
             toast({
-              title: 'تعديل حالة الإعلان الملاحي',
-              description: `الحملة الآن: ${newStatus === 'active' ? 'نشطة ●' : 'موقوفة مؤقتاً ||'}.`,
+              title: isArabic ? 'تعديل حالة الإعلان الملاحي' : 'Campaign Status Updated',
+              description: isArabic ? `الحملة الآن: ${statusLabel}.` : `Campaign is now: ${statusLabel}.`,
             });
           } catch (fbError) {
             console.warn('Firebase update status failed, falling back to local:', fbError);
@@ -68,20 +78,23 @@ export function useAdminAdsMutations({
               return prev;
             });
             toast({
-              title: 'تعديل حالة الإعلان الملاحي (محلي)',
-              description: `الحملة الآن: ${newStatus === 'active' ? 'نشطة ●' : 'موقوفة مؤقتاً ||'}.`,
+              title: isArabic ? 'تعديل حالة الإعلان الملاحي (محلي)' : 'Campaign Status Updated (Local)',
+              description: isArabic ? `الحملة الآن: ${statusLabel}.` : `Campaign is now: ${statusLabel}.`,
             });
           }
         }
       } catch (error) {
         trackSovereignError(error, { context: 'ToggleAdStatus_Direct' });
-        toast({ variant: 'destructive', title: 'فشل الإدارة على الحالة' });
+        toast({
+          variant: 'destructive',
+          title: isArabic ? 'فشل تحديث حالة الإعلان' : 'Failed to update campaign status',
+        });
       } finally {
         setIsProcessing(false);
         isProcessingRef.current = false;
       }
     },
-    [localPromos, dbPromos, toast, updateLocalPromos, isProcessingRef, setIsProcessing]
+    [localPromos, dbPromos, isArabic, toast, updateLocalPromos, isProcessingRef, setIsProcessing]
   );
 
   // 2. Delete / Archive
@@ -439,7 +452,7 @@ export function useAdminAdsMutations({
                         ...a,
                         status: 'REJECTED',
                         isSovereignStopped: true,
-                        rejectionReason: `[إيقاف الإعلان]: ${reason}`,
+                        rejectionReason: tAuto('adStoppedReason', { reason }),
                       }
                     : a
                 );
@@ -452,7 +465,7 @@ export function useAdminAdsMutations({
                       ...dbAd,
                       status: 'REJECTED',
                       isSovereignStopped: true,
-                      rejectionReason: `[إيقاف الإعلان]: ${reason}`,
+                      rejectionReason: tAuto('adStoppedReason', { reason }),
                     },
                   ];
                 }
@@ -460,8 +473,8 @@ export function useAdminAdsMutations({
               return prev;
             });
             toast({
-              title: 'تم إيقاف الإعلان محلياً',
-              description: 'تم إيقاف عرض الإعلان محلياً.',
+              title: isArabic ? 'تم إيقاف الإعلان محلياً' : 'Ad Stopped Locally',
+              description: isArabic ? 'تم إيقاف عرض الإعلان محلياً.' : 'Ad display stopped locally.',
             });
           }
         }
@@ -470,8 +483,8 @@ export function useAdminAdsMutations({
         trackSovereignError(error, { context: 'AdAnnihilation_Failed' });
         toast({
           variant: 'destructive',
-          title: 'تعذر إيقاف الإعلان',
-          description: error.message || 'حدث خطأ أثناء إرسال الطلب.',
+          title: isArabic ? 'تعذر إيقاف الإعلان' : 'Could Not Stop Ad',
+          description: error.message || (isArabic ? 'حدث خطأ أثناء إرسال الطلب.' : 'An error occurred while submitting the request.'),
         });
         return false;
       } finally {
@@ -479,7 +492,7 @@ export function useAdminAdsMutations({
         isProcessingRef.current = false;
       }
     },
-    [localPromos, dbPromos, toast, updateLocalPromos, tAuto, isProcessingRef, setIsProcessing]
+    [localPromos, dbPromos, isArabic, toast, updateLocalPromos, tAuto, isProcessingRef, setIsProcessing]
   );
 
   return {

@@ -76,13 +76,14 @@ const styles = {
 } as const;
 
 const pulseMap = {
-  high_demand: { icon: TrendingUp, text: 'طلب عالٍ', className: styles.pulseHighDemand },
-  high_supply: { icon: TrendingDown, text: 'منافسة شديدة', className: styles.pulseHighSupply },
-  balanced: { icon: Minus, text: 'سوق مستقر', className: styles.pulseBalanced },
+  high_demand: { icon: TrendingUp, textAr: 'طلب عالٍ', textEn: 'High Demand', className: styles.pulseHighDemand },
+  high_supply: { icon: TrendingDown, textAr: 'منافسة شديدة', textEn: 'High Supply', className: styles.pulseHighSupply },
+  balanced: { icon: Minus, textAr: 'سوق مستقر', textEn: 'Balanced', className: styles.pulseBalanced },
 } as const;
 
 function PulseIndicator() {
   const { user } = useAuth();
+  const { isArabic } = useDashboardLanguage();
   const driverOps = useDriverOperations();
   const pulseData = driverOps?.pulseData || [];
 
@@ -96,7 +97,7 @@ function PulseIndicator() {
   return (
     <div className={cn(styles.pulse, pulseInfo.className)}>
       <Icon className={styles.pulseIcon} />
-      <span className={styles.pulseLabel}>{pulseInfo.text}</span>
+      <span className={styles.pulseLabel}>{isArabic ? pulseInfo.textAr : pulseInfo.textEn}</span>
     </div>
   );
 }
@@ -104,6 +105,7 @@ function PulseIndicator() {
 function DriverCabin() {
   const tAuto = useTranslations('auto');
   const t = useTranslations('auto');
+  const { isArabic } = useDashboardLanguage();
   const driverOps = useDriverOperations();
   const driverStatus = driverOps?.driverStatus || 'idle';
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -149,7 +151,7 @@ function DriverCabin() {
               onClick={() => driverOps.toggleRequestList?.(true)}
             >
               <RadioTower className={styles.icon} />
-              <span className={styles.srOnly}>Open Radar</span>
+              <span className={styles.srOnly}>{isArabic ? 'فتح الرادار' : 'Open Radar'}</span>
             </Button>
           ) : null}
           <Button
@@ -159,7 +161,7 @@ function DriverCabin() {
             onClick={() => setIsSettingsOpen(true)}
           >
             <Settings className={styles.icon} />
-            <span className={styles.srOnly}>Open Settings</span>
+            <span className={styles.srOnly}>{isArabic ? 'فتح الإعدادات' : 'Open Settings'}</span>
           </Button>
         </div>
       </div>

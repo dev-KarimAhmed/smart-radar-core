@@ -149,8 +149,8 @@ export function useDelegatesState() {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     toast({
-      title: 'تم النسخ ',
-      description: `تم كود إحالة المندوب الأصلي (${code}) إلى الحافظة بنجاح.`
+      title: t('toasts.copySuccess'),
+      description: t('toasts.copyDesc', { code })
     });
     setTimeout(() => setCopiedCode(null), 2000);
   };
@@ -166,7 +166,7 @@ export function useDelegatesState() {
         toast({
           variant: 'destructive',
           title: t('toasts.duplicatePhoneTitle'),
-          description: `المندوب المسجل بالفعل يحمل نفس رقم الهاتف (${phone}). يرجى استخدام رقم هاتف فريد.`
+          description: t('toasts.duplicatePhoneDesc', { phone })
         });
         return;
       }

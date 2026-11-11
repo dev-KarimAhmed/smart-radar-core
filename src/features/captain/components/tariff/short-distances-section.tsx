@@ -50,7 +50,7 @@ export function ShortDistancesSection({
             )}
           />
           <span className="font-bold">
-            {isArabic ? 'قم بأعداد سعر المسافات القصيرة' : 'Configure Short Distance Fare'}
+            {isArabic ? 'قم بإعداد سعر المسافات القصيرة' : 'Configure Short Distance Fare'}
           </span>
         </div>
         <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">

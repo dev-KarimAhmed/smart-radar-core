@@ -306,7 +306,7 @@ export function PricePerKmSetupModal({
                 <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
                 <span>
                   {isArabic
-                    ? 'لقد تم استهلاك البطارية على طاقتك تم قطعه على شاشات المراقبة أثناء نشاطك'
+                    ? 'تنبيه: استهلاك البطارية أثناء نشاط المراقبة'
                     : 'Battery consumption notice during monitoring activity'}
                 </span>
               </div>

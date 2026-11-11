@@ -107,7 +107,7 @@ export function CaptainOnboardingConfirmation({
           className="w-full flex items-center justify-center gap-2 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 active:scale-95 h-11 text-xs sm:text-sm font-bold text-[#14F5D5] transition-all cursor-pointer shadow-md shadow-[#14B8A6]/10"
         >
           <Download className="h-4 w-4" />
-          <span>{isArabic ? 'تثبيت تطبيق بينكم (PWA)' : 'Install Among You (PWA)'}</span>
+          <span>{isArabic ? 'تثبيت تطبيق بينكم (PWA)' : 'Install bynkcom (PWA)'}</span>
         </button>
 
         <button

@@ -246,7 +246,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
   const radarHourPrice = wallet.radarHourPrice || 1;
   const totalMinutes = wallet.totalUsableMinutes;
   const bonusMinutes = wallet.bonusMinutesRemaining || 0;
-  const currencySymbol = user?.currencyAr || user?.currencyEn || '';
+  const currencySymbol = language === 'ar' ? (user?.currencyAr || user?.currencyEn || '') : (user?.currencyEn || user?.currencyAr || '');
 
   return (
     <div className="w-full space-y-6 pb-12 text-white min-w-0">
@@ -313,7 +313,7 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
               <span className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-950/60 px-3 py-1 text-xs font-mono font-bold text-cyan-300">
                 <Zap className="h-3.5 w-3.5 text-cyan-400" />
                 <span>
-                  {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/ساعة
+                  {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/{language === 'ar' ? 'ساعة' : 'hr'}
                 </span>
               </span>
             ) : null}
@@ -337,10 +337,10 @@ export function DriverWalletTab({ user, language, isFlightActive = false, onOpen
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-950/60 px-3 py-1 text-xs font-mono font-bold text-cyan-300">
                   <Zap className="h-3.5 w-3.5 text-cyan-400" />
                   <span>
-                    {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/ساعة
+                    {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/{language === 'ar' ? 'ساعة' : 'hr'}
                   </span>
                   <span className="text-cyan-400/70 text-[11px]">
-                    ({(radarHourPrice / 60).toFixed(3)}/د)
+                    ({(radarHourPrice / 60).toFixed(3)}/{language === 'ar' ? 'د' : 'min'})
                   </span>
                 </span>
               </div>

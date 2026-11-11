@@ -207,7 +207,7 @@ export const CaptainBulkMessageDialog: React.FC<CaptainBulkMessageDialogProps> =
                 "شكر وتقدير: إدارة المنظومة تشكركم على التزامكم العالي وخدمتكم الممتازة.",
                 "تنويه أمني: نذكركم بالالتزام بالتسعيرة الرسمية وعدم إلغاء الرحلات بعد قبولها."
               ] : [
-                "Good news: Extra flight minutes have been credited to your account for the weekend!",
+                "Good news: Extra radar minutes have been credited to your account for the weekend!",
                 "Important alert: Please go online, order demand in your area is surging right now!",
                 "Operational notice: Please ensure high GPS accuracy and update app to the latest version.",
                 "Appreciation: System administration thanks you for your outstanding commitment and excellence.",

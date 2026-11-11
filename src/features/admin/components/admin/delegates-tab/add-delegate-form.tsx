@@ -76,10 +76,10 @@ export function AddDelegateForm(props: AddDelegateFormProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className={styles.customSelectContent}>
-                <SelectItem value={tAuto('key_161b5e38')} className={styles.customSelectItem}>{t('addForm.regions.wadiSeer')}</SelectItem>
-                <SelectItem value={tAuto('key_1aacb23c')} className={styles.customSelectItem}>{t('addForm.regions.univ')}</SelectItem>
-                <SelectItem value={tAuto('key_a0c2bd48')} className={styles.customSelectItem}>{t('addForm.regions.kasaba')}</SelectItem>
-                <SelectItem value={tAuto('key_757dba02')} className={styles.customSelectItem}>{t('addForm.regions.karrada')}</SelectItem>
+                <SelectItem value="وادي السير" className={styles.customSelectItem}>{t('addForm.regions.wadiSeer')}</SelectItem>
+                <SelectItem value="الجامعة" className={styles.customSelectItem}>{t('addForm.regions.univ')}</SelectItem>
+                <SelectItem value="قصبة عمان" className={styles.customSelectItem}>{t('addForm.regions.kasaba')}</SelectItem>
+                <SelectItem value="الكرادة" className={styles.customSelectItem}>{t('addForm.regions.karrada')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

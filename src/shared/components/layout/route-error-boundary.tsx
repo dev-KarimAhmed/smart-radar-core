@@ -53,7 +53,7 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
             <ShieldAlert className={styles.icon} aria-hidden="true" />
             <CardTitle>{isArabic ? 'عذراً، حدث خطأ غير متوقع' : 'Sorry, an unexpected error occurred'}</CardTitle>
             <CardDescription className={styles.description}>
-              {getSovereignErrorMessage(this.state.error || { code: 'SYS_COMPONENT_CRASH' })}
+              {getSovereignErrorMessage(this.state.error || { code: 'SYS_COMPONENT_CRASH' }, isArabic)}
             </CardDescription>
           </CardHeader>
           <CardContent className={styles.content}>

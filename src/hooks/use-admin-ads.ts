@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { useToast } from './use-toast';
 import { trackSovereignError } from '@/lib/error-tracker';
 import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from './use-dashboard-language';
 import { useAdminAdsMutations } from './admin-ads-mutations';
 
 export interface SovereignAd {
@@ -66,6 +67,7 @@ export interface AdInput {
 
 export function useAdminAds() {
   const tAuto = useTranslations();
+  const { isArabic } = useDashboardLanguage();
   const [localPromos, setLocalPromos] = useState<SovereignAd[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -175,7 +177,7 @@ export function useAdminAds() {
             posterUrl: adData.posterUrl,
           },
           action: {
-            buttonText: adData.buttonText || 'احجز مقعدك الآن',
+            buttonText: adData.buttonText || (isArabic ? 'احجز مقعدك الآن' : 'Book Your Seat Now'),
             actionUrl: adData.actionUrl || `https://wa.me/${adData.whatsapp || '962790000000'}`,
           },
         };
@@ -196,26 +198,33 @@ export function useAdminAds() {
             transaction.set(counterRef, { current_count: nextCount }, { merge: true });
             transaction.set(promoDocRef, finalAdModel);
           });
-          toast({ title: 'تم إنشاء الإعلان', description: `تم حفظ الحملة "${adData.title}" بنجاح.` });
+          toast({
+            title: isArabic ? 'تم إنشاء الإعلان' : 'Campaign Created',
+            description: isArabic
+              ? `تم حفظ الحملة "${adData.title}" بنجاح.`
+              : `Campaign "${adData.title}" saved successfully.`,
+          });
         } catch (fbError) {
           console.warn('Firebase write failed, falling back to sovereign local storage:', fbError);
           updateLocalPromos((prev) => [adModel as SovereignAd, ...prev]);
           toast({
-            title: 'تم الحفظ محلياً',
-            description: `تم إضافة الحملة "${adData.title}" محلياً في الرادار لتخطّي قيود البيئة التجريبية بنجاح.`,
+            title: isArabic ? 'تم الحفظ محلياً' : 'Saved Locally',
+            description: isArabic
+              ? `تم إضافة الحملة "${adData.title}" محلياً في الرادار لتخطّي قيود البيئة التجريبية بنجاح.`
+              : `Campaign "${adData.title}" added locally on the radar.`,
           });
         }
         return true;
       } catch (error) {
         trackSovereignError(error, { context: 'CreatePromo_Admin_Failed' });
-        toast({ variant: 'destructive', title: 'فشل إضافة الحملة' });
+        toast({ variant: 'destructive', title: isArabic ? 'فشل إضافة الحملة' : 'Failed to create campaign' });
         return false;
       } finally {
         setIsProcessing(false);
         isProcessingRef.current = false;
       }
     },
-    [toast, updateLocalPromos]
+    [isArabic, toast, updateLocalPromos]
   );
 
   const {
@@ -235,6 +244,7 @@ export function useAdminAds() {
     setIsProcessing,
     toast,
     tAuto,
+    isArabic,
   });
 
   return {

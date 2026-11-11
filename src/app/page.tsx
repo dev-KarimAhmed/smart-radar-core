@@ -137,7 +137,7 @@ export default function HomePage() {
             onClick={() => window.location.replace(directTarget)}
             className="mt-4 text-[11px] font-bold text-[#14F5D5]/80 hover:text-[#14F5D5] underline underline-offset-4 cursor-pointer transition active:scale-95"
           >
-            اضغط هنا للدخول المباشر
+            {isArabic ? 'اضغط هنا للدخول المباشر' : 'Click here to enter directly'}
           </button>
         )}
       </div>

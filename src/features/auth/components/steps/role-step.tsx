@@ -93,7 +93,7 @@ const copy = {
     switchLabel: 'العربية',
     ariaSwitch: 'Switch language to Arabic',
     backToHome: 'Back to Opening Screen',
-    title: 'Welcome to byncom Digital Advertising Network',
+    title: 'Welcome to bynkcom Digital Advertising Network',
     subtitle: 'Choose your account type and continue easily',
     underDevelopment: 'Under Development',
     roles: {

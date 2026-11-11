@@ -30,14 +30,57 @@ export const SOVEREIGN_ERRORS = {
   SYS_UNKNOWN: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
 } as const;
 
+export const SOVEREIGN_ERRORS_EN: Record<keyof typeof SOVEREIGN_ERRORS, string> = {
+  AUTH_WEAK_PASSWORD: 'Weak password. It must be at least 6 characters.',
+  AUTH_EMAIL_ALREADY_IN_USE: 'This email address is already in use.',
+  AUTH_INVALID_EMAIL: 'Invalid email address.',
+  AUTH_USER_NOT_FOUND: 'No account found with these credentials.',
+  AUTH_WRONG_PASSWORD: 'Incorrect password.',
+  AUTH_OPERATION_NOT_ALLOWED: 'Signing in with this method is currently disabled.',
+  AUTH_GENERIC_FAILURE: 'Could not sign in. Please try again.',
+  PHONE_OVERLAP_DETECTED: 'This phone number is already registered.',
+  NAME_DISTRICT_OVERLAP_DETECTED: 'A captain with the same name is already registered in this district. Please review your details.',
+  AUTH_INTEGRITY_BREACH: 'Account details are incomplete or invalid.',
+  SEAL_TIMEOUT: 'Your session has expired. Please try again.',
+  SYBIL_ATTACK_DETECTED: 'The same device cannot be used for more than one account type.',
+  SYS_PERMISSION_DENIED: 'You do not have permission to perform this action.',
+
+  RADAR_OFFLINE: 'Service is currently unavailable. Please enable location and try again.',
+  PROTOCOL_9_LOCKED: 'This account is currently under review.',
+  RADAR_001: 'Please enable location services to determine the route accurately.',
+  TRIP_NOT_FOUND: 'The requested trip is not available.',
+  OPS_001: 'Please select a destination before continuing.',
+
+  PRICE_DUMPING_ALERT: 'The price is below the allowed minimum. Please adjust the price.',
+  FEEDBACK_001: 'These details cannot be modified right now.',
+  COURT_001: 'The system is temporarily locked for review.',
+
+  SYS_002: 'Failed to save data. Please try again.',
+  SYS_COMPONENT_CRASH: 'An error occurred in part of the app. Please refresh the page.',
+  SYS_UNKNOWN: 'An unexpected error occurred. Please try again.',
+};
+
 export type SovereignErrorCode = keyof typeof SOVEREIGN_ERRORS;
 
-export function getSovereignErrorMessage(error: any, tAuto?: any): string {
+export function getSovereignErrorMessage(error: any, tAutoOrIsArabic?: any): string {
   const rawCode = error?.code || error?.message || (typeof error === 'string' ? error : 'SYS_UNKNOWN');
   const rawCodeStr = String(rawCode).trim().toUpperCase().replace(/_/g, '-');
 
+  const isDocEnglish =
+    typeof document !== 'undefined' &&
+    (document.documentElement.lang === 'en' || document.documentElement.dir === 'ltr');
+
   const getTranslatedMessage = (code: SovereignErrorCode) => {
-    return tAuto ? tAuto(code, SOVEREIGN_ERRORS[code]) : SOVEREIGN_ERRORS[code];
+    if (typeof tAutoOrIsArabic === 'boolean') {
+      return tAutoOrIsArabic ? SOVEREIGN_ERRORS[code] : SOVEREIGN_ERRORS_EN[code];
+    }
+    if (typeof tAutoOrIsArabic === 'function') {
+      if (typeof tAutoOrIsArabic.has === 'function' && tAutoOrIsArabic.has(code)) {
+        return tAutoOrIsArabic(code);
+      }
+      return isDocEnglish ? SOVEREIGN_ERRORS_EN[code] : SOVEREIGN_ERRORS[code];
+    }
+    return isDocEnglish ? SOVEREIGN_ERRORS_EN[code] : SOVEREIGN_ERRORS[code];
   };
 
   if (SOVEREIGN_ERR_DICTIONARY[rawCodeStr]) {

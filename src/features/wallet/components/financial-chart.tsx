@@ -73,8 +73,11 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
       type: 'baseline',
     }];
 
+    const hourLabel = tAuto('key_d54c0ef8').trim().toLowerCase();
     sorted.forEach((tx) => {
-      const value = tx.currency === tAuto('key_d54c0ef8') ? tx.amount * 0.5 : tx.amount;
+      const normalizedCur = String(tx.currency || '').trim().toLowerCase();
+      const isHours = normalizedCur === 'ساعة' || normalizedCur === 'ساعات' || normalizedCur === 'hour' || normalizedCur === 'hours' || normalizedCur === 'hr' || normalizedCur === 'hrs' || normalizedCur === hourLabel;
+      const value = isHours ? tx.amount * 0.5 : tx.amount;
       runningBalance += value;
       points.push({
         timestamp: tx.timestamp,
@@ -96,7 +99,7 @@ export function SovereignFinancialActivityChart({ transactions, balanceJD, curre
     }
 
     return points;
-  }, [transactions, balanceJD, copy.baseline, copy.currentBalance]);
+  }, [transactions, balanceJD, copy.baseline, copy.currentBalance, tAuto]);
 
   useEffect(() => {
     if (!containerRef.current) return;
