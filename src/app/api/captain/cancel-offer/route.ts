@@ -1,39 +1,30 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getVerifiedUser } from '@/shared/server/api-auth-guard';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const requestId = String(body.requestId || body.tripId || '').trim();
-    const explicitUid = body.uid ? String(body.uid) : null;
-
-    if (!requestId) {
-      return NextResponse.json({ success: false, error: 'request_id_required' }, { status: 400 });
-    }
-
-    // 1. Resolve user ID from Authorization header or explicitUid
-    let uid: string | null = null;
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
-    if (token) {
-      try {
-        const { data: authData } = await supabaseAdmin.auth.getUser(token);
-        if (authData?.user?.id) {
-          uid = authData.user.id;
-        }
-      } catch {}
-    }
-
-    if (!uid && explicitUid) {
-      uid = explicitUid;
-    }
-
-    if (!uid) {
+    const caller = await getVerifiedUser(req, { allowSuspended: true });
+    if (!caller) {
       return NextResponse.json({ success: false, error: 'authentication_required' }, { status: 401 });
     }
 
-    // 2. Check if the offer exists and its current status
+    if (caller.role !== 'CAPTAIN' && caller.role !== 'DRIVER') {
+      return NextResponse.json({ success: false, error: 'forbidden_captain_only' }, { status: 403 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const requestId = String(body.requestId || body.tripId || '').trim();
+
+    if (!requestId || !UUID_PATTERN.test(requestId)) {
+      return NextResponse.json({ success: false, error: 'valid_request_id_required' }, { status: 400 });
+    }
+
+    const uid = caller.id;
+
+    // Check if the offer exists and its current status
     const { data: offers, error: findErr } = await supabaseAdmin
       .from('ride_offers')
       .select('id, status, request_id')
@@ -41,11 +32,11 @@ export async function POST(req: Request) {
       .eq('captain_id', uid);
 
     if (findErr) {
-      return NextResponse.json({ success: false, error: findErr.message }, { status: 500 });
+      console.error('[captain/cancel-offer] find error:', findErr);
+      return NextResponse.json({ success: false, error: 'offer_lookup_failed' }, { status: 500 });
     }
 
     if (!offers || offers.length === 0) {
-      // Offer already cleared or does not exist
       return NextResponse.json({ success: true, message: 'offer_already_cleared' });
     }
 
@@ -63,22 +54,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Mark as CANCELLED (broadcasts Realtime UPDATE event to rider)
+    // Mark pending offer as CANCELLED (never touch an already accepted offer)
     await supabaseAdmin
       .from('ride_offers')
       .update({ status: 'CANCELLED', updated_at: new Date().toISOString() })
       .eq('request_id', requestId)
-      .eq('captain_id', uid);
+      .eq('captain_id', uid)
+      .neq('status', 'ACCEPTED');
 
-    // 4. Delete the offer from ride_offers (broadcasts Realtime DELETE event and cleans table)
+    // Delete only non-accepted offers from ride_offers (broadcasts Realtime DELETE event and cleans table)
     const { error: delErr } = await supabaseAdmin
       .from('ride_offers')
       .delete()
       .eq('request_id', requestId)
-      .eq('captain_id', uid);
+      .eq('captain_id', uid)
+      .neq('status', 'ACCEPTED');
 
     if (delErr) {
-      return NextResponse.json({ success: false, error: delErr.message }, { status: 500 });
+      console.error('[captain/cancel-offer] delete error:', delErr);
+      return NextResponse.json({ success: false, error: 'offer_delete_failed' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -86,8 +80,9 @@ export async function POST(req: Request) {
       requestId,
       captainId: uid,
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message || 'internal_error' }, { status: 500 });
+  } catch (err) {
+    console.error('[captain/cancel-offer] unexpected error:', err);
+    return NextResponse.json({ success: false, error: 'internal_error' }, { status: 500 });
   }
 }
 

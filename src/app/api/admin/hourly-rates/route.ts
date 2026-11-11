@@ -1,20 +1,35 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller, getAdminRank } from '@/lib/admin-auth-verifier';
+import { requireAdminAccess } from '@/lib/admin-auth-verifier';
 
 export const dynamic = 'force-dynamic';
 
+const FORBIDDEN_RECORD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function sanitizeRatesMap(input: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return out;
+  for (const [key, val] of Object.entries(input as Record<string, unknown>)) {
+    if (!key || FORBIDDEN_RECORD_KEYS.has(key) || !/^[0-9a-zA-Z_-]{1,32}$/.test(key)) continue;
+    const num = Number(val);
+    if (Number.isFinite(num) && num > 0 && num <= 10_000) {
+      out[key] = num;
+    }
+  }
+  return out;
+}
+
 export async function GET(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
+  const access = await requireAdminAccess(req, { sector: 'hourly_rates' });
+  if (!access.ok) {
     return NextResponse.json(
-      { success: false, error: 'Unauthorized: Admin privileges required' },
-      { status: 401 }
+      { success: false, error: access.error },
+      { status: access.status }
     );
   }
+  const { rank: callerRank } = access;
 
   try {
-    const callerRank = getAdminRank(admin);
 
     // 1. Fetch countries
     const { data: countries, error: cErr } = await supabaseAdmin
@@ -80,20 +95,21 @@ export async function GET(req: Request) {
   } catch (err: any) {
     console.error('[HourlyRates API] GET error:', err);
     return NextResponse.json(
-      { success: false, error: err?.message || 'فشل جلب بيانات أسعار الساعة' },
+      { success: false, error: 'فشل جلب بيانات أسعار الساعة' },
       { status: 500 }
     );
   }
 }
 
 export async function POST(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
+  const access = await requireAdminAccess(req, { sector: 'hourly_rates' });
+  if (!access.ok) {
     return NextResponse.json(
-      { success: false, error: 'Unauthorized: Admin privileges required' },
-      { status: 401 }
+      { success: false, error: access.error },
+      { status: access.status }
     );
   }
+  const { admin } = access;
 
   try {
     const body = await req.json();
@@ -131,7 +147,7 @@ export async function POST(req: Request) {
       const { targetType, targetId, hourPrice } = body;
       const strId = String(targetId);
 
-      if (!targetType || !targetId) {
+      if (!targetType || !targetId || FORBIDDEN_RECORD_KEYS.has(strId) || !/^[0-9a-zA-Z_-]{1,32}$/.test(strId)) {
         return NextResponse.json(
           { success: false, error: 'الهدف المحدد غير صالح' },
           { status: 400 }
@@ -142,7 +158,7 @@ export async function POST(req: Request) {
         ? Number(hourPrice)
         : null;
 
-      if (numPrice !== null && (isNaN(numPrice) || numPrice <= 0)) {
+      if (numPrice !== null && (!Number.isFinite(numPrice) || numPrice <= 0 || numPrice > 10_000)) {
         return NextResponse.json(
           { success: false, error: 'يرجى إدخال سعر ساعة صحيح أكبر من صفر' },
           { status: 400 }
@@ -167,7 +183,14 @@ export async function POST(req: Request) {
       const strGovId = String(governorateId);
       const numPrice = Number(hourPrice);
 
-      if (!governorateId || isNaN(numPrice) || numPrice <= 0) {
+      if (
+        !governorateId ||
+        FORBIDDEN_RECORD_KEYS.has(strGovId) ||
+        !/^[0-9a-zA-Z_-]{1,32}$/.test(strGovId) ||
+        !Number.isFinite(numPrice) ||
+        numPrice <= 0 ||
+        numPrice > 10_000
+      ) {
         return NextResponse.json(
           { success: false, error: 'يرجى إدخال سعر ساعة صحيح للمحافظة' },
           { status: 400 }
@@ -192,6 +215,16 @@ export async function POST(req: Request) {
     } else if (action === 'reset_governorate') {
       const { governorateId, resetDistricts } = body;
       const strGovId = String(governorateId);
+      if (
+        !governorateId ||
+        FORBIDDEN_RECORD_KEYS.has(strGovId) ||
+        !/^[0-9a-zA-Z_-]{1,32}$/.test(strGovId)
+      ) {
+        return NextResponse.json(
+          { success: false, error: 'معرف المحافظة غير صالح' },
+          { status: 400 }
+        );
+      }
 
       delete currentMatrix.governorates[strGovId];
 
@@ -210,10 +243,10 @@ export async function POST(req: Request) {
     } else if (action === 'bulk_save') {
       const { governorateRates, districtRates } = body;
       if (governorateRates && typeof governorateRates === 'object') {
-        currentMatrix.governorates = { ...governorateRates };
+        currentMatrix.governorates = sanitizeRatesMap(governorateRates);
       }
       if (districtRates && typeof districtRates === 'object') {
-        currentMatrix.districts = { ...districtRates };
+        currentMatrix.districts = sanitizeRatesMap(districtRates);
       }
     } else {
       return NextResponse.json(
@@ -246,7 +279,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error('[HourlyRates API] POST error:', err);
     return NextResponse.json(
-      { success: false, error: err?.message || 'فشل تحديث أسعار الساعة' },
+      { success: false, error: 'فشل تحديث أسعار الساعة' },
       { status: 500 }
     );
   }

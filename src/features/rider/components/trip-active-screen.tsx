@@ -25,6 +25,7 @@ import { useWakeLock } from '@/hooks/use-wake-lock';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import { CaptainTripAdsViewer } from './captain-trip-ads-viewer';
 
 export interface TripActiveScreenProps {
@@ -90,9 +91,10 @@ export function TripActiveScreen({
       } catch {}
 
       if (!cancelled) {
+        const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
         await fetch('/api/trip/mutual-cancel', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({
             requestId: activeTrip.tripId,
             action: 'ACCEPT',

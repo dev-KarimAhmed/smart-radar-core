@@ -114,16 +114,17 @@ export function useDriverTransactions(
         return;
       }
 
-      const { data: radarRows, error } = await supabase
-        .from('captain_radar_requests')
-        .select('id, created_at')
-        .in('id', pendingTripIds);
+      const { data: radarRows, error } = await supabase.rpc('get_captain_radar_requests', {
+        p_request_ids: pendingTripIds,
+        p_limit: 50,
+      });
 
       if (isCancelled) return;
       if (error) return;
 
       const activeMap = new Map<string, number>();
       for (const row of (radarRows || []) as any[]) {
+        if (String(row?.status || '').toUpperCase() !== 'PENDING') continue;
         const createdAt = row.created_at ? new Date(row.created_at).getTime() : 0;
         activeMap.set(String(row.id), createdAt);
       }

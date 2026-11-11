@@ -15,6 +15,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 
 export interface DelegateData {
   id: string;
@@ -126,10 +127,14 @@ export const useSovereignDashboard = () => {
     isProcessingRef.current = true;
     setIsProcessing(true);
     try {
+      const [authHeaders, idToken] = await Promise.all([
+        getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+        auth.currentUser?.getIdToken().catch(() => null),
+      ]);
       const response = await fetch('/api/kill-switch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driverUid })
+        headers: authHeaders,
+        body: JSON.stringify({ driverUid, ...(idToken ? { idToken } : {}) })
       });
       const data = await response.json();
 
@@ -164,10 +169,14 @@ export const useSovereignDashboard = () => {
     isProcessingRef.current = true;
     setIsProcessing(true);
     try {
+      const [authHeaders, idToken] = await Promise.all([
+        getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+        auth.currentUser?.getIdToken().catch(() => null),
+      ]);
       const response = await fetch('/api/revive-driver', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driverUid })
+        headers: authHeaders,
+        body: JSON.stringify({ driverUid, ...(idToken ? { idToken } : {}) })
       });
       const data = await response.json();
 
@@ -213,11 +222,14 @@ export const useSovereignDashboard = () => {
     });
 
     try {
-      const idToken = await auth.currentUser?.getIdToken();
+      const [authHeaders, idToken] = await Promise.all([
+        getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+        auth.currentUser?.getIdToken().catch(() => null),
+      ]);
       const response = await fetch('/api/clear-delegate-dues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ delegateId, idToken })
+        headers: authHeaders,
+        body: JSON.stringify({ delegateId, ...(idToken ? { idToken } : {}) })
       });
       const data = await response.json();
 

@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
 import { supabase } from '@/lib/supabase-client';
+import { getFirebaseIdToken, getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where, limit, runTransaction } from 'firebase/firestore';
 import { Delegate, MagicLink, DelegateTask } from './delegates-shared';
 
@@ -43,18 +44,22 @@ export function useDelegatesState() {
 
   // Signature validation via backend-proxy (Hash-guarded to prevent duplicate network calls)
   useEffect(() => {
-    if (delegates.length === 0) return;
+    if (authLoading || !user || (user.role !== 'admin' && (user as any).role !== 'ADMIN') || delegates.length === 0) return;
     const currentKey = delegates.map(d => `${d.id}:${d.integritySignature || ''}:${d.referredCount || 0}`).join('|');
     if (currentKey === lastVerifiedKey.current) return;
-    lastVerifiedKey.current = currentKey;
 
     let active = true;
     const verifyAll = async () => {
       try {
+        const [authHeaders, idToken] = await Promise.all([
+          getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+          getFirebaseIdToken(),
+        ]);
         const response = await fetch('/api/verify-signatures', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({
+            ...(idToken ? { idToken } : {}),
             delegates: delegates.map(d => ({
               id: d.id,
               referredCount: d.referredCount || 0,
@@ -67,6 +72,7 @@ export function useDelegatesState() {
         });
         const data = await response.json();
         if (active && response.ok && data.success) {
+          lastVerifiedKey.current = currentKey;
           setVerifiedSignatures(data.results);
         }
       } catch (err) {
@@ -75,7 +81,7 @@ export function useDelegatesState() {
     };
     void verifyAll();
     return () => { active = false; };
-  }, [delegates]);
+  }, [delegates, user, authLoading]);
 
   // Load real-time data from Firestore
   useEffect(() => {
@@ -325,15 +331,20 @@ export function useDelegatesState() {
 
   const handleCloseTask = async (taskId: string) => {
     try {
+      const [authHeaders, idToken] = await Promise.all([
+        getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+        getFirebaseIdToken(),
+      ]);
       const response = await fetch('/api/delegate-task-transition', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           taskId,
           targetStatus: 'closed',
           delegateId: selectedDelegateId,
           actorUid: user?.uid,
-          actorRole: 'admin'
+          actorRole: 'admin',
+          ...(idToken ? { idToken } : {}),
         })
       });
 
@@ -407,11 +418,15 @@ export function useDelegatesState() {
       if (!targetDelegate) return;
 
       const adminIdentity = user?.uid || 'SYSTEM_SOVEREIGN_ADMIN';
-      const idToken = (user as any)?.token || null;
+      const [authHeaders, firebaseToken] = await Promise.all([
+        getSupabaseAuthHeaders({ 'Content-Type': 'application/json' }),
+        getFirebaseIdToken(),
+      ]);
+      const idToken = firebaseToken || (user as any)?.token || null;
 
       const response = await fetch('/api/reconcile-and-sign', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           delegateId: id,
           actorRole: 'admin',

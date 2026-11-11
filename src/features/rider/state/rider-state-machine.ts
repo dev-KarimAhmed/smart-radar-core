@@ -264,6 +264,23 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
     case 'CLEAR_AUTO_RETRY':
       return { ...state, autoRetryRequested: false };
 
+    case 'HYDRATE_CAPTAIN_PHONE': {
+      if (!state.activeTrip || !action.phone) return state;
+      if (state.activeTrip.captainId && action.captainId && state.activeTrip.captainId !== action.captainId) {
+        return state;
+      }
+      return {
+        ...state,
+        activeTrip: {
+          ...state.activeTrip,
+          captainPhone: action.phone,
+          captain: state.activeTrip.captain
+            ? { ...state.activeTrip.captain, phone: action.phone }
+            : { phone: action.phone },
+        },
+      };
+    }
+
     case 'RESET_TO_IDLE':
       if (typeof window !== 'undefined') {
         try {

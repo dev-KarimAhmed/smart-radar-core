@@ -1,7 +1,22 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { isValidUuid } from '@/shared/server/api-auth-guard';
 import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 import { insertDualNotification } from './user-notification-helper';
+
+const ALLOWED_ADMIN_NOTIFICATION_TYPES = new Set([
+  'admin_message',
+  'admin_announcement',
+  'warning',
+  'urgent',
+  'info',
+  'deposit_confirmed',
+]);
+
+function normalizeAdminNotifType(rawType: unknown): string {
+  const val = typeof rawType === 'string' ? rawType.trim() : '';
+  return ALLOWED_ADMIN_NOTIFICATION_TYPES.has(val) ? val : 'admin_message';
+}
 
 export async function handleUpdateTier(userId: string, body: any) {
   const tier = String(body.tier).toUpperCase();
@@ -83,7 +98,7 @@ export async function handleForceClearTrip(userId: string) {
       status: 'CANCELLED',
       updated_at: new Date().toISOString(),
     })
-    .eq('captain_id', userId)
+    .eq('accepted_captain_id', userId)
     .in('status', ['ACCEPTED', 'ARRIVED', 'IN_PROGRESS', 'PICKED_UP', 'STARTED']);
 
   await insertDualNotification({
@@ -108,10 +123,10 @@ export async function handleSendMessage(userId: string, body: any) {
     return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
   }
 
-  const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
-  const msgType = type || 'admin_message';
-  const enTitle = (titleEn || title_en || '').trim();
-  const enMessage = (messageEn || message_en || '').trim();
+  const msgTitle = title && String(title).trim() ? String(title).trim().slice(0, 160) : 'رسالة من إدارة المنظومة';
+  const msgType = normalizeAdminNotifType(type);
+  const enTitle = (titleEn || title_en || '').trim().slice(0, 160);
+  const enMessage = (messageEn || message_en || '').trim().slice(0, 2000);
 
   const { data: recipientProfile } = await supabaseAdmin
     .from('profiles')
@@ -156,26 +171,40 @@ export async function handleBulkSendMessage(body: any) {
     return NextResponse.json({ success: false, error: 'نص الرسالة مطلوب' }, { status: 400 });
   }
 
-  const msgTitle = title && String(title).trim() ? String(title).trim() : 'رسالة من إدارة المنظومة';
-  const msgType = type || 'admin_message';
-  const enTitle = (titleEn || title_en || '').trim();
-  const enMessage = (messageEn || message_en || '').trim();
+  const msgTitle = title && String(title).trim() ? String(title).trim().slice(0, 160) : 'رسالة من إدارة المنظومة';
+  const msgType = normalizeAdminNotifType(type);
+  const enTitle = (titleEn || title_en || '').trim().slice(0, 160);
+  const enMessage = (messageEn || message_en || '').trim().slice(0, 2000);
 
   let targetProfiles: Array<{ id: string; preferred_language?: string }> = [];
 
   if (Array.isArray(userIds) && userIds.length > 0) {
+    const cleanIds = Array.from(new Set(userIds.filter(isValidUuid)));
+    if (cleanIds.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'معرفات المستخدمين المحددة غير صالحة' },
+        { status: 400 }
+      );
+    }
+
     const { data: usersData, error: uErr } = await supabaseAdmin
       .from('profiles')
-      .select('id, preferred_language')
-      .in('id', userIds);
+      .select('id, preferred_language, role')
+      .in('id', cleanIds)
+      .neq('role', 'ADMIN');
 
     if (uErr) throw uErr;
-    targetProfiles = usersData || userIds.map((id) => ({ id, preferred_language: 'ar' }));
+    targetProfiles = usersData || [];
   } else {
+    const normalizedRole = String(role || 'CAPTAIN').toUpperCase();
+    if (!['CAPTAIN', 'RIDER'].includes(normalizedRole)) {
+      return NextResponse.json({ success: false, error: 'الدور المستهدف غير مسموح' }, { status: 400 });
+    }
+
     const { data: captainsData, error: capErr } = await supabaseAdmin
       .from('profiles')
       .select('id, preferred_language')
-      .eq('role', role);
+      .eq('role', normalizedRole);
 
     if (capErr) throw capErr;
     targetProfiles = captainsData || [];
@@ -244,16 +273,30 @@ export async function handleUpdateLanguage(userId: string, body: any) {
 
 export async function handleBulkTopup(body: any) {
   const { topupType = 'minutes', minutes, extendDays = 30, amount, userIds, role = 'CAPTAIN' } = body;
+  const normalizedRole = String(role || 'CAPTAIN').toUpperCase();
+  if (!['CAPTAIN', 'RIDER'].includes(normalizedRole)) {
+    return NextResponse.json({ success: false, error: 'الدور المستهدف غير صالح' }, { status: 400 });
+  }
 
   let targetIds: string[] = [];
 
   if (Array.isArray(userIds) && userIds.length > 0) {
-    targetIds = userIds;
+    const cleanIds = Array.from(new Set(userIds.filter(isValidUuid)));
+    if (cleanIds.length === 0) {
+      return NextResponse.json({ success: false, error: 'معرفات المستخدمين المحددة غير صالحة' }, { status: 400 });
+    }
+    const { data: validTargets, error: targetErr } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .in('id', cleanIds)
+      .neq('role', 'ADMIN');
+    if (targetErr) throw targetErr;
+    targetIds = (validTargets || []).map((t) => t.id);
   } else {
     const { data: captainsData, error: capErr } = await supabaseAdmin
       .from('profiles')
       .select('id')
-      .eq('role', role);
+      .eq('role', normalizedRole);
 
     if (capErr) throw capErr;
     targetIds = (captainsData || []).map((c) => c.id);
@@ -266,13 +309,14 @@ export async function handleBulkTopup(body: any) {
   const CHUNK_SIZE = 500;
 
   if (topupType === 'minutes') {
-    const numMinutes = Number(minutes);
-    if (isNaN(numMinutes) || numMinutes <= 0) {
+    const numMinutes = Math.round(Number(minutes));
+    if (!Number.isFinite(numMinutes) || numMinutes <= 0 || numMinutes > 50_000) {
       return NextResponse.json({ success: false, error: 'عدد الدقائق غير صحيح' }, { status: 400 });
     }
+    const numDays = Math.min(365, Math.max(1, Math.round(Number(extendDays) || 30)));
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + Number(extendDays || 30));
+    expiresAt.setDate(expiresAt.getDate() + numDays);
 
     const { data: existingWallets, error: wErr } = await supabaseAdmin
       .from('wallet_accounts')
@@ -325,7 +369,7 @@ export async function handleBulkTopup(body: any) {
     });
   } else {
     const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount === 0) {
+    if (!Number.isFinite(numAmount) || numAmount === 0 || Math.abs(numAmount) > 50_000) {
       return NextResponse.json({ success: false, error: 'المبلغ غير صحيح' }, { status: 400 });
     }
 
@@ -358,8 +402,11 @@ export async function handleBulkTopup(body: any) {
 
     const notifs = targetIds.map((id) => ({
       user_id: id,
-      title: '💰 إيداع رصيد نقدي',
-      description: `تم إيداع مبلغ (${numAmount > 0 ? '+' : ''}${numAmount}) في محفظتك من قبل إدارة المنظومة.`,
+      title: numAmount < 0 ? '💰 تعديل رصيد نقدي' : '💰 إيداع رصيد نقدي',
+      description:
+        numAmount < 0
+          ? `تم خصم مبلغ (${Math.abs(numAmount)}) من محفظتك من قبل إدارة المنظومة.`
+          : `تم إيداع مبلغ (+${numAmount}) في محفظتك من قبل إدارة المنظومة.`,
       type: 'deposit_confirmed',
       is_read: false,
       created_at: new Date().toISOString(),
@@ -379,10 +426,10 @@ export async function handleBulkTopup(body: any) {
 }
 
 export async function handleSimulateRiderActivity(userId: string, body: any) {
-  const { riderId, daysAgo = 0, captainId } = body;
+  const { riderId, daysAgo = 0, captainId } = body || {};
   const targetRiderId = riderId || userId;
-  if (!targetRiderId) {
-    return NextResponse.json({ success: false, error: 'riderId is required' }, { status: 400 });
+  if (!isValidUuid(targetRiderId)) {
+    return NextResponse.json({ success: false, error: 'valid riderId is required' }, { status: 400 });
   }
 
   let { data: refRow } = await supabaseAdmin
@@ -392,7 +439,7 @@ export async function handleSimulateRiderActivity(userId: string, body: any) {
     .maybeSingle();
 
   if (!refRow) {
-    let targetCaptainId = captainId;
+    let targetCaptainId = isValidUuid(captainId) ? captainId : undefined;
     if (!targetCaptainId) {
       const { data: firstCap } = await supabaseAdmin
         .from('profiles')
@@ -458,9 +505,12 @@ export async function handleSimulateRiderActivity(userId: string, body: any) {
 }
 
 export async function handleRunInactivityCheck(body: any) {
-  const { captainId } = body;
+  const { captainId } = body || {};
   let resData: any;
-  if (captainId) {
+  if (captainId !== undefined && captainId !== null && captainId !== '') {
+    if (!isValidUuid(captainId)) {
+      return NextResponse.json({ success: false, error: 'valid captainId is required' }, { status: 400 });
+    }
     const { data, error } = await supabaseAdmin.rpc('check_captain_inactive_riders', {
       p_captain_id: captainId,
     });

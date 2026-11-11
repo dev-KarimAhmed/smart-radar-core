@@ -1,12 +1,16 @@
 import { Router } from 'express';
 import { sendPasswordResetEmail, getSenderFromEmail } from '../services/email-service';
 import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '../../core/logic/saudi-restriction';
+import { consumeRateLimit, isValidUuid } from '../../shared/server/api-auth-guard';
+import { createScopedRateLimiter, rateLimiterMiddleware } from '../middleware/server-rate-limiter';
+import { requireRole } from './supabase-identity';
 import {
   MIN_PASSWORD_LENGTH,
   serviceConfig,
   serviceHeaders,
   hashToken,
   phoneDigits,
+  clientIp,
   auditReset,
   findAuthUserByPhone,
   findAuthUserByEmail,
@@ -31,6 +35,9 @@ export { passwordResetAdminRouter } from './password-reset-admin';
 
 export const passwordResetRouter = Router();
 
+const resetRequestLimiter = createScopedRateLimiter('password-reset-request', 8, 60_000);
+const resetCompleteLimiter = createScopedRateLimiter('password-reset-complete', 10, 60_000);
+
 // Mount admin queue routes
 passwordResetRouter.use(passwordResetAdminRouter);
 
@@ -38,7 +45,7 @@ passwordResetRouter.use(passwordResetAdminRouter);
 // 1. The locked-out person asks for help. Public, rate-limited by the caller.
 // ---------------------------------------------------------------------------
 
-passwordResetRouter.post('/password-reset/request', async (req, res) => {
+passwordResetRouter.post('/password-reset/request', resetRequestLimiter, async (req, res) => {
   const config = serviceConfig();
   if (!config) {
     return res.status(503).json({ success: false, error: 'خدمة استرجاع كلمة المرور غير متاحة حالياً.' });
@@ -57,7 +64,7 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
 
   // If phone is missing from body, check if caller has a Bearer token (authenticated user in settings)
   const authHeader = req.headers['authorization'];
-  if (digits.length < 8 && authHeader && authHeader.startsWith('Bearer ')) {
+  if (digits.length < 8 && typeof authHeader === 'string' && /^Bearer\s+/i.test(authHeader)) {
     const token = authHeader.replace(/^Bearer\s+/i, '').trim();
     try {
       const userRes = await fetch(`${config.url}/auth/v1/user`, {
@@ -70,6 +77,9 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       if (userRes.ok) {
         const authUser = (await userRes.json()) as { phone?: string };
         if (authUser?.phone) {
+          if (isSaudiPhoneNumber(authUser.phone)) {
+            return res.status(400).json({ success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected });
+          }
           digits = phoneDigits(authUser.phone);
         }
       }
@@ -92,18 +102,32 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     });
   }
 
+  // Per-phone + per-IP anti-abuse throttling (max 5 reset attempts per 15 min per phone)
+  const phoneQuota = consumeRateLimit(`pw-reset-phone:${digits}`, 5, 15 * 60 * 1000);
+  if (!phoneQuota.allowed) {
+    res.setHeader('Retry-After', String(phoneQuota.retryAfterSeconds));
+    return res.status(429).json({
+      success: false,
+      error: 'تم إرسال عدة محاولات استرجاع لهذا الرقم مؤخراً. يرجى الانتظار والمحاولة لاحقاً.',
+    });
+  }
+
+  const requesterIp = clientIp(req);
+
   try {
     const user = await findAuthUserByPhone(config, digits);
+    const uniformMismatchError =
+      'تعذّر مطابقة رقم الهاتف مع البريد الإلكتروني المسجل لهذا الحساب، أو لا يوجد بريد مفعل. يرجى التحقق من البيانات أو التواصل مع الدعم الفني.';
 
-    if (!user) {
+    if (!user || !isValidUuid(user.id)) {
       await auditReset(config, {
         profile_id: null,
         action: 'PASSWORD_RESET_ACCOUNT_NOT_FOUND',
-        detail: { digits, claimedEmail },
+        detail: { ip: requesterIp },
       });
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        error: 'لم يتم العثور على حساب مسجل برقم الهاتف هذا.',
+        error: uniformMismatchError,
       });
     }
 
@@ -115,30 +139,23 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       await auditReset(config, {
         profile_id: user.id,
         action: 'PASSWORD_RESET_EMAIL_MISMATCH_ANOTHER_ACCOUNT',
-        detail: { digits, claimedEmail, registeredEmail, ownerId: emailOwner.id },
+        detail: { ip: requesterIp },
       });
       return res.status(400).json({
         success: false,
-        error: 'هذا البريد الإلكتروني غير مسجل لهذا الرقم.',
+        error: uniformMismatchError,
       });
     }
 
-    if (registeredEmail && registeredEmail !== claimedEmail) {
+    if (!registeredEmail || registeredEmail !== claimedEmail) {
       await auditReset(config, {
         profile_id: user.id,
         action: 'PASSWORD_RESET_EMAIL_MISMATCH',
-        detail: { digits, claimedEmail, registeredEmail },
+        detail: { ip: requesterIp, hasRegisteredEmail: Boolean(registeredEmail) },
       });
       return res.status(400).json({
         success: false,
-        error: 'هذا البريد الإلكتروني غير مسجل لهذا الرقم.',
-      });
-    }
-
-    if (!registeredEmail) {
-      return res.status(400).json({
-        success: false,
-        error: 'هذا الحساب غير مرتبط ببريد إلكتروني. يرجى التواصل مع الدعم الفني لاستعادة كلمة المرور.',
+        error: uniformMismatchError,
       });
     }
 
@@ -219,7 +236,7 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     await auditReset(config, {
       profile_id: user.id,
       action: 'EMAIL_RECOVERY_SENT',
-      detail: { route: 'email', targetEmail, redirectTo, actionLinkGenerated: Boolean(actionLink), emailSent },
+      detail: { route: 'email', redirectTo, actionLinkGenerated: Boolean(actionLink), emailSent, ip: requesterIp },
     });
 
     if (!emailSent) {
@@ -229,7 +246,8 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       });
     }
 
-    const message = `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`;
+    const message =
+      'تم إرسال رابط استعادة كلمة المرور بنجاح إلى بريدك الإلكتروني المسجل. يرجى فتح البريد (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.';
 
     return res.json({
       success: true,
@@ -249,7 +267,7 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
 // 3. The account owner redeems the token and sets a new password.
 // ---------------------------------------------------------------------------
 
-passwordResetRouter.post('/password-reset/complete', async (req, res) => {
+passwordResetRouter.post('/password-reset/complete', resetCompleteLimiter, async (req, res) => {
   const config = serviceConfig();
   if (!config) {
     return res.status(503).json({ success: false, error: 'خدمة استرجاع كلمة المرور غير متاحة حالياً.' });
@@ -261,7 +279,7 @@ passwordResetRouter.post('/password-reset/complete', async (req, res) => {
   if (!token) {
     return res.status(400).json({ success: false, error: 'رمز الاسترجاع مطلوب.' });
   }
-  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+  if (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > 128) {
     return res.status(400).json({ success: false, error: `كلمة المرور لازم تكون ${MIN_PASSWORD_LENGTH} أحرف على الأقل.` });
   }
 
@@ -270,6 +288,9 @@ passwordResetRouter.post('/password-reset/complete', async (req, res) => {
       `${config.url}/rest/v1/password_reset_requests?token_hash=eq.${hashToken(token)}&status=eq.APPROVED&select=id,profile_id,token_expires_at&limit=1`,
       { headers: serviceHeaders(config.serviceKey), signal: AbortSignal.timeout(8_000) },
     );
+    if (!lookup.ok) {
+      return res.status(502).json({ success: false, error: 'تعذّر التحقق من رمز الاسترجاع حالياً.' });
+    }
     const [request] = (await lookup.json()) as Array<{
       id: string;
       profile_id: string;
@@ -277,7 +298,7 @@ passwordResetRouter.post('/password-reset/complete', async (req, res) => {
     }>;
 
     const invalid = { success: false, error: 'رمز الاسترجاع غير صالح أو انتهت صلاحيته.' };
-    if (!request) return res.status(400).json(invalid);
+    if (!request || !isValidUuid(request.profile_id)) return res.status(400).json(invalid);
     if (new Date(request.token_expires_at).getTime() < Date.now()) {
       return res.status(400).json(invalid);
     }
@@ -337,7 +358,7 @@ passwordResetRouter.post('/password-reset/complete', async (req, res) => {
 // session in the browser is dropped or fails with "Auth session missing".
 // ---------------------------------------------------------------------------
 
-passwordResetRouter.post('/password-reset/rescue-with-token', async (req, res) => {
+passwordResetRouter.post('/password-reset/rescue-with-token', resetCompleteLimiter, async (req, res) => {
   const config = serviceConfig();
   if (!config) {
     return res.status(503).json({ success: false, error: 'خدمة استرجاع كلمة المرور غير متاحة حالياً.' });
@@ -345,12 +366,16 @@ passwordResetRouter.post('/password-reset/rescue-with-token', async (req, res) =
 
   const accessToken = String(req.body?.accessToken ?? '').trim();
   const newPassword = String(req.body?.newPassword ?? '');
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || config.serviceKey;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || '';
+
+  if (!anonKey) {
+    return res.status(503).json({ success: false, error: 'خدمة استرجاع كلمة المرور غير مهيأة.' });
+  }
 
   if (!accessToken) {
     return res.status(400).json({ success: false, error: 'رمز الجلسة مفقود.' });
   }
-  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+  if (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > 128) {
     return res.status(400).json({ success: false, error: `كلمة المرور لازم تكون ${MIN_PASSWORD_LENGTH} أحرف على الأقل.` });
   }
 
@@ -368,7 +393,7 @@ passwordResetRouter.post('/password-reset/rescue-with-token', async (req, res) =
     }
 
     const userData = (await verifyRes.json()) as { id?: string };
-    if (!userData?.id) {
+    if (!userData?.id || !isValidUuid(userData.id)) {
       return res.status(401).json({ success: false, error: 'تعذّر التحقق من صاحب الحساب.' });
     }
 
@@ -396,11 +421,24 @@ passwordResetRouter.post('/password-reset/rescue-with-token', async (req, res) =
   }
 });
 
-passwordResetRouter.post('/password-reset/test-resend', async (req, res) => {
-  const to = String(req.body?.to || 'devkarimahmed@gmail.com').trim();
-  const apiKey = String(req.body?.apiKey || process.env.RESEND_API_KEY || '').trim();
+passwordResetRouter.post('/password-reset/test-resend', rateLimiterMiddleware, async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ success: false, error: 'Not found' });
+  }
+
+  const authorized = await requireRole(req, ['ADMIN', 'OWNER']);
+  if (!authorized.ok) {
+    return res.status(authorized.status).json({ success: false, error: authorized.error });
+  }
+
+  const to = String(req.body?.to || '').trim();
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return res.status(400).json({ success: false, error: 'Valid destination email is required.' });
+  }
+
+  const apiKey = (process.env.RESEND_API_KEY || '').trim();
   if (!apiKey || !apiKey.startsWith('re_')) {
-    return res.status(400).json({ success: false, error: 'Valid Resend API Key is required (starts with re_).' });
+    return res.status(503).json({ success: false, error: 'Server RESEND_API_KEY is not configured.' });
   }
 
   try {
@@ -411,14 +449,15 @@ passwordResetRouter.post('/password-reset/test-resend', async (req, res) => {
       from: fromEmail,
       to,
       subject: 'تجربة إرسال عبر Resend API | بينكم - bynkcom',
-      html: '<p dir="rtl">تهانينا! تم إرسال هذا الإيميل بنجاح وبسرعة فائقة عبر <strong>Resend API</strong> 🚀</p>',
+      html: '<p dir="rtl">تهانينا! تم إرسال هذا الإيميل بنجاح عبر <strong>Resend API</strong></p>',
     });
 
     if (result.error) {
-      return res.status(400).json({ success: false, error: result.error });
+      return res.status(400).json({ success: false, error: 'تعذر إرسال البريد التجريبي.' });
     }
     return res.json({ success: true, data: result.data });
   } catch (e) {
-    return res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
+    console.error('[password-reset/test-resend]', e);
+    return res.status(500).json({ success: false, error: 'تعذر إرسال البريد التجريبي.' });
   }
 });

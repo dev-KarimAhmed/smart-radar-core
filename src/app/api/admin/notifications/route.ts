@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import {
+  verifyAdminCaller,
+  hasAdminSectorAccess,
+  getAdminRank,
+} from '@/lib/admin-auth-verifier';
+import { isValidStorageRelativePath } from '@/shared/server/api-auth-guard';
 import {
   sendCaptainNotification,
   handleApproveReceipt,
@@ -53,45 +58,59 @@ export async function GET(req: Request) {
   }
 
   try {
-    // 1. Fetch pending receipts
-    const { data: rawReceipts } = await supabaseAdmin
-      .from('wallet_transactions')
-      .select('*')
-      .eq('status', 'PENDING')
-      .order('created_at', { ascending: false })
-      .limit(50);
+    const isGeneral = getAdminRank(admin) === 'GENERAL_ADMIN';
+    const canViewWallet = isGeneral || hasAdminSectorAccess(admin, 'wallet');
+    const canViewCaptains = isGeneral || hasAdminSectorAccess(admin, 'captains');
+    const canViewResets = isGeneral || hasAdminSectorAccess(admin, 'captains') || hasAdminSectorAccess(admin, 'riders');
+
+    // 1. Fetch pending receipts (wallet sector)
+    const { data: rawReceipts } = canViewWallet
+      ? await supabaseAdmin
+          .from('wallet_transactions')
+          .select('*')
+          .eq('status', 'PENDING')
+          .order('created_at', { ascending: false })
+          .limit(50)
+      : { data: [] as any[] };
 
     const pendingReceipts = rawReceipts || [];
     const receiptProfileIds = Array.from(new Set(pendingReceipts.map((r) => r.profile_id).filter(Boolean)));
 
-    // 2. Fetch pending captains
-    const { data: rawCaptains } = await supabaseAdmin
-      .from('captain_profiles')
-      .select('id, nickname, plate_number, vehicle_brand, vehicle_model, vehicle_color, vehicle_year, created_at, verification_status')
-      .eq('verification_status', 'PENDING')
-      .order('created_at', { ascending: false })
-      .limit(30);
+    // 2. Fetch pending captains (captains sector)
+    const { data: rawCaptains } = canViewCaptains
+      ? await supabaseAdmin
+          .from('captain_profiles')
+          .select('id, nickname, plate_number, vehicle_brand, vehicle_model, vehicle_color, vehicle_year, created_at, verification_status')
+          .eq('verification_status', 'PENDING')
+          .order('created_at', { ascending: false })
+          .limit(30)
+      : { data: [] as any[] };
 
     const pendingCaptains = rawCaptains || [];
     const captainProfileIds = Array.from(new Set(pendingCaptains.map((c) => c.id).filter(Boolean)));
 
     // 3. Fetch pending password resets
-    const { data: rawResets } = await supabaseAdmin
-      .from('password_reset_requests')
-      .select('id, claimed_phone, profile_id, status, created_at')
-      .eq('status', 'PENDING')
-      .order('created_at', { ascending: false })
-      .limit(20);
+    const { data: rawResets } = canViewResets
+      ? await supabaseAdmin
+          .from('password_reset_requests')
+          .select('id, claimed_phone, profile_id, status, created_at')
+          .eq('status', 'PENDING')
+          .order('created_at', { ascending: false })
+          .limit(20)
+      : { data: [] as any[] };
 
     const pendingResets = rawResets || [];
 
     // 4. Fetch system / direct admin notifications
-    const { data: rawSystemNotifs } = await supabaseAdmin
+    const sysNotifQuery = supabaseAdmin
       .from('user_notifications')
       .select('*')
-      .or(`user_id.eq.${admin.id},type.in.(system,alert,emergency,complaint)`)
       .order('created_at', { ascending: false })
       .limit(30);
+
+    const { data: rawSystemNotifs } = isGeneral
+      ? await sysNotifQuery.or(`user_id.eq.${admin.id},type.in.(alert,emergency,complaint)`)
+      : await sysNotifQuery.eq('user_id', admin.id);
 
     const systemNotifs = rawSystemNotifs || [];
 
@@ -129,7 +148,7 @@ export async function GET(req: Request) {
         const fallbackCurrencyCode = tx.currency_code || country?.currency_en || (isEgypt ? 'EGP' : 'JOD');
 
         let signedImageUrl: string | null = null;
-        if (tx.receipt_path) {
+        if (tx.receipt_path && isValidStorageRelativePath(tx.receipt_path)) {
           try {
             const { data: signData } = await supabaseAdmin.storage
               .from('receipts')
@@ -260,7 +279,7 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     console.error('[Admin Notifications Error]:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'فشل جلب إشعارات المشرف.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'فشل جلب إشعارات المشرف.' }, { status: 500 });
   }
 }
 
@@ -276,12 +295,18 @@ export async function POST(req: Request) {
 
     // 1. APPROVE RECEIPT directly from notification center
     if (action === 'APPROVE_RECEIPT') {
-      return await handleApproveReceipt(admin, body);
+      if (!hasAdminSectorAccess(admin, 'wallet')) {
+        return NextResponse.json({ success: false, error: 'غير مصرح باعتماد إيصالات المحفظة' }, { status: 403 });
+      }
+      return await handleApproveReceipt({ id: String(admin.id || '') }, body);
     }
 
     // 2. REJECT RECEIPT directly from notification center
     if (action === 'REJECT_RECEIPT') {
-      return await handleRejectReceipt(admin, body);
+      if (!hasAdminSectorAccess(admin, 'wallet')) {
+        return NextResponse.json({ success: false, error: 'غير مصرح برفض إيصالات المحفظة' }, { status: 403 });
+      }
+      return await handleRejectReceipt({ id: String(admin.id || '') }, body);
     }
 
     // 3. MARK ALL SYSTEM NOTIFICATIONS AS READ
@@ -298,6 +323,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'إجراء غير مدعوم' }, { status: 400 });
   } catch (error: any) {
     console.error('[Admin Notifications POST Error]:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'فشلت معالجة الإشعار' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'فشلت معالجة الإشعار' }, { status: 500 });
   }
 }

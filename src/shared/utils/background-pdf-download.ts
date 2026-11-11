@@ -8,8 +8,9 @@
 export async function downloadPdfInWorker(options: {
   url: string;
   filename: string;
+  accessToken?: string;
 }): Promise<void> {
-  const { url, filename } = options;
+  const { url, filename, accessToken } = options;
 
   if (typeof window === 'undefined') return;
 
@@ -18,7 +19,7 @@ export async function downloadPdfInWorker(options: {
 
   if (!hasWorkerSupport) {
     // Fallback: main-thread async fetch
-    await fallbackMainThreadDownload(url, filename);
+    await fallbackMainThreadDownload(url, filename, accessToken);
     return;
   }
 
@@ -31,7 +32,11 @@ export async function downloadPdfInWorker(options: {
         self.onmessage = async function(e) {
           var data = e.data;
           try {
-            var res = await fetch(data.url, { cache: 'no-store' });
+            var fetchOpts = { cache: 'no-store' };
+            if (data.accessToken) {
+              fetchOpts.headers = { Authorization: 'Bearer ' + data.accessToken };
+            }
+            var res = await fetch(data.url, fetchOpts);
             if (!res.ok) {
               throw new Error('HTTP ' + res.status + ' ' + res.statusText);
             }
@@ -53,8 +58,8 @@ export async function downloadPdfInWorker(options: {
             triggerFileSave(e.data.buffer, e.data.filename || filename);
             resolve();
           } else {
-            console.warn('[PDF Worker] Worker reported failure, using fallback:', e.data.error);
-            fallbackMainThreadDownload(url, filename).then(resolve).catch(reject);
+            console.warn('[PDF Worker] Worker reported failure, using authenticated fallback:', e.data.error);
+            fallbackMainThreadDownload(url, filename, accessToken).then(resolve).catch(reject);
           }
         } finally {
           cleanup();
@@ -62,16 +67,16 @@ export async function downloadPdfInWorker(options: {
       };
 
       worker.onerror = (err) => {
-        console.warn('[PDF Worker] Worker runtime error, using fallback:', err);
+        console.warn('[PDF Worker] Worker runtime error, using authenticated fallback:', err);
         cleanup();
-        fallbackMainThreadDownload(url, filename).then(resolve).catch(reject);
+        fallbackMainThreadDownload(url, filename, accessToken).then(resolve).catch(reject);
       };
 
-      worker.postMessage({ url, filename });
+      worker.postMessage({ url, filename, accessToken });
     } catch (workerInitErr) {
-      console.warn('[PDF Worker] Worker init failed, using fallback:', workerInitErr);
+      console.warn('[PDF Worker] Worker init failed, using authenticated fallback:', workerInitErr);
       cleanup();
-      fallbackMainThreadDownload(url, filename).then(resolve).catch(reject);
+      fallbackMainThreadDownload(url, filename, accessToken).then(resolve).catch(reject);
     }
 
     function cleanup() {
@@ -104,23 +109,20 @@ function triggerFileSave(buffer: ArrayBuffer, filename: string): void {
   }, 1000);
 }
 
-async function fallbackMainThreadDownload(url: string, filename: string): Promise<void> {
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Failed to fetch file: ' + res.status);
-    const buf = await res.arrayBuffer();
-    triggerFileSave(buf, filename);
-  } catch (err) {
-    console.warn('[PDF Download Fallback] Direct fetch failed, attempting silent iframe:', err);
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-    }, 5000);
+async function fallbackMainThreadDownload(
+  url: string,
+  filename: string,
+  accessToken?: string,
+): Promise<void> {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
   }
+  const res = await fetch(url, { cache: 'no-store', headers });
+  if (!res.ok) {
+    throw new Error('Failed to fetch PDF file: ' + res.status);
+  }
+  const buf = await res.arrayBuffer();
+  triggerFileSave(buf, filename);
 }
 

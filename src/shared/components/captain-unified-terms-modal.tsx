@@ -5,6 +5,7 @@ import { ShieldCheck, FileText, CheckCircle2, X, Download, AlertTriangle, Loader
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { downloadPdfInWorker } from '@/shared/utils/background-pdf-download';
+import { getClientAccessToken } from '@/shared/services/supabase-auth-headers';
 
 export interface CaptainUnifiedTermsModalProps {
   isOpen: boolean;
@@ -30,9 +31,10 @@ export function CaptainUnifiedTermsModal({
     if (!captainId) return;
     try {
       setIsDownloading(true);
+      const accessToken = (await getClientAccessToken()) || undefined;
       const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(captainId)}&download=true&_t=${Date.now()}`;
       const filename = `bynkcom_contract_${captainId.slice(0, 8).toUpperCase()}.pdf`;
-      await downloadPdfInWorker({ url: downloadUrl, filename });
+      await downloadPdfInWorker({ url: downloadUrl, filename, accessToken });
     } catch (err) {
       console.error('Error downloading contract PDF in background worker:', err);
     } finally {

@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase-client';
 import { Sliders, DollarSign, Layers, Save, CheckCircle2, Loader2, MapPin, Gauge } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
+import { adminFetch } from '@/features/admin/lib/admin-api-client';
 
 const styles = {
   container: "space-y-6 text-right text-white",
@@ -39,15 +39,20 @@ export function CapacityPricingPanel() {
     async function loadCountryPricing() {
       try {
         setLoading(true);
-        const { data } = await supabase
-          .from('countries')
-          .select('radar_hour_price, tariff_per_km, tariff_per_min')
-          .eq('id', 1)
-          .maybeSingle();
+        const res = await adminFetch('/api/admin/capacity-pricing');
+        const data = await res.json();
 
-        if (data) {
+        if (res.ok && data?.success) {
           if (data.radar_hour_price) setRadarHourPrice(String(data.radar_hour_price));
           if (data.tariff_per_min) setTripMinTariff(String(data.tariff_per_min));
+          if (data.config?.impressionPrice !== undefined) setImpressionPrice(String(data.config.impressionPrice));
+          if (data.config?.videoSurcharge !== undefined) setVideoSurcharge(String(data.config.videoSurcharge));
+          if (data.config?.capacities) {
+            if (data.config.capacities.amman !== undefined) setAmmanCapacity(String(data.config.capacities.amman));
+            if (data.config.capacities.zarqa !== undefined) setZarqaCapacity(String(data.config.capacities.zarqa));
+            if (data.config.capacities.irbid !== undefined) setIrbidCapacity(String(data.config.capacities.irbid));
+            if (data.config.capacities.aqaba !== undefined) setAqabaCapacity(String(data.config.capacities.aqaba));
+          }
         }
       } catch (err) {
         console.warn('Failed to load country pricing:', err);
@@ -62,17 +67,24 @@ export function CapacityPricingPanel() {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('countries')
-        .update({
+      const res = await adminFetch('/api/admin/capacity-pricing', {
+        method: 'POST',
+        body: JSON.stringify({
           radar_hour_price: Number(radarHourPrice),
           tariff_per_min: Number(tripMinTariff),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', 1);
-
-      if (error && (process.env.NODE_ENV !== 'production')) {
-        console.warn('Country update note:', error);
+          impressionPrice: Number(impressionPrice),
+          videoSurcharge: Number(videoSurcharge),
+          capacities: {
+            amman: Number(ammanCapacity),
+            zarqa: Number(zarqaCapacity),
+            irbid: Number(irbidCapacity),
+            aqaba: Number(aqabaCapacity),
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || t('saveFailed'));
       }
 
       toast({ title: t('savedTitle'), description: t('savedDescription') });

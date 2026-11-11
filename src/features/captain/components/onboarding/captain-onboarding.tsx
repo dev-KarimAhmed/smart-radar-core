@@ -68,8 +68,8 @@ export function CaptainOnboarding() {
     try {
       const res = await verifyEmailOtpCode({
         email: emailToVerify,
-        token: cleanCode,
-        type: 'signup',
+        code: cleanCode,
+        phone: personal.phone,
       });
 
       if (res.success) {

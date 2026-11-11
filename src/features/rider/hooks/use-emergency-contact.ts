@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import { firstDisplayString, normalizeWhatsappContact } from '../services/rider-view-format';
 
 export interface EmergencyContactTripContext {
@@ -114,22 +115,62 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
       return;
     }
 
+    if (!tripContext.requestId) {
+      toast({
+        variant: 'destructive',
+        title: 'تعذر مشاركة التتبع',
+        description: 'لا توجد رحلة نشطة حالياً لمشاركة رابط التتبع المباشر.',
+      });
+      return;
+    }
+
+    // 1. Mint signed HMAC tracking token & notify Captain on server first
+    let trackingToken = '';
+    try {
+      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
+      const notifyRes = await fetch('/api/trip/share-tracking-notify', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          requestId: tripContext.requestId,
+          captainId: tripContext.captainId || null,
+        }),
+      });
+      const notifyData = await notifyRes.json().catch(() => null);
+      if (!notifyRes.ok || !notifyData?.success || !notifyData?.trackingToken) {
+        toast({
+          variant: 'destructive',
+          title: 'تعذر تفعيل رابط التتبع الآمن',
+          description: 'يرجى المحاولة مرة أخرى بعد لحظات.',
+        });
+        return;
+      }
+      trackingToken = String(notifyData.trackingToken);
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[useEmergencyContact] Failed to mint tracking link:', err);
+      }
+      toast({
+        variant: 'destructive',
+        title: 'تعذر تفعيل رابط التتبع الآمن',
+        description: 'يرجى التحقق من الاتصال بالإنترنت والمحاولة مجدداً.',
+      });
+      return;
+    }
+
     const coords = await getCurrentCoordinates(tripContext.riderLocation);
     const captainName = firstDisplayString(tripContext.captainName) || 'السائق';
     const destination = firstDisplayString(tripContext.destinationLabel) || 'الوجهة المحددة';
-    const shortRequestId = tripContext.requestId ? tripContext.requestId.slice(0, 8).toUpperCase() : 'LIVE';
+    const shortRequestId = tripContext.requestId.slice(0, 8).toUpperCase();
     const vehicle = [tripContext.vehicleModel, tripContext.vehicleColor].filter(Boolean).join(' ') || '';
     const plate = tripContext.vehiclePlate || '';
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bynkcom.com';
+    const lang = typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'ar';
     const query = new URLSearchParams({
-      trip: shortRequestId,
-      c: captainName,
-      ...(plate ? { p: plate } : {}),
-      ...(vehicle ? { v: vehicle } : {}),
-      ...(destination ? { d: destination } : {}),
-      ...(tripContext.captainPhone ? { ph: tripContext.captainPhone } : {}),
-      ...(coords ? { lat: coords.lat.toFixed(5), lng: coords.lng.toFixed(5) } : {}),
+      id: tripContext.requestId,
+      t: trackingToken,
+      lang,
     });
     const trackUrl = `${origin}/track?${query.toString()}`;
     const mapsUrl = coords ? `https://maps.google.com/?q=${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}` : '';
@@ -167,43 +208,27 @@ export function useEmergencyContact(userId: string | undefined, tripContext: Eme
       description: t('emergency.sosToastDescription'),
     });
 
-    // 1. Notify Captain at the exact same time
-    if (tripContext.requestId) {
-      void fetch('/api/trip/share-tracking-notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requestId: tripContext.requestId,
-          captainId: tripContext.captainId || null,
-        }),
-      }).catch((err) => {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[useEmergencyContact] Failed to notify captain:', err);
+    // 2. Broadcast on realtime channel for instant on-screen badge
+    try {
+      const channelName = `trip-tracking-${tripContext.requestId}`;
+      const channel = supabase.channel(channelName, {
+        config: { broadcast: { ack: false } },
+      });
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void channel.send({
+            type: 'broadcast',
+            event: 'RIDER_TRACKING_ACTIVE',
+            payload: {
+              requestId: tripContext.requestId,
+              timestamp: Date.now(),
+            },
+          });
         }
       });
-
-      // 2. Broadcast on realtime channel for instant on-screen badge
-      try {
-        const channelName = `trip-tracking-${tripContext.requestId}`;
-        const channel = supabase.channel(channelName, {
-          config: { broadcast: { ack: false } },
-        });
-        channel.subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            void channel.send({
-              type: 'broadcast',
-              event: 'RIDER_TRACKING_ACTIVE',
-              payload: {
-                requestId: tripContext.requestId,
-                timestamp: Date.now(),
-              },
-            });
-          }
-        });
-      } catch (bErr) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[useEmergencyContact] realtime broadcast error:', bErr);
-        }
+    } catch (bErr) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[useEmergencyContact] realtime broadcast error:', bErr);
       }
     }
 

@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
 
 export function useProfileState() {
-  const { user, isCaptain, isPassenger, isSovereign, logout, loginAsMockUser } = useAuth();
+  const { user, isCaptain, isPassenger, isSovereign, logout } = useAuth();
   const { toast } = useToast();
   const { isArabic, language, toggleLanguage } = useDashboardLanguage();
   const t = useTranslations('profileTab');
@@ -311,7 +311,6 @@ export function useProfileState() {
     isPassenger,
     isSovereign,
     logout,
-    loginAsMockUser,
     isArabic,
     language,
     toggleLanguage,

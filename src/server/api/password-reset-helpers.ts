@@ -1,5 +1,6 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import type { Request } from 'express';
+import { getClientIp, getSafeAppOrigin } from '../../shared/server/api-auth-guard';
 
 export const TOKEN_TTL_MINUTES = 30;
 export const MIN_PASSWORD_LENGTH = 8;
@@ -29,8 +30,8 @@ export function phoneDigits(value: unknown) {
 }
 
 export function clientIp(req: Request) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded) return forwarded.split(',')[0]!.trim();
+  const ip = getClientIp(req);
+  if (ip !== 'unknown') return ip;
   return req.socket.remoteAddress || null;
 }
 
@@ -91,28 +92,5 @@ export async function findAuthUserByEmail(
 }
 
 export function resolveAppOrigin(req: Request): string {
-  const originHeader = req.headers['origin'];
-  if (typeof originHeader === 'string' && originHeader.startsWith('http')) {
-    return originHeader.replace(/\/$/, '');
-  }
-
-  const refererHeader = req.headers['referer'];
-  if (typeof refererHeader === 'string' && refererHeader.startsWith('http')) {
-    try {
-      const url = new URL(refererHeader);
-      return url.origin;
-    } catch {
-      // ignore
-    }
-  }
-
-  const fwdHost = req.headers['x-forwarded-host'];
-  const host = typeof fwdHost === 'string' ? fwdHost.split(',')[0].trim() : String(req.headers.host || '');
-  if (host) {
-    const fwdProto = req.headers['x-forwarded-proto'];
-    const proto = typeof fwdProto === 'string' ? fwdProto.split(',')[0].trim() : (host.includes('localhost') ? 'http' : 'https');
-    return `${proto}://${host}`;
-  }
-
-  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://bynkcom.com';
+  return getSafeAppOrigin(req);
 }

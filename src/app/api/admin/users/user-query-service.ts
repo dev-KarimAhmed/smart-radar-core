@@ -319,7 +319,7 @@ export async function fetchAdminUsers(roleFilter: string) {
   } catch (error: any) {
     console.error('[Admin Users API] GET error:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to fetch users' },
+      { success: false, error: 'Failed to fetch users' },
       { status: 500 }
     );
   }

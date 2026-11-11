@@ -54,17 +54,43 @@ service cloud.firestore {
         (hasRole('rider') && resource != null && 'role' in resource.data && resource.data.role == 'driver') ||
         (hasRole('driver') && resource != null && 'role' in resource.data && resource.data.role == 'rider')
       );
-      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAdmin() || isServer() || (
+        isAuthenticated() &&
+        request.auth.uid == userId &&
+        (!('role' in request.resource.data) || request.resource.data.role == 'rider') &&
+        !request.resource.data.keys().hasAny([
+          'isBanned', 'banReason', 'immunityScore', 'paidHoursRemaining',
+          'subscriptionHours', 'pendingDues', 'reviveSovereignToken',
+          'revivedByAdminId', 'allowedSectors'
+        ])
+      );
+      allow update: if isAdmin() || isServer() || (
+        isAuthenticated() &&
+        request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'role', 'isBanned', 'banReason', 'immunityScore', 'paidHoursRemaining',
+          'subscriptionHours', 'pendingDues', 'reviveSovereignToken',
+          'revivedByAdminId', 'status', 'rating', 'heartCount', 'allowedSectors'
+        ])
+      );
+      allow delete: if isAdmin() || isServer();
     }
 
     match /promos/{promoId} {
       allow read: if true;
-      allow write: if isServer() || isAdmin() || hasRole('advertiser'); // المشرف أو السيرفر أو المعلن يدير الإعلانات
+      allow write: if isServer() || isAdmin(); // المشرف أو السيرفر فقط يدير الإعلانات المركزية
     }
 
     match /delegates/{delegateId} {
-      allow read, list: if isAdmin() || isServer() || isDelegateDocOwner(resource) || isAuthenticated();
-      allow write: if isAdmin() || isServer() || isDelegateDocOwner(resource) || isDelegateDocOwner(request.resource) || isAuthenticated();
+      allow read, list: if isAdmin() || isServer() || isDelegateDocOwner(resource);
+      allow create, delete: if isAdmin() || isServer();
+      allow update: if isAdmin() || isServer() || (
+        isDelegateDocOwner(resource) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'pendingDues', 'referredCount', 'integritySignature',
+          'status', 'deletionRate', 'revivalRate', 'settledBalances'
+        ])
+      );
     }
 
     match /settings/{settingId} {
@@ -86,24 +112,47 @@ service cloud.firestore {
     // 1. قواعد مستندات الرحلات السيادية (Trips Collection)
     // ==========================================
     match /trips/{tripId} {
-      // القراءة: مسموحة للراكب وصاحب الرحلة أو السائقين في المحيط (ضمن كوابح التشغيل)
-      allow read: if isAuthenticated();
+      // القراءة: مقصورة على أطراف الرحلة والمشرفين، أو السائقين أثناء البحث/العرض النشط
+      allow read: if isAdmin() || isServer() || (
+        isAuthenticated() && resource != null && (
+          resource.data.riderId == request.auth.uid ||
+          resource.data.driverId == request.auth.uid ||
+          resource.data.captainId == request.auth.uid ||
+          (hasRole('driver') && resource.data.status in ['pending', 'searching'])
+        )
+      );
 
-      // الإنشاء: يسمح للعميل أو السيرفر بإنشاء رحلة (لغايات المحاكاة السحابية الحافة)
-      allow create: if isAuthenticated() || isServer();
+      // الإنشاء: مقصور على الراكب المنشئ في حالة البداية أو الخادم/المشرف
+      allow create: if isAdmin() || isServer() || (
+        isAuthenticated() &&
+        request.resource.data.riderId == request.auth.uid &&
+        request.resource.data.status in ['pending', 'searching']
+      );
 
-      // التحديث: يسمح بالتحديث للمستخدم المسجل لغايات المحاكاة والتحكم الذاتي الحافة
-      allow update: if isAuthenticated() || isServer();
+      // التحديث: مقصور على أطراف الرحلة والمشرفين أو قبول كابتن لطلب مفتوح (دون تغيير هوية الراكب)
+      allow update: if isAdmin() || isServer() || (
+        isAuthenticated() && resource != null &&
+        request.resource.data.riderId == resource.data.riderId && (
+          resource.data.riderId == request.auth.uid ||
+          resource.data.driverId == request.auth.uid ||
+          resource.data.captainId == request.auth.uid ||
+          (hasRole('driver') && resource.data.status in ['pending', 'searching'])
+        )
+      );
 
       // الحذف: مجمد ومحصن؛ لا يتم حذف أي رحلة، بل تحول حالتها برمجيا فقط
       allow delete: if false;
     }
 
     // ==========================================
-    // 9. قواعد العدادات الرقمية المتسلسلة (System Counters)
+    // 9. قواعد العدادات الرقمية المتسلسلة وقسائم الشحن (System Counters & Vouchers)
     // ==========================================
     match /system_counters/{counterId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdmin() || isServer();
+    }
+
+    match /wallet_vouchers/{voucherId} {
+      allow read, write: if isAdmin() || isServer();
     }
 
     // ==========================================
@@ -122,9 +171,12 @@ service cloud.firestore {
         isAdmin() ||
         isServer()
       );
-      // التحديث الجغرافي: العميل يحدث إحداثياته فقط، ويمنع من تزوير الهوية أو السعر
-      allow write: if isAuthenticated() && request.auth.uid == driverId && 
+      // التحديث الجغرافي: العميل ينشئ/يحدث إحداثياته فقط، ويمنع من تزوير الهوية أو السعر
+      allow create: if isAuthenticated() && request.auth.uid == driverId &&
+                    !request.resource.data.keys().hasAny(['pricingIdentity', 'rating']);
+      allow update: if isAuthenticated() && request.auth.uid == driverId &&
                     !request.resource.data.diff(resource.data).affectedKeys().hasAny(['pricingIdentity', 'rating']);
+      allow delete: if isAdmin() || isServer();
     }
 
     // ==========================================
@@ -142,7 +194,7 @@ service cloud.firestore {
     // 4. دفتر الأستاذ المحاسبي الجنائي المشفر (Immutable Audit Ledger)
     // ==========================================
     match /audit_ledger/{ledgerId} {
-      allow create: if isAuthenticated();
+      allow create: if isAdmin() || isServer();
       allow read: if isAdmin() || isServer();
       allow update, delete: if false;
     }
@@ -151,7 +203,17 @@ service cloud.firestore {
     // 5. قواعد الإشعارات الفورية الديكتاتورية المباشرة (Sovereign Pushes)
     // ==========================================
     match /sovereign_pushes/{pushId} {
-      allow read, create: if isAuthenticated();
+      allow read: if isAdmin() || isServer() || (
+        isAuthenticated() && resource != null && (
+          resource.data.targetUid == request.auth.uid ||
+          resource.data.userId == request.auth.uid ||
+          resource.data.senderUid == request.auth.uid
+        )
+      );
+      allow create: if isAdmin() || isServer() || (
+        isAuthenticated() &&
+        request.resource.data.senderUid == request.auth.uid
+      );
       allow update, delete: if isServer() || isAdmin();
     }
 
@@ -159,20 +221,25 @@ service cloud.firestore {
     // 6. قواعد غرف الدردشة غير المستدامة والقصيرة المدى (Ephemeral Chats)
     // ==========================================
     match /sovereign_ephemeral_chats/{chatId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAdmin() || isServer() || (
+        isAuthenticated() && resource != null && (
+          resource.data.senderUid == request.auth.uid ||
+          resource.data.recipientUid == request.auth.uid ||
+          (resource.data.participants is list && request.auth.uid in resource.data.participants)
+        )
+      );
+      allow create: if isAdmin() || isServer() || (
+        isAuthenticated() &&
+        request.resource.data.senderUid == request.auth.uid
+      );
+      allow update, delete: if isServer() || isAdmin();
     }
 
     // ==========================================
     // 7. قواعد روابط الوصول المؤقتة (Magic Links)
     // ==========================================
     match /delegate_links/{linkId} {
-      allow read, list: if true;
-      allow create: if isAdmin() || isServer();
-      allow update: if isAdmin() || isServer() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
-        request.resource.data.status == 'used'
-      );
-      allow delete: if isAdmin() || isServer();
+      allow read, list, create, update, delete: if isAdmin() || isServer();
     }
 
     // ==========================================

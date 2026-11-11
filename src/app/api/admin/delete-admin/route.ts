@@ -1,35 +1,29 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { isValidUuid } from '@/shared/server/api-auth-guard';
 import {
-  verifyAdminCaller,
-  getAdminRank,
+  requireAdminAccess,
+  invalidateAdminCache,
   PRIMARY_SOVEREIGN_ADMIN_ID,
   PRIMARY_SOVEREIGN_ADMIN_PHONE,
 } from '@/lib/admin-auth-verifier';
 
 export async function POST(req: Request) {
-  const admin = await verifyAdminCaller(req);
-  if (!admin) {
+  const access = await requireAdminAccess(req, { requireGeneralAdmin: true });
+  if (!access.ok) {
     return NextResponse.json(
-      { success: false, error: 'Unauthorized: Admin privileges required' },
-      { status: 401 }
+      { success: false, error: access.status === 403 ? 'غير مصرح: المشرف العام فقط يملك صلاحية حذف المشرفين' : access.error },
+      { status: access.status }
     );
   }
-
-  const callerRank = getAdminRank(admin);
-  if (callerRank !== 'GENERAL_ADMIN') {
-    return NextResponse.json(
-      { success: false, error: 'غير مصرح: المشرف العام فقط يملك صلاحية حذف المشرفين' },
-      { status: 403 }
-    );
-  }
+  const { admin } = access;
 
   try {
     const { targetAdminId } = await req.json();
 
-    if (!targetAdminId) {
+    if (!isValidUuid(targetAdminId)) {
       return NextResponse.json(
-        { success: false, error: 'معرف المشرف المطلوب حذفه غير محدد' },
+        { success: false, error: 'معرف المشرف المطلوب حذفه غير صالح' },
         { status: 400 }
       );
     }
@@ -84,6 +78,8 @@ export async function POST(req: Request) {
       console.warn('[DeleteAdmin] Warning deleting auth user:', authErr);
     }
 
+    invalidateAdminCache(targetAdminId);
+
     return NextResponse.json({
       success: true,
       targetAdminId,
@@ -91,7 +87,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('[DeleteAdmin] error:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'فشل حذف المشرف' },
+      { success: false, error: 'فشل حذف المشرف' },
       { status: 500 }
     );
   }

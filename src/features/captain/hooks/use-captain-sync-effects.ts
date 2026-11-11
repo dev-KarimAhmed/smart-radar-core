@@ -122,12 +122,18 @@ export function useCaptainSyncEffects({
     let isCancelled = false;
 
     const checkStillPending = async () => {
-      const { data, error } = await supabase
-        .from('captain_radar_requests')
-        .select('id, created_at')
-        .eq('id', requestId)
-        .maybeSingle();
+      const { data: radarRows, error } = await supabase.rpc('get_captain_radar_requests', {
+        p_request_ids: [requestId],
+        p_limit: 5,
+      });
       if (isCancelled || error) return;
+      const data = Array.isArray(radarRows)
+        ? radarRows.find(
+            (r: any) =>
+              String(r?.id) === String(requestId) &&
+              String(r?.status || '').toUpperCase() === 'PENDING'
+          ) ?? null
+        : null;
       if (!data) {
         toast({ title: t('requestNoLongerAvailableTitle'), description: t('requestNoLongerAvailableBody') });
         dispatch({ type: 'IGNORE_REQUEST', requestId });

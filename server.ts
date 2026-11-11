@@ -7,7 +7,6 @@ import next from 'next';
 import { passwordResetRouter } from './src/server/api/password-reset';
 import { driverExpressRouter } from './src/server/api/driver-express-routes';
 import { delegateExpressRouter } from './src/server/api/delegate-express-routes';
-import { rateLimiterMiddleware } from './src/server/middleware/server-rate-limiter';
 
 async function startServer() {
   const dev = process.env.NODE_ENV !== 'production';
@@ -17,12 +16,13 @@ async function startServer() {
   await nextApp.prepare();
 
   const app = express();
+  app.disable('x-powered-by');
   const PORT = 3000;
 
   // Parse JSON bodies ONLY for custom Express endpoints that need req.body.
   // Next.js App Router API routes (/api/auth/, /api/admin/, /api/captain/, /api/maps/, etc.)
   // handle their own body streaming natively via Web API Request.json().
-  const jsonParser = express.json();
+  const jsonParser = express.json({ limit: '128kb' });
   const expressRoutesWithBody = [
     '/api/password-reset',
     '/api/revive-driver',
@@ -45,25 +45,17 @@ async function startServer() {
     return next();
   });
 
-  // Mount Express API Routers
-  app.use('/api', rateLimiterMiddleware, passwordResetRouter);
+  // Mount Express API Routers (each router attaches scoped rate limiters per route)
+  app.use('/api', passwordResetRouter);
   app.use('/api', driverExpressRouter);
   app.use('/api', delegateExpressRouter);
 
-  // Diagnostic Endpoint for Sovereignties (Zone D)
-  app.get('/api/health', (req, res) => {
-    const memory = process.memoryUsage();
+  // Minimal Health Endpoint (no internal memory or server diagnostics leak)
+  app.get('/api/health', (_req, res) => {
     return res.json({
       status: 'healthy',
       system: 'Sovereign Radar Core',
       serverTime: new Date().toISOString(),
-      uptime: `${Math.floor(process.uptime())}s`,
-      securityShield: 'Active (Protocol 88)',
-      diagnostics: {
-        heapUsed: `${Math.round(memory.heapUsed / 1024 / 1024)} MB`,
-        heapTotal: `${Math.round(memory.heapTotal / 1024 / 1024)} MB`,
-        rss: `${Math.round(memory.rss / 1024 / 1024)} MB`
-      }
     });
   });
 

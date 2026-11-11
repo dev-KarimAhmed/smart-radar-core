@@ -1,12 +1,97 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendAccountConfirmationEmail } from '@/server/services/email-service';
-import { getAppOrigin } from '@/lib/utils';
 import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
+import {
+  consumeRateLimit,
+  getClientIp,
+  getSafeAppOrigin,
+  getServerSupabaseAdmin,
+  hashOtpCode,
+} from '@/shared/server/api-auth-guard';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const GENERIC_RESEND_SUCCESS = {
+  success: true,
+  message: 'إذا كان هذا الحساب مسجلاً وغير مفعل، فقد تم إرسال رمز تفعيل جديد إلى البريد الإلكتروني.',
+};
+
+async function findAuthUser(params: {
+  providedUserId: string;
+  rawEmail: string;
+  rawPhone: string;
+}) {
+  const supabaseAdmin = getServerSupabaseAdmin();
+  const { providedUserId, rawEmail, rawPhone } = params;
+
+  if (providedUserId && UUID_REGEX.test(providedUserId)) {
+    const { data } = await supabaseAdmin.auth.admin.getUserById(providedUserId);
+    if (data?.user) return data.user;
+  }
+
+  let matchedId: string | null = null;
+
+  if (rawEmail) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .ilike('email', rawEmail)
+      .maybeSingle();
+    if (profile?.id) matchedId = String(profile.id);
+
+    if (!matchedId) {
+      const { data: rpcRows, error: rpcErr } = await supabaseAdmin.rpc('find_account_by_email', {
+        p_email: rawEmail,
+      });
+      const rpcRow = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+      const rpcId = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { user_id?: unknown }).user_id : rpcRow;
+      if (!rpcErr && typeof rpcId === 'string' && UUID_REGEX.test(rpcId)) {
+        matchedId = rpcId;
+      }
+    }
+  }
+
+  if (!matchedId && rawPhone) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('phone', rawPhone)
+      .maybeSingle();
+    if (profile?.id) matchedId = String(profile.id);
+
+    if (!matchedId) {
+      const phoneDigits = rawPhone.replace(/\D/g, '');
+      const { data: rpcRows, error: rpcErr } = await supabaseAdmin.rpc('find_account_by_phone', {
+        p_phone_digits: phoneDigits,
+      });
+      const rpcRow = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+      const rpcId = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { user_id?: unknown }).user_id : rpcRow;
+      if (!rpcErr && typeof rpcId === 'string' && UUID_REGEX.test(rpcId)) {
+        matchedId = rpcId;
+      }
+    }
+  }
+
+  if (matchedId) {
+    const { data } = await supabaseAdmin.auth.admin.getUserById(matchedId);
+    if (data?.user) return data.user;
+  }
+
+  return null;
+}
 
 export async function POST(req: Request) {
   try {
+    const clientIp = getClientIp(req);
+    const ipLimit = consumeRateLimit(`resend:ip:${clientIp}`, 12, 15 * 60 * 1000);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'تم إرسال طلبات كثيرة لإعادة الإرسال. يرجى الانتظار قليلاً.' },
+        { status: 429, headers: { 'Retry-After': String(ipLimit.retryAfterSeconds) } },
+      );
+    }
+
     const body = await req.json();
     const rawEmail = String(body.email || '').trim().toLowerCase();
     const rawPhone = String(body.phone || '').trim().replace(/[\s()-]/g, '');
@@ -15,129 +100,80 @@ export async function POST(req: Request) {
     if (isSaudiPhoneNumber(rawPhone)) {
       return NextResponse.json(
         { success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!providedUserId && !rawEmail && !rawPhone) {
       return NextResponse.json(
         { success: false, error: 'يرجى تقديم البريد الإلكتروني أو رقم الهاتف.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // 1. Locate user in profiles or auth.users
-    let targetEmail = rawEmail;
-    let targetName = 'عزيزنا المستخدم';
-    let targetUserId: string | null = providedUserId || null;
-
-    if (rawEmail) {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('id, full_name, email')
-        .ilike('email', rawEmail)
-        .maybeSingle();
-
-      if (profile) {
-        targetName = profile.full_name || targetName;
-        targetEmail = profile.email || targetEmail;
-        if (!targetUserId) targetUserId = profile.id;
-      }
-    } else if (rawPhone) {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('phone', rawPhone)
-        .maybeSingle();
-
-      if (profile && profile.email) {
-        targetName = profile.full_name || targetName;
-        targetEmail = profile.email;
-        if (!targetUserId) targetUserId = profile.id;
-      }
-    }
-
-    let authUser: any = null;
-
-    if (targetUserId) {
-      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
-      if (userData?.user) {
-        authUser = userData.user;
-      }
-    }
-
-    if (!authUser) {
-      const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
-      authUser = usersData?.users?.find(
-        (u) =>
-          (targetEmail && u.email?.toLowerCase() === targetEmail.toLowerCase()) ||
-          (targetEmail && String(u.user_metadata?.email || '').toLowerCase() === targetEmail.toLowerCase()) ||
-          (rawPhone && u.phone === rawPhone) ||
-          (rawPhone && String(u.user_metadata?.phone || '') === rawPhone)
-      );
-    }
-
-    if (!authUser) {
+    const identifierKey = rawEmail || rawPhone || providedUserId;
+    const idLimit = consumeRateLimit(`resend:id:${identifierKey}`, 3, 10 * 60 * 1000);
+    if (!idLimit.allowed) {
       return NextResponse.json(
-        { success: false, error: 'لم يتم العثور على حساب مسجل بهذه البيانات.' },
-        { status: 404 }
+        { success: false, error: 'يرجى الانتظار دقيقة قبل طلب رمز تفعيل جديد.' },
+        { status: 429, headers: { 'Retry-After': String(idLimit.retryAfterSeconds) } },
       );
     }
 
-    if (authUser.email) {
-      targetEmail = authUser.email;
-    }
-    if (authUser.user_metadata?.full_name) {
-      targetName = authUser.user_metadata.full_name;
+    const authUser = await findAuthUser({ providedUserId, rawEmail, rawPhone });
+
+    // Prevent account & confirmation enumeration by returning a uniform 200 response
+    if (!authUser || authUser.email_confirmed_at) {
+      return NextResponse.json(GENERIC_RESEND_SUCCESS);
     }
 
-    if (authUser.email_confirmed_at) {
-      return NextResponse.json({
-        success: true,
-        alreadyConfirmed: true,
-        message: 'بريدك الإلكتروني مؤكد ومفعل بالفعل! يمكنك تسجيل الدخول مباشرة.',
-      });
+    const targetEmail = (authUser.email || rawEmail || String(authUser.user_metadata?.email || '')).trim().toLowerCase();
+    if (!targetEmail) {
+      return NextResponse.json(GENERIC_RESEND_SUCCESS);
     }
 
-    // 2. Generate new 6-digit OTP code & 15-minute expiration
+    const targetName = String(authUser.user_metadata?.full_name || 'عزيزنا المستخدم');
+    const supabaseAdmin = getServerSupabaseAdmin();
+
+    // Generate new 6-digit OTP code & store only its keyed HMAC hash
     const newOtpCode = crypto.randomInt(100000, 1000000).toString();
     const newOtpExpiresAt = Date.now() + 15 * 60 * 1000;
+    const newOtpHash = hashOtpCode(newOtpCode, authUser.id);
 
     const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
       user_metadata: {
-        ...authUser.user_metadata,
-        email_otp_code: newOtpCode,
+        ...(authUser.user_metadata || {}),
+        email_otp_code: null,
+        email_otp_hash: newOtpHash,
         email_otp_expires_at: newOtpExpiresAt,
+        email_otp_attempts: 0,
       },
     });
 
     if (updateErr) {
-      console.warn('[Resend-Confirmation] Failed to update user metadata with new OTP:', updateErr);
+      console.error('[Resend-Confirmation] Failed to update OTP metadata:', updateErr);
+      return NextResponse.json(
+        { success: false, error: 'تعذر تجهيز رمز تفعيل جديد حالياً. يرجى المحاولة بعد قليل.' },
+        { status: 500 },
+      );
     }
 
-    // 3. Generate confirmation link
-    const reqOrigin = req.headers.get('origin') || req.headers.get('x-forwarded-host')
-      ? `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`
-      : getAppOrigin();
-
-    const redirectTo = `${reqOrigin}/auth/confirm`;
+    const safeOrigin = getSafeAppOrigin(req);
+    const redirectTo = `${safeOrigin}/auth/confirm`;
 
     let confirmUrl = '';
     const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: targetEmail,
-      options: {
-        redirectTo,
-      },
+      options: { redirectTo },
     });
 
     if (!linkErr && linkData?.properties?.action_link) {
       confirmUrl = linkData.properties.action_link;
     } else {
-      confirmUrl = `${redirectTo}?email=${encodeURIComponent(targetEmail)}&uid=${encodeURIComponent(authUser.id)}`;
+      confirmUrl = `${safeOrigin}/register?verify=otp`;
     }
 
-    // 4. Send email via Resend
     const emailRes = await sendAccountConfirmationEmail({
       to: targetEmail,
       userName: targetName,
@@ -147,21 +183,18 @@ export async function POST(req: Request) {
 
     if (!emailRes.success) {
       console.warn('[Resend-Confirmation] Email dispatch error:', emailRes.error);
-      return NextResponse.json({
-        success: false,
-        error: 'تعذر إرسال البريد الإلكتروني حالياً. يرجى المحاولة بعد قليل.',
-      }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: 'تعذر إرسال البريد الإلكتروني حالياً. يرجى المحاولة بعد قليل.' },
+        { status: 500 },
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'تم إرسال كود تفعيل جديد مكون من 6 أرقام إلى بريدك الإلكتروني (صالح لمدة 15 دقيقة).',
-    });
-  } catch (error: any) {
+    return NextResponse.json(GENERIC_RESEND_SUCCESS);
+  } catch (error) {
     console.error('[Resend-Confirmation API Error]:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'حدث خطأ غير متوقع أثناء إعادة الإرسال.' },
-      { status: 500 }
+      { success: false, error: 'حدث خطأ غير متوقع أثناء إعادة الإرسال.' },
+      { status: 500 },
     );
   }
 }

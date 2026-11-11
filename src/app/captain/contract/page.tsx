@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ShieldCheck, Printer, ArrowRight, Download, CheckCircle2, FileText, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadPdfInWorker } from '@/shared/utils/background-pdf-download';
+import { getClientAccessToken, getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 
 interface ContractViewData {
   captainId: string;
@@ -48,6 +49,7 @@ function ContractContent() {
   const autoPrint = searchParams.get('autoprint') === 'true';
 
   const [data, setData] = useState<ContractViewData | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
@@ -55,9 +57,10 @@ function ContractContent() {
     if (!data?.captainId) return;
     try {
       setDownloading(true);
+      const accessToken = (await getClientAccessToken()) || undefined;
       const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(data.captainId)}&download=true&_t=${Date.now()}`;
       const filename = `Bynkcom_Captain_Contract_${data.captainId.slice(0, 8).toUpperCase()}.pdf`;
-      await downloadPdfInWorker({ url: downloadUrl, filename });
+      await downloadPdfInWorker({ url: downloadUrl, filename, accessToken });
     } catch (e) {
       console.warn('PDF Worker download error:', e);
     } finally {
@@ -66,81 +69,59 @@ function ContractContent() {
   };
 
   useEffect(() => {
+    let active = true;
+
     async function loadData() {
       try {
-        let cid = captainIdParam;
-        if (!cid) {
-          const { supabase } = await import('@/lib/supabase-client');
-          const { data: authData } = await supabase.auth.getUser();
-          cid = authData?.user?.id || '';
+        const query = new URLSearchParams({ format: 'json' });
+        if (captainIdParam) {
+          query.set('captainId', captainIdParam);
         }
 
-        if (!cid) {
+        const authHeaders = await getSupabaseAuthHeaders();
+        const res = await fetch(`/api/captain/contract?${query.toString()}`, {
+          method: 'GET',
+          headers: authHeaders,
+          cache: 'no-store',
+        });
+
+        const payload = await res.json().catch(() => null);
+
+        if (!active) return;
+
+        if (!res.ok || !payload?.success || !payload?.contract) {
+          if (res.status === 401) {
+            setErrorMsg('يرجى تسجيل الدخول أولاً لعرض وثيقة العقد المعتمدة.');
+          } else if (res.status === 403) {
+            setErrorMsg('غير مصرح لك بالاطلاع على عقد كابتن آخر.');
+          } else {
+            setErrorMsg('لم يتم العثور على سجل العقد للكابتن المطلوب');
+          }
           setLoading(false);
           return;
         }
 
-        const { supabase } = await import('@/lib/supabase-client');
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', cid)
-          .maybeSingle();
-
-        const { data: capProfile } = await supabase
-          .from('captain_profiles')
-          .select('*')
-          .eq('id', cid)
-          .maybeSingle();
-
-        const fullName = profile?.full_name || 'كابتن معلن';
-        const phone = profile?.phone || '-';
-        const email = profile?.email || '-';
-        const nationalIdNumber = capProfile?.national_id_number || '-';
-        const licenseNumber = capProfile?.license_number || '-';
-        const plateNumber = capProfile?.plate_number || profile?.vehicle_plate || '-';
-        const vehicleMake = profile?.vehicle_make || capProfile?.vehicle_brand || '';
-        const vehicleModel = capProfile?.vehicle_model || '';
-        const vehicleYear = profile?.vehicle_year || capProfile?.vehicle_year || '';
-        const governorate = profile?.governorate || 'الأردن';
-        const district = profile?.district || 'المركزي';
-        const acceptedAt = profile?.created_at || new Date().toISOString();
-        const version = 'V1.0-Unified';
-
-        // Deterministic hash based on captain parameters
-        const hashSeed = `${cid}:${fullName}:${phone}:${nationalIdNumber}:${version}`;
-        let hash = '';
-        for (let i = 0; i < hashSeed.length; i++) {
-          const code = (hashSeed.charCodeAt(i) * 31 + i * 17) % 65536;
-          hash += code.toString(16).padStart(4, '0').toUpperCase();
-        }
-        hash = (hash + '9F8E7D6C5B4A3120E1F2A3B4C5D6E7F8').slice(0, 64);
-
+        const c = payload.contract as ContractViewData;
         setData({
-          captainId: cid,
-          fullName,
-          phone,
-          email,
-          nationalIdNumber,
-          licenseNumber,
-          plateNumber,
-          vehicleMake,
-          vehicleModel,
-          vehicleYear,
-          governorate,
-          district,
-          acceptedAt: formatContractDate(acceptedAt),
-          contractHash: hash,
-          version,
+          ...c,
+          acceptedAt: formatContractDate(c.acceptedAt),
         });
       } catch (err) {
         console.error('Error loading contract data:', err);
+        if (active) {
+          setErrorMsg('تعذر تحميل وثيقة العقد، يرجى المحاولة مجدداً.');
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     void loadData();
+    return () => {
+      active = false;
+    };
   }, [captainIdParam]);
 
   useEffect(() => {
@@ -167,7 +148,9 @@ function ContractContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#070B14] text-slate-100 p-4">
         <div className="max-w-md w-full rounded-2xl border border-red-500/20 bg-slate-900/90 p-6 text-center space-y-4">
-          <p className="text-base font-bold text-red-400">لم يتم العثور على سجل العقد للكابتن المطلوب</p>
+          <p className="text-base font-bold text-red-400">
+            {errorMsg || 'لم يتم العثور على سجل العقد للكابتن المطلوب'}
+          </p>
           <Button onClick={() => router.push('/driver')} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">
             العودة للملف الشخصي
           </Button>

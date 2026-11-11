@@ -48,9 +48,7 @@ export function AdminTopBar() {
 
   const isSovereignPrimary =
     user?.uid === '70b4a26f-10ac-4888-8df6-c3a5ad824b8a' ||
-    user?.phone === '+201551981922' ||
-    user?.phone === '+201551981977' ||
-    user?.phone === '201551981977';
+    user?.phone === '+201551981922';
 
   const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>(() => {
     if (isSovereignPrimary) return 'GENERAL_ADMIN';

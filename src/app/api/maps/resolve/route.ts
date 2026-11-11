@@ -10,6 +10,7 @@ import {
   sanitizeGoogleMapsUrl,
 } from '@/shared/services/google-maps-location';
 import { calculateHaversineKm } from '@/lib/road-route';
+import { consumeRateLimit, getClientIp } from '@/shared/server/api-auth-guard';
 
 const MAX_REDIRECTS = 6;
 const REQUEST_TIMEOUT_MS = 5_000;
@@ -40,7 +41,19 @@ function isValidLocation(lat: number, lng: number) {
 }
 
 export async function GET(request: NextRequest) {
+  const clientIp = getClientIp(request);
+  const rate = consumeRateLimit(`maps-resolve:${clientIp}`, 30, 60_000);
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: 'too_many_requests' },
+      { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } },
+    );
+  }
+
   const rawUrl = request.nextUrl.searchParams.get('url')?.trim() || '';
+  if (rawUrl.length > 2048) {
+    return NextResponse.json({ error: 'invalid_maps_url' }, { status: 400 });
+  }
   const latParam = Number(request.nextUrl.searchParams.get('lat'));
   const lngParam = Number(request.nextUrl.searchParams.get('lng'));
   const locationHint = isValidLocation(latParam, lngParam) ? { lat: latParam, lng: lngParam } : undefined;
@@ -98,6 +111,11 @@ async function followGoogleMapsRedirects(initialUrl: string) {
   let currentUrl = initialUrl;
 
   for (let redirectCount = 0; redirectCount < MAX_REDIRECTS; redirectCount += 1) {
+    const parsedCurrent = new URL(currentUrl);
+    if (parsedCurrent.protocol !== 'https:' || !isAllowedRedirectHost(parsedCurrent.hostname)) {
+      throw new Error('disallowed_redirect_host');
+    }
+
     const response = await fetch(currentUrl, {
       method: 'GET',
       redirect: 'manual',
@@ -118,7 +136,7 @@ async function followGoogleMapsRedirects(initialUrl: string) {
     if (nextUrl.hostname.toLowerCase().startsWith('consent.')) {
       return currentUrl;
     }
-    if (!isAllowedRedirectHost(nextUrl.hostname)) {
+    if (nextUrl.protocol !== 'https:' || !isAllowedRedirectHost(nextUrl.hostname)) {
       throw new Error('disallowed_redirect_host');
     }
     currentUrl = nextUrl.toString();
@@ -127,48 +145,84 @@ async function followGoogleMapsRedirects(initialUrl: string) {
   throw new Error('too_many_redirects');
 }
 
-async function readGoogleMapsPageLocation(url: string) {
-  const response = await fetch(url, {
-    method: 'GET',
-    redirect: 'follow',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    headers: {
-      Accept: 'text/html,application/xhtml+xml',
-      'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    },
-  });
+async function fetchGooglePageWithSafeRedirects(initialUrl: string): Promise<Response | null> {
+  let currentUrl = initialUrl;
 
-  if (!response.ok) return null;
+  for (let redirectCount = 0; redirectCount < MAX_REDIRECTS; redirectCount += 1) {
+    const parsedCurrent = new URL(currentUrl);
+    if (parsedCurrent.protocol !== 'https:' || !isAllowedRedirectHost(parsedCurrent.hostname)) {
+      throw new Error('disallowed_redirect_host');
+    }
+
+    const response = await fetch(currentUrl, {
+      method: 'GET',
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: {
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      },
+    });
+
+    const locationHeader = response.headers.get('location');
+    if (!locationHeader || response.status < 300 || response.status >= 400) {
+      return response;
+    }
+
+    const nextUrl = new URL(locationHeader, currentUrl);
+    if (
+      nextUrl.hostname.toLowerCase().startsWith('consent.')
+      || nextUrl.protocol !== 'https:'
+      || !isAllowedRedirectHost(nextUrl.hostname)
+    ) {
+      return null;
+    }
+    currentUrl = nextUrl.toString();
+  }
+
+  return null;
+}
+
+async function readGoogleMapsPageLocation(url: string) {
+  const response = await fetchGooglePageWithSafeRedirects(url);
+  if (!response || !response.ok) return null;
   const html = await response.text();
 
   // 1. Google's internal place preview endpoint (highest fidelity for true place pin)
   // Google place pages include: <link href="/maps/preview/place?authuser=0&hl=ar&gl=eg&q=...&pb=...">
   // which returns the actual place coordinates [[..., lng, lat], ...] regardless of caller GeoIP or map viewport.
-  const previewMatch = /href=["'](\/maps\/preview\/place[^"']+)["']/i.exec(html);
+  const previewMatch = /href=["'](\/maps\/preview\/place[^"'\s]+)["']/i.exec(html);
   if (previewMatch && previewMatch[1]) {
     const previewPath: string = previewMatch[1];
     try {
-      const previewUrl = 'https://www.google.com' + previewPath.replace(/&amp;/g, '&');
-      const prevResponse = await fetch(previewUrl, {
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        },
-      });
-      if (prevResponse.ok) {
-        const prevText = await prevResponse.text();
-        const coordMatch = prevText.match(
-          /\[\[\s*[\d.]+\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/,
-        );
-        const lngStr = coordMatch?.[1];
-        const latStr = coordMatch?.[2];
-        if (lngStr && latStr) {
-          const lng = Number(lngStr);
-          const lat = Number(latStr);
-          if (isValidLocation(lat, lng)) {
-            return { lat, lng };
+      const previewUrlObj = new URL(previewPath.replace(/&amp;/g, '&'), 'https://www.google.com');
+      if (
+        previewUrlObj.origin === 'https://www.google.com'
+        && previewUrlObj.pathname.startsWith('/maps/preview/place')
+      ) {
+        const prevResponse = await fetch(previewUrlObj.toString(), {
+          redirect: 'manual',
+          cache: 'no-store',
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          },
+        });
+        if (prevResponse.ok) {
+          const prevText = await prevResponse.text();
+          const coordMatch = prevText.match(
+            /\[\[\s*[\d.]+\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/,
+          );
+          const lngStr = coordMatch?.[1];
+          const latStr = coordMatch?.[2];
+          if (lngStr && latStr) {
+            const lng = Number(lngStr);
+            const lat = Number(latStr);
+            if (isValidLocation(lat, lng)) {
+              return { lat, lng };
+            }
           }
         }
       }
