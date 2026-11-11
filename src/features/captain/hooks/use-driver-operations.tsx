@@ -38,6 +38,7 @@ interface DriverOpsContextType {
   endTrip: () => Promise<boolean>;
   isEndingTrip: boolean;
   cancelActiveTrip: () => Promise<boolean>;
+  acknowledgeMutualCancel: () => void;
   isCancellingTrip: boolean;
   rateAndFinishTrip: () => Promise<void>;
   isRatingRider: boolean;
@@ -115,6 +116,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     endTrip: rawEndTrip,
     isEndingTrip,
     cancelActiveTrip: rawCancelActiveTrip,
+    acknowledgeMutualCancel: rawAcknowledgeMutualCancel,
     isCancellingTrip,
     rateAndFinishTrip: rawRateAndFinishTrip,
     isRatingRider,
@@ -179,6 +181,10 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     return rawCancelActiveTrip();
   }, [rawCancelActiveTrip]);
 
+  const acknowledgeMutualCancel = useCallback(() => {
+    rawAcknowledgeMutualCancel();
+  }, [rawAcknowledgeMutualCancel]);
+
   const rateAndFinishTrip = useCallback(async () => {
     await rawRateAndFinishTrip();
   }, [rawRateAndFinishTrip]);
@@ -228,6 +234,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
     endTrip,
     isEndingTrip,
     cancelActiveTrip,
+    acknowledgeMutualCancel,
     isCancellingTrip,
     rateAndFinishTrip,
     isRatingRider,
@@ -253,6 +260,7 @@ export function DriverOperationsProvider({ children }: { children: ReactNode }) 
   }), [
     acceptedRider,
     accountSecurityStatus,
+    acknowledgeMutualCancel,
     activationNonce,
     activeRequest,
     cancelActiveTrip,

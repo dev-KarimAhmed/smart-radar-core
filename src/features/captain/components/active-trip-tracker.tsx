@@ -116,7 +116,8 @@ interface ActiveTripTrackerProps {
   onArrived: () => void;
   onStartTrip: () => void;
   onCompleteTrip: () => void;
-  onCancelTrip: () => void;
+  onCancelTrip: () => void | Promise<void>;
+  onMutualCancelConfirmed?: () => void | Promise<void>;
 }
 
 function playSystemNotificationSound() {
@@ -176,6 +177,7 @@ export function ActiveTripTracker({
   onStartTrip,
   onCompleteTrip,
   onCancelTrip,
+  onMutualCancelConfirmed,
 }: ActiveTripTrackerProps) {
   const t = useTranslations('captainActiveTrip');
   const pickupT = useTranslations('captainPickup');
@@ -313,7 +315,7 @@ export function ActiveTripTracker({
     arrivedAtMs: request.arrivedAtMs,
     pickupEtaMinutes: request.pickup_eta_minutes,
     initialCancelRequestedBy: request.cancel_requested_by,
-    onCancelledConfirmed: onCancelTrip,
+    onCancelledConfirmed: onMutualCancelConfirmed || onCancelTrip,
   });
 
   return (
@@ -733,11 +735,15 @@ export function ActiveTripTracker({
                 type="button"
                 disabled={isCancelling || mutualCancel.isProcessing}
                 onClick={async () => {
-                  setIsConfirmingCancel(false);
                   if (step === 'STARTED') {
+                    setIsConfirmingCancel(false);
                     await mutualCancel.requestCancel();
                   } else {
-                    await onCancelTrip();
+                    try {
+                      await onCancelTrip();
+                    } finally {
+                      setIsConfirmingCancel(false);
+                    }
                   }
                 }}
                 className={styles.cancelConfirmButton}

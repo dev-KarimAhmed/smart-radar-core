@@ -2,35 +2,47 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
+import {
+  getRefreshedSupabaseAuthHeaders,
+  getSupabaseAuthHeaders,
+} from '@/shared/services/supabase-auth-headers';
 import { useToast } from '@/hooks/use-toast';
 import {
   setCaptainCancelCooldown,
   clearCaptainCancelCooldown,
   calculateRemainingCooldown,
 } from '@/features/captain/services/captain-cancel-cooldown';
+import {
+  interpretMutualCancelMutationResult,
+  type MutualCancelRole,
+  type PostCommitExpectationLock,
+  resolveRealtimeRideRequestUpdate,
+  shouldAcceptServerSyncResult,
+} from './mutual-cancellation-helpers';
 
 export interface UseTripMutualCancellationProps {
   requestId?: string;
-  role: 'rider' | 'captain';
+  role: MutualCancelRole;
   tripDurationMinutes?: number;
   startedAtMs?: number | string | Date | null;
   acceptedAtMs?: number | string | Date | null;
   arrivedAtMs?: number | string | Date | null;
   pickupEtaMinutes?: number | null;
   scheduledEndTime?: number | string | Date | null;
-  initialCancelRequestedBy?: 'rider' | 'captain' | null;
+  initialCancelRequestedBy?: MutualCancelRole | null;
   onCancelledConfirmed?: () => Promise<void> | void;
 }
 
 export interface UseTripMutualCancellationReturn {
-  pendingRequestFrom: 'rider' | 'captain' | null;
+  pendingRequestFrom: MutualCancelRole | null;
   isProcessing: boolean;
   requestCancel: () => Promise<void>;
   acceptCancel: () => Promise<void>;
   declineCancel: () => Promise<void>;
   revokeCancel: () => Promise<void>;
 }
+
+const POST_COMMIT_GRACE_MS = 2500;
 
 function playAlertSound() {
   if (typeof window === 'undefined') return;
@@ -39,6 +51,42 @@ function playAlertSound() {
     audio.volume = 1.0;
     void audio.play().catch(() => {});
   } catch {}
+}
+
+async function fetchWithSupabaseAuthRetry(
+  url: string,
+  options: { method?: 'GET' | 'POST'; body?: string; requireAuthForInitialTry?: boolean } = {},
+): Promise<{ res: Response | null; data: Record<string, unknown> | null }> {
+  const baseHeaders: Record<string, string> = options.method === 'POST'
+    ? { 'Content-Type': 'application/json' }
+    : {};
+  let authHeaders = await getSupabaseAuthHeaders(baseHeaders);
+  if (options.requireAuthForInitialTry && !authHeaders.Authorization) {
+    authHeaders = await getRefreshedSupabaseAuthHeaders(baseHeaders);
+    if (!authHeaders.Authorization) {
+      return { res: null, data: { success: false, error: 'authentication_required' } };
+    }
+  }
+
+  let res = await fetch(url, {
+    method: options.method || 'GET',
+    headers: authHeaders,
+    body: options.body,
+  });
+
+  if (res.status === 401) {
+    const refreshedHeaders = await getRefreshedSupabaseAuthHeaders(baseHeaders);
+    if (refreshedHeaders.Authorization) {
+      res = await fetch(url, {
+        method: options.method || 'GET',
+        headers: refreshedHeaders,
+        body: options.body,
+      });
+    }
+  }
+
+  const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  return { res, data };
 }
 
 export function useTripMutualCancellation({
@@ -54,12 +102,32 @@ export function useTripMutualCancellation({
   onCancelledConfirmed,
 }: UseTripMutualCancellationProps): UseTripMutualCancellationReturn {
   const { toast } = useToast();
-  const [pendingRequestFrom, setPendingRequestFrom] = useState<'rider' | 'captain' | null>(
+  const [pendingRequestFrom, setPendingRequestFrom] = useState<MutualCancelRole | null>(
     initialCancelRequestedBy || null
   );
+  const pendingFromRef = useRef<MutualCancelRole | null>(pendingRequestFrom);
+  useEffect(() => {
+    pendingFromRef.current = pendingRequestFrom;
+  }, [pendingRequestFrom]);
+
+  const mutationEpochRef = useRef(0);
+  const inFlightMutationsRef = useRef(0);
+  const postCommitLockRef = useRef<PostCommitExpectationLock | null>(null);
+  const confirmedCancelHandledRef = useRef(false);
 
   const lastInitialRef = useRef(initialCancelRequestedBy);
   useEffect(() => {
+    if (inFlightMutationsRef.current > 0) {
+      lastInitialRef.current = initialCancelRequestedBy;
+      return;
+    }
+
+    const lock = postCommitLockRef.current;
+    if (lock && Date.now() < lock.untilMs && (initialCancelRequestedBy || null) !== lock.expectedPendingFrom) {
+      lastInitialRef.current = initialCancelRequestedBy;
+      return;
+    }
+
     if (initialCancelRequestedBy === 'rider' || initialCancelRequestedBy === 'captain') {
       setPendingRequestFrom(initialCancelRequestedBy);
     } else if (
@@ -134,35 +202,76 @@ export function useTripMutualCancellation({
     }
   }, [role]);
 
+  const triggerCancelledConfirmedOnce = useCallback(async () => {
+    if (confirmedCancelHandledRef.current) return;
+    confirmedCancelHandledRef.current = true;
+    try {
+      if (onCancelledConfirmedRef.current) {
+        await onCancelledConfirmedRef.current();
+      }
+    } catch {
+      confirmedCancelHandledRef.current = false;
+    }
+  }, []);
+
   // Initial and periodic sync with server database (SSOT)
   const syncServerStatus = useCallback(async (targetId: string) => {
+    if (inFlightMutationsRef.current > 0) return;
+    const pollEpoch = mutationEpochRef.current;
+
     try {
-      const authHeaders = await getSupabaseAuthHeaders();
-      if (!authHeaders.Authorization) return;
-      const res = await fetch(`/api/trip/mutual-cancel?requestId=${encodeURIComponent(targetId)}`, {
-        headers: authHeaders,
+      const { res, data } = await fetchWithSupabaseAuthRetry(
+        `/api/trip/mutual-cancel?requestId=${encodeURIComponent(targetId)}`,
+        { method: 'GET', requireAuthForInitialTry: true },
+      );
+      if (!res?.ok || !data?.success) return;
+
+      const decision = shouldAcceptServerSyncResult({
+        pollEpoch,
+        currentEpoch: mutationEpochRef.current,
+        inFlightMutations: inFlightMutationsRef.current,
+        serverStatus: data.status,
+        serverCancelRequestedBy: data.cancel_requested_by,
+        postCommitLock: postCommitLockRef.current,
+        nowMs: Date.now(),
       });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data?.success) {
-        const requestedBy = data.cancel_requested_by;
-        if (requestedBy === 'captain' || requestedBy === 'rider') {
-          setPendingRequestFrom((prev) => {
-            if (prev !== requestedBy && requestedBy !== role) {
-              playAlertSound();
-            }
-            return requestedBy;
-          });
-        } else {
-          setPendingRequestFrom(null);
-        }
+
+      if (!decision.accept) return;
+
+      if (decision.terminalStatus === 'CANCELLED') {
+        setPendingRequestFrom(null);
+        applyCaptainFreeze();
+        await triggerCancelledConfirmedOnce();
+        return;
+      }
+
+      if (decision.terminalStatus === 'COMPLETED') {
+        setPendingRequestFrom(null);
+        return;
+      }
+
+      const requestedBy = decision.nextPendingFrom;
+      if (requestedBy === 'captain' || requestedBy === 'rider') {
+        setPendingRequestFrom((prev) => {
+          if (prev !== requestedBy && requestedBy !== role) {
+            playAlertSound();
+          }
+          return requestedBy;
+        });
+      } else {
+        setPendingRequestFrom(null);
       }
     } catch {
       // Ignore background network errors
     }
-  }, [role]);
+  }, [applyCaptainFreeze, role, triggerCancelledConfirmedOnce]);
 
   useEffect(() => {
+    mutationEpochRef.current += 1;
+    inFlightMutationsRef.current = 0;
+    postCommitLockRef.current = null;
+    confirmedCancelHandledRef.current = false;
+
     if (!requestId) {
       setPendingRequestFrom(null);
       return;
@@ -173,7 +282,7 @@ export function useTripMutualCancellation({
 
     // 2. Setup stable channel (created ONCE per requestId and role)
     const channelName = `trip-mutual-cancel-${requestId}`;
-    
+
     // Clean up any lingering channel with same name first
     try {
       const existing = supabase.getChannels().find(
@@ -191,7 +300,9 @@ export function useTripMutualCancellation({
     channel
       .on('broadcast', { event: 'REQUEST_CANCEL' }, (payload) => {
         const fromRole = payload.payload?.fromRole;
-        if (fromRole && fromRole !== role) {
+        if ((fromRole === 'captain' || fromRole === 'rider') && fromRole !== role) {
+          mutationEpochRef.current += 1;
+          postCommitLockRef.current = { expectedPendingFrom: fromRole, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
           setPendingRequestFrom(fromRole);
           playAlertSound();
           toastRef.current({
@@ -205,6 +316,8 @@ export function useTripMutualCancellation({
       .on('broadcast', { event: 'DECLINE_CANCEL' }, (payload) => {
         const fromRole = payload.payload?.fromRole;
         if (fromRole && fromRole !== role) {
+          mutationEpochRef.current += 1;
+          postCommitLockRef.current = { expectedPendingFrom: null, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
           setPendingRequestFrom(null);
           toastRef.current({
             title: 'تم رفض طلب إلغاء الرحلة',
@@ -219,6 +332,8 @@ export function useTripMutualCancellation({
       .on('broadcast', { event: 'REVOKE_CANCEL' }, (payload) => {
         const fromRole = payload.payload?.fromRole;
         if (fromRole && fromRole !== role) {
+          mutationEpochRef.current += 1;
+          postCommitLockRef.current = { expectedPendingFrom: null, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
           setPendingRequestFrom(null);
           toastRef.current({
             title: 'تراجع عن طلب الإلغاء',
@@ -231,16 +346,13 @@ export function useTripMutualCancellation({
         }
       })
       .on('broadcast', { event: 'ACCEPT_CANCEL' }, async (payload) => {
+        mutationEpochRef.current += 1;
         setPendingRequestFrom(null);
         if (role === 'captain') {
           const payloadMinutes = Number(payload.payload?.tripDurationMinutes);
           applyCaptainFreeze(payloadMinutes > 0 ? payloadMinutes : undefined);
         }
-        try {
-          if (onCancelledConfirmedRef.current) {
-            await onCancelledConfirmedRef.current();
-          }
-        } catch {}
+        await triggerCancelledConfirmedOnce();
       })
       .on(
         'postgres_changes',
@@ -251,19 +363,25 @@ export function useTripMutualCancellation({
           filter: `id=eq.${requestId}`,
         },
         (payload) => {
-          const newRow = payload.new as any;
-          if (!newRow) return;
+          const decision = resolveRealtimeRideRequestUpdate({
+            newRow: payload.new as Record<string, unknown> | undefined,
+            inFlightMutations: inFlightMutationsRef.current,
+            postCommitLock: postCommitLockRef.current,
+            nowMs: Date.now(),
+          });
 
-          const status = String(newRow.status || '').toUpperCase();
-          if (status === 'CANCELLED' || status === 'COMPLETED') {
+          if (decision.kind === 'ignore') return;
+
+          if (decision.kind === 'terminal') {
             setPendingRequestFrom(null);
-            if (status === 'CANCELLED' && role === 'captain') {
+            if (decision.status === 'CANCELLED') {
               applyCaptainFreeze();
+              void triggerCancelledConfirmedOnce();
             }
             return;
           }
 
-          const cancelBy = newRow.cancel_requested_by;
+          const cancelBy = decision.nextPendingFrom;
           if (cancelBy === 'captain' || cancelBy === 'rider') {
             setPendingRequestFrom((prev) => {
               if (prev !== cancelBy && cancelBy !== role) {
@@ -290,16 +408,53 @@ export function useTripMutualCancellation({
       channelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [requestId, role, syncServerStatus]);
+  }, [applyCaptainFreeze, requestId, role, syncServerStatus, triggerCancelledConfirmedOnce]);
 
   const requestCancel = useCallback(async () => {
-    if (!requestId) return;
+    if (!requestId || inFlightMutationsRef.current > 0) return;
+
+    const prevPending = pendingFromRef.current;
+    const duration = durationMinutesRef.current;
+    mutationEpochRef.current += 1;
+    inFlightMutationsRef.current += 1;
     setIsProcessing(true);
     setPendingRequestFrom(role);
-    const duration = durationMinutesRef.current;
 
     try {
-      // 1. Broadcast immediately for zero-latency alert
+      // 1. Persist to server FIRST (SSOT database) so polls & peer never see stale null state
+      const { res, data } = await fetchWithSupabaseAuthRetry('/api/trip/mutual-cancel', {
+        method: 'POST',
+        body: JSON.stringify({ requestId, action: 'REQUEST', cancelledByRole: role, tripDurationMinutes: duration }),
+        requireAuthForInitialTry: true,
+      });
+
+      const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
+      if (!outcome.ok) {
+        setPendingRequestFrom(prevPending);
+        toastRef.current({
+          variant: 'destructive',
+          title: 'تعذر إرسال طلب إيقاف الرحلة',
+          description: outcome.errorCode === 'authentication_required'
+            ? 'يرجى تحديث الصفحة أو إعادة تسجيل الدخول ثم المحاولة مرة أخرى.'
+            : 'حدث خطأ أثناء إرسال الطلب للخادم، يرجى المحاولة مرة أخرى.',
+        });
+        return;
+      }
+
+      if (outcome.isClosed) {
+        setPendingRequestFrom(null);
+        if (outcome.terminalStatus === 'CANCELLED') {
+          applyCaptainFreeze(duration);
+          await triggerCancelledConfirmedOnce();
+        }
+        return;
+      }
+
+      const confirmedBy = outcome.cancelRequestedBy ?? role;
+      postCommitLockRef.current = { expectedPendingFrom: confirmedBy, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
+      setPendingRequestFrom(confirmedBy);
+
+      // 2. Broadcast immediately after DB persistence succeeds for zero-latency alert
       if (channelRef.current) {
         try {
           await channelRef.current.send({
@@ -312,14 +467,6 @@ export function useTripMutualCancellation({
         }
       }
 
-      // 2. Persist to server (SSOT database)
-      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
-      await fetch('/api/trip/mutual-cancel', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ requestId, action: 'REQUEST', cancelledByRole: role, tripDurationMinutes: duration }),
-      });
-
       toastRef.current({
         title: 'تم إرسال طلب إلغاء الرحلة',
         description: role === 'captain'
@@ -329,23 +476,48 @@ export function useTripMutualCancellation({
       });
     } catch (err) {
       console.warn('[useTripMutualCancellation] requestCancel error:', err);
+      setPendingRequestFrom(prevPending);
+      toastRef.current({
+        variant: 'destructive',
+        title: 'تعذر إرسال طلب إيقاف الرحلة',
+        description: 'تحقق من اتصال الإنترنت ثم حاول مرة أخرى.',
+      });
     } finally {
+      inFlightMutationsRef.current = Math.max(0, inFlightMutationsRef.current - 1);
       setIsProcessing(false);
     }
-  }, [requestId, role]);
+  }, [applyCaptainFreeze, requestId, role, triggerCancelledConfirmedOnce]);
 
   const acceptCancel = useCallback(async () => {
-    if (!requestId) return;
-    setIsProcessing(true);
+    if (!requestId || inFlightMutationsRef.current > 0) return;
+
     const duration = durationMinutesRef.current;
+    mutationEpochRef.current += 1;
+    inFlightMutationsRef.current += 1;
+    setIsProcessing(true);
 
     try {
-      // 1. If captain, activate freeze equal to REMAINING trip duration
-      if (role === 'captain') {
-        applyCaptainFreeze(duration);
+      // 1. Execute server-side cancellation via mutual-cancel API endpoint FIRST
+      const { res, data } = await fetchWithSupabaseAuthRetry('/api/trip/mutual-cancel', {
+        method: 'POST',
+        body: JSON.stringify({ requestId, action: 'ACCEPT', cancelledByRole: role, tripDurationMinutes: duration }),
+        requireAuthForInitialTry: true,
+      });
+
+      const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
+      if (!outcome.ok) {
+        toastRef.current({
+          title: 'فشل إلغاء الرحلة',
+          description: 'حدث خطأ أثناء إلغاء الرحلة، يرجى المحاولة مرة أخرى.',
+          variant: 'destructive',
+        });
+        return;
       }
 
-      // 2. Broadcast agreement to other party
+      // 2. If captain, activate freeze equal to REMAINING trip duration
+      applyCaptainFreeze(duration);
+
+      // 3. Broadcast agreement to other party after DB confirms CANCELLED
       if (channelRef.current) {
         try {
           await channelRef.current.send({
@@ -356,22 +528,8 @@ export function useTripMutualCancellation({
         } catch {}
       }
 
-      // 3. Execute server-side cancellation via mutual-cancel API endpoint
-      try {
-        const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
-        await fetch('/api/trip/mutual-cancel', {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({ requestId, action: 'ACCEPT', cancelledByRole: role, tripDurationMinutes: duration }),
-        });
-      } catch (apiErr) {
-        console.warn('[useTripMutualCancellation] api mutual-cancel error:', apiErr);
-      }
-
-      // 4. Trigger caller's confirmed callback
-      if (onCancelledConfirmedRef.current) {
-        await onCancelledConfirmedRef.current();
-      }
+      // 4. Trigger caller's confirmed callback cleanly once
+      await triggerCancelledConfirmedOnce();
 
       setPendingRequestFrom(null);
       toastRef.current({
@@ -388,16 +546,49 @@ export function useTripMutualCancellation({
         variant: 'destructive',
       });
     } finally {
+      inFlightMutationsRef.current = Math.max(0, inFlightMutationsRef.current - 1);
       setIsProcessing(false);
     }
-  }, [requestId, role]);
+  }, [applyCaptainFreeze, requestId, role, triggerCancelledConfirmedOnce]);
 
   const declineCancel = useCallback(async () => {
-    if (!requestId) return;
+    if (!requestId || inFlightMutationsRef.current > 0) return;
+
+    const prevPending = pendingFromRef.current;
+    mutationEpochRef.current += 1;
+    inFlightMutationsRef.current += 1;
     setIsProcessing(true);
     setPendingRequestFrom(null);
 
     try {
+      // Persist decline to server (clears cancel_requested_by)
+      const { res, data } = await fetchWithSupabaseAuthRetry('/api/trip/mutual-cancel', {
+        method: 'POST',
+        body: JSON.stringify({ requestId, action: 'DECLINE', cancelledByRole: role }),
+        requireAuthForInitialTry: true,
+      });
+
+      const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
+      if (!outcome.ok) {
+        setPendingRequestFrom(prevPending);
+        toastRef.current({
+          variant: 'destructive',
+          title: 'تعذر رفض طلب الإلغاء',
+          description: 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى.',
+        });
+        return;
+      }
+
+      if (outcome.isClosed) {
+        if (outcome.terminalStatus === 'CANCELLED') {
+          applyCaptainFreeze();
+          await triggerCancelledConfirmedOnce();
+        }
+        return;
+      }
+
+      postCommitLockRef.current = { expectedPendingFrom: null, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
+
       if (channelRef.current) {
         try {
           await channelRef.current.send({
@@ -408,14 +599,6 @@ export function useTripMutualCancellation({
         } catch {}
       }
 
-      // Persist decline to server (clears cancel_requested_by)
-      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
-      await fetch('/api/trip/mutual-cancel', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ requestId, action: 'DECLINE', cancelledByRole: role }),
-      });
-
       toastRef.current({
         title: 'تم رفض طلب الإلغاء',
         description: 'تستمر الرحلة بشكل طبيعي.',
@@ -423,17 +606,51 @@ export function useTripMutualCancellation({
       });
     } catch (err) {
       console.warn('[useTripMutualCancellation] declineCancel error:', err);
+      setPendingRequestFrom(prevPending);
     } finally {
+      inFlightMutationsRef.current = Math.max(0, inFlightMutationsRef.current - 1);
       setIsProcessing(false);
     }
-  }, [requestId, role]);
+  }, [applyCaptainFreeze, requestId, role, triggerCancelledConfirmedOnce]);
 
   const revokeCancel = useCallback(async () => {
-    if (!requestId) return;
+    if (!requestId || inFlightMutationsRef.current > 0) return;
+
+    const prevPending = pendingFromRef.current;
+    mutationEpochRef.current += 1;
+    inFlightMutationsRef.current += 1;
     setIsProcessing(true);
     setPendingRequestFrom(null);
 
     try {
+      // Persist revoke to server (clears cancel_requested_by)
+      const { res, data } = await fetchWithSupabaseAuthRetry('/api/trip/mutual-cancel', {
+        method: 'POST',
+        body: JSON.stringify({ requestId, action: 'REVOKE', cancelledByRole: role }),
+        requireAuthForInitialTry: true,
+      });
+
+      const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
+      if (!outcome.ok) {
+        setPendingRequestFrom(prevPending);
+        toastRef.current({
+          variant: 'destructive',
+          title: 'تعذر التراجع عن طلب الإلغاء',
+          description: 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى.',
+        });
+        return;
+      }
+
+      if (outcome.isClosed) {
+        if (outcome.terminalStatus === 'CANCELLED') {
+          applyCaptainFreeze();
+          await triggerCancelledConfirmedOnce();
+        }
+        return;
+      }
+
+      postCommitLockRef.current = { expectedPendingFrom: null, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
+
       if (channelRef.current) {
         try {
           await channelRef.current.send({
@@ -444,14 +661,6 @@ export function useTripMutualCancellation({
         } catch {}
       }
 
-      // Persist revoke to server (clears cancel_requested_by)
-      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
-      await fetch('/api/trip/mutual-cancel', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ requestId, action: 'REVOKE', cancelledByRole: role }),
-      });
-
       toastRef.current({
         title: 'تم التراجع عن طلب الإلغاء',
         description: 'تستمر الرحلة كالمعتاد.',
@@ -459,10 +668,12 @@ export function useTripMutualCancellation({
       });
     } catch (err) {
       console.warn('[useTripMutualCancellation] revokeCancel error:', err);
+      setPendingRequestFrom(prevPending);
     } finally {
+      inFlightMutationsRef.current = Math.max(0, inFlightMutationsRef.current - 1);
       setIsProcessing(false);
     }
-  }, [requestId, role]);
+  }, [applyCaptainFreeze, requestId, role, triggerCancelledConfirmedOnce]);
 
   return {
     pendingRequestFrom,

@@ -25,7 +25,10 @@ import { useWakeLock } from '@/hooks/use-wake-lock';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
-import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
+import {
+  getRefreshedSupabaseAuthHeaders,
+  getSupabaseAuthHeaders,
+} from '@/shared/services/supabase-auth-headers';
 import { CaptainTripAdsViewer } from './captain-trip-ads-viewer';
 
 export interface TripActiveScreenProps {
@@ -87,12 +90,33 @@ export function TripActiveScreen({
       let cancelled = false;
       try {
         const { error } = await supabase.rpc('cancel_ride_request', { p_request_id: activeTrip.tripId });
-        if (!error) cancelled = true;
+        if (!error) {
+          cancelled = true;
+        } else {
+          const msg = String(error.message || '').toLowerCase();
+          if (msg.includes('cannot_cancel_active_trip')) {
+            toast({
+              variant: 'warning',
+              title: isArabic ? 'الرحلة بدأت بالفعل' : 'Trip Already Started',
+              description: isArabic
+                ? 'لا يمكن إلغاء الرحلة بشكل فردي بعد بدئها؛ يرجى استخدام طلب الإلغاء بالتوافق.'
+                : 'Cannot cancel unilaterally after trip start; please request mutual cancellation.',
+            });
+            return;
+          }
+          if (msg.includes('ride_request_closed')) {
+            cancelled = true;
+          }
+        }
       } catch {}
 
       if (!cancelled) {
-        const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
-        await fetch('/api/trip/mutual-cancel', {
+        const baseHeaders = { 'Content-Type': 'application/json' };
+        let authHeaders = await getSupabaseAuthHeaders(baseHeaders);
+        if (!authHeaders.Authorization) {
+          authHeaders = await getRefreshedSupabaseAuthHeaders(baseHeaders);
+        }
+        let res = await fetch('/api/trip/mutual-cancel', {
           method: 'POST',
           headers: authHeaders,
           body: JSON.stringify({
@@ -101,6 +125,24 @@ export function TripActiveScreen({
             cancelledByRole: 'rider',
           }),
         });
+        if (res.status === 401) {
+          const refreshedHeaders = await getRefreshedSupabaseAuthHeaders(baseHeaders);
+          if (refreshedHeaders.Authorization) {
+            res = await fetch('/api/trip/mutual-cancel', {
+              method: 'POST',
+              headers: refreshedHeaders,
+              body: JSON.stringify({
+                requestId: activeTrip.tripId,
+                action: 'ACCEPT',
+                cancelledByRole: 'rider',
+              }),
+            });
+          }
+        }
+        const json = (await res.json().catch(() => null)) as { success?: boolean } | null;
+        if (!res.ok || !json?.success) {
+          throw new Error('direct_cancel_failed');
+        }
       }
 
       toast({

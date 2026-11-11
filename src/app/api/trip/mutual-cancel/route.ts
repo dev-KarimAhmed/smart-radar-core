@@ -25,7 +25,12 @@ export async function GET(req: Request) {
       .eq('id', requestId)
       .maybeSingle();
 
-    if (error || !data) {
+    if (error) {
+      console.error('[mutual-cancel] GET query error:', error);
+      return NextResponse.json({ success: false, error: 'trip_query_failed' }, { status: 500 });
+    }
+
+    if (!data) {
       return NextResponse.json({ success: false, error: 'trip_not_found' }, { status: 404 });
     }
 
@@ -84,7 +89,12 @@ export async function POST(req: Request) {
       .eq('id', requestId)
       .maybeSingle();
 
-    if (fetchErr || !requestRow) {
+    if (fetchErr) {
+      console.error('[mutual-cancel] POST fetch error:', fetchErr);
+      return NextResponse.json({ success: false, error: 'trip_query_failed' }, { status: 500 });
+    }
+
+    if (!requestRow) {
       return NextResponse.json({ success: false, error: 'trip_not_found' }, { status: 404 });
     }
 
@@ -109,12 +119,26 @@ export async function POST(req: Request) {
       let rpcSucceeded = false;
       let shouldFallback = false;
       try {
-        const { error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
+        const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
           p_request_id: requestId,
           p_role: role,
           p_action: 'REQUEST',
         });
         if (!rpcErr) {
+          const rpcPayload = rpcData && typeof rpcData === 'object' ? (rpcData as Record<string, unknown>) : null;
+          if (rpcPayload && rpcPayload.success === false) {
+            if (rpcPayload.error === 'trip_already_closed') {
+              return NextResponse.json({
+                success: true,
+                status: String(rpcPayload.status || 'CANCELLED').toUpperCase(),
+                message: 'trip_already_closed',
+              });
+            }
+            return NextResponse.json(
+              { success: false, error: String(rpcPayload.error || 'request_failed') },
+              { status: 400 }
+            );
+          }
           rpcSucceeded = true;
         } else if (isMissingRpcFunctionError(rpcErr)) {
           shouldFallback = true;
@@ -136,7 +160,7 @@ export async function POST(req: Request) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', requestId)
-          .not('status', 'in', '(COMPLETED,CANCELLED)');
+          .not('status', 'in', '("COMPLETED","CANCELLED")');
 
         if (directErr) {
           console.error('[mutual-cancel] Direct update error:', directErr);
@@ -156,12 +180,26 @@ export async function POST(req: Request) {
       let rpcSucceeded = false;
       let shouldFallback = false;
       try {
-        const { error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
+        const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
           p_request_id: requestId,
           p_role: role,
           p_action: action,
         });
         if (!rpcErr) {
+          const rpcPayload = rpcData && typeof rpcData === 'object' ? (rpcData as Record<string, unknown>) : null;
+          if (rpcPayload && rpcPayload.success === false) {
+            if (rpcPayload.error === 'trip_already_closed') {
+              return NextResponse.json({
+                success: true,
+                status: String(rpcPayload.status || 'CANCELLED').toUpperCase(),
+                message: 'trip_already_closed',
+              });
+            }
+            return NextResponse.json(
+              { success: false, error: String(rpcPayload.error || `${action.toLowerCase()}_failed`) },
+              { status: 400 }
+            );
+          }
           rpcSucceeded = true;
         } else if (isMissingRpcFunctionError(rpcErr)) {
           shouldFallback = true;
@@ -183,7 +221,7 @@ export async function POST(req: Request) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', requestId)
-          .not('status', 'in', '(COMPLETED,CANCELLED)');
+          .not('status', 'in', '("COMPLETED","CANCELLED")');
 
         if (directErr) {
           console.error(`[mutual-cancel] ${action} direct update error:`, directErr);
@@ -203,10 +241,22 @@ export async function POST(req: Request) {
     let cancelSucceeded = false;
     let shouldFallbackCancel = false;
     try {
-      const { error: updateErr } = await supabaseAdmin.rpc('mutual_cancel_ride_request', {
+      const { data: acceptData, error: updateErr } = await supabaseAdmin.rpc('mutual_cancel_ride_request', {
         p_request_id: requestId,
       });
       if (!updateErr) {
+        const acceptPayload = acceptData && typeof acceptData === 'object'
+          ? (acceptData as Record<string, unknown>)
+          : null;
+        const closedStatus = String(acceptPayload?.status || '').toUpperCase();
+        if (acceptPayload?.message === 'already_closed' && closedStatus === 'COMPLETED') {
+          return NextResponse.json({
+            success: true,
+            requestId,
+            status: 'COMPLETED',
+            message: 'trip_already_closed',
+          });
+        }
         cancelSucceeded = true;
       } else if (isMissingRpcFunctionError(updateErr)) {
         shouldFallbackCancel = true;
@@ -231,7 +281,7 @@ export async function POST(req: Request) {
           updated_at: nowIso,
         })
         .eq('id', requestId)
-        .not('status', 'in', '(COMPLETED,CANCELLED)');
+        .not('status', 'in', '("COMPLETED","CANCELLED")');
 
       if (directErr) {
         console.error('[mutual-cancel] direct cancel update error:', directErr);

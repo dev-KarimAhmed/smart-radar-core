@@ -288,7 +288,9 @@ function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<string, u
     tripDurationMinutes: estimatedTripMinutes,
     captain: selectedOffer?.captain || rowCaptain || existing?.captain || null,
     status: String(acceptedRow.status || existing?.status || 'ACCEPTED').toUpperCase(),
-    cancel_requested_by: (acceptedRow.cancel_requested_by as any) ?? existing?.cancel_requested_by ?? null,
+    cancel_requested_by: Object.prototype.hasOwnProperty.call(acceptedRow, 'cancel_requested_by')
+      ? ((acceptedRow.cancel_requested_by as any) ?? null)
+      : (existing?.cancel_requested_by ?? null),
   };
 }
 

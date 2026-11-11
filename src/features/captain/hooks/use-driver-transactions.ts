@@ -434,7 +434,7 @@ export function useDriverTransactions(
       cancelled = true;
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
-      document.removeEventListener('focus', onFocus);
+      window.removeEventListener('focus', onFocus);
       void channel.unsubscribe();
     };
   }, [activeRequest?.id, cleanUpAndReset, t, toast]);
@@ -897,16 +897,22 @@ export function useDriverTransactions(
     }
   }, [activeRequest, captainId, cleanUpAndReset, toast]);
 
+  const acknowledgeMutualCancel = useCallback(() => {
+    const tripId = activeReqRef.current?.id;
+    if (tripId) {
+      selfCancelledTripId.current = tripId;
+    }
+    cleanUpAndReset();
+  }, [cleanUpAndReset]);
+
   const cancelActiveTrip = useCallback(async () => {
     if (!activeRequest?.id || cancellingRef.current) return false;
     cancellingRef.current = true;
     setIsCancellingTrip(true);
-    
-    const tripId = activeRequest.id;
+
+    const targetRequest = activeRequest;
+    const tripId = targetRequest.id;
     selfCancelledTripId.current = tripId;
-    
-    // Set radar lockout equal to the REMAINING duration of the cancelled trip (not the full duration)
-    applyCancellationCooldownFromRequest(null, activeRequest);
 
     try {
       const { error } = await supabase.rpc('captain_cancel_active_trip', {
@@ -914,6 +920,9 @@ export function useDriverTransactions(
       });
 
       if (error) throw error;
+
+      // Set radar lockout equal to the REMAINING duration only after DB confirmation succeeds
+      applyCancellationCooldownFromRequest(null, targetRequest);
 
       toast({
         title: t('tripCancelledTitle'),
@@ -925,13 +934,47 @@ export function useDriverTransactions(
       return true;
     } catch (error) {
       if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel trip failed:', error);
+
+      try {
+        const { data: statusRow } = await supabase
+          .from('ride_requests')
+          .select('id,status,started_at,accepted_at,arrived_at,pickup_eta_minutes,estimated_duration_minutes,estimated_distance_km,cancelled_at,updated_at')
+          .eq('id', tripId)
+          .maybeSingle();
+        const status = String((statusRow as Record<string, unknown> | null)?.status || '').toUpperCase();
+        if (status === 'CANCELLED') {
+          applyCancellationCooldownFromRequest(statusRow as RideRequestRow, targetRequest);
+          cleanUpAndReset();
+          return true;
+        }
+        if (status === 'COMPLETED') {
+          cleanUpAndReset();
+          return true;
+        }
+      } catch (statusError) {
+        if ((process.env.NODE_ENV !== 'production')) console.warn('[Driver transactions] cancel trip status check failed:', statusError);
+      }
+
       if (isAlreadyClosedTripError(error)) {
         cleanUpAndReset();
         return true;
       }
+
       if (selfCancelledTripId.current === tripId) {
         selfCancelledTripId.current = null;
       }
+
+      const rawMsg = String((error as { message?: string } | null)?.message || '').toLowerCase();
+      if (rawMsg.includes('cannot_cancel_active_trip')) {
+        void loadAcceptedRequest(tripId).catch(() => {});
+        toast({
+          variant: 'warning',
+          title: t('tripCancelFailedTitle'),
+          description: 'الرحلة بدأت بالفعل ويتطلب إلغاؤها موافقة الراكب عبر زر إيقاف الرحلة.',
+        });
+        return false;
+      }
+
       toast({
         variant: 'destructive',
         title: t('tripCancelFailedTitle'),
@@ -942,7 +985,7 @@ export function useDriverTransactions(
       cancellingRef.current = false;
       setIsCancellingTrip(false);
     }
-  }, [activeRequest?.id, cleanUpAndReset, toast]);
+  }, [activeRequest, applyCancellationCooldownFromRequest, cleanUpAndReset, loadAcceptedRequest, t, toast]);
 
   /**
    * The captain rates the rider through DriverRatingModal (captain-view renders it on
@@ -1015,14 +1058,16 @@ export function useDriverTransactions(
     endTrip,
     isEndingTrip,
     cancelActiveTrip,
+    acknowledgeMutualCancel,
     isCancellingTrip,
     rateAndFinishTrip,
     isRatingRider,
     requestWeeklyReport,
     isRequestingReport,
   }), [
-    activeRequest,
     acceptedRider,
+    acknowledgeMutualCancel,
+    activeRequest,
     cancelActiveTrip,
     cancelOffer,
     endTrip,
@@ -1090,6 +1135,11 @@ function mapRideRequestToTrip(row: RideRequestRow | null): Trip | null {
       ? String(row.pricing_preference).toUpperCase() as 'APP' | 'TAXI' | 'FREE'
       : null),
     seats: toNumber(row.number_of_riders) ?? toNumber(row.seats) ?? 1,
+    cancel_requested_by:
+      row.cancel_requested_by === 'rider' || row.cancel_requested_by === 'captain'
+        ? row.cancel_requested_by
+        : null,
+    cancel_request_time: typeof row.cancel_request_time === 'string' ? row.cancel_request_time : null,
   };
 }
 

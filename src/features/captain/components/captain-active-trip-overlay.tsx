@@ -25,6 +25,7 @@ interface CaptainActiveTripOverlayProps {
   onStartTrip: () => void | Promise<void>;
   onCompleteTrip: () => void | Promise<void>;
   onCancelTrip: () => void | Promise<void>;
+  onMutualCancelConfirmed?: () => void | Promise<void>;
 }
 
 const styles = {
@@ -58,6 +59,7 @@ export const CaptainActiveTripOverlay = React.memo(function CaptainActiveTripOve
   onStartTrip,
   onCompleteTrip,
   onCancelTrip,
+  onMutualCancelConfirmed,
 }: CaptainActiveTripOverlayProps) {
   const t = useTranslations('captainDashboard');
 
@@ -93,6 +95,7 @@ export const CaptainActiveTripOverlay = React.memo(function CaptainActiveTripOve
           onStartTrip={onStartTrip}
           onCompleteTrip={onCompleteTrip}
           onCancelTrip={onCancelTrip}
+          onMutualCancelConfirmed={onMutualCancelConfirmed}
         />
       </div>
     </div>

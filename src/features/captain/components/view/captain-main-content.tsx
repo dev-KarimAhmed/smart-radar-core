@@ -100,8 +100,14 @@ export function CaptainMainContent({
           onArrived={onConfirmArrival}
           onStartTrip={onStartTrip}
           onCompleteTrip={onCompleteTrip}
-          onCancelTrip={() => {
-            void driverOps.cancelActiveTrip();
+          onCancelTrip={async () => {
+            const ok = await driverOps.cancelActiveTrip();
+            if (ok) {
+              dispatch({ type: 'TRIP_CANCELLED' });
+            }
+          }}
+          onMutualCancelConfirmed={() => {
+            driverOps.acknowledgeMutualCancel?.();
             dispatch({ type: 'TRIP_CANCELLED' });
           }}
         />
