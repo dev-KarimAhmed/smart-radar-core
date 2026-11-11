@@ -180,9 +180,6 @@ export function useDriverTransactions(
         try {
           await supabase.rpc('set_captain_status', { p_status: 'active' });
         } catch {}
-        try {
-          await supabase.from('profiles').update({ status: 'ACTIVE' }).eq('id', captainId);
-        } catch {}
       })();
     }
   }, [captainId, clearPendingOffer, setDriverStatus]);
@@ -205,22 +202,34 @@ export function useDriverTransactions(
     setDriverStatus?.('busy');
 
     if (trip.riderId) {
-      const { data: riderProfile } = await supabase
-        .from('profiles')
-        .select('id,full_name,phone,rating,country_id,governorate_id,district_id')
-        .eq('id', trip.riderId)
-        .maybeSingle();
+      let riderRow: Record<string, unknown> | null = null;
+      try {
+        const { data: rpcProfiles, error: rpcError } = await supabase.rpc('get_safe_counterpart_profiles', {
+          p_user_ids: [trip.riderId],
+        });
+        if (!rpcError && Array.isArray(rpcProfiles) && rpcProfiles.length > 0) {
+          riderRow = rpcProfiles[0] as Record<string, unknown>;
+        } else if (rpcError) {
+          const { data: riderProfile } = await supabase
+            .from('profiles')
+            .select('id,full_name,phone,rating,country_id,governorate_id,district_id')
+            .eq('id', trip.riderId)
+            .maybeSingle();
+          riderRow = (riderProfile as Record<string, unknown> | null) ?? null;
+        }
+      } catch {
+        // Non-blocking fallback
+      }
 
-      if (riderProfile) {
-        const row = riderProfile as Record<string, unknown>;
+      if (riderRow) {
         setAcceptedRider({
-          uid: String(row.id),
+          uid: String(riderRow.id),
           role: 'rider',
-          name: String(row.full_name || 'Rider'),
-          phone: String(row.phone || ''),
-          governorate: String(row.governorate_id || ''),
-          district: String(row.district_id || ''),
-          rating: Number(row.rating || 5),
+          name: String(riderRow.full_name || 'Rider'),
+          phone: String(riderRow.phone || ''),
+          governorate: String(riderRow.governorate_id || ''),
+          district: String(riderRow.district_id || ''),
+          rating: Number(riderRow.rating || 5),
         });
       }
     }
@@ -258,11 +267,11 @@ export function useDriverTransactions(
         return;
       }
 
-      // 2. If not accepted, check which requests are still active in captain_radar_requests
-      const { data: radarRows, error } = await supabase
-        .from('captain_radar_requests')
-        .select('id, created_at')
-        .in('id', pendingTripIds);
+      // 2. If not accepted, check which requests are still active via get_captain_radar_requests
+      const { data: radarRows, error } = await supabase.rpc('get_captain_radar_requests', {
+        p_request_ids: pendingTripIds,
+        p_limit: 50,
+      });
 
       if (isCancelled) return;
 
@@ -270,6 +279,7 @@ export function useDriverTransactions(
 
       const activeMap = new Map<string, number>();
       for (const row of (radarRows || []) as any[]) {
+        if (String(row?.status || '').toUpperCase() !== 'PENDING') continue;
         const createdAt = row.created_at ? new Date(row.created_at).getTime() : 0;
         activeMap.set(String(row.id), createdAt);
       }
@@ -554,12 +564,13 @@ export function useDriverTransactions(
             clearPendingOffer(targetRequestId);
             return false;
           }
-          // Direct delete as last-mile fallback
+          // Direct delete as last-mile fallback (never touch accepted offers)
           await supabase
             .from('ride_offers')
             .delete()
             .eq('request_id', targetRequestId)
-            .eq('captain_id', captainId);
+            .eq('captain_id', captainId)
+            .neq('status', 'ACCEPTED');
         }
       }
 

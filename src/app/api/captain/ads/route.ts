@@ -1,24 +1,89 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { CAPTAIN_ADS_CONFIG } from '@/features/captain/config/captain-ads-config';
+import {
+  consumeRateLimit,
+  getClientIp,
+  getVerifiedUser,
+  isValidStorageRelativePath,
+} from '@/shared/server/api-auth-guard';
 
 export const dynamic = 'force-dynamic';
+
+const SEAT_AD_PATH_PATTERN = /^[a-zA-Z0-9_-]{8,128}\/seat_\d+_\d+(?:_[a-f0-9-]+)?\.(png|jpe?g|webp|gif)$/i;
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-// ذاكرة مساندة بالسيرفر في حال تعذر الاتصال بجدول Supabase قبل تطبيق الـ Migration
-const inMemoryFallbackStore = new Map<string, any[]>();
+const DATA_IMAGE_PATTERN = /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=\r\n]+)$/i;
 
-async function resolveAdImageUrl(url: string): Promise<string> {
+function isValidSeatNumber(value: unknown): boolean {
+  const num = Number(value);
+  return Number.isInteger(num) && num >= 1 && num <= 20;
+}
+
+function validateSafeImageInput(raw: unknown): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== 'string') {
+    return { ok: false, error: 'invalid_image_url' };
+  }
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 6_000_000) {
+    return { ok: false, error: 'invalid_image_size' };
+  }
+
+  if (trimmed.startsWith('data:')) {
+    const match = DATA_IMAGE_PATTERN.exec(trimmed);
+    if (!match) {
+      return { ok: false, error: 'unsupported_image_mime_type' };
+    }
+    const base64Clean = match[2].replace(/\s+/g, '');
+    const estimatedBytes = Math.floor((base64Clean.length * 3) / 4);
+    if (estimatedBytes <= 0 || estimatedBytes > CAPTAIN_ADS_CONFIG.MAX_IMAGE_SIZE_BYTES + 2048) {
+      return { ok: false, error: 'image_exceeds_size_limit' };
+    }
+    return { ok: true, value: `data:${match[1].toLowerCase()};base64,${base64Clean}` };
+  }
+
+  if (
+    trimmed.startsWith('/api/captain/ads/image?') ||
+    trimmed.startsWith('/icons/') ||
+    trimmed.startsWith('/images/')
+  ) {
+    return { ok: true, value: trimmed };
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || (parsed.protocol === 'http:' && process.env.NODE_ENV !== 'production')) {
+      return { ok: true, value: trimmed };
+    }
+  } catch {
+    return { ok: false, error: 'invalid_image_url' };
+  }
+
+  return { ok: false, error: 'disallowed_image_protocol' };
+}
+
+async function resolveAdImageUrl(url: string, captainId: string): Promise<string> {
   if (!url || typeof url !== 'string') return url;
 
   // إذا كان الرابط هو رابط عام مكسور لسلة captain-documents الخاصة
   if (url.includes('/storage/v1/object/public/captain-documents/')) {
     const parts = url.split('/storage/v1/object/public/captain-documents/');
-    const cleanPath = parts[1]?.replace(/^\/+/, '');
-    if (cleanPath) {
+    let cleanPath = '';
+    try {
+      cleanPath = decodeURIComponent(parts[1] || '').replace(/^\/+/, '').trim();
+    } catch {
+      return url;
+    }
+
+    if (
+      cleanPath &&
+      isValidStorageRelativePath(cleanPath) &&
+      cleanPath.startsWith(`${captainId}/`) &&
+      SEAT_AD_PATH_PATTERN.test(cleanPath)
+    ) {
       try {
         const { data: signData } = await supabaseAdmin.storage
           .from('captain-documents')
@@ -43,16 +108,16 @@ async function uploadAdImageIfDataUrl(
 ): Promise<string> {
   if (typeof imageUrl === 'string' && imageUrl.startsWith('data:image/')) {
     try {
-      const matches = imageUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+      const matches = imageUrl.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,(.+)$/i);
       if (matches) {
-        const contentType = matches[1];
+        const rawMime = matches[1].toLowerCase();
+        const contentType = rawMime === 'image/jpg' ? 'image/jpeg' : rawMime;
         const base64Data = matches[2];
         const buffer = Buffer.from(base64Data, 'base64');
-        const ext = contentType.split('/')[1] || 'png';
+        const extRaw = contentType.split('/')[1] || 'png';
+        const ext = extRaw === 'jpeg' ? 'jpg' : extRaw;
         const cleanFolder = captainId.replace(/[^a-zA-Z0-9_-]/g, '_') || 'captain';
-        const filePath = `${cleanFolder}/seat_${seatNumber}_${Date.now()}.${ext}`;
-
-        let uploadSuccess = false;
+        const filePath = `${cleanFolder}/seat_${Number(seatNumber)}_${Date.now()}.${ext}`;
 
         // أولاً: محاولة الرفع إلى سلة إعلانات الكباتن العامة captain-ads
         try {
@@ -117,54 +182,54 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const captainId = (searchParams.get('captainId') || '').trim();
 
-    if (!captainId) {
+    if (!captainId || !isUuid(captainId)) {
       return NextResponse.json(
-        { success: false, error: 'captain_id_is_required' },
+        { success: false, error: 'valid_captain_id_is_required' },
         { status: 400 }
       );
     }
 
-    // 1. محاولة الاستعلام من جدول captain_ads في Supabase
-    try {
-      const { data: rows, error: fetchErr } = await supabaseAdmin
-        .from('captain_ads')
-        .select('*')
-        .eq('captain_id', captainId)
-        .order('seat_number', { ascending: true });
+    const caller = await getVerifiedUser(req, { allowSuspended: true });
+    const canSeePaused = Boolean(caller && (caller.role === 'ADMIN' || caller.id === captainId));
 
-      if (!fetchErr && Array.isArray(rows)) {
-        const formatted = await Promise.all(
-          rows.map(async (r) => ({
-            id: r.id,
-            captainId: r.captain_id,
-            seatNumber: r.seat_number,
-            seatLabel: r.seat_label || 'إعلان ترويجي',
-            imageUrl: await resolveAdImageUrl(r.image_url),
-            caption: r.caption || undefined,
-            status: r.status || 'ACTIVE',
-            createdAt: new Date(r.created_at).getTime(),
-            updatedAt: new Date(r.updated_at).getTime(),
-          }))
-        );
-        return NextResponse.json({ success: true, ads: formatted });
-      }
-    } catch (dbErr) {
-      console.warn('[Captain Ads API] Supabase query fallback:', dbErr);
+    // الاستعلام من جدول captain_ads في Supabase
+    let adsQuery = supabaseAdmin
+      .from('captain_ads')
+      .select('*')
+      .eq('captain_id', captainId);
+
+    if (!canSeePaused) {
+      adsQuery = adsQuery.eq('status', 'ACTIVE');
     }
 
-    // 2. استخدام الذاكرة المساندة بالسيرفر كـ Fallback فوري
-    const fallbackList = inMemoryFallbackStore.get(captainId) || [];
-    const formattedFallback = await Promise.all(
-      fallbackList.map(async (ad) => ({
-        ...ad,
-        imageUrl: await resolveAdImageUrl(ad.imageUrl),
+    const { data: rows, error: fetchErr } = await adsQuery.order('seat_number', { ascending: true });
+
+    if (fetchErr) {
+      console.error('[Captain Ads API] Supabase GET query error:', fetchErr);
+      return NextResponse.json(
+        { success: false, error: 'captain_ads_fetch_failed' },
+        { status: 500 }
+      );
+    }
+
+    const formatted = await Promise.all(
+      (rows || []).map(async (r) => ({
+        id: r.id,
+        captainId: r.captain_id,
+        seatNumber: r.seat_number,
+        seatLabel: r.seat_label || 'إعلان ترويجي',
+        imageUrl: await resolveAdImageUrl(r.image_url, r.captain_id),
+        caption: r.caption || undefined,
+        status: r.status || 'ACTIVE',
+        createdAt: new Date(r.created_at).getTime(),
+        updatedAt: new Date(r.updated_at).getTime(),
       }))
     );
-    return NextResponse.json({ success: true, ads: formattedFallback });
-  } catch (error: any) {
+    return NextResponse.json({ success: true, ads: formatted });
+  } catch (error) {
     console.error('[Captain Ads API GET Error]:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'internal_server_error' },
+      { success: false, error: 'internal_server_error' },
       { status: 500 }
     );
   }
@@ -175,12 +240,48 @@ export async function GET(req: Request) {
  */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { captainId, seatNumber, seatLabel, imageUrl, caption } = body;
-
-    if (!captainId || !seatNumber || !imageUrl) {
+    const ip = getClientIp(req);
+    const rate = consumeRateLimit(`captain-ads-write:${ip}`, 20, 60_000);
+    if (!rate.allowed) {
       return NextResponse.json(
-        { success: false, error: 'missing_required_fields' },
+        { success: false, error: 'rate_limit_exceeded' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
+    const caller = await getVerifiedUser(req);
+    if (!caller) {
+      return NextResponse.json(
+        { success: false, error: 'authentication_required' },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { captainId: rawCaptainId, seatNumber, seatLabel, imageUrl, caption } = body;
+    const captainId = String(rawCaptainId || caller.id).trim();
+
+    if (!isUuid(captainId) || !isValidSeatNumber(seatNumber) || !imageUrl) {
+      return NextResponse.json(
+        { success: false, error: 'missing_or_invalid_required_fields' },
+        { status: 400 }
+      );
+    }
+
+    const isAdmin = caller.role === 'ADMIN';
+    const isCaptainOwner =
+      caller.id === captainId && (caller.role === 'CAPTAIN' || caller.role === 'DRIVER');
+    if (!isAdmin && !isCaptainOwner) {
+      return NextResponse.json(
+        { success: false, error: 'forbidden_captain_ad_access' },
+        { status: 403 }
+      );
+    }
+
+    const imageValidation = validateSafeImageInput(imageUrl);
+    if (!imageValidation.ok) {
+      return NextResponse.json(
+        { success: false, error: imageValidation.error },
         { status: 400 }
       );
     }
@@ -197,60 +298,55 @@ export async function POST(req: Request) {
     }
 
     const trimmedCaption = caption ? String(caption).trim().slice(0, CAPTAIN_ADS_CONFIG.MAX_CAPTION_LENGTH) : null;
+    const safeSeatLabel = seatLabel ? String(seatLabel).trim().slice(0, 80) : 'إعلان ترويجي';
     const nowIso = new Date().toISOString();
     const nowMs = Date.now();
 
-    const uploadedImageUrl = await uploadAdImageIfDataUrl(captainId, seatNumber, imageUrl);
+    const uploadedImageUrl = await uploadAdImageIfDataUrl(captainId, Number(seatNumber), imageValidation.value);
 
-    // 1. محاولة الإدخال في Supabase
-    let savedRow: any = null;
-    try {
-      const { data, error: upsertErr } = await supabaseAdmin
-        .from('captain_ads')
-        .upsert(
-          {
-            captain_id: captainId,
-            seat_number: Number(seatNumber),
-            seat_label: seatLabel || 'إعلان ترويجي',
-            image_url: uploadedImageUrl,
-            caption: trimmedCaption,
-            status: 'ACTIVE',
-            updated_at: nowIso,
-          },
-          { onConflict: 'captain_id,seat_number' }
-        )
-        .select()
-        .single();
+    // الإدخال في Supabase
+    const { data: savedRow, error: upsertErr } = await supabaseAdmin
+      .from('captain_ads')
+      .upsert(
+        {
+          captain_id: captainId,
+          seat_number: Number(seatNumber),
+          seat_label: safeSeatLabel,
+          image_url: uploadedImageUrl,
+          caption: trimmedCaption,
+          status: 'ACTIVE',
+          updated_at: nowIso,
+        },
+        { onConflict: 'captain_id,seat_number' }
+      )
+      .select()
+      .single();
 
-      if (!upsertErr && data) {
-        savedRow = data;
-      }
-    } catch (upsertErr) {
-      console.warn('[Captain Ads API] Supabase upsert fallback:', upsertErr);
+    if (upsertErr || !savedRow) {
+      console.error('[Captain Ads API] Supabase upsert error:', upsertErr);
+      return NextResponse.json(
+        { success: false, error: 'captain_ad_save_failed' },
+        { status: 500 }
+      );
     }
 
     const createdAd = {
-      id: savedRow?.id || `ad_${nowMs}_${Math.random().toString(36).substring(2, 7)}`,
+      id: savedRow.id,
       captainId,
       seatNumber: Number(seatNumber),
-      seatLabel: seatLabel || 'إعلان ترويجي',
+      seatLabel: safeSeatLabel,
       imageUrl: uploadedImageUrl,
       caption: trimmedCaption || undefined,
       status: 'ACTIVE' as const,
-      createdAt: savedRow ? new Date(savedRow.created_at).getTime() : nowMs,
+      createdAt: new Date(savedRow.created_at).getTime(),
       updatedAt: nowMs,
     };
 
-    // مزامنة الذاكرة المساندة بالسيرفر
-    const existingList = inMemoryFallbackStore.get(captainId) || [];
-    const filtered = existingList.filter((a) => a.seatNumber !== Number(seatNumber));
-    inMemoryFallbackStore.set(captainId, [...filtered, createdAd].sort((a, b) => a.seatNumber - b.seatNumber));
-
     return NextResponse.json({ success: true, ad: createdAd });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Captain Ads API POST Error]:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'internal_server_error' },
+      { success: false, error: 'internal_server_error' },
       { status: 500 }
     );
   }
@@ -261,12 +357,57 @@ export async function POST(req: Request) {
  */
 export async function PUT(req: Request) {
   try {
-    const body = await req.json();
-    const { adId, captainId, seatNumber, caption, imageUrl, status } = body;
-
-    if (!captainId || (!adId && !seatNumber)) {
+    const ip = getClientIp(req);
+    const rate = consumeRateLimit(`captain-ads-write:${ip}`, 20, 60_000);
+    if (!rate.allowed) {
       return NextResponse.json(
-        { success: false, error: 'captain_id_and_ad_identifier_required' },
+        { success: false, error: 'rate_limit_exceeded' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
+    const caller = await getVerifiedUser(req);
+    if (!caller) {
+      return NextResponse.json(
+        { success: false, error: 'authentication_required' },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { adId, captainId: rawCaptainId, seatNumber, caption, imageUrl, status } = body;
+    const captainId = String(rawCaptainId || caller.id).trim();
+
+    if (!isUuid(captainId) || (!adId && !seatNumber)) {
+      return NextResponse.json(
+        { success: false, error: 'valid_captain_id_and_ad_identifier_required' },
+        { status: 400 }
+      );
+    }
+
+    const isAdmin = caller.role === 'ADMIN';
+    const isCaptainOwner =
+      caller.id === captainId && (caller.role === 'CAPTAIN' || caller.role === 'DRIVER');
+    if (!isAdmin && !isCaptainOwner) {
+      return NextResponse.json(
+        { success: false, error: 'forbidden_captain_ad_access' },
+        { status: 403 }
+      );
+    }
+
+    if (seatNumber !== undefined && !isValidSeatNumber(seatNumber)) {
+      return NextResponse.json(
+        { success: false, error: 'invalid_seat_number' },
+        { status: 400 }
+      );
+    }
+
+    if (caption && typeof caption === 'string' && caption.trim().length > CAPTAIN_ADS_CONFIG.MAX_CAPTION_LENGTH) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `caption_exceeds_limit_${CAPTAIN_ADS_CONFIG.MAX_CAPTION_LENGTH}`,
+        },
         { status: 400 }
       );
     }
@@ -280,76 +421,103 @@ export async function PUT(req: Request) {
     }
 
     let uploadedImageUrl = imageUrl;
-    if (imageUrl) {
-      uploadedImageUrl = await uploadAdImageIfDataUrl(captainId, seatNumber || 1, imageUrl);
+    if (imageUrl !== undefined) {
+      const imageValidation = validateSafeImageInput(imageUrl);
+      if (!imageValidation.ok) {
+        return NextResponse.json(
+          { success: false, error: imageValidation.error },
+          { status: 400 }
+        );
+      }
+      uploadedImageUrl = await uploadAdImageIfDataUrl(captainId, seatNumber || 1, imageValidation.value);
       updates.image_url = uploadedImageUrl;
     }
 
-    if (status) updates.status = status;
-    if (seatNumber) updates.seat_number = Number(seatNumber);
-
-    try {
-      let updatedInDb = false;
-      if (adId && isUuid(adId)) {
-        const { data, error } = await supabaseAdmin
-          .from('captain_ads')
-          .update(updates)
-          .eq('id', adId)
-          .select();
-        if (!error && data && data.length > 0) {
-          updatedInDb = true;
-        }
+    if (status !== undefined) {
+      const normalizedStatus = String(status).toUpperCase().trim();
+      if (normalizedStatus !== 'ACTIVE' && normalizedStatus !== 'PAUSED') {
+        return NextResponse.json(
+          { success: false, error: 'invalid_ad_status' },
+          { status: 400 }
+        );
       }
-
-      if (!updatedInDb && seatNumber) {
-        // تحديث برقم المقعد ومعرف الكابتن
-        const { data, error } = await supabaseAdmin
-          .from('captain_ads')
-          .update(updates)
-          .eq('captain_id', captainId)
-          .eq('seat_number', Number(seatNumber))
-          .select();
-
-        if (!error && data && data.length > 0) {
-          updatedInDb = true;
-        } else {
-          // محاولة Upsert في حال لم يكن السجل موجوداً مسبقاً
-          await supabaseAdmin.from('captain_ads').upsert(
-            {
-              captain_id: captainId,
-              seat_number: Number(seatNumber),
-              ...updates,
-            },
-            { onConflict: 'captain_id,seat_number' }
-          );
-        }
-      }
-    } catch (err) {
-      console.warn('[Captain Ads API] Supabase update fallback:', err);
+      updates.status = normalizedStatus;
     }
 
-    // تحديث الذاكرة المساندة بالسيرفر
-    const existingList = inMemoryFallbackStore.get(captainId) || [];
-    const updatedList = existingList.map((ad) => {
-      if (ad.id === adId || (seatNumber && ad.seatNumber === Number(seatNumber))) {
-        return {
-          ...ad,
-          imageUrl: uploadedImageUrl || ad.imageUrl,
-          caption: updates.caption !== undefined ? (updates.caption || undefined) : ad.caption,
-          status: updates.status || ad.status,
-          seatNumber: updates.seat_number ? Number(updates.seat_number) : ad.seatNumber,
-          updatedAt: Date.now(),
-        };
+    if (seatNumber !== undefined) updates.seat_number = Number(seatNumber);
+
+    let updatedInDb = false;
+    if (adId && isUuid(String(adId))) {
+      const { data, error } = await supabaseAdmin
+        .from('captain_ads')
+        .update(updates)
+        .eq('id', String(adId))
+        .eq('captain_id', captainId)
+        .select();
+      if (error) {
+        console.error('[Captain Ads API] Supabase PUT update by id error:', error);
+        return NextResponse.json(
+          { success: false, error: 'captain_ad_update_failed' },
+          { status: 500 }
+        );
       }
-      return ad;
-    });
-    inMemoryFallbackStore.set(captainId, updatedList);
+      if (data && data.length > 0) {
+        updatedInDb = true;
+      }
+    }
+
+    if (!updatedInDb && seatNumber !== undefined) {
+      // تحديث برقم المقعد ومعرف الكابتن
+      const { data, error } = await supabaseAdmin
+        .from('captain_ads')
+        .update(updates)
+        .eq('captain_id', captainId)
+        .eq('seat_number', Number(seatNumber))
+        .select();
+
+      if (error) {
+        console.error('[Captain Ads API] Supabase PUT update by seat error:', error);
+        return NextResponse.json(
+          { success: false, error: 'captain_ad_update_failed' },
+          { status: 500 }
+        );
+      }
+
+      if (data && data.length > 0) {
+        updatedInDb = true;
+      } else if (updates.image_url) {
+        // محاولة Upsert فقط عند توفر صورة صالحة
+        const { error: upsertErr } = await supabaseAdmin.from('captain_ads').upsert(
+          {
+            captain_id: captainId,
+            seat_number: Number(seatNumber),
+            ...updates,
+          },
+          { onConflict: 'captain_id,seat_number' }
+        );
+        if (upsertErr) {
+          console.error('[Captain Ads API] Supabase PUT upsert error:', upsertErr);
+          return NextResponse.json(
+            { success: false, error: 'captain_ad_update_failed' },
+            { status: 500 }
+          );
+        }
+        updatedInDb = true;
+      }
+    }
+
+    if (!updatedInDb) {
+      return NextResponse.json(
+        { success: false, error: 'captain_ad_not_found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({ success: true, imageUrl: uploadedImageUrl });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Captain Ads API PUT Error]:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'internal_server_error' },
+      { success: false, error: 'internal_server_error' },
       { status: 500 }
     );
   }
@@ -360,44 +528,72 @@ export async function PUT(req: Request) {
  */
 export async function DELETE(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const rate = consumeRateLimit(`captain-ads-write:${ip}`, 20, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'rate_limit_exceeded' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
+    const caller = await getVerifiedUser(req);
+    if (!caller) {
+      return NextResponse.json(
+        { success: false, error: 'authentication_required' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
-    const captainId = (searchParams.get('captainId') || '').trim();
+    const captainId = (searchParams.get('captainId') || caller.id).trim();
     const adId = (searchParams.get('adId') || '').trim();
     const seatNumberParam = searchParams.get('seatNumber');
 
-    if (!captainId || (!adId && !seatNumberParam)) {
+    if (!isUuid(captainId) || (!adId && !seatNumberParam)) {
       return NextResponse.json(
-        { success: false, error: 'captain_id_and_ad_identifier_required' },
+        { success: false, error: 'valid_captain_id_and_ad_identifier_required' },
         { status: 400 }
       );
     }
 
-    try {
-      let query = supabaseAdmin.from('captain_ads').delete();
-      if (adId && isUuid(adId)) {
-        query = query.eq('id', adId).eq('captain_id', captainId);
-      } else if (seatNumberParam) {
-        query = query.eq('captain_id', captainId).eq('seat_number', Number(seatNumberParam));
-      }
-      await query;
-    } catch (err) {
-      console.warn('[Captain Ads API] Supabase delete fallback:', err);
+    const isAdmin = caller.role === 'ADMIN';
+    const isCaptainOwner =
+      caller.id === captainId && (caller.role === 'CAPTAIN' || caller.role === 'DRIVER');
+    if (!isAdmin && !isCaptainOwner) {
+      return NextResponse.json(
+        { success: false, error: 'forbidden_captain_ad_access' },
+        { status: 403 }
+      );
     }
 
-    // تحديث الذاكرة المساندة بالسيرفر
-    const existingList = inMemoryFallbackStore.get(captainId) || [];
-    const filtered = existingList.filter((ad) => {
-      if (adId && ad.id === adId) return false;
-      if (seatNumberParam && ad.seatNumber === Number(seatNumberParam)) return false;
-      return true;
-    });
-    inMemoryFallbackStore.set(captainId, filtered);
+    if (seatNumberParam !== null && !isValidSeatNumber(seatNumberParam)) {
+      return NextResponse.json(
+        { success: false, error: 'invalid_seat_number' },
+        { status: 400 }
+      );
+    }
+
+    let query = supabaseAdmin.from('captain_ads').delete();
+    if (adId && isUuid(adId)) {
+      query = query.eq('id', adId).eq('captain_id', captainId);
+    } else if (seatNumberParam) {
+      query = query.eq('captain_id', captainId).eq('seat_number', Number(seatNumberParam));
+    }
+    const { error: deleteErr } = await query;
+    if (deleteErr) {
+      console.error('[Captain Ads API] Supabase delete error:', deleteErr);
+      return NextResponse.json(
+        { success: false, error: 'captain_ad_delete_failed' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Captain Ads API DELETE Error]:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'internal_server_error' },
+      { success: false, error: 'internal_server_error' },
       { status: 500 }
     );
   }

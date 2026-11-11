@@ -7,6 +7,7 @@ import { Panel, Field, styles } from './driver-profile-shared';
 import { CaptainUnifiedTermsModal } from '@/shared/components/captain-unified-terms-modal';
 import { Button } from '@/components/ui/button';
 import { downloadPdfInWorker } from '@/shared/utils/background-pdf-download';
+import { getClientAccessToken } from '@/shared/services/supabase-auth-headers';
 
 export function DriverContractPanel({ state, user }: { state?: any; user?: any }) {
   const t = useTranslations('captainProfile');
@@ -67,9 +68,10 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
 
     try {
       setIsDownloadingPdf(true);
+      const accessToken = (await getClientAccessToken()) || undefined;
       const downloadUrl = `/api/captain/contract?captainId=${encodeURIComponent(targetId)}&download=true&_t=${Date.now()}`;
       const filename = `Bynkcom_Captain_Contract_${targetId.slice(0, 8).toUpperCase()}.pdf`;
-      await downloadPdfInWorker({ url: downloadUrl, filename });
+      await downloadPdfInWorker({ url: downloadUrl, filename, accessToken });
     } catch (err) {
       console.warn('PDF Worker download error:', err);
     } finally {

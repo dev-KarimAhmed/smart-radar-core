@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getVerifiedUser } from '@/shared/server/api-auth-guard';
 import {
   DEFAULT_TRANSFER_CHANNELS,
   DEFAULT_FINANCIAL_DELEGATES,
@@ -11,6 +12,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    const caller = await getVerifiedUser(req, { allowSuspended: true });
+    if (!caller) {
+      return NextResponse.json(
+        { success: false, error: 'authentication_required' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const countryIdParam = searchParams.get('countryId');
     const governorate = (searchParams.get('governorate') || '').trim();
@@ -85,9 +94,7 @@ export async function GET(req: Request) {
       }
 
       matchedDelegate = activeDelegates.find((d) => {
-        // Direct ID match
         if (distId && d.districtId === distId) return true;
-        // Name match
         if (d.districtName) {
           const dName = d.districtName.trim().toLowerCase();
           return districtNames.some((n) => dName.includes(n) || n.includes(dName));
@@ -119,9 +126,7 @@ export async function GET(req: Request) {
       }
 
       matchedDelegate = activeDelegates.find((d) => {
-        // Direct ID match
         if (govId && d.governorateId === govId) return true;
-        // Name match
         if (d.governorateName) {
           const gName = d.governorateName.trim().toLowerCase();
           return govNames.some((n) => gName.includes(n) || n.includes(gName));
@@ -130,14 +135,10 @@ export async function GET(req: Request) {
       }) || null;
     }
 
-    // If no match was found for captain's district or governorate, matchedDelegate remains null!
-    // No fallback to general or random delegates.
-
     return NextResponse.json({
       success: true,
       channels: activeChannels,
       delegate: matchedDelegate,
-      allDelegates: activeDelegates,
     });
   } catch (error) {
     console.error('[captain/wallet-directory] error:', error);
@@ -147,4 +148,3 @@ export async function GET(req: Request) {
     );
   }
 }
-

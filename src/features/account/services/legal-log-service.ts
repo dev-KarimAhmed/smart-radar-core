@@ -115,7 +115,7 @@ export async function recordLegalDeclaration(params: {
       user_id: params.userId,
       title: auditTitle,
       description: auditDesc,
-      type: 'admin_message',
+      type: 'info',
       is_read: false,
     });
   } catch (e) {

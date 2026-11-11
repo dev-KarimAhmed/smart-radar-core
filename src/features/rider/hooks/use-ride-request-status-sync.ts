@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase-client';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { Offer } from '@/core/types';
 import { cancelRideRequest, fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
@@ -127,9 +128,10 @@ export function useRideRequestStatusSync(params: {
       const lastTouch = new Date((row.started_at || row.updated_at || row.created_at || 0) as string).getTime();
       if (lastTouch > 0 && Date.now() - lastTouch > 4 * 60 * 60 * 1000) {
         try {
+          const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
           await fetch('/api/trip/mutual-cancel', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders,
             body: JSON.stringify({ requestId, action: 'ACCEPT', role: 'rider' }),
           });
         } catch {}
@@ -340,6 +342,35 @@ export function useRideRequestStatusSync(params: {
       window.removeEventListener('online', onOnline);
     };
   }, [dispatch, state.pendingAcceptedOfferId, state.requestId, state.screen]);
+
+  // Hydrate accepted captain's phone lazily via counterpart-gated RPC once TRIP_ACTIVE is reached
+  React.useEffect(() => {
+    const captainId = state.activeTrip?.captainId;
+    if (state.screen !== 'TRIP_ACTIVE' || !captainId || state.activeTrip?.captainPhone) {
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_safe_counterpart_profiles', {
+          p_user_ids: [captainId],
+        });
+        if (!active || error || !Array.isArray(data) || data.length === 0) return;
+        const row = data[0] as Record<string, unknown>;
+        const phone = typeof row.phone === 'string' ? row.phone.trim() : '';
+        if (phone) {
+          dispatch({ type: 'HYDRATE_CAPTAIN_PHONE', captainId, phone });
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [dispatch, state.screen, state.activeTrip?.captainId, state.activeTrip?.captainPhone]);
 
   return {
     countdown,

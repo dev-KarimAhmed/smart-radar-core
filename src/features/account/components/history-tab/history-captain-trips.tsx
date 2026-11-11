@@ -103,14 +103,23 @@ export function HistoryCaptainTrips({
     try {
       const { data } = await supabase
         .from('ride_requests')
-        .select('rider_id, profiles:rider_id(full_name)')
+        .select('rider_id')
         .eq('id', trip.tripId)
         .maybeSingle();
       if (data?.rider_id) {
+        let resolvedRiderName = trip.riderName;
+        try {
+          const { data: safeProfiles } = await supabase.rpc('get_safe_counterpart_profiles', {
+            p_user_ids: [data.rider_id],
+          });
+          if (Array.isArray(safeProfiles) && safeProfiles[0]?.full_name) {
+            resolvedRiderName = safeProfiles[0].full_name;
+          }
+        } catch {}
         setRatingTargetTrip({
           ...trip,
           riderId: data.rider_id,
-          riderName: (data.profiles as any)?.full_name || trip.riderName,
+          riderName: resolvedRiderName,
         });
         return;
       }

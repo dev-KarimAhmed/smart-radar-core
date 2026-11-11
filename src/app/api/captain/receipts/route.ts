@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { hasAdminSectorAccess } from '@/features/admin/lib/admin-permissions';
+import { getVerifiedUser, isValidStorageRelativePath } from '@/shared/server/api-auth-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,25 +11,33 @@ function isUuid(value: string) {
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    let captainId = (searchParams.get('captainId') || '').trim();
-
-    // Support optional Bearer token authorization header
-    if (!captainId) {
-      const authHeader = req.headers.get('authorization') || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      if (token) {
-        try {
-          const { data: authData } = await supabaseAdmin.auth.getUser(token);
-          if (authData?.user?.id) {
-            captainId = authData.user.id;
-          }
-        } catch {}
-      }
+    const caller = await getVerifiedUser(req, { allowSuspended: true });
+    if (!caller) {
+      return NextResponse.json({ success: false, error: 'authentication_required' }, { status: 401 });
     }
 
-    if (!captainId || !isUuid(captainId)) {
+    const { searchParams } = new URL(req.url);
+    const requestedCaptainId = (searchParams.get('captainId') || '').trim();
+    const captainId = requestedCaptainId || caller.id;
+
+    if (!isUuid(captainId)) {
       return NextResponse.json({ success: false, error: 'valid_captain_id_required' }, { status: 400 });
+    }
+
+    if (captainId !== caller.id) {
+      if (caller.role !== 'ADMIN') {
+        return NextResponse.json({ success: false, error: 'forbidden_admin_only' }, { status: 403 });
+      }
+      const adminObj = {
+        id: caller.id,
+        phone: caller.phone,
+        allowed_sectors: caller.allowedSectors,
+        rank_audit_log: caller.rankAuditLog,
+        user_metadata: caller.rawUser?.user_metadata,
+      };
+      if (!hasAdminSectorAccess(adminObj, 'wallet')) {
+        return NextResponse.json({ success: false, error: 'forbidden_sector_access' }, { status: 403 });
+      }
     }
 
     // Query last 5 receipts for this captain
@@ -41,7 +51,7 @@ export async function GET(req: Request) {
 
     if (fetchErr) {
       console.error('[Captain Receipts API] fetch error:', fetchErr);
-      return NextResponse.json({ success: false, error: fetchErr.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'receipts_fetch_failed' }, { status: 500 });
     }
 
     const receipts = await Promise.all(
@@ -49,11 +59,11 @@ export async function GET(req: Request) {
         const metadata = (tx.metadata as Record<string, any>) || {};
 
         let signedImageUrl: string | null = null;
-        if (tx.receipt_path) {
+        if (tx.receipt_path && isValidStorageRelativePath(String(tx.receipt_path))) {
           try {
             const { data: signData } = await supabaseAdmin.storage
               .from('receipts')
-              .createSignedUrl(tx.receipt_path, 3600);
+              .createSignedUrl(String(tx.receipt_path), 3600);
             signedImageUrl = signData?.signedUrl || null;
           } catch (signErr) {
             console.warn('[Captain Receipts API] Failed to sign image URL:', signErr);
@@ -98,9 +108,8 @@ export async function GET(req: Request) {
       success: true,
       receipts,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[Captain Receipts API] unexpected error:', err);
-    return NextResponse.json({ success: false, error: err?.message || 'internal_server_error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'internal_server_error' }, { status: 500 });
   }
 }
-

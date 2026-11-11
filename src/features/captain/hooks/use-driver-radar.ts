@@ -213,31 +213,32 @@ export function useDriverRadar(user: User | null, driverStatus: string, pendingT
     const earliestCreatedAt = new Date(Date.now() - MAX_RADAR_REQUEST_AGE_MS).toISOString();
     const activePendingTripIds = pendingTripIdsRef.current;
 
-    const { data, error } = await supabase
-      .from('captain_radar_requests')
-      .select('*')
-      .eq('status', 'PENDING')
-      .gte('created_at', earliestCreatedAt)
-      .in('origin_h3', cells)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    const { data, error } = await supabase.rpc('get_captain_radar_requests', {
+      p_origin_h3: cells,
+      p_since: earliestCreatedAt,
+      p_limit: 50,
+    });
 
-    let allRows = Array.isArray(data) ? [...data] : [];
+    let allRows = Array.isArray(data)
+      ? data.filter((r: any) => String(r?.status || '').toUpperCase() === 'PENDING')
+      : [];
 
     // Also fetch any requests that this captain has an active pending offer on!
     if (activePendingTripIds && activePendingTripIds.length > 0) {
-      const { data: pendingRows } = await supabase
-        .from('captain_radar_requests')
-        .select('*')
-        .eq('status', 'PENDING')
-        .in('id', activePendingTripIds);
+      const { data: pendingRows } = await supabase.rpc('get_captain_radar_requests', {
+        p_request_ids: activePendingTripIds,
+        p_limit: 50,
+      });
 
       if (pendingRows && Array.isArray(pendingRows)) {
         const existingIds = new Set(allRows.map((r: any) => r.id));
         for (const pRow of pendingRows) {
-          if (!existingIds.has(pRow.id)) {
+          if (
+            String((pRow as any)?.status || '').toUpperCase() === 'PENDING' &&
+            !existingIds.has((pRow as any).id)
+          ) {
             allRows.push(pRow);
-            existingIds.add(pRow.id);
+            existingIds.add((pRow as any).id);
           }
         }
       }

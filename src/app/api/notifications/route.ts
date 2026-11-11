@@ -1,80 +1,51 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getVerifiedUser } from '@/shared/server/api-auth-guard';
 
 export async function DELETE(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-
-    let targetUserId: string | null = null;
-
-    // 1. Authenticate via Bearer token if provided
-    if (token) {
-      try {
-        const { data: authData } = await supabaseAdmin.auth.getUser(token);
-        if (authData?.user?.id) {
-          targetUserId = authData.user.id;
-        }
-      } catch (err) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[/api/notifications] token validation error:', err);
-        }
-      }
-    }
-
-    // 2. Fallback to explicit userId if provided
-    if (!targetUserId && typeof body.userId === 'string' && body.userId.trim().length > 0) {
-      targetUserId = body.userId.trim();
-    }
-
-    const explicitUserId = typeof body.userId === 'string' && body.userId.trim().length > 0
-      ? body.userId.trim()
-      : null;
-
-    const rawIds = Array.isArray(body.ids) ? body.ids : [];
-    const validIds = rawIds
-      .filter((id: unknown): id is string => typeof id === 'string' && id.trim().length > 0)
-      .map((id: string) => id.trim());
-
-    if (!targetUserId && !explicitUserId && validIds.length === 0) {
+    const caller = await getVerifiedUser(req, { allowSuspended: true });
+    if (!caller) {
       return NextResponse.json(
-        { success: false, error: 'unauthorized_missing_user_or_ids' },
+        { success: false, error: 'authentication_required' },
         { status: 401 }
       );
     }
 
+    const targetUserId = caller.id;
+    const body = await req.json().catch(() => ({}));
+
+    const rawIds = Array.isArray(body.ids) ? body.ids : [];
+    const validIds = rawIds
+      .filter((id: unknown): id is string => typeof id === 'string' && id.trim().length > 0 && id.trim().length <= 128)
+      .map((id: string) => id.trim())
+      .slice(0, 500);
+
     const CHUNK_SIZE = 100;
     let totalDeleted = 0;
 
-    // 3. Clear all notifications for user
+    // 1. Clear all notifications owned strictly by the verified caller
     if (body.all === true) {
-      const uidsToClear = new Set<string>();
-      if (targetUserId) uidsToClear.add(targetUserId);
-      if (explicitUserId) uidsToClear.add(explicitUserId);
+      const { error, count } = await supabaseAdmin
+        .from('user_notifications')
+        .delete({ count: 'exact' })
+        .eq('user_id', targetUserId);
 
-      for (const uid of uidsToClear) {
-        const { error, count } = await supabaseAdmin
-          .from('user_notifications')
-          .delete({ count: 'exact' })
-          .eq('user_id', uid);
-
-        if (!error && count) {
-          totalDeleted += count;
-        }
+      if (!error && count) {
+        totalDeleted += count;
       }
 
-      // Also ensure any explicitly provided IDs are deleted
       if (validIds.length > 0) {
         for (let i = 0; i < validIds.length; i += CHUNK_SIZE) {
           const chunk = validIds.slice(i, i + CHUNK_SIZE);
-          const { error, count } = await supabaseAdmin
+          const { error: chunkErr, count: chunkCount } = await supabaseAdmin
             .from('user_notifications')
             .delete({ count: 'exact' })
+            .eq('user_id', targetUserId)
             .in('id', chunk);
 
-          if (!error && count) {
-            totalDeleted += count;
+          if (!chunkErr && chunkCount) {
+            totalDeleted += chunkCount;
           }
         }
       }
@@ -86,7 +57,7 @@ export async function DELETE(req: Request) {
       });
     }
 
-    // 4. Delete specific notifications by IDs
+    // 2. Delete specific notifications scoped strictly to caller user_id
     if (validIds.length === 0) {
       return NextResponse.json(
         { success: false, error: 'no_valid_ids_provided' },
@@ -99,11 +70,13 @@ export async function DELETE(req: Request) {
       const { error, count } = await supabaseAdmin
         .from('user_notifications')
         .delete({ count: 'exact' })
+        .eq('user_id', targetUserId)
         .in('id', chunk);
 
       if (error) {
+        console.error('[/api/notifications] delete error:', error);
         return NextResponse.json(
-          { success: false, error: error.message },
+          { success: false, error: 'notifications_delete_failed' },
           { status: 500 }
         );
       }
@@ -115,9 +88,10 @@ export async function DELETE(req: Request) {
       success: true,
       deletedCount: totalDeleted,
     });
-  } catch (error: any) {
+  } catch (error) {
+    console.error('[/api/notifications] unexpected error:', error);
     return NextResponse.json(
-      { success: false, error: error?.message || 'internal_server_error' },
+      { success: false, error: 'internal_server_error' },
       { status: 500 }
     );
   }

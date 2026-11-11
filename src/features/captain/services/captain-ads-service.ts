@@ -1,4 +1,5 @@
 import { CAPTAIN_ADS_CONFIG } from '../config/captain-ads-config';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 
 export interface CaptainAdItem {
   id: string;
@@ -113,9 +114,10 @@ export async function fetchCaptainAds(captainId: string): Promise<CaptainAdItem[
   if (!captainId) return [];
 
   try {
+    const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
     const res = await fetch(`/api/captain/ads?captainId=${encodeURIComponent(captainId)}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       cache: 'no-store',
     });
 
@@ -188,9 +190,10 @@ export async function saveCaptainAd(
   };
 
   try {
+    const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
     const res = await fetch('/api/captain/ads', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify(payload),
     });
 
@@ -221,9 +224,10 @@ export async function updateCaptainAd(
   updates: Partial<Pick<CaptainAdItem, 'imageUrl' | 'caption' | 'status' | 'seatNumber'>>
 ): Promise<boolean> {
   try {
+    const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
     const res = await fetch('/api/captain/ads', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify({
         adId,
         captainId,
@@ -259,10 +263,12 @@ export async function updateCaptainAd(
  */
 export async function deleteCaptainAd(captainId: string, adId: string): Promise<boolean> {
   try {
+    const authHeaders = await getSupabaseAuthHeaders();
     const res = await fetch(
       `/api/captain/ads?captainId=${encodeURIComponent(captainId)}&adId=${encodeURIComponent(adId)}`,
       {
         method: 'DELETE',
+        headers: authHeaders,
       }
     );
 

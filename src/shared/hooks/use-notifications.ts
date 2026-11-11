@@ -7,6 +7,7 @@ import { parseNotificationContent } from '@/shared/utils/notification-i18n';
 import { playNotificationSound } from '@/shared/utils/notification-sound';
 import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
 import { recordAdminNotificationSeen } from '@/features/account/services/legal-log-service';
+import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 
 export interface AppNotification {
   id: string;
@@ -59,13 +60,6 @@ const storeListeners = new Set<() => void>();
 export function getInitialUserId(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const rawMock =
-      window.localStorage.getItem('radar_sovereign_mock_user') ||
-      window.sessionStorage.getItem('radar_sovereign_mock_user');
-    if (rawMock) {
-      const parsedMock = JSON.parse(rawMock);
-      if (parsedMock?.uid) return String(parsedMock.uid);
-    }
     const raw =
       window.localStorage.getItem('radar_supabase_auth_session') ||
       window.sessionStorage.getItem('radar_supabase_auth_session');
@@ -183,6 +177,10 @@ function updateStore(newItems: AppNotification[], targetUserId?: string | null):
 let lastAddedNotificationHash = '';
 let lastAddedNotificationTimestamp = 0;
 
+const ALLOWED_CLIENT_NOTIFICATION_TYPES = new Set(['info', 'offer', 'trip', 'system']);
+const FORBIDDEN_CLIENT_NOTIFICATION_ID_PATTERN =
+  /(rcpt|topup|notif_top|notif_admin|notif_welcome|notif_inact|notif_ref|notif_verif|notif_status|notif_tier|notif_clear)/i;
+
 export function addNotificationToStore(
   item: Omit<AppNotification, 'timestamp' | 'read'> & { id?: string; read?: boolean },
   targetUserId?: string | null
@@ -211,15 +209,22 @@ export function addNotificationToStore(
   const updated = [newNotif, ...filtered].slice(0, 50);
   updateStore(updated, uid);
 
-  void supabase.from('user_notifications').upsert({
-    id: newNotif.id,
-    user_id: uid,
-    title: newNotif.title,
-    description: newNotif.description,
-    type: newNotif.type || 'system',
-    is_read: newNotif.read,
-    created_at: new Date(newNotif.timestamp).toISOString(),
-  }, { onConflict: 'id' });
+  const normalizedType = String(newNotif.type || 'system').toLowerCase();
+  const dbType = ALLOWED_CLIENT_NOTIFICATION_TYPES.has(normalizedType) ? normalizedType : 'info';
+
+  if (!FORBIDDEN_CLIENT_NOTIFICATION_ID_PATTERN.test(newNotif.id)) {
+    void Promise.resolve(
+      supabase.from('user_notifications').upsert({
+        id: newNotif.id,
+        user_id: uid,
+        title: newNotif.title,
+        description: newNotif.description,
+        type: dbType,
+        is_read: newNotif.read,
+        created_at: new Date(newNotif.timestamp).toISOString(),
+      }, { onConflict: 'id' })
+    ).catch(() => null);
+  }
 }
 
 let isGlobalAppNotificationListenerBound = false;
@@ -620,20 +625,17 @@ export function useNotifications(explicitUserId?: string | null) {
     updateStore(updated, targetUserId);
 
     try {
-      // 1. Authoritative backend API deletion (via service role to bypass RLS/session edge cases)
-      const session = (await supabase.auth.getSession()).data?.session;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const apiPromise = fetch('/api/notifications', {
-        method: 'DELETE',
-        headers,
-        body: JSON.stringify({ ids: idsToDelete, userId: targetUserId }),
-      }).catch((err) => {
-        if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] API delete error:', err);
-      });
+      // 1. Authoritative backend API deletion (via service role with verified Bearer token)
+      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
+      const apiPromise = authHeaders.Authorization
+        ? fetch('/api/notifications', {
+            method: 'DELETE',
+            headers: authHeaders,
+            body: JSON.stringify({ ids: idsToDelete }),
+          }).catch((err) => {
+            if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] API delete error:', err);
+          })
+        : Promise.resolve();
 
       // 2. Client-side RPC & direct query as fast parallel paths
       const rpcPromise = Promise.resolve(
@@ -672,22 +674,18 @@ export function useNotifications(explicitUserId?: string | null) {
 
     try {
       // 1. Authoritative backend API clear-all
-      const session = (await supabase.auth.getSession()).data?.session;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const apiPromise = fetch('/api/notifications', {
-        method: 'DELETE',
-        headers,
-        body: JSON.stringify({
-          all: true,
-          userId: targetUserId,
-        }),
-      }).catch((err) => {
-        if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] API clearAll error:', err);
-      });
+      const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
+      const apiPromise = authHeaders.Authorization
+        ? fetch('/api/notifications', {
+            method: 'DELETE',
+            headers: authHeaders,
+            body: JSON.stringify({
+              all: true,
+            }),
+          }).catch((err) => {
+            if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] API clearAll error:', err);
+          })
+        : Promise.resolve();
 
       // 2. Client-side RPC with IDs
       const rpcPromise = ids.length > 0
