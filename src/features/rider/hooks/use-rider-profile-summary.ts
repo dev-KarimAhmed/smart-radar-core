@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { RiderLocationStatus } from '../components/rider-map';
-import { getCurrencyLabel } from '../services/rider-view-format';
+import { getCurrencyLabel, localizeLiveCurrencyCode } from '@/shared/services/currency-label';
 
 interface RiderProfileLike {
   uid?: string;
@@ -30,7 +30,7 @@ export function useRiderProfileSummary(
   // one tied to their account's registered country — only once a real GPS
   // fix (not a country/district fallback) confirms where they physically are.
   const currencyLabel = locationStatus === 'live' && liveCurrencyCode
-    ? liveCurrencyCode
+    ? localizeLiveCurrencyCode(liveCurrencyCode, countryConfig, user, language)
     : getCurrencyLabel(countryConfig, user, language);
 
   const riderProfile = React.useMemo(() => {

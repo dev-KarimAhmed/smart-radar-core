@@ -129,7 +129,11 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
 
     const validation = validateAdImageFile(file);
     if (!validation.valid) {
+<<<<<<< Updated upstream
       setImageError(validation.error || (isArabic ? 'ملف غير صالح' : 'Invalid file'));
+=======
+      setImageError(validation.error || (isArabic ? 'ملف غير صالح' : 'Invalid image file'));
+>>>>>>> Stashed changes
       return;
     }
 

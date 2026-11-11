@@ -65,13 +65,13 @@ export function FreePricingComparisonGrid({
       {/* 3. عمود حدد سعرك الخاص */}
       <div className={styles.comparisonCardAccent}>
         <div className={styles.comparisonCardHeaderAccent}>{isArabic ? 'حدد سعرك' : 'Your Price'}</div>
-        <div className={styles.comparisonCardRows}>
+        <div className={styles.comparisonCardAccentRows}>
           <div className={styles.comparisonCardRow}>
-            <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full min-w-0">
+            <div className="flex items-center justify-center gap-1 w-full min-w-0">
               <button
                 type="button"
                 onClick={() => onStepPricePerKm(-0.01)}
-                className="h-7 w-5 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
+                className="h-7 w-7 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
                 title="-0.01"
               >
                 <Minus className="h-3 w-3" />
@@ -90,7 +90,7 @@ export function FreePricingComparisonGrid({
               <button
                 type="button"
                 onClick={() => onStepPricePerKm(0.01)}
-                className="h-7 w-5 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
+                className="h-7 w-7 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
                 title="+0.01"
               >
                 <Plus className="h-3 w-3" />
@@ -100,11 +100,11 @@ export function FreePricingComparisonGrid({
           </div>
 
           <div className={styles.comparisonCardRow}>
-            <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full min-w-0">
+            <div className="flex items-center justify-center gap-1 w-full min-w-0">
               <button
                 type="button"
                 onClick={() => onStepPricePerMin(-0.01)}
-                className="h-7 w-5 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
+                className="h-7 w-7 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
                 title="-0.01"
               >
                 <Minus className="h-3 w-3" />
@@ -123,7 +123,7 @@ export function FreePricingComparisonGrid({
               <button
                 type="button"
                 onClick={() => onStepPricePerMin(0.01)}
-                className="h-7 w-5 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
+                className="h-7 w-7 sm:w-6 flex shrink-0 items-center justify-center rounded-md bg-white/5 hover:bg-white/15 text-slate-300 font-bold transition cursor-pointer"
                 title="+0.01"
               >
                 <Plus className="h-3 w-3" />

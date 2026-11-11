@@ -42,19 +42,24 @@ export function ShortDistancesSection({
         className={styles.shortDistancesToggle}
         aria-expanded={isOpen}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 min-w-0">
           <ChevronDown
             className={cn(
               styles.shortDistancesToggleIcon,
               isOpen && styles.shortDistancesToggleIconOpen,
             )}
           />
+<<<<<<< Updated upstream
           <span className="font-bold">
             {isArabic ? 'قم بإعداد سعر المسافات القصيرة' : 'Configure Short Distance Fare'}
+=======
+          <span className="font-bold text-start">
+            {isArabic ? 'إعداد تسعيرة المسافات القصيرة' : 'Configure Short Distance Fare'}
+>>>>>>> Stashed changes
           </span>
         </div>
-        <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
-          ( {isArabic ? `السعر الحالي ${shortDistanceTotal} ${currencyLabel}` : `Current: ${shortDistanceTotal} ${currencyLabel}`} )
+        <span className="shrink-0 text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
+          {isArabic ? `السعر الحالي: ${shortDistanceTotal} ${currencyLabel}` : `Current: ${shortDistanceTotal} ${currencyLabel}`}
         </span>
       </button>
 

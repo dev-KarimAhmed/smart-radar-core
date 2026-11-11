@@ -16,7 +16,7 @@ import { useConnectionGuard } from '../hooks/use-connection-guard';
 import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
 import { useCaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
 import { useCountryConfig } from '@/shared/hooks/use-country-config';
-import { getCurrencyLabel } from '@/shared/services/currency-label';
+import { getCurrencyLabel, localizeLiveCurrencyCode } from '@/shared/services/currency-label';
 import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-from-location';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import {
@@ -127,7 +127,9 @@ export function DriverViewTab() {
   const walletIsReady = wallet.walletLoadState === 'ready';
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
-  const currency = liveCurrencyCode || getCurrencyLabel(countryConfig, user, language);
+  const currency = liveCurrencyCode
+    ? localizeLiveCurrencyCode(liveCurrencyCode, countryConfig, user, language)
+    : getCurrencyLabel(countryConfig, user, language);
 
   const submitBid = async (price: number, waitSeconds: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
     if (!state.selectedRequest) return;

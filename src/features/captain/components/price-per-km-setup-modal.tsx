@@ -282,7 +282,7 @@ export function PricePerKmSetupModal({
             </button>
           )}
 
-          <AlertDialogHeader className="relative shrink-0 pb-1">
+          <AlertDialogHeader className="relative shrink-0 pb-2 min-w-0">
             <AlertDialogTitle className={cn(styles.title, onClose && 'pe-10')}>
               {isActivationConfirm
                 ? t('confirmPricingBeforeActivation')
@@ -299,21 +299,26 @@ export function PricePerKmSetupModal({
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 pl-1 scrollbar-thin">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 sm:space-y-3 pe-1 scrollbar-thin">
             {/* Banner: Battery warning for dynamic pricing */}
-            <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/15 p-3.5 sm:p-4 text-start shadow-lg mb-2">
-              <div className="flex items-center gap-2 font-black text-amber-300 text-xs sm:text-sm mb-1">
+            <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/15 p-2.5 sm:p-3 text-start shadow-lg">
+              <div className="flex items-center gap-2 font-black text-amber-300 text-xs sm:text-sm mb-0.5">
                 <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
                 <span>
                   {isArabic
+<<<<<<< Updated upstream
                     ? 'تنبيه: استهلاك البطارية أثناء نشاط المراقبة'
                     : 'Battery consumption notice during monitoring activity'}
+=======
+                    ? 'تنبيه: استهلاك أعلى للبطارية أثناء التفعيل'
+                    : 'Notice: Higher battery usage while online'}
+>>>>>>> Stashed changes
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed font-bold">
                 {isArabic
-                  ? 'حيث أن التتبع اللحظي يستهلك طاقة البطارية'
-                  : 'Real-time tracking consumes device battery power'}
+                  ? 'التتبع اللحظي للموقع أثناء بقائك متصلاً في الرادار يستهلك طاقة البطارية بمعدل أكبر.'
+                  : 'Real-time location tracking consumes more battery power while your radar is active.'}
               </p>
             </div>
 
@@ -414,7 +419,7 @@ export function PricePerKmSetupModal({
             )}
           </div>
 
-          <AlertDialogFooter className="shrink-0 pt-3 border-t border-slate-800/80 flex flex-col-reverse sm:flex-row gap-2.5">
+          <AlertDialogFooter className={styles.footer}>
             {onClose && (
               <button
                 type="button"
@@ -424,12 +429,12 @@ export function PricePerKmSetupModal({
               >
                 {isArabic ? (
                   <>
+                    <ArrowRight className="h-4 w-4 shrink-0" />
                     <span>{t('backToRadar')}</span>
-                    <ArrowLeft className="h-4 w-4" />
                   </>
                 ) : (
                   <>
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-4 w-4 shrink-0" />
                     <span>{t('backToRadar')}</span>
                   </>
                 )}
@@ -442,7 +447,7 @@ export function PricePerKmSetupModal({
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin shrink-0" />
                   <span>{t('saving')}</span>
                 </>
               ) : isActivationConfirm ? (
