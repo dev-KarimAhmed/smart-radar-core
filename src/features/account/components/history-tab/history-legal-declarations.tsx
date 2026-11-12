@@ -37,6 +37,9 @@ function getLocalizedActionLabel(item: LegalDeclarationRecord, isArabic: boolean
   ) {
     return 'Account Details Update';
   }
+  if (label === 'تعديل بيانات الحساب والمركبة') {
+    return 'Account & Vehicle Details Update';
+  }
   if (item.actionType === 'ADMIN_NOTIFICATION' || label === 'إشعار إداري رسمي مقروء') {
     return 'Official Admin Notice Acknowledged';
   }
