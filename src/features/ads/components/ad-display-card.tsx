@@ -9,6 +9,10 @@ import { highlightBrand } from '@/shared/components/brand-highlight';
 const styles = {
   style87_1: "group relative isolate flex h-[360px] w-full cursor-pointer select-none flex-col justify-end overflow-hidden rounded-[28px] border border-cyan-400/10 bg-[#0B0F19] p-5 text-right shadow-[0_24px_70px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-[#14B8A6]/45 hover:shadow-[0_26px_80px_rgba(20,184,166,0.18)]",
   style88_2: "border-[#14B8A6]/20 shadow-[0_22px_65px_rgba(20,184,166,0.10)]",
+  posterCard: "p-0 justify-center border-[#14B8A6]/25 bg-[#070D19]",
+  posterFrame: "relative z-[1] flex h-full w-full items-center justify-center overflow-hidden p-1.5 sm:p-2",
+  posterBackdrop: "pointer-events-none absolute inset-0 z-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl",
+  posterImg: "relative z-[1] h-full w-full rounded-[22px] object-contain transition duration-500 group-hover:scale-[1.015]",
   style99_3: "absolute inset-0 z-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]",
   style101_4: "opacity-100 brightness-110 saturate-110",
   style102_5: "opacity-85 grayscale-[12%] brightness-[0.82] saturate-[0.95] group-hover:opacity-95",
@@ -105,6 +109,36 @@ export function AdDisplayCard({
   const actionText = ctaText || getAdCta(ad, copy.fallbackCta);
   const resolvedBadgeText = badgeText || copy.defaultBadge;
   const isPlaceholder = Boolean(ad?.isPlaceholder);
+  const isPosterOnly = Boolean(ad?.isPosterOnly);
+
+  if (isPosterOnly) {
+    return (
+      <article
+        dir={direction}
+        onClick={onOpen ? (event) => onOpen(event, ad) : undefined}
+        aria-label={title}
+        className={cn(
+          styles.style87_1,
+          styles.posterCard,
+          className
+        )}
+      >
+        <img
+          src={image}
+          alt=""
+          aria-hidden="true"
+          className={styles.posterBackdrop}
+        />
+        <div className={styles.posterFrame}>
+          <img
+            src={image}
+            alt={title}
+            className={styles.posterImg}
+          />
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article

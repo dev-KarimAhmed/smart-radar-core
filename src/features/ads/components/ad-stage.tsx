@@ -8,6 +8,7 @@ import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-di
 import { AdCardSkeleton } from './ad-card-skeleton';
 import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from '../services/ad-stage-scroll';
 import { filterAdsByAudience, readAdAudience, type AdAudience } from '../services/ad-audience';
+import { getCaptainBuiltinAds } from '../services/captain-builtin-ads';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
@@ -45,8 +46,13 @@ const styles = {
   style478_27: "h-5 w-5",
   style490_28: "no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-6 sm:gap-8 overflow-x-auto items-center h-full",
   style491_29: "justify-center px-6 sm:px-16",
-  style491_30: "px-14 lg:justify-center",
-  style497_31: "flex-shrink-0 my-auto h-full flex items-center justify-center",
+  style491_30: "px-12 sm:px-16",
+  style497_31: "flex-shrink-0 my-auto h-full flex items-center justify-center py-1",
+  sectionFull: "py-2 sm:py-3 border-b-0",
+  posterLightboxBackdrop: "fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-3 sm:p-6 backdrop-blur-md",
+  posterLightboxPanel: "relative flex max-h-[92vh] max-w-[95vw] flex-col items-center justify-center",
+  posterLightboxClose: "absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/40 backdrop-blur-md transition hover:border-[#14B8A6]/60 hover:bg-[#14B8A6]/20 cursor-pointer",
+  posterLightboxImg: "max-h-[86vh] max-w-[92vw] w-auto h-auto rounded-2xl border border-[#14B8A6]/30 bg-[#070D19] object-contain shadow-[0_24px_80px_rgba(0,0,0,0.85)]",
   style518_32: "fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4 md:justify-center",
   style526_33: "relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6",
   style534_34: "absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-red-400/40 hover:bg-red-950/70",
@@ -76,9 +82,9 @@ const styles = {
   style629_58: "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
   style632_59: "aspect-video w-full bg-black object-cover",
   style644_60: "aspect-video w-full bg-[#07101F] object-cover",
-  stageFull: "h-full w-full flex-1 justify-center items-center min-h-[calc(100vh-7.5rem)]",
+  stageFull: "h-full w-full flex-1 justify-center items-center min-h-0",
   stageCompact: "h-[280px] w-full sm:h-[320px]",
-  cardFull: "h-[calc(100vh-7.65rem)] min-h-[460px] w-[290px] sm:w-[350px] md:w-[400px] lg:w-[440px] max-w-[88vw]",
+  cardFull: "h-full max-h-[680px] min-h-[340px] w-[280px] sm:w-[340px] md:w-[380px] lg:w-[410px] max-w-[86vw]",
   cardCompact: "h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]",
 } as const;
 
@@ -300,6 +306,7 @@ export function AdStage({
   const [isAdStreamPaused, setIsAdStreamPaused] = useState(false);
   const isAdStreamPausedRef = useRef(false);
   const scrollTrackRef = useRef<HTMLDivElement | null>(null);
+  const scrollResidualRef = useRef(0);
   const impressedAdIdsRef = useRef<Set<string>>(new Set());
   const lastManualSwipeMetricAtRef = useRef(0);
 
@@ -308,15 +315,30 @@ export function AdStage({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
+  const builtinCaptainAds = useMemo(
+    () => (audience === 'captain' ? getCaptainBuiltinAds(language) : []),
+    [audience, language],
+  );
+
   const adsToUse = useMemo(() => {
     const audienceAds = filterAdsByAudience(serverAds, audience);
     const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, audienceAds);
-    if (filteredAds.length > 0) return filteredAds;
+    const combinedAds = audience === 'captain' ? [...filteredAds, ...builtinCaptainAds] : filteredAds;
+    if (combinedAds.length > 0) return combinedAds;
 
     return [
       buildBrandPlaceholderAd(copy, hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription, audience),
     ];
-  }, [audience, copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
+  }, [audience, builtinCaptainAds, copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
+
+  useEffect(() => {
+    if (!takeoverAd) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setTakeoverAd(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [takeoverAd]);
 
   const displayAds = useMemo(() => {
     if (adsToUse.length <= 1) return adsToUse;
@@ -475,37 +497,37 @@ export function AdStage({
         const maxScroll = track.scrollWidth - track.clientWidth;
 
         if (maxScroll > 0) {
-          const repeatMultiplier = adsToUse.length < 4 ? 3 : 2;
-          const singleSetWidth = track.scrollWidth / repeatMultiplier;
+          scrollResidualRef.current += deltaPixels;
+          const stepPixels = Math.trunc(scrollResidualRef.current);
 
-          if (adStageDirection === 'rtl') {
-            const currentScroll = track.scrollLeft;
-            const currentAbs = Math.abs(currentScroll);
+          if (stepPixels >= 1) {
+            scrollResidualRef.current -= stepPixels;
+            const repeatMultiplier = adsToUse.length < 4 ? 3 : 2;
+            const singleSetWidth = track.scrollWidth / repeatMultiplier;
 
-            if (currentAbs >= singleSetWidth - 1 && singleSetWidth > 0) {
-              if (currentScroll < 0) {
-                track.scrollLeft += singleSetWidth;
-              } else {
-                track.scrollLeft -= singleSetWidth;
-              }
-            } else {
-              if (currentScroll < 0) {
-                track.scrollLeft -= deltaPixels;
+            if (adStageDirection === 'rtl') {
+              const currentScroll = track.scrollLeft;
+              const currentAbs = Math.abs(currentScroll);
+
+              if (currentAbs >= singleSetWidth - 1 && singleSetWidth > 0) {
+                track.scrollLeft = currentScroll < 0 ? currentScroll + singleSetWidth : currentScroll - singleSetWidth;
+              } else if (currentScroll < 0) {
+                track.scrollLeft -= stepPixels;
               } else if (currentScroll > 0) {
-                track.scrollLeft += deltaPixels;
+                track.scrollLeft += stepPixels;
               } else {
                 const prev = track.scrollLeft;
-                track.scrollLeft -= deltaPixels;
+                track.scrollLeft -= stepPixels;
                 if (track.scrollLeft === prev) {
-                  track.scrollLeft += deltaPixels;
+                  track.scrollLeft += stepPixels;
                 }
               }
-            }
-          } else {
-            if (track.scrollLeft >= singleSetWidth - 1 && singleSetWidth > 0) {
-              track.scrollLeft -= singleSetWidth;
             } else {
-              track.scrollLeft += deltaPixels;
+              if (track.scrollLeft >= singleSetWidth - 1 && singleSetWidth > 0) {
+                track.scrollLeft -= singleSetWidth;
+              } else {
+                track.scrollLeft += stepPixels;
+              }
             }
           }
         }
@@ -614,7 +636,9 @@ export function AdStage({
     event.stopPropagation();
     setTakeoverAd(ad);
     enqueueAdEvent(ad, 'click');
-    void recordRiderActivity('ad_click');
+    if (audience !== 'captain') {
+      void recordRiderActivity('ad_click');
+    }
   };
 
   const showNavigationShell = true;
@@ -622,14 +646,14 @@ export function AdStage({
   const heightClass = isFullScreen ? styles.stageFull : styles.stageCompact;
   const cardClassName = isFullScreen ? styles.cardFull : styles.cardCompact;
 
-  if (isLoadingAds) {
+  if (isLoadingAds && audience !== 'captain') {
     return (
       <section
         className={cn(
           styles.style398_6,
           heightClass,
           isFullScreen ? styles.style400_7 : styles.style400_8,
-          isFullScreen && "py-0 sm:py-0 border-b-0"
+          isFullScreen && styles.sectionFull
         )}
         dir={direction}
         aria-busy="true"
@@ -687,7 +711,7 @@ export function AdStage({
         styles.style398_6,
         heightClass,
         isFullScreen ? styles.style400_7 : styles.style400_8,
-        isFullScreen && "py-0 sm:py-0 border-b-0"
+        isFullScreen && styles.sectionFull
       )}
       dir={direction}
     >
@@ -796,7 +820,7 @@ export function AdStage({
                     : openTakeover
                 }
                 badgeText={getBadgeText(ad, copy)}
-                showHeart={!ad.isPlaceholder}
+                showHeart={!ad.isPlaceholder && !ad.isPosterOnly}
                 className={cardClassName}
               />
             </div>
@@ -805,8 +829,38 @@ export function AdStage({
       </div>
 
       <AnimatePresence>
-        {takeoverAd && (
+        {takeoverAd && (takeoverAd.isBuiltinCaptainPromo || takeoverAd.isPosterOnly) ? (
           <div
+            key={takeoverAd.id}
+            className={styles.posterLightboxBackdrop}
+            onClick={() => setTakeoverAd(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 260 }}
+              className={styles.posterLightboxPanel}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                aria-label="Close ad"
+                onClick={() => setTakeoverAd(null)}
+                className={styles.posterLightboxClose}
+              >
+                <X className={styles.style536_35} />
+              </button>
+              <img
+                src={getAdImage(takeoverAd)}
+                alt={getAdTitle(takeoverAd, copy.nearbyBadge)}
+                className={styles.posterLightboxImg}
+              />
+            </motion.div>
+          </div>
+        ) : takeoverAd ? (
+          <div
+            key={takeoverAd.id}
             className={styles.style518_32}
             onClick={() => setTakeoverAd(null)}
           >
@@ -906,7 +960,7 @@ export function AdStage({
               </div>
             </motion.div>
           </div>
-        )}
+        ) : null}
       </AnimatePresence>
     </section>
   );

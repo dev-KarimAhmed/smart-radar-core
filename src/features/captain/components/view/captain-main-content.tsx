@@ -12,7 +12,7 @@ import { DriverProfileTab } from '../driver-profile-tab';
 
 const styles = {
   contentRoot: 'contents',
-  adStageWrap: 'flex h-[calc(100vh-7.5rem)] min-h-[500px] w-full flex-1 flex-col overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] shadow-2xl shadow-black/30',
+  adStageWrap: 'flex h-[calc(100dvh-10.5rem)] sm:h-[calc(100dvh-7.5rem)] min-h-[440px] w-full flex-1 flex-col overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#05080f] shadow-2xl shadow-black/30',
   notificationsWrap: 'flex-1 rounded-3xl border border-emerald-500/20 bg-[#05080f] p-3 sm:p-6 shadow-2xl',
 } as const;
 
