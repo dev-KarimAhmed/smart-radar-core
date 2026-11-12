@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,11 @@ import { cn } from '@/lib/utils';
 import { useNotifications, type AppNotification } from '@/shared/hooks/use-notifications';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
-import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import {
+  resolveNotificationForDisplay,
+  requestBatchTranslation,
+  hasArabicScript,
+} from '@/shared/utils/notification-i18n';
 import { formatReadableDateTime } from '@/shared/utils/date-format';
 
 const styles = {
@@ -17,7 +21,7 @@ const styles = {
   card: 'relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white',
   accentBar: 'absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/50 to-transparent',
   header: 'p-4 sm:p-5 pb-3.5 sm:pb-3',
-  headerButton: 'w-full text-right cursor-pointer select-none transition-colors hover:bg-white/[0.02]',
+  headerButton: 'w-full text-start cursor-pointer select-none transition-colors hover:bg-white/[0.02]',
   headerRow: 'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3',
   headerInfo: 'flex items-center gap-3 min-w-0',
   iconBox: 'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5] shadow-[0_0_15px_rgba(20,245,213,0.15)]',
@@ -38,7 +42,7 @@ const styles = {
   emptyTitle: 'text-xs font-semibold text-slate-400',
   emptyDesc: 'text-[11px] text-slate-500 leading-normal max-w-sm',
   list: 'space-y-3 max-h-[420px] overflow-y-auto pr-1',
-  itemCard: 'group relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent hover:border-[#14B8A6]/30 p-3.5 transition-all space-y-2 text-right',
+  itemCard: 'group relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent hover:border-[#14B8A6]/30 p-3.5 transition-all space-y-2 text-start',
   itemHeader: 'flex items-center justify-between gap-2',
   badge: 'text-[10px] font-bold px-2.5 py-0.5 rounded-md border inline-flex items-center gap-1 font-sans',
   dateTimeBox: 'flex items-center gap-1.5 text-xs text-slate-300 font-medium font-sans',
@@ -61,6 +65,37 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
   const { user } = useAuth();
   const { tripNotifications, tripUnreadCount, hasTripUnread, deleteNotifications, markAsRead } = useNotifications(user?.uid);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [translationRevision, setTranslationRevision] = useState(0);
+
+  const parsedById = useMemo(() => {
+    void translationRevision;
+    const map = new Map<string, ReturnType<typeof resolveNotificationForDisplay>>();
+    for (const item of tripNotifications) {
+      map.set(item.id, resolveNotificationForDisplay(item, isArabic));
+    }
+    return map;
+  }, [tripNotifications, isArabic, translationRevision]);
+
+  useEffect(() => {
+    const missingTexts: string[] = [];
+    for (const parsed of parsedById.values()) {
+      if (parsed.titleNeedsTranslation && parsed.title) missingTexts.push(parsed.title);
+      if (parsed.descriptionNeedsTranslation && parsed.description) missingTexts.push(parsed.description);
+    }
+    if (missingTexts.length === 0) return;
+
+    let active = true;
+    const targetLang: 'ar' | 'en' = isArabic ? 'ar' : 'en';
+    void requestBatchTranslation(missingTexts, targetLang).then((translatedMap) => {
+      if (active && Object.keys(translatedMap).length > 0) {
+        setTranslationRevision((v) => v + 1);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [parsedById, isArabic]);
 
   const formatRelativeTime = (timestamp: number) => {
     try {
@@ -258,7 +293,7 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
 
               <div className={styles.list}>
               {tripNotifications.map((item) => {
-                const parsed = parseNotificationContent(item, isArabic);
+                const parsed = parsedById.get(item.id) || resolveNotificationForDisplay(item, isArabic);
                 return (
                   <div
                     key={item.id}
@@ -307,9 +342,13 @@ export function HistoryTripNotifications({ isArabic }: HistoryTripNotificationsP
                     </div>
 
                     <div className="space-y-1 pt-1">
-                      <p className={styles.messageTitle}>{parsed.title}</p>
+                      <p dir={hasArabicScript(parsed.title) ? 'rtl' : 'ltr'} className={styles.messageTitle}>
+                        {parsed.title}
+                      </p>
                       {parsed.description && (
-                        <p className={styles.messageDesc}>{parsed.description}</p>
+                        <p dir={hasArabicScript(parsed.description) ? 'rtl' : 'ltr'} className={styles.messageDesc}>
+                          {parsed.description}
+                        </p>
                       )}
                     </div>
                   </div>

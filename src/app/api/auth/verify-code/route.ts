@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
 import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
+import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 
 export async function POST(req: Request) {
   try {
@@ -162,18 +163,31 @@ export async function POST(req: Request) {
 
     // Insert welcome & legal declaration audit notifications for bell icon (Page 3 requirement)
     try {
+      const welcomePayload = encodeNotificationPayload(
+        'مرحباً بك في شبكة بينكم للإعلان الرقمي 🌟',
+        'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل. أهلاً بك في منصة بينكم للإعلان الرقمي.',
+        'Welcome to Bynkcom Digital Ad Network 🌟',
+        'Your account has been successfully activated and is now ready for full use. Welcome to Bynkcom Digital Ad Network.'
+      );
+      const legalPayload = encodeNotificationPayload(
+        'توثيق السجل القانوني الإلكتروني 🛡️',
+        'تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني في شاشة سجلاتي.',
+        'Electronic Legal Log Verification 🛡️',
+        'The declaration has been verified and saved in the Electronic Legal Log on the My Records screen.'
+      );
+
       await supabaseAdmin.from('user_notifications').insert([
         {
           user_id: authUser.id,
-          title: 'مرحباً بك في شبكة بينكم للإعلان الرقمي 🌟',
-          description: 'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل. أهلاً بك في منصة بينكم للإعلان الرقمي.',
+          title: welcomePayload.title,
+          description: welcomePayload.description,
           type: 'admin_message',
           is_read: false,
         },
         {
           user_id: authUser.id,
-          title: 'توثيق السجل القانوني الإلكتروني 🛡️',
-          description: 'تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني في شاشة سجلاتي.',
+          title: legalPayload.title,
+          description: legalPayload.description,
           type: 'admin_message',
           is_read: false,
         },

@@ -18,9 +18,31 @@ export interface ParsedNotificationContent {
   descriptionAr: string;
   titleEn: string;
   descriptionEn: string;
+  titleNeedsTranslation: boolean;
+  descriptionNeedsTranslation: boolean;
+}
+
+export interface DynamicNotificationMatch {
+  titleAr: string;
+  descriptionAr: string;
+  titleEn: string;
+  descriptionEn: string;
+  matched: boolean;
+  titleMatched?: boolean;
+  descriptionMatched?: boolean;
 }
 
 const I18N_TAG_REGEX = /<!--i18n:([\s\S]*?)-->/;
+const RUNTIME_TRANSLATION_CACHE_KEY = 'radar_notif_i18n_cache_v1';
+const MAX_CACHE_ENTRIES = 250;
+
+export function hasArabicScript(text: string | null | undefined): boolean {
+  return /[\u0600-\u06FF]/.test(text || '');
+}
+
+export function hasLatinLetters(text: string | null | undefined): boolean {
+  return /[A-Za-z]/.test(text || '');
+}
 
 /**
  * Encodes a dual-language notification message into clean, standard-compatible title and description.
@@ -77,24 +99,117 @@ function normalizeCurrency(currency: string, targetLang: 'ar' | 'en'): string {
     if (cur === 'ج.م' || cur === 'جنيه') return 'EGP';
     if (cur === 'د.أ' || cur === 'د' || cur === 'دينار') return 'JOD';
     return cur || 'EGP';
-  } else {
-    if (cur.toUpperCase() === 'EGP') return 'ج.م';
-    if (cur.toUpperCase() === 'JOD') return 'د.أ';
-    return cur || 'ج.م';
   }
+  if (cur.toUpperCase() === 'EGP') return 'ج.م';
+  if (cur.toUpperCase() === 'JOD') return 'د.أ';
+  return cur || 'ج.م';
+}
+
+function translateKnownReceiptRejectionReason(reason: string): string | null {
+  const r = reason.trim();
+  if (!r) return 'The receipt is unclear or the transfer has not been received.';
+  if (r.includes('غير واضح أو لم يتم استلام التحويل')) {
+    return 'The receipt is unclear or the transfer has not been received.';
+  }
+  if (r.includes('غير واضح أو المبلغ لا يطابق')) {
+    return 'The receipt is unclear or the amount does not match the transfer.';
+  }
+  if (!hasArabicScript(r)) {
+    return r;
+  }
+  return null;
 }
 
 /**
- * Dynamic rule-based translator for standard backend notifications lacking metadata tags.
+ * Dynamic rule-based translator for standard backend/admin notifications lacking metadata tags.
  */
 export function resolveDynamicNotification(
   rawTitle: string,
   rawDesc: string
-): { titleAr: string; descriptionAr: string; titleEn: string; descriptionEn: string; matched: boolean } {
+): DynamicNotificationMatch {
   const t = rawTitle.trim();
   const d = rawDesc.trim();
 
-  // 1. Trip Completed (Captain - Money emoji 💰)
+  // 1. Welcome to Bynkcom Digital Ad Network 🌟
+  if (t.includes('مرحباً بك في شبكة بينكم') || t.toLowerCase().includes('welcome to bynkcom')) {
+    const hasPlatformSuffix =
+      d.includes('أهلاً بك في منصة بينكم') || d.toLowerCase().includes('welcome to bynkcom digital ad network');
+    return {
+      titleAr: 'مرحباً بك في شبكة بينكم للإعلان الرقمي 🌟',
+      descriptionAr: hasPlatformSuffix
+        ? 'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل. أهلاً بك في منصة بينكم للإعلان الرقمي.'
+        : d || 'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل.',
+      titleEn: 'Welcome to Bynkcom Digital Ad Network 🌟',
+      descriptionEn: hasPlatformSuffix
+        ? 'Your account has been successfully activated and is now ready for full use. Welcome to Bynkcom Digital Ad Network.'
+        : 'Your account has been successfully activated and is now ready for full use.',
+      matched: true,
+    };
+  }
+
+  // 2. Electronic Legal Log Verification 🛡️
+  if (
+    t.includes('توثيق السجل القانوني الإلكتروني') ||
+    t.toLowerCase().includes('electronic legal log verification')
+  ) {
+    return {
+      titleAr: 'توثيق السجل القانوني الإلكتروني 🛡️',
+      descriptionAr: d || 'تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني في شاشة سجلاتي.',
+      titleEn: 'Electronic Legal Log Verification 🛡️',
+      descriptionEn: 'The declaration has been verified and saved in the Electronic Legal Log on the My Records screen.',
+      matched: true,
+    };
+  }
+
+  // 3. Electronic Legal Declaration Audit Notification
+  if (t.includes('إقرار قانوني إلكتروني:')) {
+    const labelAr = t.replace('إقرار قانوني إلكتروني:', '').trim();
+    const labelEn =
+      labelAr.includes('تسجيل حساب جديد')
+        ? 'New Account Registration'
+        : labelAr.includes('تعديل بيانات المركبة')
+          ? 'Vehicle Details Update'
+          : labelAr.includes('تعديل بيانات الحساب')
+            ? 'Account Details Update'
+            : labelAr || 'Legal Declaration';
+    const decMatch = d.match(/رقم الإقرار:\s*([^\s|]+)/);
+    const userMatch = d.match(/المستخدم:\s*([^\s|]+)/);
+    const timeMatch = d.match(/التوقيت:\s*([^—]+?)(?:\s*—|$)/);
+
+    return {
+      titleAr: t,
+      descriptionAr: d,
+      titleEn: `Electronic Legal Declaration: ${labelEn}`,
+      descriptionEn:
+        decMatch && userMatch
+          ? `Declaration ID: ${decMatch[1]} | User: ${userMatch[1]}${timeMatch ? ` | Time: ${timeMatch[1].trim()}` : ''} — Verified and saved in the Electronic Legal Log on My Records.`
+          : 'The legal declaration was verified and saved in the Electronic Legal Log on My Records.',
+      matched: true,
+      titleMatched: !hasArabicScript(labelEn),
+      descriptionMatched: true,
+    };
+  }
+
+  // 4. Welcome Gift Radar Hours 🎁⚡
+  if (t.includes('هدية ترحيبية:') || t.toLowerCase().includes('welcome gift:')) {
+    const hoursMatch = t.match(/(\d+)/) || d.match(/\((\d+)\)/);
+    const hours = hoursMatch ? hoursMatch[1] : '24';
+    const validityMatch = d.match(/لـ\s*(\d+)\s*يوماً/) || d.match(/for\s*(\d+)\s*days/i);
+    const days = validityMatch ? validityMatch[1] : null;
+    return {
+      titleAr: `هدية ترحيبية: ${hours} ساعة رادار مجاناً 🎁⚡`,
+      descriptionAr: days
+        ? `أهلاً بك يا كابتن! تم إيداع رصيد ترحيبي قدره (${hours}) ساعة طيران رادار في محفظتك بنجاح وتمديد الصلاحية لـ ${days} يوماً لتنطلق في استقبال الرحلات فوراً.`
+        : `أهلاً بك يا كابتن! تم إيداع رصيد ترحيبي قدره (${hours}) ساعة طيران رادار في محفظتك بنجاح لتنطلق في استقبال الرحلات فوراً. نتمنى لك رحلات موفقة وأرباحاً وفيرة!`,
+      titleEn: `Welcome Gift: ${hours} Free Radar Hours 🎁⚡`,
+      descriptionEn: days
+        ? `Welcome Captain! A welcome credit of (${hours}) radar flight hours has been deposited into your wallet, valid for ${days} days, to start accepting rides immediately.`
+        : `Welcome Captain! A welcome credit of (${hours}) radar flight hours has been deposited into your wallet to start accepting rides immediately. Wishing you successful trips!`,
+      matched: true,
+    };
+  }
+
+  // 5. Trip Completed (Captain - Money emoji 💰)
   if (t.includes('اكتملت الرحلة بنجاح') && t.includes('💰')) {
     return {
       titleAr: 'اكتملت الرحلة بنجاح 💰',
@@ -114,7 +229,7 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 2. Trip Completed (Rider - Checkmark emoji ✅)
+  // 6. Trip Completed (Rider - Checkmark emoji ✅)
   if (t.includes('اكتملت الرحلة بنجاح')) {
     return {
       titleAr: 'اكتملت الرحلة بنجاح ✅',
@@ -134,22 +249,19 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 3. Trip Accepted (Captain - Party emoji 🎉)
+  // 7. Trip Accepted (Captain - Party emoji 🎉)
   if (t.includes('تم قبول عرضك')) {
     const riderMatch = d.match(/وافق\s+(.+?)\s+على عرضك/);
     const riderName = riderMatch ? riderMatch[1].trim() : '';
-    const descAr = riderName
-      ? `وافق ${riderName} على عرضك. ابدأ بالتحرك نحو نقطة الانطلاق الآن.`
-      : 'وافق الراكب على عرضك. ابدأ بالتحرك نحو نقطة الانطلاق الآن.';
-    const descEn = riderName
-      ? `${riderName} accepted your offer. Please start heading to the pickup location now.`
-      : 'The rider accepted your offer. Please start heading to the pickup location now.';
-
     return {
       titleAr: 'تم قبول عرضك 🎉',
-      descriptionAr: descAr,
+      descriptionAr: riderName
+        ? `وافق ${riderName} على عرضك. ابدأ بالتحرك نحو نقطة الانطلاق الآن.`
+        : 'وافق الراكب على عرضك. ابدأ بالتحرك نحو نقطة الانطلاق الآن.',
       titleEn: 'Your Offer Was Accepted 🎉',
-      descriptionEn: descEn,
+      descriptionEn: riderName
+        ? `${riderName} accepted your offer. Please start heading to the pickup location now.`
+        : 'The rider accepted your offer. Please start heading to the pickup location now.',
       matched: true,
     };
   }
@@ -167,22 +279,19 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 4. Captain Arrived (Rider - Pin emoji 📍)
+  // 8. Captain Arrived (Rider - Pin emoji 📍)
   if (t.includes('وصل الكابتن إلى موقعك')) {
     const capMatch = d.match(/الكابتن\s*(.*?)\s*بانتظارك الآن في نقطة الانطلاق/);
     const capName = capMatch ? capMatch[1].trim() : '';
-    const descAr = capName
-      ? `الكابتن ${capName} بانتظارك الآن في نقطة الانطلاق.`
-      : 'الكابتن بانتظارك الآن في نقطة الانطلاق.';
-    const descEn = capName
-      ? `Captain ${capName} is waiting for you at the pickup location.`
-      : 'The captain is waiting for you at the pickup location.';
-
     return {
       titleAr: 'وصل الكابتن إلى موقعك 📍',
-      descriptionAr: descAr,
+      descriptionAr: capName
+        ? `الكابتن ${capName} بانتظارك الآن في نقطة الانطلاق.`
+        : 'الكابتن بانتظارك الآن في نقطة الانطلاق.',
       titleEn: 'Captain Arrived At Your Location 📍',
-      descriptionEn: descEn,
+      descriptionEn: capName
+        ? `Captain ${capName} is waiting for you at the pickup location.`
+        : 'The captain is waiting for you at the pickup location.',
       matched: true,
     };
   }
@@ -200,7 +309,7 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 5. Trip Started (Rider - Car emoji 🚗)
+  // 9. Trip Started (Rider - Car emoji 🚗)
   if (t.includes('بدأت الرحلة')) {
     return {
       titleAr: 'بدأت الرحلة 🚗',
@@ -220,9 +329,9 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 6. New Captain Offer (Rider - Car emoji 🚗)
-  if (t.includes('عرض كابتن جديد')) {
-    const offerMatch = d.match(/وصلك عرض بقيمة\s*([\d.]+)\s*([^\s]+)?\s*من الكابتن\s*(.*?)(?:\s*\(وصول خلال\s*(\d+)\s*د\))?$/);
+  // 10. New Captain Offer (Rider - Car emoji 🚗)
+  if (t.includes('عرض كابتن جديد') || t.includes('عرض كابتن معلن جديد')) {
+    const offerMatch = d.match(/وصلك عرض بقيمة\s*([\d.]+)\s*([^\s]+)?\s*من الكابتن(?:\s*المعلن)?\s*(.*?)(?:\s*\(وصول خلال\s*(\d+)\s*د\))?$/);
     if (offerMatch) {
       const fare = offerMatch[1];
       const curAr = offerMatch[2] || 'ج.م';
@@ -247,7 +356,7 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 7. New Referral Rider Joined (Captain - Party emoji 🎉)
+  // 11. New Referral Rider Joined (Captain - Party emoji 🎉)
   if (t.includes('انضمام راكب جديد') || t.includes('رابط الإحالة')) {
     const riderMatch = d.match(/انضم الراكب\s*\((.+?)\)/);
     const riderName = riderMatch ? riderMatch[1].trim() : '';
@@ -265,7 +374,7 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 8. Referral Inactivity Alert (Captain - Warning emoji ⚠️)
+  // 12. Referral Inactivity Alert (Captain - Warning emoji ⚠️)
   if (t.includes('تنبيه عدم نشاط راكب')) {
     const match = d.match(/الراكب\s*\((.+?)\)\s*غير متفاعل منذ\s*(\d+)\s*يوماً/);
     const riderName = match ? match[1].trim() : 'المسجل برابطك';
@@ -280,7 +389,7 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 9. Captain Document Verification Approved (Trophy emoji 🏆)
+  // 13. Captain Document Verification Approved (Trophy emoji 🏆)
   if (t.includes('تم اعتماد وتوثيق حسابك') || t.includes('كابتن معلن موثق')) {
     return {
       titleAr: 'تهانينا يا كابتن معلن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
@@ -291,30 +400,153 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 10. Captain Document Verification Warning (Warning emoji ⚠️)
+  // 14. Captain Document Verification Warning (Warning emoji ⚠️)
   if (t.includes('مراجعة وثائق الكابتن')) {
+    const isDefaultBody = !d || d.includes('يرجى إعادة رفع وثائق واضحة ومطابقة');
     return {
       titleAr: 'تنبيه: مراجعة وثائق الكابتن المعلن ⚠️',
       descriptionAr: d || 'يرجى إعادة رفع وثائق واضحة ومطابقة للشروط والتعليمات لتأكيد اعتماد الحساب.',
       titleEn: 'Notice: Review Captain Documents ⚠️',
-      descriptionEn: 'Please re-upload clear documents meeting operational standards to confirm account verification.',
+      descriptionEn: isDefaultBody
+        ? 'Please re-upload clear documents meeting operational standards to confirm account verification.'
+        : d,
       matched: true,
+      titleMatched: true,
+      descriptionMatched: isDefaultBody || !hasArabicScript(d),
     };
   }
 
-  // 11. Account Suspended
-  if (t.includes('تم حظر') || t.includes('حظر حسابك')) {
+  // 15. Admin Status Updates (Activated / Idle / Suspended / Banned / Generic Operational Status)
+  if (t.includes('تم تنشيط حسابك على الرادار')) {
+    const isRiderMsg = d.includes('لطلب الرحلات');
     return {
-      titleAr: 'تم حظر الحساب 🚫',
-      descriptionAr: d || 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية.',
-      titleEn: 'Account Suspended 🚫',
-      descriptionEn: 'Your account has been permanently suspended by administration for violating operational standards.',
+      titleAr: 'تم تنشيط حسابك على الرادار ⚡',
+      descriptionAr: d,
+      titleEn: 'Your Radar Account Is Now Active ⚡',
+      descriptionEn: isRiderMsg
+        ? 'Administration has activated your account immediately, and you are now ready to request rides and connect with verified advertiser captains on the radar.'
+        : 'Administration has activated your account immediately, and you are now connected to the radar and ready to receive ride requests.',
       matched: true,
     };
   }
 
-  // 12. Recharge Receipt Approved
-  if (t.includes('اعتماد إيصال الشحن') || t.includes('الموافقة على إيصال')) {
+  if (t.includes('تم ضبط حسابك إلى وضع الجاهزية') || t.includes('تم ضبط وضعك إلى خامل')) {
+    const isRiderMsg = t.includes('حسابك إلى وضع الجاهزية') || d.includes('طلب الرحلات');
+    return {
+      titleAr: t,
+      descriptionAr: d,
+      titleEn: isRiderMsg ? 'Account Set to Ready Mode 🛑' : 'Status Set to Standby (Idle) 🛑',
+      descriptionEn: isRiderMsg
+        ? 'You are now in Ready mode and can request rides via the radar at any time.'
+        : 'You are now in Standby (Idle) mode and can go online on the radar whenever you wish.',
+      matched: true,
+    };
+  }
+
+  if (t.includes('تم تعليق حساب') && t.includes('مؤقتاً')) {
+    return {
+      titleAr: t,
+      descriptionAr: d,
+      titleEn: 'Administrative Notice: Account Temporarily Suspended ⚠️',
+      descriptionEn:
+        'Your account has been temporarily suspended by operations management for activity or behavioral integrity review. Please contact support to lift the suspension.',
+      matched: true,
+    };
+  }
+
+  if (t.includes('تحديث في الحالة التشغيلية')) {
+    const statusMatch = d.match(/إلى:\s*([A-Z_]+)/i);
+    const statusCode = statusMatch ? statusMatch[1].toUpperCase() : 'UPDATED';
+    return {
+      titleAr: 'تحديث في الحالة التشغيلية',
+      descriptionAr: d || `قامت الإدارة بتحديث حالتك إلى: ${statusCode}`,
+      titleEn: 'Operational Status Update',
+      descriptionEn: `Administration has updated your account status to: ${statusCode}`,
+      matched: true,
+    };
+  }
+
+  // 16. Account Permanently Banned / Suspended
+  if (t.includes('تم حظر') || t.includes('حظر حسابك') || t.includes('حظر حساب المستخدم')) {
+    const isRiderMsg = t.includes('حساب المستخدم') || d.includes('إيقاف إمكانية طلب الرحلات');
+    return {
+      titleAr: t.includes('إشعار أمني') ? t : 'تم حظر الحساب 🚫',
+      descriptionAr: d || 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية.',
+      titleEn: t.includes('إشعار أمني') ? 'Security Notice: Account Permanently Banned 🚫' : 'Account Suspended 🚫',
+      descriptionEn: isRiderMsg
+        ? 'Your account has been permanently banned by administration for violating operational and system standards. Ride requests and radar access have been disabled.'
+        : 'Your account has been permanently suspended by administration for violating operational standards.',
+      matched: true,
+    };
+  }
+
+  // 17. Reset Penalties & Behavioral Integrity Rehabilitation
+  if (t.includes('سجل المخالفات وكوابح السوق')) {
+    return {
+      titleAr: 'سجل المخالفات وكوابح السوق 🛡️',
+      descriptionAr: d || 'تمت مراجعة حسابك وتصفير سجل المخالفات بالكامل، واستعادة مؤشر الأمان والنزاهة السلوكية إلى 5.0 نجوم بنجاح.',
+      titleEn: 'Violations Log & Market Brakes Cleared 🛡️',
+      descriptionEn: 'Your account has been reviewed, all violations have been cleared, and your safety & behavioral integrity index has been restored to 5.0 stars.',
+      matched: true,
+    };
+  }
+
+  if (t.includes('إعادة تأهيل الحساب والنزاهة السلوكية')) {
+    return {
+      titleAr: 'إعادة تأهيل الحساب والنزاهة السلوكية 🛡️',
+      descriptionAr: d || 'تمت إعادة تأهيل حسابك واستعادة مؤشر النزاهة والمناعة السلوكية إلى 5.0 نجوم كاملة وتصفير أي عقوبات سابقة بنجاح.',
+      titleEn: 'Account Rehabilitation & Behavioral Integrity 🛡️',
+      descriptionEn: 'Your account has been rehabilitated, all previous penalties cleared, and your behavioral immunity index restored to a full 5.0 stars.',
+      matched: true,
+    };
+  }
+
+  // 18. Recharge Receipt Rejected (must check before approved because 'تعذر اعتماد إيصال الشحن' contains 'اعتماد إيصال الشحن')
+  if (t.includes('رفض إيصال الشحن') || t.includes('تعذر اعتماد إيصال الشحن') || t.includes('تعذر قبول إيصال الشحن')) {
+    const reasonMatch =
+      d.match(/للأسباب التالية:\s*(.+?)\.\s*يرجى مراجعة الإدارة/) ||
+      d.match(/للسبب التالي:\s*(.+?)\.\s*يمكنك إعادة إرسال/);
+    const rawReason = reasonMatch ? reasonMatch[1].trim() : '';
+    const translatedReason = rawReason ? translateKnownReceiptRejectionReason(rawReason) : null;
+
+    if (!d) {
+      return {
+        titleAr: 'تم رفض إيصال الشحن ❌',
+        descriptionAr: 'تم رفض إيصال الشحن من قبل الإدارة. يرجى مراجعة التفاصيل وإعادة المحاولة.',
+        titleEn: 'Recharge Receipt Rejected ❌',
+        descriptionEn: 'Your recharge receipt was rejected by administration. Please verify details and retry.',
+        matched: true,
+      };
+    }
+
+    if (translatedReason) {
+      return {
+        titleAr: t,
+        descriptionAr: d,
+        titleEn: 'Notice: Recharge Receipt Not Approved ⚠️',
+        descriptionEn: `Your recharge receipt was rejected for the following reason: ${translatedReason} Please contact support or resubmit a clear receipt.`,
+        matched: true,
+      };
+    }
+
+    // Unknown custom Arabic reason: translate title immediately, allow runtime translation of description
+    return {
+      titleAr: t,
+      descriptionAr: d,
+      titleEn: 'Notice: Recharge Receipt Not Approved ⚠️',
+      descriptionEn: d,
+      matched: true,
+      titleMatched: true,
+      descriptionMatched: !hasArabicScript(d),
+    };
+  }
+
+  // 19. Recharge Receipt Approved
+  if (
+    (t.includes('اعتماد إيصال الشحن') || t.includes('الموافقة على إيصال')) &&
+    !t.includes('تعذر') &&
+    !t.includes('رفض')
+  ) {
     const minMatch = d.match(/تغذية حسابك بـ\s*(\d+)\s*دقيقة/);
     const cashMatch = d.match(/إيداع\s*([\d.]+)\s*([^\s]+)?\s*في رصيد/);
 
@@ -331,11 +563,14 @@ export function resolveDynamicNotification(
     if (cashMatch) {
       const amount = cashMatch[1];
       const cur = cashMatch[2] || 'د.أ';
+      const hasRadarAllocHint = d.includes('تخصيص الرصيد لدقائق رادار');
       return {
-        titleAr: 'تم اعتماد إيصال الشحن بنجاح ⚡',
-        descriptionAr: `تمت الموافقة على إيصالك وإيداع ${amount} ${cur} في رصيد محفظتك.`,
-        titleEn: 'Recharge Receipt Approved Successfully ⚡',
-        descriptionEn: `Your receipt was approved and ${amount} ${normalizeCurrency(cur, 'en')} has been deposited into your wallet.`,
+        titleAr: t.includes('💰') ? 'تم اعتماد إيصال الشحن بنجاح 💰' : 'تم اعتماد إيصال الشحن بنجاح ⚡',
+        descriptionAr: d || `تمت الموافقة على إيصالك وإيداع ${amount} ${cur} في رصيد محفظتك.`,
+        titleEn: t.includes('💰') ? 'Recharge Receipt Approved Successfully 💰' : 'Recharge Receipt Approved Successfully ⚡',
+        descriptionEn: hasRadarAllocHint
+          ? `Your receipt was approved and ${amount} ${normalizeCurrency(cur, 'en')} was deposited into your wallet. You can allocate this balance to radar minutes anytime.`
+          : `Your receipt was approved and ${amount} ${normalizeCurrency(cur, 'en')} has been deposited into your wallet.`,
         matched: true,
       };
     }
@@ -349,49 +584,72 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 13. Recharge Receipt Rejected
-  if (t.includes('رفض إيصال الشحن')) {
+  // 20. Direct Top-Up from Administration (`شحن رصيد من الإدارة ⚡`)
+  if (t.includes('شحن رصيد من الإدارة')) {
+    const cashMatch = d.match(/([+-]?[\d.]+)\s*(د\.أ|ج\.م|EGP|JOD)/);
+    const minsMatch = d.match(/([+-]?\d+)\s*دقيقة/);
+    const parts: string[] = [];
+    if (cashMatch) {
+      parts.push(`${cashMatch[1]} ${normalizeCurrency(cashMatch[2], 'en')}`);
+    }
+    if (minsMatch) {
+      parts.push(`${minsMatch[1]} radar minutes`);
+    }
     return {
-      titleAr: 'تم رفض إيصال الشحن ❌',
-      descriptionAr: d || 'تم رفض إيصال الشحن من قبل الإدارة. يرجى مراجعة التفاصيل وإعادة المحاولة.',
-      titleEn: 'Recharge Receipt Rejected ❌',
-      descriptionEn: 'Your recharge receipt was rejected by administration. Please verify details and retry.',
+      titleAr: 'شحن رصيد من الإدارة ⚡',
+      descriptionAr: d,
+      titleEn: 'Balance Top-Up from Administration ⚡',
+      descriptionEn:
+        parts.length > 0
+          ? `Your account has been credited by administration: ${parts.join(' ')}.`
+          : 'Your account balance has been credited by system administration.',
       matched: true,
     };
   }
 
-  // 14. Minutes / Balance Recharged
-  if (t.includes('شحن رصيد دقائق') || t.includes('شحن دقائق')) {
+  // 21. Bulk & Individual Radar Minutes Recharged
+  if (t.includes('شحن دقائق رادار جماعي') || t.includes('شحن رصيد دقائق') || t.includes('شحن دقائق')) {
     const minMatch = d.match(/(\d+)\s*دقيقة/);
+    const daysMatch = d.match(/لـ\s*(\d+)\s*يوماً/);
     const minutes = minMatch ? minMatch[1] : '';
+    const days = daysMatch ? daysMatch[1] : '';
+    const isBulk = t.includes('جماعي');
+
     return {
-      titleAr: 'شحن رصيد دقائق الرادار ⚡',
-      descriptionAr: minutes
-        ? `تم شحن (${minutes}) دقيقة رادار حسابك بنجاح من قبل الإدارة. أصبحت جاهزة للاستخدام الآن!`
-        : d,
-      titleEn: 'Radar Minutes Recharged ⚡',
+      titleAr: t,
+      descriptionAr: d || (minutes ? `تم شحن (${minutes}) دقيقة للحساب بنجاح.` : ''),
+      titleEn: isBulk ? 'Bulk Radar Minutes Top-Up ⚡' : 'Radar Minutes Recharged ⚡',
       descriptionEn: minutes
-        ? `Successfully credited (${minutes}) radar minutes to your account by administration. Ready to use now!`
+        ? days
+          ? `Successfully credited (${minutes}) radar minutes to your account by administration and extended validity for ${days} days.`
+          : `Successfully credited (${minutes}) radar minutes to your account by administration. Ready to use now!`
         : 'Radar minutes have been credited to your account by administration.',
       matched: true,
     };
   }
 
-  // 15. Wallet Cash Deposit
-  if (t.includes('إيداع نقدي') || t.includes('إيداع رصيد')) {
+  // 22. Wallet Cash Deposit (Individual or Bulk)
+  if (t.includes('إيداع نقدي') || t.includes('إيداع رصيد نقدي') || t.includes('إيداع رصيد')) {
+    const amountMatch = d.match(/مبلغ\s*\(([^)]+)\)/);
+    const balMatch = d.match(/الرصيد المالي الحالي:\s*([\d.]+)/);
+    const amountStr = amountMatch ? amountMatch[1].trim() : '';
+    const balanceStr = balMatch ? balMatch[1].trim() : '';
+
     return {
-      titleAr: 'إيداع نقدي في المحفظة 💰',
+      titleAr: t,
       descriptionAr: d || 'تم إيداع رصيد نقدي في محفظتك بنجاح من قبل الإدارة.',
       titleEn: 'Wallet Cash Deposit 💰',
-      descriptionEn: 'Cash credit has been deposited into your wallet by administration.',
+      descriptionEn: amountStr
+        ? balanceStr
+          ? `An amount of (${amountStr}) was deposited into your wallet by administration. Current cash balance: ${balanceStr}.`
+          : `An amount of (${amountStr}) was deposited into your wallet by administration.`
+        : 'Cash credit has been deposited into your wallet by administration.',
       matched: true,
     };
   }
 
-  // 16. Management Notice: Driver's license / documents
+  // 23. Driver's license / vehicle documents notice
   if (
-    t.toLowerCase().includes('management') ||
-    t.includes('رسالة من الإدارة') ||
     d.toLowerCase().includes("driver's license") ||
     d.includes('رخصة القيادة')
   ) {
@@ -404,25 +662,137 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 17. Sovereign Tier Promotion
+  // 24. Sovereign Tier Promotion
   if (t.includes('ترقية سيادية') || t.includes('أصبحت رتبتك')) {
+    let tierEn = 'Higher Tier 🏆';
+    if (t.includes('البلاتينية') || d.includes('البلاتينية')) tierEn = 'Platinum 💎';
+    else if (t.includes('الذهبية') || d.includes('الذهبية')) tierEn = 'Gold 🥇';
+    else if (t.includes('البرونزية') || d.includes('البرونزية')) tierEn = 'Bronze 🥉';
+    else if (t.includes('الفضية') || d.includes('الفضية')) tierEn = 'Silver 🥈';
+
     return {
       titleAr: t,
       descriptionAr: d || 'تهانينا! تمت ترقية رتبتك بناءً على أدائك المتميز في المنظومة.',
-      titleEn: 'Tier Promotion 🏆',
-      descriptionEn: 'Congratulations! Your rank has been upgraded based on your performance.',
+      titleEn: `Sovereign Promotion: Your rank is now ${tierEn} 🏆`.replace('💎 🏆', '💎').replace('🥇 🏆', '🥇').replace('🥉 🏆', '🥉').replace('🥈 🏆', '🥈'),
+      descriptionEn: `Congratulations Captain! Administration has upgraded your rank to (${tierEn}), unlocking better pricing and offer privileges on the radar.`,
       matched: true,
     };
   }
 
-  // 18. Trip Unfrozen
+  // 25. Trip Unfrozen
   if (t.includes('فك تعليق الرحلة')) {
+    const isIdleReset = d.includes('IDLE') || d.includes('الجاهزية');
     return {
       titleAr: 'فك تعليق الرحلة ⚡',
       descriptionAr: d || 'تم فك تعليق رحلتك وإعادتها للحالة النشطة بنجاح من قبل الإدارة.',
-      titleEn: 'Trip Resumed ⚡',
-      descriptionEn: 'Your trip has been resumed to active status by administration.',
+      titleEn: 'Trip Unfrozen ⚡',
+      descriptionEn: isIdleReset
+        ? 'Your trip suspension was cleared by administration and your status has been reset to Standby (IDLE) to receive new requests.'
+        : 'Your trip has been resumed to active status by administration.',
       matched: true,
+    };
+  }
+
+  // 26. Standard Admin Default Headers + Known Quick Templates (supports both AR and EN inputs)
+  const KNOWN_ADMIN_HEADERS: Array<{ ar: string; en: string; aliases: string[] }> = [
+    {
+      ar: 'رسالة من إدارة المنظومة',
+      en: 'Message from System Administration',
+      aliases: ['رسالة من إدارة المنظومة', 'message from system administration', 'message from platform administration'],
+    },
+    {
+      ar: 'توجيه من إدارة المنظومة',
+      en: 'Directive from Platform Administration',
+      aliases: ['توجيه من إدارة المنظومة', 'directive from platform administration'],
+    },
+    {
+      ar: 'إشعار توجيهي من إدارة المنظومة',
+      en: 'Directive Notification from System Administration',
+      aliases: ['إشعار توجيهي من إدارة المنظومة', 'directive notification from system administration'],
+    },
+    {
+      ar: 'إشعار من إدارة المنظومة',
+      en: 'Notice from System Administration',
+      aliases: ['إشعار من إدارة المنظومة', 'notice from system administration'],
+    },
+    {
+      ar: 'إشعار مالي من إدارة المنظومة',
+      en: 'Financial Notice from System Administration',
+      aliases: ['إشعار مالي من إدارة المنظومة', 'financial notice from system administration'],
+    },
+    {
+      ar: 'رسالة من الإدارة',
+      en: 'Message from management',
+      aliases: ['رسالة من الإدارة', 'message from management'],
+    },
+  ];
+
+  const KNOWN_QUICK_TEMPLATE_BODIES: Array<{ ar: string; en: string }> = [
+    // Rider quick templates (riders-management-panel.tsx)
+    {
+      ar: 'مرحباً بك في بينكم - bynkcom! نتمنى لك تجربة رحلات ممتعة وآمنة دائماً.',
+      en: 'Welcome to bynkcom! We wish you safe and pleasant rides always.',
+    },
+    {
+      ar: 'تنبيه: نرجو الالتزام بعدم تكرار إلغاء الطلبات للحفاظ على تقييم حسابك.',
+      en: 'Admin Notice: Please avoid consecutive cancellations to maintain your account trust score.',
+    },
+    {
+      ar: 'تم تنشيط حسابك بنجاح، يمكنك الآن طلب الرحلات بشكل طبيعي.',
+      en: 'Your account has been rehabilitated and activated successfully. You can now request rides normally.',
+    },
+    {
+      ar: 'عروض وخصومات مميزة متوفرة الآن في منطقتك على رحلاتك القادمة.',
+      en: 'Exclusive discounts and offers are now available in your area for your upcoming rides.',
+    },
+    {
+      ar: 'يرجى التأكد من تشغيل الموقع (GPS) بدقة لضمان سرعة وصول السائق إليك.',
+      en: 'Please ensure high-accuracy GPS is enabled to ensure faster driver pickup response.',
+    },
+    {
+      ar: 'تحديث جديد في التطبيق: أصبح طلب الرحلات أسرع وأسهل الآن!',
+      en: 'New App Update: Requesting rides is now faster and easier than ever!',
+    },
+    {
+      ar: 'شكراً لثقتكم بتطبيق بينكم - bynkcom.',
+      en: "Thank you for choosing bynkcom - Jordan's fastest and safest transport network.",
+    },
+    {
+      ar: 'نتمنى لكم أسبوعاً سعيداً ورحلات موفقة مع بينكم - bynkcom.',
+      en: 'Wishing you a wonderful week and safe journeys with bynkcom.',
+    },
+    // Captain quick templates (drivers-management-tab.tsx)
+    {
+      ar: 'إشعار تشغيلي: يرجى التأكد من استقرار إشارة GPS وتحديث التطبيق لأحدث إصدار.',
+      en: 'Operational notice: Please ensure high GPS accuracy and update app to the latest version.',
+    },
+    {
+      ar: 'شكر وتقدير: إدارة المنظومة تشكركم على التزامكم العالي وخدمتكم الممتازة.',
+      en: 'Appreciation: System administration thanks you for your outstanding commitment and excellence.',
+    },
+    {
+      ar: 'تنويه أمني: نذكركم بالالتزام بالتسعيرة الرسمية وعدم إلغاء الرحلات بعد قبولها.',
+      en: 'Security notice: Reminder to adhere to official fare formulas and avoid trip cancellations.',
+    },
+  ];
+
+  const tLower = t.toLowerCase();
+  const matchedHeader = KNOWN_ADMIN_HEADERS.find((h) => h.aliases.includes(tLower));
+  const matchedBody = KNOWN_QUICK_TEMPLATE_BODIES.find(
+    (b) => b.ar === d || b.en.toLowerCase() === d.toLowerCase()
+  );
+
+  if (matchedHeader || matchedBody) {
+    const headerIsResolved = Boolean(matchedHeader) || (!hasArabicScript(t) && !hasLatinLetters(t));
+    const bodyIsResolved = Boolean(matchedBody) || (!hasArabicScript(d) && !hasLatinLetters(d));
+    return {
+      titleAr: matchedHeader ? matchedHeader.ar : t,
+      descriptionAr: matchedBody ? matchedBody.ar : d,
+      titleEn: matchedHeader ? matchedHeader.en : t,
+      descriptionEn: matchedBody ? matchedBody.en : d,
+      matched: true,
+      titleMatched: headerIsResolved,
+      descriptionMatched: bodyIsResolved,
     };
   }
 
@@ -432,6 +802,8 @@ export function resolveDynamicNotification(
     titleEn: t,
     descriptionEn: d,
     matched: false,
+    titleMatched: false,
+    descriptionMatched: false,
   };
 }
 
@@ -453,24 +825,76 @@ export function parseNotificationContent(
       const payload: NotificationI18nPayload = JSON.parse(match[1]);
       const cleanBody = rawDesc.replace(I18N_TAG_REGEX, '').trim();
 
-      const titleAr = payload.title_ar || rawTitle;
-      const descriptionAr = payload.body_ar || cleanBody;
-      const titleEn = payload.title_en || rawTitle;
-      const descriptionEn = payload.body_en || cleanBody;
+      let titleAr = (payload.title_ar || rawTitle).trim();
+      let descriptionAr = (payload.body_ar || cleanBody).trim();
+      let titleEn = (payload.title_en || '').trim();
+      let descriptionEn = (payload.body_en || '').trim();
 
-      const hasTranslation = Boolean(
-        (payload.title_en && payload.title_en !== payload.title_ar) ||
-          (payload.body_en && payload.body_en !== payload.body_ar)
-      );
+      const dynamicFromAr = resolveDynamicNotification(titleAr, descriptionAr);
+      const dynamicTitleOk = dynamicFromAr.matched && (dynamicFromAr.titleMatched ?? true);
+      const dynamicDescOk = dynamicFromAr.matched && (dynamicFromAr.descriptionMatched ?? true);
+
+      // Repair broken legacy <!--i18n--> envelopes where Arabic was duplicated into title_en / body_en
+      const titleEnIsMissingOrArabicCopy =
+        !titleEn || (titleEn === titleAr && hasArabicScript(titleAr));
+      const bodyEnIsMissingOrArabicCopy =
+        !descriptionEn || (descriptionEn === descriptionAr && hasArabicScript(descriptionAr));
+
+      if (titleEnIsMissingOrArabicCopy && dynamicTitleOk) {
+        titleEn = dynamicFromAr.titleEn;
+      }
+      if (bodyEnIsMissingOrArabicCopy && dynamicDescOk) {
+        descriptionEn = dynamicFromAr.descriptionEn;
+      }
+
+      // Repair reverse case: English-authored row duplicated into title_ar / body_ar
+      const titleArIsMissingOrEnglishCopy =
+        !titleAr || (titleAr === titleEn && !hasArabicScript(titleEn) && hasLatinLetters(titleEn));
+      const bodyArIsMissingOrEnglishCopy =
+        !descriptionAr || (descriptionAr === descriptionEn && !hasArabicScript(descriptionEn) && hasLatinLetters(descriptionEn));
+
+      if (titleArIsMissingOrEnglishCopy && titleEn) {
+        const dynFromEn = resolveDynamicNotification(titleEn, descriptionEn);
+        if (dynFromEn.matched && (dynFromEn.titleMatched ?? true)) {
+          titleAr = dynFromEn.titleAr;
+        }
+      }
+      if (bodyArIsMissingOrEnglishCopy && descriptionEn) {
+        const dynFromEn = resolveDynamicNotification(titleEn, descriptionEn);
+        if (dynFromEn.matched && (dynFromEn.descriptionMatched ?? true)) {
+          descriptionAr = dynFromEn.descriptionAr;
+        }
+      }
+
+      if (!titleEn) titleEn = titleAr;
+      if (!descriptionEn) descriptionEn = descriptionAr;
+
+      const resolvedTitle = isArabic ? titleAr : (titleEn || titleAr);
+      const resolvedDesc = isArabic ? descriptionAr : (descriptionEn || descriptionAr);
+
+      const hasDistinctTitleEn = Boolean(titleEn && titleEn !== titleAr);
+      const hasDistinctBodyEn = Boolean(descriptionEn && descriptionEn !== descriptionAr);
+
+      const titleNeedsTranslation = isArabic
+        ? (!hasArabicScript(resolvedTitle) && hasLatinLetters(resolvedTitle))
+        : hasArabicScript(resolvedTitle);
+
+      const descriptionNeedsTranslation = isArabic
+        ? (!hasArabicScript(resolvedDesc) && hasLatinLetters(resolvedDesc))
+        : hasArabicScript(resolvedDesc);
+
+      const hasTranslation = hasDistinctTitleEn || hasDistinctBodyEn;
 
       return {
-        title: isArabic ? titleAr : (titleEn || titleAr),
-        description: isArabic ? descriptionAr : (descriptionEn || descriptionAr),
+        title: resolvedTitle,
+        description: resolvedDesc,
         hasTranslation,
         titleAr,
         descriptionAr,
         titleEn,
         descriptionEn,
+        titleNeedsTranslation,
+        descriptionNeedsTranslation,
       };
     } catch (e) {
       console.warn('[parseNotificationContent] Failed to parse i18n payload:', e);
@@ -482,18 +906,39 @@ export function parseNotificationContent(
   const dynamic = resolveDynamicNotification(rawTitle, cleanDesc);
 
   if (dynamic.matched) {
+    const titleMatched = dynamic.titleMatched ?? true;
+    const descMatched = dynamic.descriptionMatched ?? true;
+    const title = isArabic ? dynamic.titleAr : dynamic.titleEn;
+    const description = isArabic ? dynamic.descriptionAr : dynamic.descriptionEn;
+
+    const titleNeedsTranslation = isArabic
+      ? (!titleMatched && !hasArabicScript(title) && hasLatinLetters(title))
+      : (!titleMatched && hasArabicScript(title));
+    const descriptionNeedsTranslation = isArabic
+      ? (!descMatched && !hasArabicScript(description) && hasLatinLetters(description))
+      : (!descMatched && hasArabicScript(description));
+
     return {
-      title: isArabic ? dynamic.titleAr : dynamic.titleEn,
-      description: isArabic ? dynamic.descriptionAr : dynamic.descriptionEn,
-      hasTranslation: true,
+      title,
+      description,
+      hasTranslation: titleMatched || descMatched,
       titleAr: dynamic.titleAr,
       descriptionAr: dynamic.descriptionAr,
       titleEn: dynamic.titleEn,
       descriptionEn: dynamic.descriptionEn,
+      titleNeedsTranslation,
+      descriptionNeedsTranslation,
     };
   }
 
   // 3. Fallback for custom unmapped notifications
+  const titleNeedsTranslation = isArabic
+    ? (!hasArabicScript(rawTitle) && hasLatinLetters(rawTitle))
+    : hasArabicScript(rawTitle);
+  const descriptionNeedsTranslation = isArabic
+    ? (!hasArabicScript(cleanDesc) && hasLatinLetters(cleanDesc))
+    : hasArabicScript(cleanDesc);
+
   return {
     title: rawTitle,
     description: cleanDesc,
@@ -502,7 +947,188 @@ export function parseNotificationContent(
     descriptionAr: cleanDesc,
     titleEn: rawTitle,
     descriptionEn: cleanDesc,
+    titleNeedsTranslation,
+    descriptionNeedsTranslation,
   };
+}
+
+// --- Client-Side Runtime Translation Cache & Batch Helper ---
+const runtimeCache = new Map<string, string>();
+let isRuntimeCacheHydrated = false;
+const inFlightBatchTranslations = new Map<string, Promise<string>>();
+
+function hydrateRuntimeCacheIfNeeded(): void {
+  if (isRuntimeCacheHydrated || typeof window === 'undefined') return;
+  isRuntimeCacheHydrated = true;
+  try {
+    const raw = window.localStorage.getItem(RUNTIME_TRANSLATION_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === 'string' && v.trim()) {
+          runtimeCache.set(k, v);
+        }
+      }
+    }
+  } catch {}
+}
+
+function persistRuntimeCache(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const entries = Array.from(runtimeCache.entries()).slice(-MAX_CACHE_ENTRIES);
+    const obj: Record<string, string> = {};
+    for (const [k, v] of entries) {
+      obj[k] = v;
+    }
+    window.localStorage.setItem(RUNTIME_TRANSLATION_CACHE_KEY, JSON.stringify(obj));
+  } catch {}
+}
+
+function makeCacheKey(text: string, targetLang: 'ar' | 'en'): string {
+  return `${targetLang}::${text.trim()}`;
+}
+
+export function getCachedNotificationTranslation(
+  text: string,
+  targetLang: 'ar' | 'en'
+): string | null {
+  const trimmed = (text || '').trim();
+  if (!trimmed) return null;
+  hydrateRuntimeCacheIfNeeded();
+  return runtimeCache.get(makeCacheKey(trimmed, targetLang)) ?? null;
+}
+
+/**
+ * Resolves a notification item synchronously using both static rules / i18n payload
+ * AND any previously cached client-side translations.
+ */
+export function resolveNotificationForDisplay(
+  item: { title?: string; description?: string },
+  isArabic: boolean
+): ParsedNotificationContent {
+  const parsed = parseNotificationContent(item, isArabic);
+  const targetLang: 'ar' | 'en' = isArabic ? 'ar' : 'en';
+
+  let title = parsed.title;
+  let description = parsed.description;
+  let titleNeedsTranslation = parsed.titleNeedsTranslation;
+  let descriptionNeedsTranslation = parsed.descriptionNeedsTranslation;
+
+  if (titleNeedsTranslation && title) {
+    const cached = getCachedNotificationTranslation(title, targetLang);
+    if (cached) {
+      title = cached;
+      titleNeedsTranslation = false;
+    }
+  }
+
+  if (descriptionNeedsTranslation && description) {
+    const cached = getCachedNotificationTranslation(description, targetLang);
+    if (cached) {
+      description = cached;
+      descriptionNeedsTranslation = false;
+    }
+  }
+
+  return {
+    ...parsed,
+    title,
+    description,
+    titleNeedsTranslation,
+    descriptionNeedsTranslation,
+  };
+}
+
+/**
+ * Client-side helper to translate a list of texts on demand via /api/translate,
+ * deduplicating concurrent requests and persisting results in cache.
+ */
+export async function requestBatchTranslation(
+  texts: string[],
+  targetLang: 'ar' | 'en' = 'en'
+): Promise<Record<string, string>> {
+  hydrateRuntimeCacheIfNeeded();
+  const results: Record<string, string> = {};
+  const uniquePending: string[] = [];
+  const waitingPromises: Array<Promise<void>> = [];
+
+  for (const raw of texts) {
+    const trimmed = (raw || '').trim();
+    if (!trimmed) continue;
+    const key = makeCacheKey(trimmed, targetLang);
+    const cached = runtimeCache.get(key);
+    if (cached) {
+      results[trimmed] = cached;
+      continue;
+    }
+    const inflight = inFlightBatchTranslations.get(key);
+    if (inflight) {
+      waitingPromises.push(
+        inflight.then((tr) => {
+          if (tr) results[trimmed] = tr;
+        })
+      );
+      continue;
+    }
+    if (!uniquePending.includes(trimmed)) {
+      uniquePending.push(trimmed);
+    }
+  }
+
+  if (uniquePending.length > 0) {
+    // Chunk by 30 (API MAX_BATCH_TEXTS)
+    for (let i = 0; i < uniquePending.length; i += 30) {
+      const chunk = uniquePending.slice(i, i + 30);
+      const batchPromise = (async () => {
+        try {
+          const res = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: chunk, targetLang }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.success && Array.isArray(data.translations)) {
+              let cacheUpdated = false;
+              chunk.forEach((src, idx) => {
+                const tr = typeof data.translations[idx] === 'string' ? data.translations[idx].trim() : '';
+                if (tr && tr !== src) {
+                  runtimeCache.set(makeCacheKey(src, targetLang), tr);
+                  results[src] = tr;
+                  cacheUpdated = true;
+                }
+              });
+              if (cacheUpdated) persistRuntimeCache();
+              return results;
+            }
+          }
+        } catch (err) {
+          console.warn('[requestBatchTranslation] API batch failed:', err);
+        }
+        return results;
+      })();
+
+      chunk.forEach((src) => {
+        const key = makeCacheKey(src, targetLang);
+        inFlightBatchTranslations.set(
+          key,
+          batchPromise.then((map) => map[src] || src).finally(() => {
+            inFlightBatchTranslations.delete(key);
+          })
+        );
+      });
+
+      await batchPromise;
+    }
+  }
+
+  if (waitingPromises.length > 0) {
+    await Promise.allSettled(waitingPromises);
+  }
+
+  return results;
 }
 
 /**
@@ -515,6 +1141,9 @@ export async function requestTranslation(
   const trimmed = (text || '').trim();
   if (!trimmed) return '';
 
+  const cached = getCachedNotificationTranslation(trimmed, targetLang);
+  if (cached) return cached;
+
   try {
     const res = await fetch('/api/translate', {
       method: 'POST',
@@ -525,7 +1154,12 @@ export async function requestTranslation(
     if (res.ok) {
       const data = await res.json();
       if (data?.success && data?.translatedText) {
-        return data.translatedText;
+        const tr = String(data.translatedText).trim();
+        if (tr && tr !== trimmed) {
+          runtimeCache.set(makeCacheKey(trimmed, targetLang), tr);
+          persistRuntimeCache();
+        }
+        return tr;
       }
     }
   } catch (err) {
@@ -542,7 +1176,12 @@ export async function requestTranslation(
     if (fallbackRes.ok) {
       const data = await fallbackRes.json();
       if (Array.isArray(data) && Array.isArray(data[0])) {
-        return data[0].map((c: any) => (c && c[0] ? c[0] : '')).join('').trim();
+        const tr = data[0].map((c: any) => (c && c[0] ? c[0] : '')).join('').trim();
+        if (tr && tr !== trimmed) {
+          runtimeCache.set(makeCacheKey(trimmed, targetLang), tr);
+          persistRuntimeCache();
+        }
+        return tr;
       }
     }
   } catch {}

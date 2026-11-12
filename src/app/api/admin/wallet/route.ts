@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
-import { encodeNotificationPayload, resolveDynamicNotification } from '@/shared/utils/notification-i18n';
+import { buildBilingualNotificationServer } from '@/shared/server/translate';
 
 // Generate human-friendly voucher codes
 function generateVoucherCode(minutes: number): string {
@@ -16,10 +16,16 @@ function generateVoucherCode(minutes: number): string {
 async function sendCaptainNotification(userId: string, id: string, title: string, description: string, type: string) {
   try {
     const notifId = `${id}_${Date.now()}`;
-    const dynamic = resolveDynamicNotification(title, description);
-    const encoded = dynamic.matched
-      ? encodeNotificationPayload(dynamic.titleAr, dynamic.descriptionAr, dynamic.titleEn, dynamic.descriptionEn)
-      : { title, description };
+    const { data: capProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('preferred_language')
+      .eq('id', userId)
+      .maybeSingle();
+    const encoded = await buildBilingualNotificationServer({
+      title,
+      description,
+      preferredLanguage: capProfile?.preferred_language,
+    });
 
     await supabaseAdmin.from('user_notifications').insert({
       id: notifId,
@@ -731,19 +737,35 @@ export async function POST(req: Request) {
 
       // 6. Direct notification/message to captain regarding financial operations
       case 'send_message': {
-        const { captainId, title, message, type } = body;
+        const { captainId, title, message, type, titleEn, messageEn, title_en, message_en } = body;
         if (!captainId || !message || !String(message).trim()) {
           return NextResponse.json({ success: false, error: 'captainId ونص الرسالة مطلوبان' }, { status: 400 });
         }
 
         const msgTitle = title && String(title).trim() ? String(title).trim() : 'إشعار مالي من إدارة المنظومة';
+        const enTitle = (titleEn || title_en || '').trim();
+        const enMessage = (messageEn || message_en || '').trim();
+
+        const { data: recipientProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('preferred_language')
+          .eq('id', captainId)
+          .maybeSingle();
+
+        const bilingual = await buildBilingualNotificationServer({
+          title: msgTitle,
+          description: String(message).trim(),
+          titleEn: enTitle,
+          descriptionEn: enMessage,
+          preferredLanguage: recipientProfile?.preferred_language,
+        });
 
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from('user_notifications')
           .insert({
             user_id: captainId,
-            title: msgTitle,
-            description: String(message).trim(),
+            title: bilingual.title,
+            description: bilingual.description,
             type: type || 'admin_message',
             is_read: false,
             created_at: new Date().toISOString(),

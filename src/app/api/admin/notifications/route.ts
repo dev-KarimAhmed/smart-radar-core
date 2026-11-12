@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
-import { encodeNotificationPayload, resolveDynamicNotification } from '@/shared/utils/notification-i18n';
+import { buildBilingualNotificationServer } from '@/shared/server/translate';
 
 export interface AdminNotificationItem {
   id: string;
@@ -39,10 +39,16 @@ export interface AdminNotificationItem {
 async function sendCaptainNotification(userId: string, id: string, title: string, description: string, type: string) {
   try {
     const notifId = `${id}_${Date.now()}`;
-    const dynamic = resolveDynamicNotification(title, description);
-    const encoded = dynamic.matched
-      ? encodeNotificationPayload(dynamic.titleAr, dynamic.descriptionAr, dynamic.titleEn, dynamic.descriptionEn)
-      : { title, description };
+    const { data: capProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('preferred_language')
+      .eq('id', userId)
+      .maybeSingle();
+    const encoded = await buildBilingualNotificationServer({
+      title,
+      description,
+      preferredLanguage: capProfile?.preferred_language,
+    });
 
     await supabaseAdmin.from('user_notifications').insert({
       id: notifId,

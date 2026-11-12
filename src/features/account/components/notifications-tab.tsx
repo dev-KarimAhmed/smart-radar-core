@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNotifications, isAdminNotification, type AppNotification } from '@/shared/hooks/use-notifications';
 import { recordAdminNotificationSeen } from '../services/legal-log-service';
 import { highlightBrand } from '@/shared/components/brand-highlight';
@@ -25,7 +25,11 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
 import { formatReadableDateTime, formatNotificationShortTime } from '@/shared/utils/date-format';
-import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import {
+  resolveNotificationForDisplay,
+  requestBatchTranslation,
+  hasArabicScript,
+} from '@/shared/utils/notification-i18n';
 
 const styles = {
   root: 'flex flex-col w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4 pb-32 sm:pb-36',
@@ -107,6 +111,41 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewingNotification, setViewingNotification] = useState<AppNotification | null>(null);
   const [copied, setCopied] = useState(false);
+  const [translationRevision, setTranslationRevision] = useState(0);
+
+  const parsedById = useMemo(() => {
+    void translationRevision;
+    const map = new Map<string, ReturnType<typeof resolveNotificationForDisplay>>();
+    for (const item of notifications) {
+      map.set(item.id, resolveNotificationForDisplay(item, isArabic));
+    }
+    return map;
+  }, [notifications, isArabic, translationRevision]);
+
+  useEffect(() => {
+    const missingTexts: string[] = [];
+    for (const parsed of parsedById.values()) {
+      if (parsed.titleNeedsTranslation && parsed.title) {
+        missingTexts.push(parsed.title);
+      }
+      if (parsed.descriptionNeedsTranslation && parsed.description) {
+        missingTexts.push(parsed.description);
+      }
+    }
+    if (missingTexts.length === 0) return;
+
+    let active = true;
+    const targetLang: 'ar' | 'en' = isArabic ? 'ar' : 'en';
+    void requestBatchTranslation(missingTexts, targetLang).then((translatedMap) => {
+      if (active && Object.keys(translatedMap).length > 0) {
+        setTranslationRevision((v) => v + 1);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [parsedById, isArabic]);
 
   const allSelected = notifications.length > 0 && selectedIds.size === notifications.length;
 
@@ -154,11 +193,12 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
       if (!item.read) {
         void markAsRead(item.id);
       } else if (isAdminNotification(item) && user?.uid) {
+        const parsedItem = parsedById.get(item.id) || resolveNotificationForDisplay(item, isArabic);
         void recordAdminNotificationSeen({
           userId: user.uid,
           notificationId: item.id,
-          notificationTitle: item.title,
-          notificationDescription: item.description,
+          notificationTitle: parsedItem.title || item.title,
+          notificationDescription: parsedItem.description || item.description,
           isArabic,
         });
       }
@@ -305,7 +345,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
               const isWalletAlert = item.type === 'WALLET_ALERT';
               const isReferral = item.type === 'referral';
               const isReferralInactivity = item.type === 'referral_inactivity';
-              const parsed = parseNotificationContent(item, isArabic);
+              const parsed = parsedById.get(item.id) || resolveNotificationForDisplay(item, isArabic);
 
               return (
                 <div
@@ -389,6 +429,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                             </span>
                           )}
                           <h3
+                            dir={hasArabicScript(parsed.title) ? 'rtl' : 'ltr'}
                             className={cn(
                               styles.itemTitle,
                               !item.read ? styles.itemTitleUnread : styles.itemTitleRead
@@ -401,7 +442,10 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
                           {formatNotificationTime(item.timestamp, isArabic)}
                         </span>
                       </div>
-                      <p className={styles.description}>
+                      <p
+                        dir={hasArabicScript(parsed.description) ? 'rtl' : 'ltr'}
+                        className={styles.description}
+                      >
                         {highlightBrand(parsed.description)}
                       </p>
                     </div>
@@ -422,7 +466,9 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
 
       {/* Pop-up Notification Detail Modal */}
       {viewingNotification && (() => {
-        const parsedModal = parseNotificationContent(viewingNotification, isArabic);
+        const parsedModal =
+          parsedById.get(viewingNotification.id) ||
+          resolveNotificationForDisplay(viewingNotification, isArabic);
         const displayTitle = parsedModal.title || viewingNotification.title || '';
         const displayDesc = parsedModal.description || viewingNotification.description || '';
 
@@ -523,12 +569,18 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
               {/* Modal Body */}
               <div className="space-y-3 pt-1" dir={direction}>
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-base sm:text-lg font-black text-white leading-snug">
+                  <h2
+                    dir={hasArabicScript(displayTitle) ? 'rtl' : 'ltr'}
+                    className="text-base sm:text-lg font-black text-white leading-snug"
+                  >
                     {highlightBrand(displayTitle)}
                   </h2>
                 </div>
 
-                <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap break-words max-h-64 overflow-y-auto selection:bg-[#14B8A6]/30">
+                <div
+                  dir={hasArabicScript(displayDesc) ? 'rtl' : 'ltr'}
+                  className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap break-words max-h-64 overflow-y-auto selection:bg-[#14B8A6]/30"
+                >
                   {highlightBrand(displayDesc)}
                 </div>
               </div>

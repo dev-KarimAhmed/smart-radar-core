@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
-import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import {
+  resolveNotificationForDisplay,
+  requestBatchTranslation,
+} from '@/shared/utils/notification-i18n';
 import { playNotificationSound } from '@/shared/utils/notification-sound';
 import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
 import { recordAdminNotificationSeen } from '@/features/account/services/legal-log-service';
@@ -442,13 +445,32 @@ function setupRealtimeChannelIfNeeded(userId: string | null): void {
           const newRow = payload.new as any;
           if (newRow?.title) {
             const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
-            const parsed = parseNotificationContent(newRow, isArabic);
-            if (latestToastFn) {
-              latestToastFn(
-                parsed.title,
-                parsed.description,
-                newRow.type === 'WALLET_ALERT' || newRow.type === 'urgent' || newRow.type === 'warning' ? 'destructive' : 'default'
-              );
+            const targetLang: 'ar' | 'en' = isArabic ? 'ar' : 'en';
+            let parsed = resolveNotificationForDisplay(newRow, isArabic);
+
+            const fireToast = (title: string, description: string) => {
+              if (latestToastFn) {
+                latestToastFn(
+                  title,
+                  description,
+                  newRow.type === 'WALLET_ALERT' || newRow.type === 'urgent' || newRow.type === 'warning' ? 'destructive' : 'default'
+                );
+              }
+            };
+
+            if (parsed.titleNeedsTranslation || parsed.descriptionNeedsTranslation) {
+              const missing: string[] = [];
+              if (parsed.titleNeedsTranslation && parsed.title) missing.push(parsed.title);
+              if (parsed.descriptionNeedsTranslation && parsed.description) missing.push(parsed.description);
+              void Promise.race([
+                requestBatchTranslation(missing, targetLang),
+                new Promise<Record<string, string>>((resolve) => setTimeout(() => resolve({}), 2500)),
+              ]).then(() => {
+                parsed = resolveNotificationForDisplay(newRow, isArabic);
+                fireToast(parsed.title, parsed.description);
+              });
+            } else {
+              fireToast(parsed.title, parsed.description);
             }
 
             playNotificationSound();
@@ -552,11 +574,14 @@ export function useNotifications(explicitUserId?: string | null) {
     const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
     const targetItem = memoryNotifications.find((n) => n.id === notificationId);
     if (targetItem && isAdminNotification(targetItem) && targetUserId) {
+      const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
+      const parsedItem = resolveNotificationForDisplay(targetItem, isArabic);
       void recordAdminNotificationSeen({
         userId: targetUserId,
         notificationId: targetItem.id,
-        notificationTitle: targetItem.title,
-        notificationDescription: targetItem.description,
+        notificationTitle: parsedItem.title || targetItem.title,
+        notificationDescription: parsedItem.description || targetItem.description,
+        isArabic,
       });
     }
 
@@ -583,13 +608,16 @@ export function useNotifications(explicitUserId?: string | null) {
   const markAllAsRead = useCallback(async () => {
     const targetUserId = explicitUserId || userId || currentStoreUserId || getInitialUserId();
     if (targetUserId) {
+      const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
       memoryNotifications.forEach((n) => {
         if (!n.read && isAdminNotification(n)) {
+          const parsedItem = resolveNotificationForDisplay(n, isArabic);
           void recordAdminNotificationSeen({
             userId: targetUserId,
             notificationId: n.id,
-            notificationTitle: n.title,
-            notificationDescription: n.description,
+            notificationTitle: parsedItem.title || n.title,
+            notificationDescription: parsedItem.description || n.description,
+            isArabic,
           });
         }
       });

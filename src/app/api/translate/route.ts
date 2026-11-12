@@ -1,76 +1,10 @@
 import { NextResponse } from 'next/server';
 import { consumeRateLimit, getClientIp } from '@/shared/server/api-auth-guard';
+import { translateTextServer } from '@/shared/server/translate';
 
 const ALLOWED_SOURCE_LANGS = new Set(['auto', 'ar', 'en']);
 const MAX_BATCH_TEXTS = 30;
 const MAX_TEXT_LENGTH = 500;
-const REQUEST_TIMEOUT_MS = 5_000;
-
-/**
- * Universal sovereign translation endpoint (0 external cost / 0 API keys required).
- * Translates text between Arabic and English seamlessly with automatic language detection.
- */
-async function translateText(text: string, targetLang: 'ar' | 'en', sourceLang: string = 'auto'): Promise<string> {
-  const trimmed = (text || '').trim().slice(0, MAX_TEXT_LENGTH);
-  if (!trimmed) return '';
-  const safeSourceLang = ALLOWED_SOURCE_LANGS.has(sourceLang) ? sourceLang : 'auto';
-
-  // 1. Primary: Google GTX Translation Gateway
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(
-      safeSourceLang
-    )}&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(trimmed)}`;
-
-    const res = await fetch(url, {
-      method: 'GET',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      next: { revalidate: 3600 },
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && Array.isArray(data[0])) {
-        const translated = data[0].map((chunk: any) => (chunk && chunk[0] ? chunk[0] : '')).join('');
-        if (translated && translated.trim().length > 0) {
-          return translated.trim();
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[translateText] Primary GTX error:', err);
-  }
-
-  // 2. Secondary Fallback: MyMemory Open Translation API
-  try {
-    const src = safeSourceLang === 'auto' ? (targetLang === 'en' ? 'ar' : 'en') : safeSourceLang;
-    const fallbackUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
-      trimmed
-    )}&langpair=${encodeURIComponent(src)}|${encodeURIComponent(targetLang)}`;
-
-    const fallbackRes = await fetch(fallbackUrl, {
-      method: 'GET',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      next: { revalidate: 3600 },
-    });
-
-    if (fallbackRes.ok) {
-      const fbData = await fallbackRes.json();
-      const match = fbData?.responseData?.translatedText;
-      if (match && typeof match === 'string' && match.trim().length > 0) {
-        return match.trim();
-      }
-    }
-  } catch (fbErr) {
-    console.warn('[translateText] Secondary MyMemory error:', fbErr);
-  }
-
-  // 3. Graceful degrade: return original trimmed string
-  return trimmed;
-}
 
 export async function POST(req: Request) {
   try {
@@ -105,7 +39,7 @@ export async function POST(req: Request) {
       const translations = await Promise.all(
         texts.map((t) =>
           typeof t === 'string' && t.length <= MAX_TEXT_LENGTH * 2
-            ? translateText(t, target, safeSourceLang)
+            ? translateTextServer(t, target, safeSourceLang)
             : Promise.resolve(typeof t === 'string' ? t.slice(0, MAX_TEXT_LENGTH) : '')
         )
       );
@@ -124,7 +58,7 @@ export async function POST(req: Request) {
     }
 
     // Handle single text
-    const translatedText = await translateText(text, target, safeSourceLang);
+    const translatedText = await translateTextServer(text, target, safeSourceLang);
 
     return NextResponse.json({
       success: true,

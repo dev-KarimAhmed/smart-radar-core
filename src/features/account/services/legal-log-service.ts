@@ -1,6 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase-client';
+import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 
 export interface LegalDeclarationRecord {
   id: string;
@@ -108,13 +109,35 @@ export async function recordLegalDeclaration(params: {
 
   // 2. Cloud SSOT Backup: Sync to user_notifications as an official audit notification
   try {
-    const auditTitle = `إقرار قانوني إلكتروني: ${record.actionLabel}`;
-    const auditDesc = `رقم الإقرار: ${record.id} | المستخدم: ${record.userSerialId} | التوقيت: ${record.preciseTime} — تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني بشاشة سجلاتي بنجاح.`;
+    const labelAr =
+      params.actionType === 'NEW_ACCOUNT'
+        ? 'تسجيل حساب جديد'
+        : params.actionType === 'VEHICLE_UPDATE'
+        ? 'تعديل بيانات المركبة'
+        : 'تعديل بيانات الحساب';
+    const labelEn =
+      params.actionType === 'NEW_ACCOUNT'
+        ? 'New Account Registration'
+        : params.actionType === 'VEHICLE_UPDATE'
+        ? 'Vehicle Details Update'
+        : 'Account Details Update';
+
+    const auditTitleAr = `إقرار قانوني إلكتروني: ${params.actionLabel || labelAr}`;
+    const auditDescAr = `رقم الإقرار: ${record.id} | المستخدم: ${record.userSerialId} | التوقيت: ${record.preciseTime} — تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني بشاشة سجلاتي بنجاح.`;
+    const auditTitleEn = `Electronic Legal Declaration: ${labelEn}`;
+    const auditDescEn = `Declaration ID: ${record.id} | User: ${record.userSerialId} | Time: ${record.preciseTime} — The legal declaration was verified and saved in the Electronic Legal Log on My Records.`;
+
+    const encodedAudit = encodeNotificationPayload(
+      auditTitleAr,
+      auditDescAr,
+      auditTitleEn,
+      auditDescEn
+    );
 
     await supabase.from('user_notifications').insert({
       user_id: params.userId,
-      title: auditTitle,
-      description: auditDesc,
+      title: encodedAudit.title,
+      description: encodedAudit.description,
       type: 'info',
       is_read: false,
     });

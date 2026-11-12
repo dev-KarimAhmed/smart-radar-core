@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { parseNotificationContent } from '@/shared/utils/notification-i18n';
+import {
+  resolveNotificationForDisplay,
+  resolveDynamicNotification,
+} from '@/shared/utils/notification-i18n';
 import { readStoredDashboardLanguage } from '@/lib/i18n/language-storage';
 
 export interface Toast {
@@ -25,9 +28,12 @@ export const toast = (options: {
   let title = options.title;
   let description = options.description;
 
-  if (description && description.includes('<!--i18n:')) {
+  if (
+    (description && description.includes('<!--i18n:')) ||
+    (title && resolveDynamicNotification(title, description || '').matched)
+  ) {
     const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
-    const parsed = parseNotificationContent({ title, description }, isArabic);
+    const parsed = resolveNotificationForDisplay({ title, description }, isArabic);
     title = parsed.title;
     description = parsed.description;
   }

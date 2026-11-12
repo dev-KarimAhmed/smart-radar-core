@@ -514,6 +514,9 @@ export function RidersManagementPanel() {
             type="button"
             onClick={() => {
               setBulkScope(selectedRiderIds.size > 0 ? 'selected' : 'all');
+              setBulkMsgTitle(isArabic ? 'إشعار توجيهي من إدارة المنظومة' : 'Directive Notification from System Administration');
+              setBulkMsgTitleEn('');
+              setBulkMsgBodyEn('');
               setIsBulkMessageOpen(true);
             }}
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
@@ -726,6 +729,9 @@ export function RidersManagementPanel() {
               size="sm"
               onClick={() => {
                 setBulkScope('selected');
+                setBulkMsgTitle(isArabic ? 'إشعار توجيهي من إدارة المنظومة' : 'Directive Notification from System Administration');
+                setBulkMsgTitleEn('');
+                setBulkMsgBodyEn('');
                 setIsBulkMessageOpen(true);
               }}
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-8 px-3.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -890,7 +896,7 @@ export function RidersManagementPanel() {
                               </Badge>
                               {rider.referral_activity.captain_name ? (
                                 <p className="text-[10px] text-slate-400 truncate max-w-[130px]" title={rider.referral_activity.captain_name}>
-                                  كابتن: {rider.referral_activity.captain_name}
+                                  {isArabic ? 'كابتن:' : 'Captain:'} {rider.referral_activity.captain_name}
                                 </p>
                               ) : null}
                             </div>
@@ -960,6 +966,8 @@ export function RidersManagementPanel() {
                                 setMessageRider(rider);
                                 setMessageTitle(isArabic ? 'رسالة من إدارة المنظومة' : 'Directive from Platform Administration');
                                 setMessageBody('');
+                                setMessageTitleEn('');
+                                setMessageBodyEn('');
                                 setMessageType('admin_message');
                               }}
                               className="h-8 px-3 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -1198,7 +1206,16 @@ export function RidersManagementPanel() {
       {/* ========================================================================= */}
       {/* MODAL 3: Send Direct Message & Notification to Rider                      */}
       {/* ========================================================================= */}
-      <Dialog open={!!messageRider} onOpenChange={(open) => !open && setMessageRider(null)}>
+      <Dialog
+        open={!!messageRider}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMessageRider(null);
+            setMessageTitleEn('');
+            setMessageBodyEn('');
+          }
+        }}
+      >
         <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           {messageRider && (
             <div className="space-y-4">
@@ -1445,7 +1462,16 @@ export function RidersManagementPanel() {
       {/* ========================================================================= */}
       {/* MODAL 4: Bulk Send Message / Broadcast Notification to Riders             */}
       {/* ========================================================================= */}
-      <Dialog open={isBulkMessageOpen} onOpenChange={setIsBulkMessageOpen}>
+      <Dialog
+        open={isBulkMessageOpen}
+        onOpenChange={(open) => {
+          setIsBulkMessageOpen(open);
+          if (!open) {
+            setBulkMsgTitleEn('');
+            setBulkMsgBodyEn('');
+          }
+        }}
+      >
         <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-indigo-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           <div className="space-y-4">
             <DialogHeader>

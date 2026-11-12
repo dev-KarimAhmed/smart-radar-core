@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller, hasAdminSectorAccess } from '@/lib/admin-auth-verifier';
-import { encodeNotificationPayload, resolveDynamicNotification } from '@/shared/utils/notification-i18n';
+import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
+import { buildBilingualNotificationServer } from '@/shared/server/translate';
 
 async function insertDualNotification(item: {
   id: string;
@@ -12,10 +13,10 @@ async function insertDualNotification(item: {
   is_read?: boolean;
   created_at?: string;
 }) {
-  const dynamic = resolveDynamicNotification(item.title, item.description);
-  const encoded = dynamic.matched
-    ? encodeNotificationPayload(dynamic.titleAr, dynamic.descriptionAr, dynamic.titleEn, dynamic.descriptionEn)
-    : { title: item.title, description: item.description };
+  const encoded = await buildBilingualNotificationServer({
+    title: item.title,
+    description: item.description,
+  });
 
   return supabaseAdmin.from('user_notifications').insert({
     ...item,
@@ -843,21 +844,20 @@ export async function POST(req: Request) {
           .eq('id', userId)
           .maybeSingle();
 
-        const isEn = (recipientProfile?.preferred_language || '').toLowerCase() === 'en';
-        const userTitle = isEn && enTitle ? enTitle : msgTitle;
-        const encodedPayload = encodeNotificationPayload(
-          msgTitle,
-          String(message).trim(),
-          enTitle || msgTitle,
-          enMessage || String(message).trim()
-        );
+        const bilingual = await buildBilingualNotificationServer({
+          title: msgTitle,
+          description: String(message).trim(),
+          titleEn: enTitle,
+          descriptionEn: enMessage,
+          preferredLanguage: recipientProfile?.preferred_language,
+        });
 
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from('user_notifications')
           .insert({
             user_id: userId,
-            title: userTitle,
-            description: encodedPayload.description,
+            title: bilingual.title,
+            description: bilingual.description,
             type: msgType,
             is_read: false,
             created_at: new Date().toISOString(),
@@ -910,20 +910,22 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: false, error: 'لم يتم العثور على أي مستخدمين لإرسال الإشعار إليهم' }, { status: 400 });
         }
 
+        // Resolve bilingual translation once for all targeted recipients
+        const bilingual = await buildBilingualNotificationServer({
+          title: msgTitle,
+          description: String(message).trim(),
+          titleEn: enTitle,
+          descriptionEn: enMessage,
+        });
+
         const notifications = targetProfiles.map((p) => {
           const isEn = (p.preferred_language || '').toLowerCase() === 'en';
-          const userTitle = isEn && enTitle ? enTitle : msgTitle;
-          const encodedPayload = encodeNotificationPayload(
-            msgTitle,
-            String(message).trim(),
-            enTitle || msgTitle,
-            enMessage || String(message).trim()
-          );
+          const userTitle = isEn && bilingual.titleEn ? bilingual.titleEn : bilingual.titleAr;
 
           return {
             user_id: p.id,
             title: userTitle,
-            description: encodedPayload.description,
+            description: bilingual.description,
             type: msgType,
             is_read: false,
             created_at: new Date().toISOString(),
@@ -1030,10 +1032,17 @@ export async function POST(req: Request) {
             if (upErr) throw upErr;
           }
 
+          const bulkMinPayload = encodeNotificationPayload(
+            '⚡ شحن دقائق رادار جماعي',
+            `تمت إضافة (${numMinutes}) دقيقة رادار لحسابك بنجاح من قبل إدارة المنظومة وتمديد الصلاحية لـ ${extendDays} يوماً.`,
+            'Bulk Radar Minutes Top-Up ⚡',
+            `Successfully credited (${numMinutes}) radar minutes to your account by administration and extended validity for ${extendDays} days.`
+          );
+
           const notifs = targetIds.map(id => ({
             user_id: id,
-            title: '⚡ شحن دقائق رادار جماعي',
-            description: `تمت إضافة (${numMinutes}) دقيقة رادار لحسابك بنجاح من قبل إدارة المنظومة وتمديد الصلاحية لـ ${extendDays} يوماً.`,
+            title: bulkMinPayload.title,
+            description: bulkMinPayload.description,
             type: 'deposit_confirmed',
             is_read: false,
             created_at: new Date().toISOString(),
@@ -1082,10 +1091,18 @@ export async function POST(req: Request) {
             if (upErr) throw upErr;
           }
 
+          const amountDisplay = `${numAmount > 0 ? '+' : ''}${numAmount}`;
+          const bulkCashPayload = encodeNotificationPayload(
+            '💰 إيداع رصيد نقدي',
+            `تم إيداع مبلغ (${amountDisplay}) في محفظتك من قبل إدارة المنظومة.`,
+            'Wallet Cash Deposit 💰',
+            `An amount of (${amountDisplay}) was deposited into your wallet by administration.`
+          );
+
           const notifs = targetIds.map(id => ({
             user_id: id,
-            title: '💰 إيداع رصيد نقدي',
-            description: `تم إيداع مبلغ (${numAmount > 0 ? '+' : ''}${numAmount}) في محفظتك من قبل إدارة المنظومة.`,
+            title: bulkCashPayload.title,
+            description: bulkCashPayload.description,
             type: 'deposit_confirmed',
             is_read: false,
             created_at: new Date().toISOString(),

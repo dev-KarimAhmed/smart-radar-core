@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
 import { getServerSupabaseAdmin, getVerifiedUser } from '@/shared/server/api-auth-guard';
+import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,21 +33,34 @@ export async function POST(req: Request) {
     }
 
     try {
+      const welcomePayload = encodeNotificationPayload(
+        'مرحباً بك في شبكة بينكم للإعلان الرقمي 🌟',
+        'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل.',
+        'Welcome to Bynkcom Digital Ad Network 🌟',
+        'Your account has been successfully activated and is now ready for full use.'
+      );
+      const legalPayload = encodeNotificationPayload(
+        'توثيق السجل القانوني الإلكتروني 🛡️',
+        'تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني في شاشة سجلاتي.',
+        'Electronic Legal Log Verification 🛡️',
+        'The declaration has been verified and saved in the Electronic Legal Log on the My Records screen.'
+      );
+
       await supabaseAdmin.from('user_notifications').upsert(
         [
           {
             id: `notif_welcome_main_${caller.id}`,
             user_id: caller.id,
-            title: 'مرحباً بك في شبكة بينكم للإعلان الرقمي 🌟',
-            description: 'تم تفعيل حسابك بنجاح وأصبح جاهزاً للاستخدام بالكامل.',
+            title: welcomePayload.title,
+            description: welcomePayload.description,
             type: 'admin_message',
             is_read: false,
           },
           {
             id: `notif_welcome_legal_${caller.id}`,
             user_id: caller.id,
-            title: 'توثيق السجل القانوني الإلكتروني 🛡️',
-            description: 'تم توثيق الإقرار وحفظه في السجل القانوني الإلكتروني في شاشة سجلاتي.',
+            title: legalPayload.title,
+            description: legalPayload.description,
             type: 'admin_message',
             is_read: false,
           },
