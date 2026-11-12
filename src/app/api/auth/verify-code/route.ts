@@ -96,6 +96,7 @@ export async function POST(req: Request) {
         alreadyConfirmed: true,
         userId: authUser.id,
         email: authUser.email,
+        phone: authUser.phone || authUser.user_metadata?.phone || undefined,
         message: 'بريدك الإلكتروني مؤكد ومفعل بالفعل! يمكنك تسجيل الدخول مباشرة.',
       });
     }

@@ -24,7 +24,6 @@ import {
   Sparkles,
   UserPlus,
   UserRound,
-  Download,
 } from 'lucide-react';
 import {
   Dialog,
@@ -41,7 +40,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
-import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 import { useRegistration } from '../../hooks/use-registration';
 import { requestPasswordRecovery } from '../../services/password-recovery';
 import { navigateAuth } from '@/lib/auth-routing';
@@ -469,6 +467,7 @@ export function PersonalStep() {
     locationDataLoading,
     canUseDevMockData,
     fillRandomRegistrationData,
+    validateBeforeAccuracyConfirm,
     isSubmitting,
     role,
     authMode,
@@ -485,7 +484,6 @@ export function PersonalStep() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showAccuracyModal, setShowAccuracyModal] = useState(false);
-  const [showPwaInstallModal, setShowPwaInstallModal] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhone, setResetPhone] = useState(personal.phone);
   const [resetEmail, setResetEmail] = useState('');
@@ -554,7 +552,7 @@ export function PersonalStep() {
     }
   };
 
-  const onFormSubmit = (e: React.FormEvent) => {
+  const onFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError('');
     if (authMode === 'register') {
@@ -568,8 +566,8 @@ export function PersonalStep() {
         setEmailError(lang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Invalid email format');
         return;
       }
-    }
-    if (authMode === 'register') {
+      const isValid = await validateBeforeAccuracyConfirm();
+      if (!isValid) return;
       setShowAccuracyModal(true);
       return;
     }
@@ -578,7 +576,6 @@ export function PersonalStep() {
 
   const handleConfirmAccuracy = () => {
     setShowAccuracyModal(false);
-    setShowPwaInstallModal(true);
     handlePersonalSubmit({ preventDefault: () => {} } as React.FormEvent);
   };
 
@@ -684,15 +681,6 @@ export function PersonalStep() {
             <div className="space-y-3 pt-1">
               <button
                 type="button"
-                onClick={() => setShowPwaInstallModal(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 active:scale-95 h-11 text-xs sm:text-sm font-bold text-[#14F5D5] transition-all cursor-pointer shadow-md shadow-[#14B8A6]/10"
-              >
-                <Download className="h-4 w-4" />
-                <span>{isArabic ? 'تثبيت تطبيق بينكم (PWA)' : 'Install Among You (PWA)'}</span>
-              </button>
-
-              <button
-                type="button"
                 disabled={isResending || resendCountdown > 0}
                 onClick={handleResendConfirmation}
                 className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-95 h-11 text-xs sm:text-sm font-bold text-slate-300 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -723,12 +711,6 @@ export function PersonalStep() {
             </div>
           </div>
         </div>
-        <SovereignPwaInstallModal
-          isOpen={showPwaInstallModal}
-          onClose={() => setShowPwaInstallModal(false)}
-          isArabic={isArabic}
-          role={role === 'driver' ? 'captain' : 'rider'}
-        />
     </main>
     );
   }
@@ -1142,12 +1124,6 @@ export function PersonalStep() {
         onClose={() => setShowAccuracyModal(false)}
         isArabic={isArabic}
         isLoading={isSubmitting}
-      />
-      <SovereignPwaInstallModal
-        isOpen={showPwaInstallModal}
-        onClose={() => setShowPwaInstallModal(false)}
-        isArabic={isArabic}
-        role={role === 'driver' ? 'captain' : 'rider'}
       />
     </main>
   );

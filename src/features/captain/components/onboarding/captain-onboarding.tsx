@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, Languages, ShieldCheck, MailCheck, Mail, Loader2, RefreshCw, Clock, Check, Download } from 'lucide-react';
-import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
+import { CheckCircle2, Languages, ShieldCheck, MailCheck, Mail, Loader2, RefreshCw, Clock, Check } from 'lucide-react';
 import { navigateAuth } from '@/lib/auth-routing';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -97,7 +96,6 @@ export function CaptainOnboarding() {
   const [isHydrated, setIsHydrated] = React.useState(false);
   const [step, setStep] = React.useState<OnboardingStep>(1);
   const [showAccuracyModal, setShowAccuracyModal] = React.useState(false);
-  const [showPwaInstallModal, setShowPwaInstallModal] = React.useState(false);
   const [personal, setPersonal] = React.useState<CaptainPersonalValues>(emptyPersonal);
   const [rememberMe, setRememberMe] = React.useState<boolean>(readStoredRememberMe);
   const [affiliation, setAffiliation] = React.useState<AffiliationType | null>(null);
@@ -126,23 +124,24 @@ export function CaptainOnboarding() {
     if (cleanCode.length !== 6 || isVerifyingCaptainOtp) return;
     setIsVerifyingCaptainOtp(true);
     try {
-      await verifyEmailOtpCode({
+      const verifyRes = await verifyEmailOtpCode({
         code: cleanCode,
         email: confirmedEmail || personal.email.trim(),
         phone: personal.phone,
       });
       toast({
         title: isArabic ? 'تم تأكيد الحساب بنجاح! 🎉' : 'Account activated successfully! 🎉',
-        description: isArabic ? 'تم تفعيل بريدك الإلكتروني بنجاح.' : 'Your email has been confirmed successfully.',
+        description: isArabic ? 'تم تفعيل بريدك الإلكتروني بنجاح، جاري الدخول...' : 'Your email has been confirmed successfully. Signing in...',
       });
       try {
         if (typeof window !== 'undefined') {
           localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
         }
         await signInRiderWithPhone({
-          phone: personal.phone,
+          phone: verifyRes.phone || personal.phone,
           password: personal.password,
           rememberMe,
+          expectedRole: 'CAPTAIN',
         });
         window.location.replace('/captain');
         return;
@@ -204,6 +203,91 @@ export function CaptainOnboarding() {
     }
   };
 
+  const verifyCaptainAvailability = async (): Promise<boolean> => {
+    setVehicleErrors({});
+
+    const trimmedNatId = vehicle.nationalIdNumber.trim();
+    const trimmedLic = vehicle.licenseNumber.trim();
+    const trimmedPlate = vehicle.plate.trim();
+    const cleanEmail = personal.email?.trim().toLowerCase() || null;
+    const cleanPhone = personal.phone?.trim() || null;
+
+    if (!trimmedNatId && !trimmedLic && !trimmedPlate && !cleanEmail && !cleanPhone) {
+      return true;
+    }
+
+    try {
+      const { supabase } = await import('@/lib/supabase-client');
+      const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
+        p_national_id: trimmedNatId || null,
+        p_license_number: trimmedLic || null,
+        p_plate_number: trimmedPlate || null,
+        p_email: cleanEmail,
+        p_phone: cleanPhone,
+      });
+
+      if (!rpcError && availability) {
+        if (availability.phone_taken) {
+          toast({
+            variant: 'destructive',
+            title: t('errorTitle'),
+            description: 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول أو استخدام رقم آخر.',
+          });
+          setStep(1);
+          return false;
+        }
+
+        if (availability.email_taken) {
+          toast({
+            variant: 'destructive',
+            title: t('errorTitle'),
+            description: 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.',
+          });
+          setStep(1);
+          return false;
+        }
+
+        const newErrors: Record<string, string> = {};
+
+        if (availability.national_id_taken) {
+          newErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+        }
+        if (availability.license_taken) {
+          newErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
+        }
+        if (availability.plate_taken) {
+          newErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+          setVehicleErrors(newErrors);
+          toast({
+            variant: 'destructive',
+            title: t('errorTitle'),
+            description: newErrors.plate || newErrors.nationalIdNumber || newErrors.licenseNumber,
+          });
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  };
+
+  const handleOpenAccuracyAfterValidation = async () => {
+    if (!personal.country || !personal.governorate || !personal.district || !affiliation || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const isAvailable = await verifyCaptainAvailability();
+      if (isAvailable) {
+        setShowAccuracyModal(true);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const submitCaptainRegistration = async () => {
     if (!personal.country || !personal.governorate || !personal.district || !affiliation) return;
 
@@ -212,70 +296,11 @@ export function CaptainOnboarding() {
 
     try {
       const { supabase } = await import('@/lib/supabase-client');
+      const isAvailable = await verifyCaptainAvailability();
+      if (!isAvailable) return;
 
-      // Pre-check national ID number, driver license number, vehicle plate, and email uniqueness via Security Definer RPC
       const trimmedNatId = vehicle.nationalIdNumber.trim();
       const trimmedLic = vehicle.licenseNumber.trim();
-      const trimmedPlate = vehicle.plate.trim();
-      const cleanEmail = personal.email?.trim().toLowerCase() || null;
-      const cleanPhone = personal.phone?.trim() || null;
-
-      if (trimmedNatId || trimmedLic || trimmedPlate || cleanEmail || cleanPhone) {
-        const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
-          p_national_id: trimmedNatId || null,
-          p_license_number: trimmedLic || null,
-          p_plate_number: trimmedPlate || null,
-          p_email: cleanEmail,
-          p_phone: cleanPhone,
-        });
-
-        if (!rpcError && availability) {
-          if (availability.phone_taken) {
-            toast({
-              variant: 'destructive',
-              title: t('errorTitle'),
-              description: 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر. يرجى تسجيل الدخول أو استخدام رقم آخر.',
-            });
-            setStep(1);
-            setIsSubmitting(false);
-            return;
-          }
-
-          if (availability.email_taken) {
-            toast({
-              variant: 'destructive',
-              title: t('errorTitle'),
-              description: 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.',
-            });
-            setStep(1);
-            setIsSubmitting(false);
-            return;
-          }
-
-          const newErrors: Record<string, string> = {};
-
-          if (availability.national_id_taken) {
-            newErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
-          }
-          if (availability.license_taken) {
-            newErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
-          }
-          if (availability.plate_taken) {
-            newErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى. يرجى التأكد من اللوحة أو استخدام رقم آخر.';
-          }
-
-          if (Object.keys(newErrors).length > 0) {
-            setVehicleErrors(newErrors);
-            toast({
-              variant: 'destructive',
-              title: t('errorTitle'),
-              description: newErrors.plate || newErrors.nationalIdNumber || newErrors.licenseNumber,
-            });
-            setIsSubmitting(false);
-            return;
-          }
-        }
-      }
 
       const isTaxi = affiliation === 'office-taxi';
       const isIndependent = affiliation === 'independent';
@@ -317,12 +342,6 @@ export function CaptainOnboarding() {
       if ((result as any).needsEmailConfirmation) {
         setConfirmedEmail(personal.email.trim());
         setStep('done');
-        setShowPwaInstallModal(true);
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
-          } catch {}
-        }
         const captainId = result.user?.id;
         if (captainId) {
           void recordLegalDeclaration({
@@ -347,13 +366,12 @@ export function CaptainOnboarding() {
         description: t(result.session ? 'successDescription' : 'successNeedsLogin'),
       });
 
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
-        } catch {}
-      }
-
       if (result.session) {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+          } catch {}
+        }
         if (personal.email?.trim().includes('@')) {
           const { getAuthRedirectUrl } = await import('@/lib/utils');
           const { error: emailError } = await supabase.auth.updateUser(
@@ -509,7 +527,7 @@ export function CaptainOnboarding() {
               // drivingLicenseFile={drivingLicenseFile}
               // onDrivingLicenseFileChange={setDrivingLicenseFile}
               onBack={() => setStep(2)}
-              onSubmit={() => setShowAccuracyModal(true)}
+              onSubmit={() => void handleOpenAccuracyAfterValidation()}
               isSubmitting={isSubmitting}
               country={personal.countryIso}
             />
@@ -585,15 +603,6 @@ export function CaptainOnboarding() {
               <div className="space-y-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowPwaInstallModal(true)}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 hover:bg-[#14B8A6]/20 active:scale-95 h-11 text-xs sm:text-sm font-bold text-[#14F5D5] transition-all cursor-pointer shadow-md shadow-[#14B8A6]/10"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>{isArabic ? 'تثبيت تطبيق بينكم (PWA)' : 'Install Among You (PWA)'}</span>
-                </button>
-
-                <button
-                  type="button"
                   disabled={isResending || resendCountdown > 0}
                   onClick={handleResendConfirmation}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-95 h-11 text-xs sm:text-sm font-bold text-slate-300 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -644,12 +653,6 @@ export function CaptainOnboarding() {
         onClose={() => setShowAccuracyModal(false)}
         isArabic={isArabic}
         isLoading={isSubmitting}
-      />
-      <SovereignPwaInstallModal
-        isOpen={showPwaInstallModal}
-        onClose={() => setShowPwaInstallModal(false)}
-        isArabic={isArabic}
-        role="captain"
       />
     </main>
   );

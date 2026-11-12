@@ -103,6 +103,7 @@ interface RegistrationContextType {
   canUseDevMockData: boolean;
   fillRandomRegistrationData: () => void;
   fillCaptainRegistrationData: () => void;
+  validateBeforeAccuracyConfirm: () => Promise<boolean>;
   handlePersonalSubmit: (e: React.FormEvent) => void;
   handleVehicleSubmit: (e: React.FormEvent) => void;
   handleAdvertiserSubmit: (e: React.FormEvent) => void;
@@ -143,6 +144,37 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   });
   const [authPassword, setAuthPassword] = useState('');
   const [awaitingConfirmationEmail, setAwaitingConfirmationEmail] = useState<string | null>(null);
+  const registeredAuthRef = useRef<{ phone: string; password: string; role: RegistrationRole } | null>(null);
+
+  const claimPendingRiderReferralIfNeeded = useCallback(async (targetRole: RegistrationRole, explicitRef?: string) => {
+    const queryRef = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('ref') ||
+        new URLSearchParams(window.location.search).get('captain')
+      : null;
+    const refCode = (explicitRef || getPendingCaptainReferral() || queryRef || '').trim();
+    if (targetRole !== 'rider' || !refCode) return;
+
+    try {
+      const claimResult = await claimCaptainReferral(refCode);
+      if (claimResult.success && typeof window !== 'undefined') {
+        window.sessionStorage.setItem('radar_just_linked_captain_name', claimResult.captain_name || '');
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[Referral on Signup Claimed]', claimResult);
+      }
+    } catch (referralErr) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[Referral on Signup Error]', referralErr);
+      }
+    } finally {
+      clearPendingCaptainReferral();
+      removeReferralParamFromUrl();
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('radar_newly_registered_referral');
+        window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
+      }
+    }
+  }, []);
 
   const verifyEmailCode = async (code: string): Promise<boolean> => {
     const cleanCode = code.trim().replace(/\D/g, '');
@@ -156,6 +188,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     }
 
     const emailToVerify = (awaitingConfirmationEmail || personal.email)?.trim();
+    const normalizedForVerify = normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
+    const verifyPhone =
+      registeredAuthRef.current?.phone ||
+      (normalizedForVerify.ok ? normalizedForVerify.phone : personal.phone);
+
     try {
       const res = await fetch('/api/auth/verify-code', {
         method: 'POST',
@@ -163,7 +200,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           code: cleanCode,
           email: emailToVerify,
-          phone: personal.phone,
+          phone: verifyPhone,
         }),
       });
       const data = await res.json();
@@ -171,27 +208,57 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'كود التفعيل غير صحيح أو انتهت صلاحيته.');
       }
 
-      toast({
-        title: lang === 'ar' ? 'تم تفعيل الحساب بنجاح! 🎉' : 'Account activated successfully! 🎉',
-        description: data.message || (lang === 'ar' ? 'تم تأكيد بريدك الإلكتروني بنجاح.' : 'Your email has been confirmed successfully.'),
-      });
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+        } catch {}
+      }
+
+      const loginPhone =
+        registeredAuthRef.current?.phone ||
+        (normalizedForVerify.ok ? normalizedForVerify.phone : '') ||
+        String(data.phone || '') ||
+        personal.phone;
+      const loginPassword = registeredAuthRef.current?.password || authPassword;
+      const targetRole = registeredAuthRef.current?.role || role;
 
       // Auto login if phone & password are available
-      if (personal.phone && authPassword) {
+      if (loginPhone && loginPassword) {
         try {
           await signInRiderWithPhone({
-            phone: personal.phone,
-            password: authPassword,
+            phone: loginPhone,
+            password: loginPassword,
             rememberMe,
+            expectedRole: toSupabaseAuthRole(targetRole),
           });
+          await claimPendingRiderReferralIfNeeded(targetRole);
+          toast({
+            title: lang === 'ar' ? 'تم تفعيل الحساب بنجاح! 🎉' : 'Account activated successfully! 🎉',
+            description: lang === 'ar' ? 'جاري تسجيل دخولك تلقائياً الآن...' : 'Signing you in automatically...',
+          });
+          const directPath =
+            targetRole === 'driver' ? '/captain' :
+            targetRole === 'rider' ? '/rider' :
+            targetRole === 'admin' ? '/admin' :
+            targetRole === 'advertiser' ? '/advertiser/dashboard' :
+            targetRole === 'delegate' ? '/delegate' :
+            '/';
+          if (typeof window !== 'undefined') {
+            window.location.replace(directPath);
+            return true;
+          }
           setAwaitingConfirmationEmail(null);
-          router.replace('/');
+          router.replace(directPath);
           return true;
         } catch (loginErr) {
           console.warn('[Auto-login after OTP failed]', loginErr);
         }
       }
 
+      toast({
+        title: lang === 'ar' ? 'تم تفعيل الحساب بنجاح! 🎉' : 'Account activated successfully! 🎉',
+        description: data.message || (lang === 'ar' ? 'تم تأكيد بريدك الإلكتروني بنجاح.' : 'Your email has been confirmed successfully.'),
+      });
       setAwaitingConfirmationEmail(null);
       setAuthMode('login');
       return true;
@@ -524,9 +591,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     toast,
   ]);
 
-  const submitSupabaseAuth = useCallback(async () => {
-    if (isSubmittingRef.current) return;
-
+  const validateAuthFields = useCallback(() => {
     const countryId = Number(personal.country);
     const governorateId = Number(personal.gov);
     const districtId = Number(personal.district);
@@ -543,7 +608,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         title: tAuto('key_e1da8e5b'),
         description: tAuto('key_48c653a4'),
       });
-      return;
+      return null;
     }
 
     const normalizedPhone = normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
@@ -553,26 +618,119 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         title: tAuto('key_c4fdecb8'),
         description: normalizedPhone.message,
       });
-      return;
+      return null;
     }
 
-    if (
-      authMode === 'register' &&
-      (!personal.name.trim() ||
+    if (authMode === 'register') {
+      if (
+        !personal.name.trim() ||
         !Number.isInteger(countryId) ||
         !Number.isInteger(governorateId) ||
         !Number.isInteger(districtId) ||
         !selectedCountry ||
         !selectedGovernorate ||
-        !selectedDistrict)
-    ) {
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_e1da8e5b'),
-        description: tAuto('key_97c980d3'),
-      });
-      return;
+        !selectedDistrict
+      ) {
+        toast({
+          variant: 'destructive',
+          title: tAuto('key_e1da8e5b'),
+          description: tAuto('key_97c980d3'),
+        });
+        return null;
+      }
+
+      const cleanEmail = personal.email?.trim() || '';
+      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        toast({
+          variant: 'destructive',
+          title: tAuto('key_e1da8e5b'),
+          description: lang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح لتفعيل الحساب.' : 'Please enter a valid email address.',
+        });
+        return null;
+      }
+
+      if (authPassword.length < 6) {
+        toast({
+          variant: 'destructive',
+          title: tAuto('key_e1da8e5b'),
+          description: lang === 'ar' ? 'كلمة المرور ضعيفة. يجب ألا تقل عن 6 أحرف.' : 'Password must be at least 6 characters.',
+        });
+        return null;
+      }
     }
+
+    return { countryId, governorateId, districtId, normalizedPhone };
+  }, [
+    authMode,
+    authPassword,
+    districtRows,
+    governorateRows,
+    lang,
+    personal.country,
+    personal.district,
+    personal.email,
+    personal.gov,
+    personal.name,
+    personal.phone,
+    selectedCountry,
+    tAuto,
+    toast,
+  ]);
+
+  const validateBeforeAccuracyConfirm = useCallback(async (): Promise<boolean> => {
+    const validated = validateAuthFields();
+    if (!validated) return false;
+    if (authMode !== 'register') return true;
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const cleanEmail = personal.email?.trim().toLowerCase() || null;
+      const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
+        p_national_id: null,
+        p_license_number: null,
+        p_plate_number: null,
+        p_email: cleanEmail,
+        p_phone: validated.normalizedPhone.phone,
+      });
+
+      if (!rpcError && availability) {
+        if (availability.phone_taken) {
+          toast({
+            variant: 'destructive',
+            title: tAuto('key_71272649'),
+            description: lang === 'ar'
+              ? 'رقم الهاتف مسجل بالفعل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.'
+              : 'This phone number is already registered. Please log in instead.',
+          });
+          return false;
+        }
+        if (availability.email_taken) {
+          toast({
+            variant: 'destructive',
+            title: tAuto('key_71272649'),
+            description: lang === 'ar'
+              ? 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.'
+              : 'This email address is already registered to another account.',
+          });
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      return true;
+    } finally {
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    }
+  }, [authMode, lang, personal.email, tAuto, toast, validateAuthFields]);
+
+  const submitSupabaseAuth = useCallback(async () => {
+    if (isSubmittingRef.current) return;
+
+    const validated = validateAuthFields();
+    if (!validated) return;
+    const { countryId, governorateId, districtId, normalizedPhone } = validated;
 
     isSubmittingRef.current = true;
     setIsSubmitting(true);
@@ -636,21 +794,20 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      registeredAuthRef.current = {
+        phone: normalizedPhone.phone,
+        password: authPassword,
+        role,
+      };
       const signUpResult = await signUpRiderWithPhone(signUpInput);
-
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
-        } catch {}
-      }
 
       if ((signUpResult as any).needsEmailConfirmation) {
         setAwaitingConfirmationEmail((signUpResult as any).email || personal.email.trim());
         toast({
           title: lang === 'ar' ? 'تم إنشاء الحساب بنجاح! ✉️' : 'Account created successfully! ✉️',
           description: lang === 'ar'
-            ? 'يرجى مراجعة بريدك الإلكتروني والضغط على رابط التفعيل لتأكيد الحساب.'
-            : 'Please check your email and click the confirmation link to activate your account.',
+            ? 'تم إرسال كود التفعيل المكون من 6 أرقام إلى بريدك الإلكتروني.'
+            : 'A 6-digit verification code has been sent to your email.',
         });
         return;
       }
@@ -691,26 +848,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         }
 
         if (hasActiveSession) {
-          try {
-            const claimResult = await claimCaptainReferral(pendingRef);
-            if (claimResult.success && typeof window !== 'undefined') {
-              window.sessionStorage.setItem('radar_just_linked_captain_name', claimResult.captain_name || '');
-            }
-            if (process.env.NODE_ENV !== 'production') {
-              console.info('[Referral on Signup Claimed]', claimResult);
-            }
-          } catch (referralErr) {
-            if (process.env.NODE_ENV !== 'production') {
-              console.warn('[Referral on Signup Error]', referralErr);
-            }
-          } finally {
-            clearPendingCaptainReferral();
-            removeReferralParamFromUrl();
-            if (typeof window !== 'undefined') {
-              window.sessionStorage.removeItem('radar_newly_registered_referral');
-              window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
-            }
-          }
+          await claimPendingRiderReferralIfNeeded(role, pendingRef);
         }
       }
 
@@ -783,6 +921,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
           : tAuto('key_7132f656'),
       });
       if (signUpResult.session) {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+          } catch {}
+        }
         // Same reasoning as the login branch above: let `/` redirect once
         // AuthContext actually reflects the new session, instead of racing it.
         router.replace('/');
@@ -861,6 +1004,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     router,
     selectedCountry,
     toast,
+    validateAuthFields,
     vehicle,
   ]);
 
@@ -931,6 +1075,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     canUseDevMockData: isStrictDevelopment,
     fillRandomRegistrationData,
     fillCaptainRegistrationData,
+    validateBeforeAccuracyConfirm,
     handlePersonalSubmit,
     handleVehicleSubmit,
     handleAdvertiserSubmit,

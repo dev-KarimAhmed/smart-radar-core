@@ -784,17 +784,7 @@ export function AdStage({
                 ad={ad}
                 isHearted={heartedAdIds.includes(ad.id)}
                 onHeart={toggleHeart}
-                onOpen={
-                  ad.isPlaceholder
-                    ? audience === 'rider'
-                      ? () => {
-                        if (typeof window !== 'undefined') {
-                          window.location.href = '/register/advertiser';
-                        }
-                      }
-                      : undefined
-                    : openTakeover
-                }
+                onOpen={ad.isPlaceholder ? undefined : openTakeover}
                 badgeText={getBadgeText(ad, copy)}
                 showHeart={!ad.isPlaceholder}
                 className={cardClassName}

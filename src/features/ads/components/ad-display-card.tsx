@@ -29,6 +29,7 @@ const styles = {
   style144_20: "line-clamp-2 text-[15px] sm:text-lg font-black leading-snug text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]",
   style147_21: "line-clamp-3 text-[11px] sm:text-xs font-semibold leading-relaxed text-white/86 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]",
   style152_22: "inline-flex min-h-10 sm:min-h-11 items-center justify-center rounded-2xl bg-[#14F5D5] px-6 sm:px-8 py-2.5 text-[11px] sm:text-xs font-black text-[#041315] shadow-[0_0_22px_rgba(20,245,213,0.42)] transition group-hover:bg-[#2FFFE5] cursor-pointer",
+  staticCursor: "cursor-default",
 } as const;
 
 
@@ -113,6 +114,7 @@ export function AdDisplayCard({
       className={cn(
         styles.style87_1,
         isPlaceholder && styles.style88_2,
+        !onOpen && styles.staticCursor,
         className
       )}
     >
@@ -176,7 +178,7 @@ export function AdDisplayCard({
           </p>
         </div>
 
-        <span className={styles.style152_22}>
+        <span className={cn(styles.style152_22, !onOpen && styles.staticCursor)}>
           {actionText}
         </span>
       </div>

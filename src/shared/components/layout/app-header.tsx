@@ -192,7 +192,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
   const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash || '#' : '#'));
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !user) return;
     const pending = localStorage.getItem('radar_pending_pwa_install_prompt');
     if (pending === 'true') {
       localStorage.removeItem('radar_pending_pwa_install_prompt');
@@ -200,7 +200,7 @@ export function AppHeader({ sidebar }: { sidebar?: ReactNode }) {
         setIsInstallModalOpen(true);
       }
     }
-  }, [isStandalone]);
+  }, [isStandalone, user]);
 
   useEffect(() => {
     const handleHash = () => setCurrentHash(window.location.hash || '#');

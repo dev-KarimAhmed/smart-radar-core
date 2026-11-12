@@ -303,7 +303,7 @@ export async function verifyEmailOtpCode(params: {
   email?: string;
   phone?: string;
   userId?: string;
-}): Promise<{ success: boolean; error?: string; message?: string }> {
+}): Promise<{ success: boolean; alreadyConfirmed?: boolean; userId?: string; email?: string; phone?: string; error?: string; message?: string }> {
   const response = await fetch('/api/auth/verify-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

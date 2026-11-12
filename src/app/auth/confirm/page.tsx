@@ -58,9 +58,18 @@ function ConfirmContent() {
           }).catch(() => null);
         };
 
+        const markPendingPwaPrompt = () => {
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+            } catch {}
+          }
+        };
+
         // 2. Check if active session exists
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData?.session?.user?.email_confirmed_at) {
+          markPendingPwaPrompt();
           if (isMounted) setStatus('success');
           dispatchConfirmWelcome(sessionData.session.access_token);
           return;
@@ -90,6 +99,11 @@ function ConfirmContent() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user?.email_confirmed_at) {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+          } catch {}
+        }
         if (isMounted) setStatus('success');
         if (session.access_token) {
           void fetch('/api/auth/confirm-welcome', {

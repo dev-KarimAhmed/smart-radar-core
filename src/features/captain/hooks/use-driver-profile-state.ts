@@ -304,12 +304,12 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     return '';
   };
 
-  const saveProfile = async () => {
-    if (!user?.uid) return;
+  const validateBeforeSave = (): { valid: true; tariffTouched: boolean } | { valid: false } => {
+    if (!user?.uid) return { valid: false };
 
     if (!fullName.trim() || !phone.trim()) {
       toast({ variant: 'destructive', title: t('saveErrorTitle'), description: t('saveErrorDescription') });
-      return;
+      return { valid: false };
     }
 
     // Only let the tariff block the save when the captain actually touched the tariff.
@@ -334,11 +334,19 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
       setTariffError(tariffProblem);
       if (tariffProblem) {
         toast({ variant: 'destructive', title: t('saveErrorTitle'), description: tariffProblem });
-        return;
+        return { valid: false };
       }
     } else {
       setTariffError('');
     }
+
+    return { valid: true, tariffTouched };
+  };
+
+  const saveProfile = async () => {
+    const check = validateBeforeSave();
+    if (!check.valid || !user?.uid) return;
+    const { tariffTouched } = check;
 
     setIsSaving(true);
     try {
@@ -625,7 +633,10 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
 
   const isFieldEditing = (key: string) => editingFields.has(key);
   const [showAccuracyModal, setShowAccuracyModal] = React.useState(false);
-  const handleFieldSave = () => setShowAccuracyModal(true);
+  const handleFieldSave = () => {
+    if (!validateBeforeSave().valid) return;
+    setShowAccuracyModal(true);
+  };
   const confirmSaveProfile = () => {
     setShowAccuracyModal(false);
     void saveProfile();
