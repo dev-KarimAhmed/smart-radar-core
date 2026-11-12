@@ -202,7 +202,7 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         <div className="w-full min-w-0 space-y-5">
           <DriverReferralCard user={user} isArabic={language === 'ar'} />
           <DriverAccountPanel state={state} user={user} />
-          <DriverContractPanel state={state} user={user} />
+          <DriverContractPanel state={state} user={user} language={language} />
         </div>
         <div className="w-full min-w-0 space-y-5">
           <DriverVehiclePanel state={state} language={language} />

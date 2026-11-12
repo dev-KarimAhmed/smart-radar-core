@@ -43,6 +43,11 @@ import { Label } from '@/components/ui/label';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import {
+  resolveNotificationForDisplay,
+  requestBatchTranslation,
+  hasArabicScript,
+} from '@/shared/utils/notification-i18n';
 
 export interface AdminNotificationItem {
   id: string;
@@ -132,6 +137,7 @@ export function AdminNotificationCenter() {
     if (typeof window === 'undefined') return true;
     return localStorage.getItem('radar_admin_notif_sound') !== 'disabled';
   });
+  const [runtimeTranslations, setRuntimeTranslations] = useState<Record<string, string>>({});
 
   // Quick Receipt Review Modal
   const [reviewItem, setReviewItem] = useState<AdminNotificationItem | null>(null);
@@ -237,7 +243,52 @@ export function AdminNotificationCenter() {
     return () => {
       void channel.unsubscribe();
     };
-  }, [fetchNotifications, soundEnabled, toast]);
+  }, [fetchNotifications, soundEnabled, toast, t]);
+
+  useEffect(() => {
+    if (!notifications || notifications.length === 0) return;
+    const targetLang: 'ar' | 'en' = isArabic ? 'ar' : 'en';
+    const pending: string[] = [];
+
+    for (const item of notifications) {
+      const resolved = resolveNotificationForDisplay(item, isArabic);
+      if (resolved.titleNeedsTranslation && resolved.title) {
+        const key = `${targetLang}::${resolved.title.trim()}`;
+        if (!runtimeTranslations[key] && !pending.includes(resolved.title.trim())) {
+          pending.push(resolved.title.trim());
+        }
+      }
+      if (resolved.descriptionNeedsTranslation && resolved.description) {
+        const key = `${targetLang}::${resolved.description.trim()}`;
+        if (!runtimeTranslations[key] && !pending.includes(resolved.description.trim())) {
+          pending.push(resolved.description.trim());
+        }
+      }
+    }
+
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+    void requestBatchTranslation(pending, targetLang).then((translatedMap) => {
+      if (cancelled || !translatedMap || Object.keys(translatedMap).length === 0) return;
+      setRuntimeTranslations((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const [src, tr] of Object.entries(translatedMap)) {
+          const k = `${targetLang}::${src.trim()}`;
+          if (tr && next[k] !== tr) {
+            next[k] = tr;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [notifications, isArabic, runtimeTranslations]);
 
   const toggleSound = () => {
     setSoundEnabled((prev) => {
@@ -576,6 +627,13 @@ export function AdminNotificationCenter() {
                 const isReceipt = item.category === 'RECEIPT';
                 const isCaptain = item.category === 'CAPTAIN';
                 const isReset = item.category === 'PASSWORD_RESET';
+                const resolved = resolveNotificationForDisplay(item, isArabic);
+                const langPrefix = isArabic ? 'ar::' : 'en::';
+                const displayTitle = runtimeTranslations[`${langPrefix}${resolved.title.trim()}`] || resolved.title;
+                const displayDesc = runtimeTranslations[`${langPrefix}${resolved.description.trim()}`] || resolved.description;
+                const displayCurrency = isArabic
+                  ? (item.payload.currency || '')
+                  : (item.payload.currencyCode || item.payload.currency || '');
 
                 return (
                   <div
@@ -618,20 +676,30 @@ export function AdminNotificationCenter() {
                       {/* Info Block */}
                       <div className="space-y-1.5 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-xs sm:text-sm font-black text-white">{item.title}</h4>
+                          <h4
+                            dir={hasArabicScript(displayTitle) ? 'rtl' : 'ltr'}
+                            className="text-xs sm:text-sm font-black text-white"
+                          >
+                            {displayTitle}
+                          </h4>
                           <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {item.createdAt ? new Date(item.createdAt).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' }) : ''}
+                            {item.createdAt ? new Date(item.createdAt).toLocaleTimeString(isArabic ? 'ar-JO' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
                           </span>
                         </div>
 
-                        <p className="text-xs text-slate-300 leading-relaxed">{item.description}</p>
+                        <p
+                          dir={hasArabicScript(displayDesc) ? 'rtl' : 'ltr'}
+                          className="text-xs text-slate-300 leading-relaxed"
+                        >
+                          {displayDesc}
+                        </p>
 
                         {/* Extra detail chips */}
                         {isReceipt && (
                           <div className="flex items-center gap-2 pt-1 flex-wrap">
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-                              {t('amount')}: {item.payload.amount} {item.payload.currency}
+                              {t('amount')}: {item.payload.amount} {displayCurrency}
                             </span>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/5 text-slate-300 border border-white/10">
                               {t('channel')}: {item.payload.channel}

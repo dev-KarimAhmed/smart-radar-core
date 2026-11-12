@@ -1666,6 +1666,8 @@
     "tariffMinimum": "الحد الأدنى {min}",
     "tariffIncomplete": "لازم تحدد المكونات الثلاثة كلها أو تسيبهم فاضيين.",
     "tariffBaseFareTooLow": "فتحة العداد لا يمكن أن تقل عن {min}.",
+    "tariffBaseFareInvalid": "سعر فتحة العداد لازم يكون أكبر من صفر.",
+    "tariffIncludedKmInvalid": "المسافة المشمولة لا يمكن أن تكون أقل من صفر.",
     "tariffPerKmInvalid": "سعر الكيلومتر لازم يكون أكبر من صفر.",
     "tariffPerMinInvalid": "سعر الدقيقة لا يمكن أن يكون أقل من صفر.",
     "tariffIncludedKm": "المسافة المشمولة (كم)",

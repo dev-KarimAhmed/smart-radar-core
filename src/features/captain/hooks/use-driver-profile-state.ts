@@ -283,14 +283,16 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
   const tier = getCaptainTier(profile, normalizedRating, t, user?.rank);
 
   /**
-   * Mirrors the checks in the setup modal so the captain gets a plain message instead of a
-   * raw Postgres error. The enforce_captain_base_fare_floor trigger is still the authority;
-   * this only saves a round trip.
+   * Validates the captain's self-configured tariff components without imposing any
+   * market-floor restriction so the captain can freely choose their own pricing.
    */
   const validateTariff = () => {
     const parsedBaseFare = inputToNumber(baseFare);
     const parsedPerKm = inputToNumber(pricePerKm);
     const parsedPerMin = inputToNumber(pricePerMin);
+    const parsedIncludedKm = inputToNumber(includedKm);
+
+    if (parsedIncludedKm !== null && parsedIncludedKm < 0) return t('tariffIncludedKmInvalid');
 
     // All three blank is allowed — it just leaves the tariff unset, and the mandatory modal
     // will ask for it. Filling only some of them is not.
@@ -298,7 +300,7 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
     if (filled === 0) return '';
     if (filled < 3) return t('tariffIncomplete');
 
-    if (parsedBaseFare! < minBaseFare) return t('tariffBaseFareTooLow', { min: minBaseFare.toFixed(2) });
+    if (parsedBaseFare! <= 0) return t('tariffBaseFareInvalid');
     if (parsedPerKm! <= 0) return t('tariffPerKmInvalid');
     if (parsedPerMin! < 0) return t('tariffPerMinInvalid');
     return '';
@@ -488,6 +490,21 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
 
       applySavedProfileState();
       captureSavedSnapshot();
+      if (tariffTouched && user?.uid && typeof window !== 'undefined') {
+        try {
+          const mode = isIndependent ? 'FREE' : isOfficeTaxi ? 'TAXI' : 'APP';
+          localStorage.setItem(
+            `radar_captain_tariff_${user.uid}`,
+            JSON.stringify({
+              baseFare: inputToNumber(baseFare),
+              pricePerKm: inputToNumber(pricePerKm),
+              pricePerMin: inputToNumber(pricePerMin),
+              includedKm: Math.max(0, inputToNumber(includedKm) ?? 0),
+              pricingMode: mode,
+            }),
+          );
+        } catch {}
+      }
       if (user?.uid) {
         void recordLegalDeclaration({
           userId: user.uid,
@@ -587,6 +604,10 @@ const [profile, setProfile] = React.useState<ProfileRow | null>(null);
         company_code: affiliationType === 'smart-app' ? companyCode.trim() : '',
         facebook_url: facebookUrl.trim(),
         instagram_url: instagramUrl.trim(),
+        base_fare: inputToNumber(baseFare),
+        price_per_km: inputToNumber(pricePerKm),
+        price_per_min: inputToNumber(pricePerMin),
+        included_km: Math.max(0, inputToNumber(includedKm) ?? 0),
       },
     }));
   };

@@ -1,5 +1,6 @@
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
+import { hasArabicScript } from '@/shared/utils/notification-i18n';
 import { AlertCircle, AlertTriangle, Bell, Car, CheckCircle2, X } from 'lucide-react';
 
 export function Toaster() {
@@ -54,14 +55,28 @@ export function Toaster() {
               )}
 
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm sm:text-base text-white leading-snug tracking-tight">
-                  {(toast.title || '').replace(/<!--i18n:[\s\S]*?-->/g, '').trim()}
-                </h4>
-                {toast.description && (
-                  <p className="text-xs sm:text-sm font-medium text-slate-200 mt-0.5 leading-relaxed">
-                    {(toast.description || '').replace(/<!--i18n:[\s\S]*?-->/g, '').trim()}
-                  </p>
-                )}
+                {(() => {
+                  const cleanTitle = (toast.title || '').replace(/<!--i18n:[\s\S]*?-->/g, '').trim();
+                  const cleanDesc = (toast.description || '').replace(/<!--i18n:[\s\S]*?-->/g, '').trim();
+                  return (
+                    <>
+                      <h4
+                        dir={hasArabicScript(cleanTitle) ? 'rtl' : 'ltr'}
+                        className="font-bold text-sm sm:text-base text-white leading-snug tracking-tight"
+                      >
+                        {cleanTitle}
+                      </h4>
+                      {cleanDesc && (
+                        <p
+                          dir={hasArabicScript(cleanDesc) ? 'rtl' : 'ltr'}
+                          className="text-xs sm:text-sm font-medium text-slate-200 mt-0.5 leading-relaxed"
+                        >
+                          {cleanDesc}
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
 

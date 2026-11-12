@@ -301,7 +301,7 @@ export function RidersManagementPanel() {
 
       toast({
         title: isArabic ? '⚡ تم تنفيذ الإجراء بنجاح' : '⚡ Action Executed Successfully',
-        description: result.message || successMsg,
+        description: isArabic ? (result.message || successMsg) : successMsg,
       });
 
       await fetchRiders(true);

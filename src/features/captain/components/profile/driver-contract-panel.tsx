@@ -2,15 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { FileCheck, Download, Printer, ShieldCheck, Eye, Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { Panel, Field, styles } from './driver-profile-shared';
 import { CaptainUnifiedTermsModal } from '@/shared/components/captain-unified-terms-modal';
-import { Button } from '@/components/ui/button';
 import { downloadPdfInWorker } from '@/shared/utils/background-pdf-download';
 import { getClientAccessToken } from '@/shared/services/supabase-auth-headers';
 
-export function DriverContractPanel({ state, user }: { state?: any; user?: any }) {
-  const t = useTranslations('captainProfile');
+export function DriverContractPanel({
+  state,
+  user,
+  language,
+}: {
+  state?: any;
+  user?: any;
+  language?: 'ar' | 'en';
+}) {
+  const { isArabic: storedIsArabic } = useDashboardLanguage();
+  const isArabic = language ? language === 'ar' : storedIsArabic;
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [captainId, setCaptainId] = useState<string>(
     user?.uid || user?.id || state?.profile?.id || ''
@@ -111,27 +119,41 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
     <>
       <Panel
         icon={<FileCheck className={styles.style431_62} />}
-        title="الوثائق والعقود المعتمدة (السجل الإلكتروني)"
+        title={isArabic ? 'الوثائق والعقود المعتمدة (السجل الإلكتروني)' : 'Verified Documents & Contracts (Electronic Log)'}
       >
-        <div className="flex items-center justify-between p-3.5 mb-2 rounded-2xl border border-teal-500/20 bg-teal-950/20">
+        <div className="flex items-center justify-between gap-2 p-3.5 mb-2 rounded-2xl border border-teal-500/20 bg-teal-950/20">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="h-5 w-5 text-[#14F5D5] shrink-0" />
             <div>
               <p className="text-xs sm:text-sm font-bold text-white">
-                عقد اشتراك الكابتن المعلن الموحد (PDF)
+                {isArabic
+                  ? 'عقد اشتراك الكابتن المعلن الموحد (PDF)'
+                  : 'Unified Advertiser Captain Subscription Contract (PDF)'}
               </p>
               <p className="text-[11px] text-teal-300">
-                شبكة بينكم للإعلان الرقمي · الإصدار V1.0 (معتمد وساري)
+                {isArabic
+                  ? 'شبكة بينكم للإعلان الرقمي · الإصدار V1.0 (معتمد وساري)'
+                  : 'Bynkcom Digital Ad Network · Version V1.0 (Verified & Active)'}
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30">
-            موثق بالسجل
+          <span className="inline-flex items-center shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black bg-[#14B8A6]/20 text-[#14F5D5] border border-[#14B8A6]/30">
+            {isArabic ? 'موثق بالسجل' : 'Verified in Log'}
           </span>
         </div>
 
-        <Field label="الصفة التعاقدية" value="كابتن معلن مستقل (صفر عمولة)" />
-        <Field label="المرجع القانوني" value="المادة (5) - التخزين والأرشفة الإلكترونية المعتمدة" />
+        <Field
+          label={isArabic ? 'الصفة التعاقدية' : 'Contractual Capacity'}
+          value={isArabic ? 'كابتن معلن مستقل (صفر عمولة)' : 'Independent Advertiser Captain (0% Commission)'}
+        />
+        <Field
+          label={isArabic ? 'المرجع القانوني' : 'Legal Reference'}
+          value={
+            isArabic
+              ? 'المادة (5) - التخزين والأرشفة الإلكترونية المعتمدة'
+              : 'Article (5) - Certified Electronic Storage & Archiving'
+          }
+        />
 
         {/* The 3 Official Action Buttons - Always Visible */}
         <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap items-center gap-2.5">
@@ -144,12 +166,12 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
             {isDownloadingPdf ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin text-[#14F5D5]" />
-                جاري التنزيل...
+                {isArabic ? 'جاري التنزيل...' : 'Downloading...'}
               </>
             ) : (
               <>
                 <Download className="h-4 w-4" />
-                تحميل PDF
+                {isArabic ? 'تحميل PDF' : 'Download PDF'}
               </>
             )}
           </button>
@@ -160,7 +182,7 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
             className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 py-2.5 px-3 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer text-center"
           >
             <Printer className="h-4 w-4 text-slate-300" />
-            معاينة وطباعة
+            {isArabic ? 'معاينة وطباعة' : 'Preview & Print'}
           </button>
 
           <button
@@ -169,7 +191,7 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-800/60 hover:bg-slate-800 py-2.5 px-3.5 text-xs font-bold text-teal-300 hover:text-white transition-all cursor-pointer"
           >
             <Eye className="h-3.5 w-3.5 text-[#14F5D5]" />
-            نص الشروط الموحدة
+            {isArabic ? 'نص الشروط الموحدة' : 'Unified Terms Text'}
           </button>
         </div>
       </Panel>
@@ -179,7 +201,7 @@ export function DriverContractPanel({ state, user }: { state?: any; user?: any }
         onClose={() => setShowTermsModal(false)}
         readOnly={true}
         captainId={captainId || user?.id || state?.profile?.id}
-        isArabic={true}
+        isArabic={isArabic}
       />
     </>
   );

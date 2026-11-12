@@ -205,7 +205,9 @@ export function DriversManagementTab() {
   const [messageCaptain, setMessageCaptain] = useState<CaptainUser | null>(null);
 
   // Message modal inputs
-  const [messageTitle, setMessageTitle] = useState('رسالة من إدارة المنظومة');
+  const [messageTitle, setMessageTitle] = useState(
+    isArabic ? 'رسالة من إدارة المنظومة' : 'Message from System Administration'
+  );
   const [messageBody, setMessageBody] = useState('');
   const [messageTitleEn, setMessageTitleEn] = useState('');
   const [messageBodyEn, setMessageBodyEn] = useState('');
@@ -223,14 +225,18 @@ export function DriversManagementTab() {
       setMessageTitleEn(tTitle);
       setMessageBodyEn(tBody);
       toast({
-        title: '🌐 تم إنشاء الترجمة الإنجليزية بنجاح',
-        description: 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.',
+        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English Translation Generated',
+        description: isArabic
+          ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.'
+          : 'You can review or edit the English text before sending.',
       });
     } catch {
       toast({
         variant: 'destructive',
-        title: 'تعذر توليد الترجمة',
-        description: 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.',
+        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation Failed',
+        description: isArabic
+          ? 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.'
+          : 'Please enter the English text manually or try again later.',
       });
     } finally {
       setIsTranslatingDirect(false);
@@ -265,7 +271,9 @@ export function DriversManagementTab() {
   const [submittingBulkTopup, setSubmittingBulkTopup] = useState(false);
 
   // Bulk Message inputs
-  const [bulkMsgTitle, setBulkMsgTitle] = useState('إشعار من إدارة المنظومة');
+  const [bulkMsgTitle, setBulkMsgTitle] = useState(
+    isArabic ? 'إشعار من إدارة المنظومة' : 'Notice from System Administration'
+  );
   const [bulkMsgBody, setBulkMsgBody] = useState('');
   const [bulkMsgTitleEn, setBulkMsgTitleEn] = useState('');
   const [bulkMsgBodyEn, setBulkMsgBodyEn] = useState('');
@@ -393,14 +401,18 @@ export function DriversManagementTab() {
       setBulkMsgTitleEn(tTitle);
       setBulkMsgBodyEn(tBody);
       toast({
-        title: '🌐 تم إنشاء الترجمة الإنجليزية بنجاح',
-        description: 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.',
+        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English Translation Generated',
+        description: isArabic
+          ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.'
+          : 'You can review or edit the English text before sending.',
       });
     } catch {
       toast({
         variant: 'destructive',
-        title: 'تعذر توليد الترجمة',
-        description: 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.',
+        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation Failed',
+        description: isArabic
+          ? 'يرجى كتابة النص الإنجليزي يدوياً أو المحاولة لاحقاً.'
+          : 'Please enter the English text manually or try again later.',
       });
     } finally {
       setIsTranslatingBulk(false);
@@ -422,19 +434,19 @@ export function DriversManagementTab() {
           });
         }
       } else {
-        throw new Error(data?.error || 'فشل تحميل بيانات الكباتن المعلنين');
+        throw new Error(data?.error || (isArabic ? 'فشل تحميل بيانات الكباتن المعلنين' : 'Failed to load advertiser captains data'));
       }
     } catch (err: any) {
       console.warn('[DriversManagementTab] fetch error:', err);
       toast({
         variant: 'destructive',
-        title: 'خطأ استدعاء الأسطول',
-        description: err.message || 'تعذر جلب بيانات الكباتن المعلنين من قاعدة البيانات',
+        title: isArabic ? 'خطأ استدعاء الأسطول' : 'Fleet Fetch Error',
+        description: err.message || (isArabic ? 'تعذر جلب بيانات الكباتن المعلنين من قاعدة البيانات' : 'Unable to fetch advertiser captains from the database'),
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, isArabic]);
 
   useEffect(() => {
     void fetchCaptains();
@@ -451,12 +463,12 @@ export function DriversManagementTab() {
 
       const result = await res.json();
       if (!res.ok || !result.success) {
-        throw new Error(result.error || 'حدث خطأ أثناء معالجة الإجراء');
+        throw new Error(result.error || (isArabic ? 'حدث خطأ أثناء معالجة الإجراء' : 'An error occurred while processing the action'));
       }
 
       toast({
-        title: '⚡ تم تنفيذ الإجراء بنجاح',
-        description: result.message || successMsg,
+        title: isArabic ? '⚡ تم تنفيذ الإجراء بنجاح' : '⚡ Action Executed Successfully',
+        description: isArabic ? (result.message || successMsg) : successMsg,
       });
 
       await fetchCaptains(true);
@@ -464,8 +476,8 @@ export function DriversManagementTab() {
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'فشل العملية',
-        description: err.message || 'تعذر تطبيق الإجراء',
+        title: isArabic ? 'فشل العملية' : 'Operation Failed',
+        description: err.message || (isArabic ? 'تعذر تطبيق الإجراء' : 'Unable to apply action'),
       });
       return false;
     } finally {
@@ -661,8 +673,10 @@ export function DriversManagementTab() {
       }
 
       toast({
-        title: '⚡ تم الشحن بنجاح',
-        description: result.message || 'تم تحديث أرصدة الكباتن المعلنين وإشعارهم بنجاح.',
+        title: isArabic ? '⚡ تم الشحن بنجاح' : '⚡ Top-Up Completed',
+        description: isArabic
+          ? (result.message || 'تم تحديث أرصدة الكباتن المعلنين وإشعارهم بنجاح.')
+          : 'Captain balances have been updated and notified successfully.',
       });
 
       setIsBulkTopupOpen(false);
@@ -670,8 +684,8 @@ export function DriversManagementTab() {
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في الشحن الجماعي',
-        description: err.message || 'تعذر إتمام عملية الشحن الجماعي',
+        title: isArabic ? 'خطأ في الشحن الجماعي' : 'Bulk Top-Up Error',
+        description: err.message || (isArabic ? 'تعذر إتمام عملية الشحن الجماعي' : 'Failed to complete bulk top-up'),
       });
     } finally {
       setSubmittingBulkTopup(false);
@@ -682,8 +696,8 @@ export function DriversManagementTab() {
     if (!bulkMsgBody.trim()) {
       toast({
         variant: 'destructive',
-        title: 'نص الرسالة مطلوب',
-        description: 'يرجى كتابة نص الإشعار قبل الإرسال.',
+        title: isArabic ? 'نص الرسالة مطلوب' : 'Message Body Required',
+        description: isArabic ? 'يرجى كتابة نص الإشعار قبل الإرسال.' : 'Please enter the notification message before sending.',
       });
       return;
     }
@@ -692,16 +706,16 @@ export function DriversManagementTab() {
     if (bulkScope === 'selected' && (!targetIds || targetIds.length === 0)) {
       toast({
         variant: 'destructive',
-        title: 'تنبيه',
-        description: 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.',
+        title: isArabic ? 'تنبيه' : 'Notice',
+        description: isArabic ? 'يرجى تحديد كابتن معلن واحد على الأقل أولاً.' : 'Please select at least one captain first.',
       });
       return;
     }
     if (bulkScope === 'filtered' && (!targetIds || targetIds.length === 0)) {
       toast({
         variant: 'destructive',
-        title: 'تنبيه',
-        description: 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.',
+        title: isArabic ? 'تنبيه' : 'Notice',
+        description: isArabic ? 'لا يوجد كباتن معلنين مطابقين للفلاتر الحالية.' : 'No captains match the current filters.',
       });
       return;
     }
@@ -725,12 +739,14 @@ export function DriversManagementTab() {
 
       const result = await res.json();
       if (!res.ok || !result.success) {
-        throw new Error(result.error || 'فشلت عملية إرسال الإشعار الجماعي');
+        throw new Error(result.error || (isArabic ? 'فشلت عملية إرسال الإشعار الجماعي' : 'Failed to send bulk notification'));
       }
 
       toast({
-        title: '📢 تم إرسال الإشعار اللحظي',
-        description: result.message || 'تم بث الإشعار بنجاح إلى جميع الكباتن المعلنين المحددين.',
+        title: isArabic ? '📢 تم إرسال الإشعار اللحظي' : '📢 Instant Notification Sent',
+        description: isArabic
+          ? (result.message || 'تم بث الإشعار بنجاح إلى جميع الكباتن المعلنين المحددين.')
+          : 'Notification broadcast sent successfully to all selected captains.',
       });
 
       setIsBulkMessageOpen(false);
@@ -740,8 +756,8 @@ export function DriversManagementTab() {
     } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'خطأ في إرسال الإشعار الجماعي',
-        description: err.message || 'تعذر إرسال الإشعار الجماعي',
+        title: isArabic ? 'خطأ في إرسال الإشعار الجماعي' : 'Bulk Notification Error',
+        description: err.message || (isArabic ? 'تعذر إرسال الإشعار الجماعي' : 'Unable to send bulk notification'),
       });
     } finally {
       setSubmittingBulkMsg(false);
@@ -914,6 +930,9 @@ export function DriversManagementTab() {
             type="button"
             onClick={() => {
               setBulkScope(selectedCaptainIds.size > 0 ? 'selected' : 'all');
+              setBulkMsgTitle(isArabic ? 'إشعار من إدارة المنظومة' : 'Notice from System Administration');
+              setBulkMsgTitleEn('');
+              setBulkMsgBodyEn('');
               setIsBulkMessageOpen(true);
             }}
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
@@ -1483,6 +1502,8 @@ export function DriversManagementTab() {
                                 setMessageCaptain(captain);
                                 setMessageTitle(t('msgSubjectDefault'));
                                 setMessageBody('');
+                                setMessageTitleEn('');
+                                setMessageBodyEn('');
                                 setMessageType('admin_message');
                               }}
                               className="h-8 px-3 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -2017,7 +2038,16 @@ export function DriversManagementTab() {
       {/* ========================================================================= */}
       {/* MODAL 4: Send Direct Message & Administrative Directive                   */}
       {/* ========================================================================= */}
-      <Dialog open={!!messageCaptain} onOpenChange={(open) => !open && setMessageCaptain(null)}>
+      <Dialog
+        open={!!messageCaptain}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMessageCaptain(null);
+            setMessageTitleEn('');
+            setMessageBodyEn('');
+          }
+        }}
+      >
         <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           {messageCaptain && (
             <div className="space-y-4">
@@ -2522,7 +2552,16 @@ export function DriversManagementTab() {
       {/* ========================================================================= */}
       {/* MODAL 6: Bulk Send Message / Broadcast Notification                       */}
       {/* ========================================================================= */}
-      <Dialog open={isBulkMessageOpen} onOpenChange={setIsBulkMessageOpen}>
+      <Dialog
+        open={isBulkMessageOpen}
+        onOpenChange={(open) => {
+          setIsBulkMessageOpen(open);
+          if (!open) {
+            setBulkMsgTitleEn('');
+            setBulkMsgBodyEn('');
+          }
+        }}
+      >
         <DialogContent className={cn("max-w-lg bg-[#0B0F19] border border-indigo-500/40 text-white rounded-3xl p-6", isArabic ? "text-right" : "text-left")} dir={direction}>
           <div className="space-y-4">
             <DialogHeader>

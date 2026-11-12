@@ -11,12 +11,81 @@ import {
   type LegalDeclarationRecord,
   LEGAL_DECLARATION_TEXT,
 } from '../../services/legal-log-service';
+import { resolveNotificationForDisplay } from '@/shared/utils/notification-i18n';
+
+const LEGAL_DECLARATION_TEXT_EN =
+  'You are solely responsible for the accuracy and authenticity of all entered personal and professional data, and Bynkcom Network bears no legal liability for any discrepancy or inaccuracy therein...';
+
+function getLocalizedActionLabel(item: LegalDeclarationRecord, isArabic: boolean): string {
+  const label = (item.actionLabel || '').trim();
+  if (isArabic) {
+    if (item.actionType === 'NEW_ACCOUNT' || label === 'New Account Registration') return 'تسجيل حساب جديد';
+    if (item.actionType === 'VEHICLE_UPDATE' || label === 'Vehicle Details Update') return 'تعديل بيانات المركبة';
+    if (item.actionType === 'PROFILE_UPDATE' || label === 'Account Details Update') return 'تعديل بيانات الحساب';
+    if (item.actionType === 'ADMIN_NOTIFICATION' || label === 'Official Admin Notice Acknowledged') return 'إشعار إداري رسمي مقروء';
+    return label;
+  }
+
+  if (item.actionType === 'NEW_ACCOUNT' || label === 'تسجيل حساب جديد') return 'New Account Registration';
+  if (item.actionType === 'VEHICLE_UPDATE' || label === 'تعديل بيانات المركبة' || label === 'تحديث بيانات المركبة والوثائق') {
+    return 'Vehicle Details Update';
+  }
+  if (
+    item.actionType === 'PROFILE_UPDATE' ||
+    label === 'تعديل بيانات الحساب' ||
+    label === 'تعديل بيانات الحساب الشخصي'
+  ) {
+    return 'Account Details Update';
+  }
+  if (label === 'تعديل بيانات الحساب والمركبة') {
+    return 'Account & Vehicle Details Update';
+  }
+  if (item.actionType === 'ADMIN_NOTIFICATION' || label === 'إشعار إداري رسمي مقروء') {
+    return 'Official Admin Notice Acknowledged';
+  }
+  return label;
+}
+
+function getLocalizedDeclarationText(item: LegalDeclarationRecord, isArabic: boolean): string {
+  const text = (item.declarationText || '').trim();
+  if (!isArabic) {
+    if (text === LEGAL_DECLARATION_TEXT || text.includes('انت المسؤول عن صحة ومصداقية كافة البيانات المدخلة')) {
+      return LEGAL_DECLARATION_TEXT_EN;
+    }
+    const adminPrefixAr = 'تم استلام وقراءة والإقرار رسمياً بمضمون الإشعار الإداري الصادر عن الإدارة:';
+    if (text.startsWith(adminPrefixAr)) {
+      const rest = text.slice(adminPrefixAr.length).trim();
+      const m = rest.match(/^"([^"]+)"\s*—\s*([\s\S]+)$/);
+      if (m) {
+        const resolved = resolveNotificationForDisplay({ title: m[1], description: m[2] }, false);
+        return `Officially received, reviewed and acknowledged administrative notice: "${resolved.title}" — ${resolved.description}`;
+      }
+      return `Officially received, reviewed and acknowledged administrative notice: ${rest}`;
+    }
+    return text;
+  }
+
+  if (text === LEGAL_DECLARATION_TEXT_EN) {
+    return LEGAL_DECLARATION_TEXT;
+  }
+  const adminPrefixEn = 'Officially received, reviewed and acknowledged administrative notice:';
+  if (text.startsWith(adminPrefixEn)) {
+    const rest = text.slice(adminPrefixEn.length).trim();
+    const m = rest.match(/^"([^"]+)"\s*—\s*([\s\S]+)$/);
+    if (m) {
+      const resolved = resolveNotificationForDisplay({ title: m[1], description: m[2] }, true);
+      return `تم استلام وقراءة والإقرار رسمياً بمضمون الإشعار الإداري الصادر عن الإدارة: "${resolved.title}" — ${resolved.description}`;
+    }
+    return `تم استلام وقراءة والإقرار رسمياً بمضمون الإشعار الإداري الصادر عن الإدارة: ${rest}`;
+  }
+  return text;
+}
 
 const styles = {
   card: 'relative overflow-hidden rounded-3xl border border-amber-500/25 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white',
   accentBar: 'absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent shadow-[0_0_12px_rgba(251,191,36,0.5)]',
   header: 'p-4 sm:p-5 pb-3.5 sm:pb-3',
-  headerButton: 'w-full text-right cursor-pointer select-none transition-colors hover:bg-white/[0.02]',
+  headerButton: 'w-full text-start cursor-pointer select-none transition-colors hover:bg-white/[0.02]',
   headerRow: 'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3',
   headerInfo: 'flex items-center gap-3 min-w-0',
   iconBox: 'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]',
@@ -167,7 +236,7 @@ export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclar
                         ) : (
                           <FileCheck2 className="h-3 w-3" />
                         )}
-                        <span>{item.actionLabel}</span>
+                        <span>{getLocalizedActionLabel(item, isArabic)}</span>
                       </span>
 
                       <span className={styles.badgeConfirmed}>
@@ -200,7 +269,7 @@ export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclar
                   {/* Legal Deed Text */}
                   <div className={styles.textCard}>
                     <p className="text-amber-100/90 leading-relaxed font-sans text-xs sm:text-[13px]">
-                      {item.declarationText}
+                      {getLocalizedDeclarationText(item, isArabic)}
                     </p>
                   </div>
                 </div>
