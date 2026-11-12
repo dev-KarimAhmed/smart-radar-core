@@ -12,6 +12,25 @@ export function hasLatinCharacters(text: string): boolean {
   return /[A-Za-z]/.test(text || '');
 }
 
+function isTranslationErrorBanner(text: string): boolean {
+  return /mymemory\s*warning|query\s+length\s+limit|please\s+select\s+two\s+distinct\s+languages|invalid\s+language\s+pair/i.test(
+    text || ''
+  );
+}
+
+export function isValidTranslatedOutput(
+  translated: string,
+  source: string,
+  targetLang: 'ar' | 'en'
+): boolean {
+  const tr = (translated || '').trim();
+  const src = (source || '').trim();
+  if (!tr || tr === src || isTranslationErrorBanner(tr)) {
+    return false;
+  }
+  return targetLang === 'en' ? hasLatinCharacters(tr) : hasArabicCharacters(tr);
+}
+
 /**
  * Server-side translation helper (0 external API key cost).
  * Translates text between Arabic and English with automatic language detection.
@@ -53,9 +72,9 @@ export async function translateTextServer(
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && Array.isArray(data[0])) {
-        const translated = data[0].map((chunk: any) => (chunk && chunk[0] ? chunk[0] : '')).join('');
-        if (translated && translated.trim().length > 0) {
-          return translated.trim();
+        const translated = data[0].map((chunk: any) => (chunk && chunk[0] ? chunk[0] : '')).join('').trim();
+        if (isValidTranslatedOutput(translated, trimmed, targetLang)) {
+          return translated;
         }
       }
     }
@@ -78,8 +97,13 @@ export async function translateTextServer(
 
     if (fallbackRes.ok) {
       const fbData = await fallbackRes.json();
+      const responseStatus = fbData?.responseStatus;
       const match = fbData?.responseData?.translatedText;
-      if (match && typeof match === 'string' && match.trim().length > 0) {
+      if (
+        (responseStatus === undefined || responseStatus === 200) &&
+        typeof match === 'string' &&
+        isValidTranslatedOutput(match, trimmed, targetLang)
+      ) {
         return match.trim();
       }
     }
@@ -130,7 +154,7 @@ export async function buildBilingualNotificationServer(params: {
   if (titleNeedsEn && hasArabicCharacters(titleAr)) {
     tasks.push(
       translateTextServer(titleAr, 'en', 'ar').then((tr) => {
-        if (tr && !hasArabicCharacters(tr)) {
+        if (isValidTranslatedOutput(tr, titleAr, 'en')) {
           titleEn = tr;
         }
       })
@@ -143,7 +167,7 @@ export async function buildBilingualNotificationServer(params: {
     titleEn = sourceEn;
     tasks.push(
       translateTextServer(sourceEn, 'ar', 'en').then((tr) => {
-        if (tr && hasArabicCharacters(tr)) {
+        if (isValidTranslatedOutput(tr, sourceEn, 'ar')) {
           titleAr = tr;
         }
       })
@@ -156,7 +180,7 @@ export async function buildBilingualNotificationServer(params: {
   if (bodyNeedsEn && hasArabicCharacters(bodyAr)) {
     tasks.push(
       translateTextServer(bodyAr, 'en', 'ar').then((tr) => {
-        if (tr && !hasArabicCharacters(tr)) {
+        if (isValidTranslatedOutput(tr, bodyAr, 'en')) {
           bodyEn = tr;
         }
       })
@@ -169,7 +193,7 @@ export async function buildBilingualNotificationServer(params: {
     bodyEn = sourceEn;
     tasks.push(
       translateTextServer(sourceEn, 'ar', 'en').then((tr) => {
-        if (tr && hasArabicCharacters(tr)) {
+        if (isValidTranslatedOutput(tr, sourceEn, 'ar')) {
           bodyAr = tr;
         }
       })

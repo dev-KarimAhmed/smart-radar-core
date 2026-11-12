@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
 import { buildBilingualNotificationServer } from '@/shared/server/translate';
+import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 
 export interface AdminNotificationItem {
   id: string;
@@ -159,15 +160,23 @@ export async function GET(req: Request) {
         }
 
         const captainName = prof.full_name || 'كابتن معلن رادار';
+        const captainNameEn = prof.full_name || 'Radar Captain';
         const captainPhone = prof.phone || '-';
         const channelName = tx.payment_channel || 'قناة دفع رقمية';
+        const channelNameEn = tx.payment_channel || 'Digital Payment Channel';
         const amountNum = Number(tx.amount || 0);
+        const encodedReceipt = encodeNotificationPayload(
+          `إيصال شحن جديد بحاجة للمراجعة (${amountNum} ${fallbackCurrency})`,
+          `أرسل الكابتن المعلن ${captainName} (${captainPhone}) إيصال شحن بقيمة ${amountNum} ${fallbackCurrency} عبر ${channelName}.`,
+          `New Recharge Receipt Pending Review (${amountNum} ${fallbackCurrencyCode})`,
+          `Captain ${captainNameEn} (${captainPhone}) submitted a recharge receipt of ${amountNum} ${fallbackCurrencyCode} via ${channelNameEn}.`
+        );
 
         return {
           id: `rcpt_${tx.id}`,
           category: 'RECEIPT',
-          title: `إيصال شحن جديد بحاجة للمراجعة (${amountNum} ${fallbackCurrency})`,
-          description: `أرسل الكابتن المعلن ${captainName} (${captainPhone}) إيصال شحن بقيمة ${amountNum} ${fallbackCurrency} عبر ${channelName}.`,
+          title: encodedReceipt.title,
+          description: encodedReceipt.description,
           createdAt: tx.created_at,
           severity: 'urgent',
           targetTab: 'wallet',
@@ -196,16 +205,20 @@ export async function GET(req: Request) {
     const captainItems: AdminNotificationItem[] = pendingCaptains.map((cap) => {
       const prof = profilesMap.get(cap.id) || {};
       const captainName = prof.full_name || cap.nickname || 'كابتن معلن جديد';
+      const captainNameEn = prof.full_name || cap.nickname || 'New Captain';
       const captainPhone = prof.phone || '-';
-      const vehicleDesc = [cap.vehicle_brand, cap.vehicle_model, cap.vehicle_color, cap.vehicle_year]
-        .filter(Boolean)
-        .join(' - ');
+      const encodedCaptain = encodeNotificationPayload(
+        `كابتن معلن جديد بانتظار مراجعة المستندات والتحقق`,
+        `انضم الكابتن المعلن ${captainName} (${captainPhone}) للأسطول وبانتظار اعتماد رخصة القيادة والسيارة.`,
+        `New Captain Pending Document Verification`,
+        `Captain ${captainNameEn} (${captainPhone}) joined the fleet and is awaiting driver's license & vehicle verification.`
+      );
 
       return {
         id: `cap_${cap.id}`,
         category: 'CAPTAIN',
-        title: `كابتن معلن جديد بانتظار مراجعة المستندات والتحقق`,
-        description: `انضم الكابتن المعلن ${captainName} (${captainPhone}) للأسطول وبانتظار اعتماد رخصة القيادة والسيارة.`,
+        title: encodedCaptain.title,
+        description: encodedCaptain.description,
         createdAt: cap.created_at || new Date().toISOString(),
         severity: 'warning',
         targetTab: 'captains',
@@ -223,11 +236,17 @@ export async function GET(req: Request) {
 
     // Build password reset notification items
     const resetItems: AdminNotificationItem[] = pendingResets.map((rst) => {
+      const encodedReset = encodeNotificationPayload(
+        `طلب استرجاع كلمة مرور معلق`,
+        `طلب استعادة وتعيين كلمة مرور جديدة للحساب المسجل برقم الهاتف (${rst.claimed_phone}).`,
+        `Pending Password Reset Request`,
+        `Password reset requested for account registered with phone (${rst.claimed_phone}).`
+      );
       return {
         id: `rst_${rst.id}`,
         category: 'PASSWORD_RESET',
-        title: `طلب استرجاع كلمة مرور معلق`,
-        description: `طلب استعادة وتعيين كلمة مرور جديدة للحساب المسجل برقم الهاتف (${rst.claimed_phone}).`,
+        title: encodedReset.title,
+        description: encodedReset.description,
         createdAt: rst.created_at,
         severity: 'warning',
         targetTab: 'wallet',

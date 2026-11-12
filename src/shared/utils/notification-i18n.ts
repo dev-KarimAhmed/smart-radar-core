@@ -44,6 +44,33 @@ export function hasLatinLetters(text: string | null | undefined): boolean {
   return /[A-Za-z]/.test(text || '');
 }
 
+function isDominantlyLatinText(text: string | null | undefined): boolean {
+  const s = (text || '').trim();
+  if (!s) return false;
+  const arabicCount = (s.match(/[\u0600-\u06FF]/g) || []).length;
+  const latinCount = (s.match(/[A-Za-z]/g) || []).length;
+  return latinCount > 0 && (arabicCount === 0 || latinCount >= arabicCount * 1.5);
+}
+
+function isTranslationErrorBanner(text: string | null | undefined): boolean {
+  return /mymemory\s*warning|query\s+length\s+limit|please\s+select\s+two\s+distinct\s+languages|invalid\s+language\s+pair/i.test(
+    text || ''
+  );
+}
+
+function isValidClientTranslation(
+  translated: string,
+  source: string,
+  targetLang: 'ar' | 'en'
+): boolean {
+  const tr = (translated || '').trim();
+  const src = (source || '').trim();
+  if (!tr || tr === src || isTranslationErrorBanner(tr)) {
+    return false;
+  }
+  return targetLang === 'en' ? hasLatinLetters(tr) : hasArabicScript(tr);
+}
+
 /**
  * Encodes a dual-language notification message into clean, standard-compatible title and description.
  */
@@ -167,11 +194,13 @@ export function resolveDynamicNotification(
     const labelEn =
       labelAr.includes('تسجيل حساب جديد')
         ? 'New Account Registration'
-        : labelAr.includes('تعديل بيانات المركبة')
-          ? 'Vehicle Details Update'
-          : labelAr.includes('تعديل بيانات الحساب')
-            ? 'Account Details Update'
-            : labelAr || 'Legal Declaration';
+        : labelAr.includes('تعديل بيانات الحساب الشخصي') && labelAr.includes('والمركبة')
+          ? 'Personal Account & Vehicle Details Update'
+          : labelAr.includes('تعديل بيانات المركبة')
+            ? 'Vehicle Details Update'
+            : labelAr.includes('تعديل بيانات الحساب')
+              ? 'Account Details Update'
+              : labelAr || 'Legal Declaration';
     const decMatch = d.match(/رقم الإقرار:\s*([^\s|]+)/);
     const userMatch = d.match(/المستخدم:\s*([^\s|]+)/);
     const timeMatch = d.match(/التوقيت:\s*([^—]+?)(?:\s*—|$)/);
@@ -648,20 +677,6 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 23. Driver's license / vehicle documents notice
-  if (
-    d.toLowerCase().includes("driver's license") ||
-    d.includes('رخصة القيادة')
-  ) {
-    return {
-      titleAr: 'رسالة من الإدارة',
-      descriptionAr: 'يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب إيقاف الحساب.',
-      titleEn: 'Message from management',
-      descriptionEn: "Please renew your driver's license or vehicle documents to avoid account suspension.",
-      matched: true,
-    };
-  }
-
   // 24. Sovereign Tier Promotion
   if (t.includes('ترقية سيادية') || t.includes('أصبحت رتبتك')) {
     let tierEn = 'Higher Tier 🏆';
@@ -693,7 +708,7 @@ export function resolveDynamicNotification(
     };
   }
 
-  // 26. Standard Admin Default Headers + Known Quick Templates (supports both AR and EN inputs)
+  // 23 & 26. Standard Admin Default Headers + Known Quick Templates (supports both AR and EN inputs)
   const KNOWN_ADMIN_HEADERS: Array<{ ar: string; en: string; aliases: string[] }> = [
     {
       ar: 'رسالة من إدارة المنظومة',
@@ -704,6 +719,11 @@ export function resolveDynamicNotification(
       ar: 'توجيه من إدارة المنظومة',
       en: 'Directive from Platform Administration',
       aliases: ['توجيه من إدارة المنظومة', 'directive from platform administration'],
+    },
+    {
+      ar: 'توجيه من إدارة المنظومة',
+      en: 'Directive from System Administration',
+      aliases: ['directive from system administration'],
     },
     {
       ar: 'إشعار توجيهي من إدارة المنظومة',
@@ -721,13 +741,23 @@ export function resolveDynamicNotification(
       aliases: ['إشعار مالي من إدارة المنظومة', 'financial notice from system administration'],
     },
     {
+      ar: 'إشعار بخصوص إيصال الشحن',
+      en: 'Notification Regarding Recharge Receipt',
+      aliases: ['إشعار بخصوص إيصال الشحن', 'notification regarding recharge receipt'],
+    },
+    {
+      ar: 'إشعار إداري سيادي',
+      en: 'Sovereign Admin Notice',
+      aliases: ['إشعار إداري سيادي', 'sovereign admin notice'],
+    },
+    {
       ar: 'رسالة من الإدارة',
       en: 'Message from management',
       aliases: ['رسالة من الإدارة', 'message from management'],
     },
   ];
 
-  const KNOWN_QUICK_TEMPLATE_BODIES: Array<{ ar: string; en: string }> = [
+  const KNOWN_QUICK_TEMPLATE_BODIES: Array<{ ar: string; en: string; aliases?: string[] }> = [
     // Rider quick templates (riders-management-panel.tsx)
     {
       ar: 'مرحباً بك في بينكم - bynkcom! نتمنى لك تجربة رحلات ممتعة وآمنة دائماً.',
@@ -761,7 +791,41 @@ export function resolveDynamicNotification(
       ar: 'نتمنى لكم أسبوعاً سعيداً ورحلات موفقة مع بينكم - bynkcom.',
       en: 'Wishing you a wonderful week and safe journeys with bynkcom.',
     },
-    // Captain quick templates (drivers-management-tab.tsx)
+    // Captain Direct quick templates (drivers-management-tab.tsx)
+    {
+      ar: 'يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب إيقاف الحساب.',
+      en: "Please renew your driver's license or vehicle documents to avoid account suspension.",
+    },
+    {
+      ar: 'يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب تعليق الحساب.',
+      en: 'Please renew driving license or vehicle documents to avoid account suspension.',
+    },
+    {
+      ar: 'تمت مراجعة حسابك واعتماد بياناتك ووثائقك بنجاح.',
+      en: 'Your account has been audited and verified successfully.',
+    },
+    {
+      ar: 'تنبيه إداري: نرجو الالتزام بعدم إلغاء الرحلات بعد قبولها لضمان استقرار حسابك.',
+      en: 'Administrative notice: Please avoid canceling accepted trips to preserve your account stability.',
+    },
+    {
+      ar: 'شكر وتقدير من إدارة بينكم لأدائك المتميز والتزامك العالي.',
+      en: 'Appreciation from byncom Administration for your exemplary service and commitment.',
+      aliases: ['appreciation from bynkcom administration for your exemplary service and commitment.'],
+    },
+    {
+      ar: 'يرجى التأكد من تشغيل محدد الموقع (GPS) بدقة عالية أثناء فترات العمل.',
+      en: 'Please ensure GPS high-accuracy mode is enabled during active duty.',
+    },
+    // Captain Bulk quick templates (drivers-management-tab.tsx)
+    {
+      ar: 'بشرى سارة: تم شحن دقائق إضافية لحسابكم بمناسبة نهاية الأسبوع!',
+      en: 'Good news: Extra flight minutes have been credited to your account for the weekend!',
+    },
+    {
+      ar: 'تنبيه هام: يرجى تفعيل وضع الاتصال، الطلبات في منطقتك مرتفعة الآن!',
+      en: 'Important alert: Please go online, order demand in your area is surging right now!',
+    },
     {
       ar: 'إشعار تشغيلي: يرجى التأكد من استقرار إشارة GPS وتحديث التطبيق لأحدث إصدار.',
       en: 'Operational notice: Please ensure high GPS accuracy and update app to the latest version.',
@@ -774,24 +838,60 @@ export function resolveDynamicNotification(
       ar: 'تنويه أمني: نذكركم بالالتزام بالتسعيرة الرسمية وعدم إلغاء الرحلات بعد قبولها.',
       en: 'Security notice: Reminder to adhere to official fare formulas and avoid trip cancellations.',
     },
+    // Wallet Receipt quick templates (wallet-management-tab.tsx)
+    {
+      ar: 'يرجى إعادة رفع صورة إشعار التحويل بشكل أوضح تظهر كافة التفاصيل.',
+      en: 'Please re-upload a clearer image of the transfer receipt showing all details.',
+    },
+    {
+      ar: 'لم نتمكن من مطابقة الرقم المرجعي للحوالة، يرجى تزويدنا به للتأكيد.',
+      en: 'Could not match transfer reference number. Please provide it to verify.',
+    },
+    {
+      ar: 'تم استلام إيصال التحويل بنجاح وجاري مراجعته وإضافة الرصيد لمحفظتك.',
+      en: 'Your transfer was received and is currently being audited and credited to your wallet.',
+    },
+    {
+      ar: 'يرجى التأكد من التحويل إلى الرقم المعتمد للمحفظة.',
+      en: "Please ensure the transfer was sent to the wallet's authorized number.",
+    },
   ];
 
   const tLower = t.toLowerCase();
+  const dLower = d.toLowerCase();
   const matchedHeader = KNOWN_ADMIN_HEADERS.find((h) => h.aliases.includes(tLower));
   const matchedBody = KNOWN_QUICK_TEMPLATE_BODIES.find(
-    (b) => b.ar === d || b.en.toLowerCase() === d.toLowerCase()
+    (b) => b.ar === d || b.en.toLowerCase() === dLower || (b.aliases ? b.aliases.includes(dLower) : false)
   );
 
-  if (matchedHeader || matchedBody) {
+  // Driver's license / vehicle documents fallback (only when renewal phrasing is present; never clobber matched header/body)
+  const isLicenseRenewalNotice =
+    !matchedBody &&
+    (dLower.includes("renew your driver's license") ||
+      dLower.includes('renew driving license') ||
+      d.includes('تجديد رخصة القيادة'));
+
+  if (matchedHeader || matchedBody || isLicenseRenewalNotice) {
     const headerIsResolved = Boolean(matchedHeader) || (!hasArabicScript(t) && !hasLatinLetters(t));
-    const bodyIsResolved = Boolean(matchedBody) || (!hasArabicScript(d) && !hasLatinLetters(d));
+    const bodyIsResolved =
+      Boolean(matchedBody) || isLicenseRenewalNotice || (!hasArabicScript(d) && !hasLatinLetters(d));
+    const resolvedBodyAr = matchedBody
+      ? matchedBody.ar
+      : isLicenseRenewalNotice
+        ? 'يرجى تجديد رخصة القيادة أو وثائق المركبة لتجنب إيقاف الحساب.'
+        : d;
+    const resolvedBodyEn = matchedBody
+      ? matchedBody.en
+      : isLicenseRenewalNotice
+        ? "Please renew your driver's license or vehicle documents to avoid account suspension."
+        : d;
     return {
-      titleAr: matchedHeader ? matchedHeader.ar : t,
-      descriptionAr: matchedBody ? matchedBody.ar : d,
-      titleEn: matchedHeader ? matchedHeader.en : t,
-      descriptionEn: matchedBody ? matchedBody.en : d,
+      titleAr: matchedHeader ? matchedHeader.ar : (t || 'رسالة من الإدارة'),
+      descriptionAr: resolvedBodyAr,
+      titleEn: matchedHeader ? matchedHeader.en : (t || 'Message from management'),
+      descriptionEn: resolvedBodyEn,
       matched: true,
-      titleMatched: headerIsResolved,
+      titleMatched: matchedHeader ? true : (isLicenseRenewalNotice && !t) ? true : headerIsResolved,
       descriptionMatched: bodyIsResolved,
     };
   }
@@ -877,11 +977,15 @@ export function parseNotificationContent(
 
       const titleNeedsTranslation = isArabic
         ? (!hasArabicScript(resolvedTitle) && hasLatinLetters(resolvedTitle))
-        : hasArabicScript(resolvedTitle);
+        : (hasArabicScript(resolvedTitle) &&
+          !(dynamicTitleOk && hasLatinLetters(resolvedTitle)) &&
+          !(hasDistinctTitleEn && isDominantlyLatinText(resolvedTitle)));
 
       const descriptionNeedsTranslation = isArabic
         ? (!hasArabicScript(resolvedDesc) && hasLatinLetters(resolvedDesc))
-        : hasArabicScript(resolvedDesc);
+        : (hasArabicScript(resolvedDesc) &&
+          !(dynamicDescOk && hasLatinLetters(resolvedDesc)) &&
+          !(hasDistinctBodyEn && isDominantlyLatinText(resolvedDesc)));
 
       const hasTranslation = hasDistinctTitleEn || hasDistinctBodyEn;
 
@@ -966,7 +1070,7 @@ function hydrateRuntimeCacheIfNeeded(): void {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object') {
       for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === 'string' && v.trim()) {
+        if (typeof v === 'string' && v.trim() && !isTranslationErrorBanner(v)) {
           runtimeCache.set(k, v);
         }
       }
@@ -1041,6 +1145,26 @@ export function resolveNotificationForDisplay(
   };
 }
 
+async function translateDirectViaGtx(text: string, targetLang: 'ar' | 'en'): Promise<string | null> {
+  try {
+    const fallbackRes = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(
+        text
+      )}`
+    );
+    if (fallbackRes.ok) {
+      const data = await fallbackRes.json();
+      if (Array.isArray(data) && Array.isArray(data[0])) {
+        const tr = data[0].map((c: any) => (c && c[0] ? c[0] : '')).join('').trim();
+        if (isValidClientTranslation(tr, text, targetLang)) {
+          return tr;
+        }
+      }
+    }
+  } catch {}
+  return null;
+}
+
 /**
  * Client-side helper to translate a list of texts on demand via /api/translate,
  * deduplicating concurrent requests and persisting results in cache.
@@ -1059,7 +1183,7 @@ export async function requestBatchTranslation(
     if (!trimmed) continue;
     const key = makeCacheKey(trimmed, targetLang);
     const cached = runtimeCache.get(key);
-    if (cached) {
+    if (cached && !isTranslationErrorBanner(cached)) {
       results[trimmed] = cached;
       continue;
     }
@@ -1067,7 +1191,9 @@ export async function requestBatchTranslation(
     if (inflight) {
       waitingPromises.push(
         inflight.then((tr) => {
-          if (tr) results[trimmed] = tr;
+          if (tr && isValidClientTranslation(tr, trimmed, targetLang)) {
+            results[trimmed] = tr;
+          }
         })
       );
       continue;
@@ -1082,6 +1208,7 @@ export async function requestBatchTranslation(
     for (let i = 0; i < uniquePending.length; i += 30) {
       const chunk = uniquePending.slice(i, i + 30);
       const batchPromise = (async () => {
+        let cacheUpdated = false;
         try {
           const res = await fetch('/api/translate', {
             method: 'POST',
@@ -1091,22 +1218,36 @@ export async function requestBatchTranslation(
           if (res.ok) {
             const data = await res.json();
             if (data?.success && Array.isArray(data.translations)) {
-              let cacheUpdated = false;
               chunk.forEach((src, idx) => {
                 const tr = typeof data.translations[idx] === 'string' ? data.translations[idx].trim() : '';
-                if (tr && tr !== src) {
+                if (isValidClientTranslation(tr, src, targetLang)) {
                   runtimeCache.set(makeCacheKey(src, targetLang), tr);
                   results[src] = tr;
                   cacheUpdated = true;
                 }
               });
-              if (cacheUpdated) persistRuntimeCache();
-              return results;
             }
           }
         } catch (err) {
           console.warn('[requestBatchTranslation] API batch failed:', err);
         }
+
+        // Direct client-side GTX fallback for any items that failed or remained untranslated
+        const remaining = chunk.filter((src) => !results[src]);
+        if (remaining.length > 0) {
+          await Promise.allSettled(
+            remaining.slice(0, 10).map(async (src) => {
+              const gtx = await translateDirectViaGtx(src, targetLang);
+              if (gtx) {
+                runtimeCache.set(makeCacheKey(src, targetLang), gtx);
+                results[src] = gtx;
+                cacheUpdated = true;
+              }
+            })
+          );
+        }
+
+        if (cacheUpdated) persistRuntimeCache();
         return results;
       })();
 
@@ -1142,7 +1283,7 @@ export async function requestTranslation(
   if (!trimmed) return '';
 
   const cached = getCachedNotificationTranslation(trimmed, targetLang);
-  if (cached) return cached;
+  if (cached && !isTranslationErrorBanner(cached)) return cached;
 
   try {
     const res = await fetch('/api/translate', {
@@ -1155,11 +1296,11 @@ export async function requestTranslation(
       const data = await res.json();
       if (data?.success && data?.translatedText) {
         const tr = String(data.translatedText).trim();
-        if (tr && tr !== trimmed) {
+        if (isValidClientTranslation(tr, trimmed, targetLang)) {
           runtimeCache.set(makeCacheKey(trimmed, targetLang), tr);
           persistRuntimeCache();
+          return tr;
         }
-        return tr;
       }
     }
   } catch (err) {
@@ -1167,24 +1308,12 @@ export async function requestTranslation(
   }
 
   // Fallback directly from client if API fails
-  try {
-    const fallbackRes = await fetch(
-      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(
-        trimmed
-      )}`
-    );
-    if (fallbackRes.ok) {
-      const data = await fallbackRes.json();
-      if (Array.isArray(data) && Array.isArray(data[0])) {
-        const tr = data[0].map((c: any) => (c && c[0] ? c[0] : '')).join('').trim();
-        if (tr && tr !== trimmed) {
-          runtimeCache.set(makeCacheKey(trimmed, targetLang), tr);
-          persistRuntimeCache();
-        }
-        return tr;
-      }
-    }
-  } catch {}
+  const gtx = await translateDirectViaGtx(trimmed, targetLang);
+  if (gtx) {
+    runtimeCache.set(makeCacheKey(trimmed, targetLang), gtx);
+    persistRuntimeCache();
+    return gtx;
+  }
 
   return trimmed;
 }

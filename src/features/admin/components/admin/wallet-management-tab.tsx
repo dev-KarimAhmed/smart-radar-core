@@ -1687,7 +1687,15 @@ export function WalletManagementTab() {
       </Dialog>
 
       {/* MODAL 4: Message Captain Regarding Receipt */}
-      <Dialog open={!!messageReceiptItem} onOpenChange={(open) => !open && setMessageReceiptItem(null)}>
+      <Dialog
+        open={!!messageReceiptItem}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMessageReceiptItem(null);
+            setReceiptMessageBody('');
+          }
+        }}
+      >
         <DialogContent className={cn("max-w-md bg-[#0B0F19] border border-teal-500/40 text-white rounded-3xl p-6 shadow-2xl backdrop-blur-xl", isArabic ? "text-right" : "text-left")} dir={direction}>
           {messageReceiptItem && (
             <div className="space-y-4">
@@ -1812,7 +1820,9 @@ export function WalletManagementTab() {
 
                       toast({
                         title: isArabic ? 'تم إرسال الرسالة بنجاح' : 'Message Sent Successfully',
-                        description: data.message || (isArabic ? 'تم إرسال الإشعار اللحظي إلى الكابتن المعلن.' : 'Instant notification sent to captain.'),
+                        description: isArabic
+                          ? (data.message || 'تم إرسال الإشعار اللحظي إلى الكابتن المعلن.')
+                          : 'Instant notification sent to captain.',
                       });
 
                       setMessageReceiptItem(null);

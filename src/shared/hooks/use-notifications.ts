@@ -323,11 +323,16 @@ export function persistDeletedNotificationIds(userId: string | null, ids: string
 
 let isGlobalFetching = false;
 let lastFetchTimestamp = 0;
+let pendingForcedFetchUserId: string | null = null;
 
-async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<void> {
+async function fetchRemoteNotificationsGlobal(targetUserId: string, force = false): Promise<void> {
   if (!targetUserId) return;
   const now = Date.now();
-  if (isGlobalFetching || now - lastFetchTimestamp < 1500) return;
+  if (isGlobalFetching) {
+    if (force) pendingForcedFetchUserId = targetUserId;
+    return;
+  }
+  if (!force && now - lastFetchTimestamp < 1500) return;
   isGlobalFetching = true;
   lastFetchTimestamp = now;
 
@@ -402,6 +407,11 @@ async function fetchRemoteNotificationsGlobal(targetUserId: string): Promise<voi
     if (process.env.NODE_ENV !== 'production') console.warn('[useNotifications] fetch exception:', err);
   } finally {
     isGlobalFetching = false;
+    if (pendingForcedFetchUserId && pendingForcedFetchUserId === currentStoreUserId) {
+      const nextUid = pendingForcedFetchUserId;
+      pendingForcedFetchUserId = null;
+      void fetchRemoteNotificationsGlobal(nextUid, true);
+    }
   }
 }
 
@@ -444,6 +454,26 @@ function setupRealtimeChannelIfNeeded(userId: string | null): void {
         if (payload.eventType === 'INSERT' && payload.new) {
           const newRow = payload.new as any;
           if (newRow?.title) {
+            // Optimistically prepend realtime row into memory store so UI updates instantaneously
+            const optimisticItem: AppNotification = {
+              id: String(newRow.id || `rt_${Date.now()}`),
+              title: String(newRow.title),
+              description: String(newRow.description || ''),
+              timestamp: newRow.created_at ? new Date(newRow.created_at).getTime() : Date.now(),
+              read: Boolean(newRow.is_read),
+              type: (newRow.type as AppNotification['type']) || 'system',
+            };
+            const userDeletedIds = getDeletedNotificationIds(userId);
+            if (
+              currentStoreUserId === userId &&
+              !deletedNotificationIds.has(optimisticItem.id) &&
+              !userDeletedIds.has(optimisticItem.id) &&
+              !isNotificationExpired(optimisticItem)
+            ) {
+              const filtered = memoryNotifications.filter((item) => item.id !== optimisticItem.id);
+              updateStore([optimisticItem, ...filtered].slice(0, 50), userId);
+            }
+
             const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
             const targetLang: 'ar' | 'en' = isArabic ? 'ar' : 'en';
             let parsed = resolveNotificationForDisplay(newRow, isArabic);
@@ -489,7 +519,7 @@ function setupRealtimeChannelIfNeeded(userId: string | null): void {
             }
           }
         }
-        void fetchRemoteNotificationsGlobal(userId);
+        void fetchRemoteNotificationsGlobal(userId, true);
       }
     )
     .subscribe();
