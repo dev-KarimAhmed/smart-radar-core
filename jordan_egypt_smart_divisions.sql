@@ -4,52 +4,52 @@ BEGIN;
 
 -- 1. إدخال المحافظات (بشرط عدم وجودها مسبقاً بناءً على الاسم)
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'عمان', 'عمان'
-WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'عمان');
+SELECT 1, 'عمان', 'Amman'
+WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar IN ('عمان', 'عمّان'));
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'اربد', 'اربد'
-WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'اربد');
+SELECT 1, 'اربد', 'Irbid'
+WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar IN ('اربد', 'إربد'));
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'البلقاء', 'البلقاء'
-WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'البلقاء');
+SELECT 1, 'البلقاء', 'Balqa'
+WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar IN ('البلقاء', 'البلقا'));
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'الكرك', 'الكرك'
+SELECT 1, 'الكرك', 'Karak'
 WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'الكرك');
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'معان', 'معان'
+SELECT 1, 'معان', 'Ma''an'
 WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'معان');
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'الزرقاء', 'الزرقاء'
-WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'الزرقاء');
+SELECT 1, 'الزرقاء', 'Zarqa'
+WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar IN ('الزرقاء', 'الزرقا'));
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'المفرق', 'المفرق'
+SELECT 1, 'المفرق', 'Mafraq'
 WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'المفرق');
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'الطفيلة', 'الطفيلة'
-WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'الطفيلة');
+SELECT 1, 'الطفيلة', 'Tafilah'
+WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar IN ('الطفيلة', 'الطفيله'));
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'مادبا', 'مادبا'
-WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'مادبا');
+SELECT 1, 'مادبا', 'Madaba'
+WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar IN ('مادبا', 'مأدبا'));
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'جرش', 'جرش'
+SELECT 1, 'جرش', 'Jerash'
 WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'جرش');
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'عجلون', 'عجلون'
+SELECT 1, 'عجلون', 'Ajloun'
 WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'عجلون');
 
 INSERT INTO governorates (country_id, name_ar, name_en)
-SELECT 1, 'العقبة', 'العقبة'
-WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar = 'العقبة');
+SELECT 1, 'العقبة', 'Aqaba'
+WHERE NOT EXISTS (SELECT 1 FROM governorates WHERE name_ar IN ('العقبة', 'العقبه'));
 
 INSERT INTO governorates (country_id, name_ar, name_en)
 SELECT 2, 'القاهرة', 'Cairo'

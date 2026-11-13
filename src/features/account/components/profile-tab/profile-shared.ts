@@ -1,4 +1,9 @@
 import { supabase } from '@/lib/supabase-client';
+import {
+  resolveLocationLabel,
+  canonicalizeGovernorateRows,
+  canonicalizeDistrictRows,
+} from '@/shared/utils/location-translator';
 
 export const styles = {
   recoveryEmailSlot: "mt-1",
@@ -152,7 +157,7 @@ export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a
 
 export function labelFor(row?: LocationRow | null, language: 'ar' | 'en' = 'ar') {
   if (!row) return '';
-  return (language === 'ar' ? row.name_ar || row.name_en : row.name_en || row.name_ar) || row.name || String(row.id);
+  return resolveLocationLabel(row, language);
 }
 
 export function numberOrEmpty(value: unknown) {
@@ -161,11 +166,21 @@ export function numberOrEmpty(value: unknown) {
 }
 
 export function normalizeRows<T extends LocationRow>(rows: unknown): T[] {
-  return Array.isArray(rows)
-    ? rows
-        .map((row) => row as Partial<T>)
-        .filter((row): row is T => Number.isInteger(row.id))
-    : [];
+  if (!Array.isArray(rows)) return [];
+  const valid = rows
+    .map((row) => row as Partial<T>)
+    .filter((row): row is T => Number.isInteger(row.id));
+
+  // If these are governorate rows (they contain country_id)
+  if (valid.length > 0 && 'country_id' in valid[0]) {
+    return canonicalizeGovernorateRows(valid as unknown as GovernorateRow[]) as unknown as T[];
+  }
+  // If these are district rows (they contain governorate_id)
+  if (valid.length > 0 && 'governorate_id' in valid[0]) {
+    return canonicalizeDistrictRows(valid as unknown as DistrictRow[]) as unknown as T[];
+  }
+
+  return valid;
 }
 
 export function getProfileName(profile: ProfileRow | null, fallbackName: string) {

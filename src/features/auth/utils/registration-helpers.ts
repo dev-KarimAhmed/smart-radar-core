@@ -9,6 +9,7 @@ import type {
   SupabaseGovernorateRow,
   SupabaseDistrictRow,
 } from '../hooks/use-supabase-locations';
+import { resolveLocationLabel } from '@/shared/utils/location-translator';
 
 export type RegistrationRole = 'rider' | 'driver' | 'advertiser' | 'delegate' | 'admin' | null;
 
@@ -16,8 +17,7 @@ export function getLocationLabel(
   row: SupabaseCountryRow | SupabaseGovernorateRow | SupabaseDistrictRow,
   lang: 'ar' | 'en',
 ) {
-  const preferred = lang === 'ar' ? row.name_ar : row.name_en;
-  return preferred || row.name_ar || row.name_en || row.name || String(row.id);
+  return resolveLocationLabel(row, lang);
 }
 
 // Same libphonenumber-js validation the captain onboarding form uses (see

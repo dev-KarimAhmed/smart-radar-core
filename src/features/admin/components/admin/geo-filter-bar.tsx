@@ -13,6 +13,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import {
+  resolveGovernorateLabel,
+  resolveDistrictLabel,
+  resolveLocationLabel,
+} from '@/shared/utils/location-translator';
 
 export interface GeoCountry {
   id: number;
@@ -254,7 +259,7 @@ export function GeoFilterBar({
                       <span>
                         {isArabic
                           ? `محافظات ${group.country.name_ar}`
-                          : `${group.country.name_ar} Governorates`}
+                          : `${resolveLocationLabel(group.country as any, 'en')} Governorates`}
                       </span>
                     </span>
                     <span className="text-[10px] font-mono text-slate-400">({group.governorates.length})</span>
@@ -267,7 +272,7 @@ export function GeoFilterBar({
                     >
                       <span className="flex items-center gap-1.5">
                         <span className="text-[10px] opacity-60">{group.flag}</span>
-                        <span>{g.name_ar}</span>
+                        <span>{resolveGovernorateLabel(g as any, isArabic ? 'ar' : 'en')}</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -306,7 +311,7 @@ export function GeoFilterBar({
                       <span>
                         {isArabic
                           ? `مناطق ${group.country.name_ar}`
-                          : `${group.country.name_ar} Districts`}
+                          : `${resolveLocationLabel(group.country as any, 'en')} Districts`}
                       </span>
                     </span>
                     <span className="text-[10px] font-mono text-slate-400">({group.districts.length})</span>
@@ -319,7 +324,7 @@ export function GeoFilterBar({
                     >
                       <span className="flex items-center gap-1.5">
                         <span className="text-[10px] opacity-60">{group.flag}</span>
-                        <span>{d.name_ar}</span>
+                        <span>{resolveDistrictLabel(d as any, isArabic ? 'ar' : 'en')}</span>
                       </span>
                     </SelectItem>
                   ))}

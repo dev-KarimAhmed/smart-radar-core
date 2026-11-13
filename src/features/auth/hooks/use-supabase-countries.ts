@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { isSaudiCountryCode } from '@/core/logic/saudi-restriction';
+import { hasArabicLetters, hasLatinLetters } from '@/shared/utils/location-translator';
 
 export interface SupabaseCountryRow {
   id: number;
@@ -37,8 +38,24 @@ export function normalizeCountries(rows: unknown): SupabaseCountryRow[] {
 }
 
 export function getCountryLabel(row: SupabaseCountryRow, lang: 'ar' | 'en'): string {
-  const preferred = lang === 'ar' ? row.name_ar : row.name_en;
-  return preferred || row.name_ar || row.name_en || row.name || String(row.id);
+  const code = (row.country_code || row.iso2 || row.code || '').toUpperCase();
+  const rawAr = (row.name_ar || '').trim();
+  const rawEn = (row.name_en || '').trim();
+
+  const isJordan = code === 'JO' || rawAr.includes('أردن') || rawAr.includes('اردن') || rawEn.toLowerCase().includes('jordan');
+  const isEgypt = code === 'EG' || rawAr.includes('مصر') || rawEn.toLowerCase().includes('egypt');
+
+  if (lang === 'en') {
+    if (isJordan) return 'Jordan';
+    if (isEgypt) return 'Egypt';
+    if (rawEn && hasLatinLetters(rawEn)) return rawEn;
+    return rawEn || rawAr || String(row.id);
+  } else {
+    if (isJordan) return 'الأردن';
+    if (isEgypt) return 'مصر';
+    if (rawAr && hasArabicLetters(rawAr)) return rawAr;
+    return rawAr || rawEn || String(row.id);
+  }
 }
 
 export function getCountryDialCode(country: SupabaseCountryRow): string {

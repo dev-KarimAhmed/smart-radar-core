@@ -11,6 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  resolveGovernorateLabel,
+  resolveDistrictLabel,
+} from '@/shared/utils/location-translator';
 import type { DistrictOption, GovernorateOption } from '../services/rider-destination-normalizers';
 
 const styles = {
@@ -82,7 +86,13 @@ export function DestinationAreaPicker({
               <SelectGroup>
                 {destinationGovernorates.map((governorate) => (
                   <SelectItem key={governorate.id} value={governorate.id} className={styles.item}>
-                    {isArabic ? governorate.nameAr || governorate.nameEn : governorate.nameEn || governorate.nameAr}
+                    {resolveGovernorateLabel(
+                      {
+                        name_ar: governorate.nameAr,
+                        name_en: governorate.nameEn,
+                      },
+                      isArabic ? 'ar' : 'en',
+                    )}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -109,7 +119,13 @@ export function DestinationAreaPicker({
                     disabled={!destination.anchor}
                     className={styles.item}
                   >
-                    {isArabic ? destination.districtAr || destination.districtEn : destination.districtEn || destination.districtAr}
+                    {resolveDistrictLabel(
+                      {
+                        name_ar: destination.districtAr,
+                        name_en: destination.districtEn,
+                      },
+                      isArabic ? 'ar' : 'en',
+                    )}
                   </SelectItem>
                 ))}
               </SelectGroup>

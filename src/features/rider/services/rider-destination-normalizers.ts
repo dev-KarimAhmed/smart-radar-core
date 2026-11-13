@@ -2,6 +2,10 @@ import { latLngToCell } from 'h3-js';
 
 import { calculateSovereignFareQuote } from '@/core/logic/geospatial-kernel';
 import { isInvalidPlaceName } from '@/shared/services/google-maps-location';
+import {
+  findCanonicalGovernorate,
+  resolveDistrictLabel,
+} from '@/shared/utils/location-translator';
 import type { RiderDestination } from '../state/rider-state-machine';
 import type { RiderLocation } from '../components/rider-map';
 
@@ -27,20 +31,29 @@ export interface DistrictOption {
 export function normalizeGovernorates(rows: unknown, governorateFallback: (id: number) => string): GovernorateOption[] {
   if (!Array.isArray(rows)) return [];
 
-  return rows
-    .map((row) => {
-      const record = row as Record<string, unknown>;
-      const numericId = Number(record.id);
-      if (!Number.isInteger(numericId) || numericId <= 0) return null;
+  const seenKeys = new Set<string>();
+  const output: GovernorateOption[] = [];
 
-      return {
-        id: String(numericId),
-        numericId,
-        nameAr: firstText(record.name_ar, record.nameAr, record.name, record.title_ar) || governorateFallback(numericId),
-        nameEn: firstText(record.name_en, record.nameEn, record.title_en) || '',
-      };
-    })
-    .filter((option): option is GovernorateOption => !!option);
+  for (const row of rows) {
+    const record = row as Record<string, unknown>;
+    const numericId = Number(record.id);
+    if (!Number.isInteger(numericId) || numericId <= 0) continue;
+
+    const canonical = findCanonicalGovernorate(record as any);
+    const dedupeKey = canonical ? canonical.key : String(numericId);
+
+    if (seenKeys.has(dedupeKey)) continue;
+    seenKeys.add(dedupeKey);
+
+    output.push({
+      id: String(numericId),
+      numericId,
+      nameAr: canonical ? canonical.nameAr : (firstText(record.name_ar, record.nameAr, record.name, record.title_ar) || governorateFallback(numericId)),
+      nameEn: canonical ? canonical.nameEn : (firstText(record.name_en, record.nameEn, record.title_en) || ''),
+    });
+  }
+
+  return output;
 }
 
 export function normalizeDistricts(
@@ -57,6 +70,8 @@ export function normalizeDistricts(
       if (!Number.isInteger(numericId) || numericId <= 0) return null;
 
       const anchor = getRowAnchor(record);
+      const rawAr = firstText(record.name_ar, record.nameAr, record.name, record.title_ar) || districtFallback(numericId);
+      const rawEn = firstText(record.name_en, record.nameEn, record.title_en) || '';
 
       return {
         id: String(numericId),
@@ -64,8 +79,8 @@ export function normalizeDistricts(
         governorateId: String(record.governorate_id || governorate?.id || ''),
         governorateAr: governorate?.nameAr || '',
         governorateEn: governorate?.nameEn || '',
-        districtAr: firstText(record.name_ar, record.nameAr, record.name, record.title_ar) || districtFallback(numericId),
-        districtEn: firstText(record.name_en, record.nameEn, record.title_en) || '',
+        districtAr: resolveDistrictLabel(rawAr || rawEn, 'ar'),
+        districtEn: resolveDistrictLabel(rawEn || rawAr, 'en'),
         anchor,
         tortuosityFactor: firstNumber(record.tortuosity_factor, record.road_factor, record.factor) ?? 1.3,
       };

@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
+import {
+  resolveLocationLabel,
+  canonicalizeGovernorateRows,
+  canonicalizeDistrictRows,
+} from '@/shared/utils/location-translator';
 
 export interface SupabaseGovernorateRow {
   id: number;
@@ -20,24 +25,25 @@ export interface SupabaseDistrictRow {
 }
 
 export function normalizeGovernorates(rows: unknown): SupabaseGovernorateRow[] {
-  return Array.isArray(rows)
+  const filtered = Array.isArray(rows)
     ? rows
         .map((row) => row as Partial<SupabaseGovernorateRow>)
         .filter((row): row is SupabaseGovernorateRow => Number.isInteger(row.id) && Number.isInteger(row.country_id))
     : [];
+  return canonicalizeGovernorateRows(filtered);
 }
 
 export function normalizeDistricts(rows: unknown): SupabaseDistrictRow[] {
-  return Array.isArray(rows)
+  const filtered = Array.isArray(rows)
     ? rows
         .map((row) => row as Partial<SupabaseDistrictRow>)
         .filter((row): row is SupabaseDistrictRow => Number.isInteger(row.id) && Number.isInteger(row.governorate_id))
     : [];
+  return canonicalizeDistrictRows(filtered);
 }
 
 export function getLocationLabel(row: SupabaseGovernorateRow | SupabaseDistrictRow, lang: 'ar' | 'en'): string {
-  const preferred = lang === 'ar' ? row.name_ar : row.name_en;
-  return preferred || row.name_ar || row.name_en || row.name || String(row.id);
+  return resolveLocationLabel(row, lang);
 }
 
 /**
