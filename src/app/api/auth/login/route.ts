@@ -17,6 +17,8 @@ function normalizePhone(phone: string): string {
   let cleaned = phone.trim().replace(/[\s()-]/g, '');
   if (cleaned.startsWith('00')) {
     cleaned = '+' + cleaned.slice(2);
+  } else if (!cleaned.startsWith('+') && /^[1-9]\d{7,14}$/.test(cleaned)) {
+    cleaned = '+' + cleaned;
   }
   return cleaned;
 }
@@ -37,6 +39,7 @@ export async function POST(req: Request) {
     const normalizedPhone = normalizePhone(rawPhone);
     const password = String(body.password || '');
     const expectedRole = body.expectedRole ? String(body.expectedRole).trim().toUpperCase() : undefined;
+    const rawEmail = body.email ? String(body.email).trim().toLowerCase() : undefined;
 
     if (isSaudiPhoneNumber(normalizedPhone) || isSaudiPhoneNumber(rawPhone)) {
       return NextResponse.json(
@@ -87,30 +90,32 @@ export async function POST(req: Request) {
         errMsg.includes('phone');
 
       if (isCredentialsOrPhoneErr) {
-        let fallbackEmail: string | null = null;
-        const { data: profileByPhone } = await adminClient
-          .from('profiles')
-          .select('email')
-          .eq('phone', normalizedPhone)
-          .maybeSingle();
+        let fallbackEmail: string | null = (rawEmail && rawEmail.includes('@')) ? rawEmail : null;
+        if (!fallbackEmail) {
+          const { data: profileByPhone } = await adminClient
+            .from('profiles')
+            .select('email')
+            .eq('phone', normalizedPhone)
+            .maybeSingle();
 
-        if (profileByPhone?.email && String(profileByPhone.email).includes('@')) {
-          fallbackEmail = String(profileByPhone.email).trim().toLowerCase();
-        } else {
-          const phoneDigits = normalizedPhone.replace(/\D/g, '');
-          const { data: rpcRows, error: rpcErr } = await adminClient.rpc('find_account_by_phone', {
-            p_phone_digits: phoneDigits,
-          });
-          const rpcRow = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
-          const rpcId = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { user_id?: unknown }).user_id : undefined;
-          const rpcEmail = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { email?: unknown }).email : undefined;
-          if (!rpcErr && typeof rpcEmail === 'string' && rpcEmail.includes('@')) {
-            fallbackEmail = rpcEmail.trim().toLowerCase();
-          } else if (!rpcErr && typeof rpcId === 'string') {
-            const { data: userLookup } = await adminClient.auth.admin.getUserById(rpcId);
-            const emailCandidate = userLookup?.user?.email || String(userLookup?.user?.user_metadata?.email || '');
-            if (emailCandidate && emailCandidate.includes('@')) {
-              fallbackEmail = emailCandidate.trim().toLowerCase();
+          if (profileByPhone?.email && String(profileByPhone.email).includes('@')) {
+            fallbackEmail = String(profileByPhone.email).trim().toLowerCase();
+          } else {
+            const phoneDigits = normalizedPhone.replace(/\D/g, '');
+            const { data: rpcRows, error: rpcErr } = await adminClient.rpc('find_account_by_phone', {
+              p_phone_digits: phoneDigits,
+            });
+            const rpcRow = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+            const rpcId = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { user_id?: unknown }).user_id : undefined;
+            const rpcEmail = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { email?: unknown }).email : undefined;
+            if (!rpcErr && typeof rpcEmail === 'string' && rpcEmail.includes('@')) {
+              fallbackEmail = rpcEmail.trim().toLowerCase();
+            } else if (!rpcErr && typeof rpcId === 'string') {
+              const { data: userLookup } = await adminClient.auth.admin.getUserById(rpcId);
+              const emailCandidate = userLookup?.user?.email || String(userLookup?.user?.user_metadata?.email || '');
+              if (emailCandidate && emailCandidate.includes('@')) {
+                fallbackEmail = emailCandidate.trim().toLowerCase();
+              }
             }
           }
         }
@@ -143,7 +148,21 @@ export async function POST(req: Request) {
     const isPhoneOnlyAccount = !userEmail || !userEmail.includes('@');
     const requiresEmailConfirmation = !isPreFeatureAccount && !isPhoneOnlyAccount;
 
-    if (requiresEmailConfirmation && !user.email_confirmed_at) {
+    let isEmailConfirmed = Boolean(user.email_confirmed_at);
+    if (requiresEmailConfirmation && !isEmailConfirmed) {
+      // Check admin auth or profile if email_verified is true (handles immediate verification sync)
+      const { data: freshUser } = await adminClient.auth.admin.getUserById(user.id);
+      if (freshUser?.user?.email_confirmed_at) {
+        isEmailConfirmed = true;
+      } else {
+        const { data: profCheck } = await adminClient.from('profiles').select('email_verified').eq('id', user.id).maybeSingle();
+        if (profCheck?.email_verified) {
+          isEmailConfirmed = true;
+        }
+      }
+    }
+
+    if (requiresEmailConfirmation && !isEmailConfirmed) {
       return NextResponse.json(
         {
           success: false,

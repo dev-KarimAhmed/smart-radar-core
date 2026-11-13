@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  Check,
   Eye,
   EyeOff,
   Languages,
@@ -15,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { normalizePhoneForCountry } from '../utils/registration-helpers';
 import {
   Select,
   SelectContent,
@@ -203,7 +205,15 @@ export function RegisterRoute({
   const { language, setLanguage } = useDashboardLanguage();
   const [authType, setAuthType] = useState<AuthType>('register');
   const [governorate, setGovernorate] = useState<GovernorateKey>('cairo');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const phoneValidation = useMemo(() => {
+    const val = phone.trim();
+    if (!val) return { ok: false, message: '' };
+    return normalizePhoneForCountry(val, null);
+  }, [phone]);
+  const isPhoneValid = phoneValidation.ok;
 
   // Honor a ?lang= deep link once on mount by driving the shared locale.
   useEffect(() => {
@@ -334,14 +344,33 @@ export function RegisterRoute({
               ) : null}
 
               <Field label={t.phone} icon={<Phone className={styles.style255_23} />}>
-                <input
-                  suppressHydrationWarning
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder={t.phonePlaceholder}
-                  className={styles.input}
-                  autoComplete="tel"
-                />
+                <div className="relative">
+                  <input
+                    suppressHydrationWarning
+                    type="tel"
+                    dir="ltr"
+                    inputMode="tel"
+                    placeholder={t.phonePlaceholder}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={cn(
+                      styles.input,
+                      isPhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
+                      !isPhoneValid && phone.trim() && '!border-amber-500/60 focus:!border-amber-500'
+                    )}
+                    autoComplete="tel"
+                  />
+                  {isPhoneValid ? (
+                    <span className="absolute end-3.5 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                      <Check className="h-4 w-4 stroke-[2.5]" />
+                    </span>
+                  ) : null}
+                </div>
+                {!isPhoneValid ? (
+                  <p className="text-[11px] text-[#94A3B8] font-medium mt-1">
+                    {phone.trim() ? (phoneValidation.message || t.phonePlaceholder) : (isArabic ? 'اكتب رقم هاتفك بالنسق المحلي أو الدولي' : 'Enter your phone number')}
+                  </p>
+                ) : null}
               </Field>
 
               {authType === 'register' ? (

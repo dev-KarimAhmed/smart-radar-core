@@ -201,7 +201,7 @@ export async function POST(req: Request) {
       success: true,
       userId: authUser.id,
       email: authUser.email,
-      phone: authUser.phone,
+      phone: authUser.phone || authUser.user_metadata?.phone || undefined,
       message: 'تم تأكيد بريدك الإلكتروني وتفعيل حسابك بنجاح! مرحباً بك.',
     });
   } catch (error: any) {

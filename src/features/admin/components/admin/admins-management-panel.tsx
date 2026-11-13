@@ -43,6 +43,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
 import { ADMIN_SECTORS, ALL_SECTOR_IDS, AdminSectorId } from '@/features/admin/lib/admin-permissions';
 
 export const PRIMARY_SOVEREIGN_ADMIN_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
@@ -107,6 +108,13 @@ export function AdminsManagementPanel() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('+9627');
   const [password, setPassword] = useState('');
+
+  const phoneValidation = React.useMemo(() => {
+    const val = phone.trim();
+    if (!val) return { ok: false, message: t('phoneLabel') };
+    return normalizePhoneForCountry(val, null);
+  }, [phone, t]);
+  const isPhoneValid = phoneValidation.ok;
   const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>('ASSISTANT_ADMIN');
   const [allowedSectors, setAllowedSectors] = useState<AdminSectorId[]>([...ALL_SECTOR_IDS]);
   const [showPassword, setShowPassword] = useState(false);
@@ -469,15 +477,31 @@ export function AdminsManagementPanel() {
 
             <div>
               <label className={styles.label}>{t('phoneLabel')}</label>
-              <Input
-                type="tel"
-                dir="ltr"
-                placeholder="+962790000000"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className={styles.input}
-                required
-              />
+              <div className="relative">
+                <Input
+                  type="tel"
+                  dir="ltr"
+                  placeholder="+962790000000"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className={cn(
+                    styles.input,
+                    isPhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
+                    !isPhoneValid && phone.trim() && '!border-amber-500/60 focus:!border-amber-500'
+                  )}
+                  required
+                />
+                {isPhoneValid ? (
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                    <Check className="h-4 w-4 stroke-[2.5]" />
+                  </span>
+                ) : null}
+              </div>
+              {!isPhoneValid ? (
+                <p className="text-[11px] text-amber-400/90 font-medium mt-1">
+                  {phone.trim() ? (phoneValidation.message || t('phoneInvalid')) : t('phoneLabel')}
+                </p>
+              ) : null}
             </div>
 
             <div className="relative">

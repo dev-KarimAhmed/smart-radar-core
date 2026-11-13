@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import { Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { AppSelect } from '@/shared/components/ui/app-select';
 import type { AffiliationType } from '@/core/types';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -15,6 +17,7 @@ import {
 } from '../../lib/captain-registration-schema';
 import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../lib/validate-field';
 import { colorNameToHex, hexToColorName } from '@/shared/services/color-name';
+import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
 
 export interface CaptainTaxiVehicleValues {
   officeName: string;
@@ -148,6 +151,13 @@ export function CaptainVehicleStep({
     }
     return getCaptainSmartAppVehicleSchema(tv, country);
   }, [isTaxi, isIndependent, tv, country]);
+
+  const officePhoneValidation = React.useMemo(() => {
+    const val = vehicle.officePhone?.trim();
+    if (!val) return { ok: false, message: '' };
+    return normalizePhoneForCountry(val, country);
+  }, [vehicle.officePhone, country]);
+  const isOfficePhoneValid = officePhoneValidation.ok;
   const yearOptions = React.useMemo(
     () => Array.from({ length: VEHICLE_YEAR_MAX - VEHICLE_YEAR_MIN + 1 }, (_, index) => {
       const year = String(VEHICLE_YEAR_MAX - index);
@@ -326,16 +336,31 @@ export function CaptainVehicleStep({
           </div>
           <div>
             <label className={styles.label}>{t('officePhone')}</label>
-            <Input
-              type="tel"
-              dir="ltr"
-              placeholder={t('officePhone')}
-              value={vehicle.officePhone}
-              onChange={(event) => handleFieldChange('officePhone', event.target.value)}
-              className={styles.input}
-              required
-            />
-            {errors.officePhone ? <p className={styles.error}>{errors.officePhone}</p> : null}
+            <div className="relative">
+              <Input
+                type="tel"
+                dir="ltr"
+                placeholder={t('officePhone')}
+                value={vehicle.officePhone}
+                onChange={(event) => handleFieldChange('officePhone', event.target.value)}
+                className={cn(
+                  styles.input,
+                  isOfficePhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
+                  !isOfficePhoneValid && vehicle.officePhone?.trim() && '!border-amber-500/60 focus:!border-amber-500'
+                )}
+                required
+              />
+              {isOfficePhoneValid ? (
+                <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                  <Check className="h-4 w-4 stroke-[2.5]" />
+                </span>
+              ) : null}
+            </div>
+            {!isOfficePhoneValid && (vehicle.officePhone?.trim() || errors.officePhone) ? (
+              <p className={cn(styles.error, 'text-amber-400/90 font-medium')}>
+                {errors.officePhone || officePhoneValidation.message || t('phoneInvalid')}
+              </p>
+            ) : null}
           </div>
           {renderVehicleIdentityFields()}
           <div className={styles.fieldRow}>

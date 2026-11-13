@@ -42,6 +42,7 @@ import {
 import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 import { useRegistration } from '../../hooks/use-registration';
 import { requestPasswordRecovery } from '../../services/password-recovery';
+import { normalizePhoneForCountry } from '../../utils/registration-helpers';
 import { navigateAuth } from '@/lib/auth-routing';
 
 import { cn } from '@/lib/utils';
@@ -494,6 +495,16 @@ export function PersonalStep() {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [isResending, setIsResending] = useState(false);
 
+  const phoneValidation = useMemo(() => {
+    return normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
+  }, [personal.phone, selectedCountry, tAuto]);
+  const isPhoneValid = phoneValidation.ok;
+
+  const resetPhoneValidation = useMemo(() => {
+    return normalizePhoneForCountry(resetPhone, selectedCountry, tAuto);
+  }, [resetPhone, selectedCountry, tAuto]);
+  const isResetPhoneValid = resetPhoneValidation.ok;
+
   React.useEffect(() => {
     if (resendCountdown <= 0) return;
     const timer = setInterval(() => {
@@ -502,16 +513,34 @@ export function PersonalStep() {
     return () => clearInterval(timer);
   }, [resendCountdown]);
 
-  const handleVerifyOtp = async () => {
-    const cleanCode = otpInput.trim().replace(/\D/g, '');
+  const submittedOtpRef = React.useRef<string | null>(null);
+
+  const handleVerifyOtp = React.useCallback(async (codeToVerify?: string) => {
+    const cleanCode = (codeToVerify ?? otpInput).trim().replace(/\D/g, '');
     if (cleanCode.length !== 6 || isVerifyingOtp) return;
+    if (submittedOtpRef.current === cleanCode) return;
+    submittedOtpRef.current = cleanCode;
     setIsVerifyingOtp(true);
     try {
-      await verifyEmailCode(cleanCode);
+      const ok = await verifyEmailCode(cleanCode);
+      if (!ok) {
+        submittedOtpRef.current = null;
+      }
+    } catch {
+      submittedOtpRef.current = null;
     } finally {
       setIsVerifyingOtp(false);
     }
-  };
+  }, [otpInput, isVerifyingOtp, verifyEmailCode]);
+
+  React.useEffect(() => {
+    const cleanCode = otpInput.trim().replace(/\D/g, '');
+    if (cleanCode.length === 6 && !isVerifyingOtp && submittedOtpRef.current !== cleanCode) {
+      void handleVerifyOtp(cleanCode);
+    } else if (cleanCode.length < 6) {
+      submittedOtpRef.current = null;
+    }
+  }, [otpInput, isVerifyingOtp, handleVerifyOtp]);
 
   const handleResendConfirmation = async () => {
     if (resendCountdown > 0 || isResending) return;
@@ -649,11 +678,19 @@ export function PersonalStep() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={6}
+                autoFocus
+                disabled={isVerifyingOtp}
                 value={otpInput}
                 onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="• • • • • •"
                 dir="ltr"
-                className="w-full h-13 rounded-xl border-2 border-[#14B8A6]/50 bg-black/70 px-4 text-center font-mono text-2xl sm:text-3xl font-black text-[#14F5D5] tracking-[0.4em] focus:border-[#14F5D5] focus:outline-none focus:ring-2 focus:ring-[#14F5D5]/30 transition-all placeholder:tracking-normal placeholder:text-slate-600 shadow-inner"
+                className={cn(
+                  "w-full h-13 rounded-xl border-2 bg-black/70 px-4 text-center font-mono text-2xl sm:text-3xl font-black text-[#14F5D5] tracking-[0.4em] transition-all placeholder:tracking-normal placeholder:text-slate-600 shadow-inner",
+                  otpInput.length === 6
+                    ? "border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
+                    : "border-[#14B8A6]/50 focus:border-[#14F5D5] focus:outline-none focus:ring-2 focus:ring-[#14F5D5]/30",
+                  isVerifyingOtp && "opacity-60 cursor-wait"
+                )}
               />
 
               <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-300">
@@ -665,7 +702,7 @@ export function PersonalStep() {
               <button
                 type="button"
                 disabled={otpInput.trim().length !== 6 || isVerifyingOtp}
-                onClick={handleVerifyOtp}
+                onClick={() => handleVerifyOtp()}
                 className="w-full min-h-12 flex items-center justify-center gap-2 rounded-xl bg-[#14B8A6] hover:bg-[#2DD4BF] active:scale-95 text-[#0B0F19] font-black text-sm transition shadow-[0_10px_25px_rgba(20,184,166,0.35)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isVerifyingOtp ? (
@@ -673,7 +710,11 @@ export function PersonalStep() {
                 ) : (
                   <Check className="h-4 w-4 stroke-[3]" />
                 )}
-                <span>{isArabic ? 'تأكيد الكود وتفعيل الحساب 🚀' : 'Confirm & Activate 🚀'}</span>
+                <span>
+                  {isVerifyingOtp
+                    ? (isArabic ? 'جاري التحقق والدخول إلى النظام... 🚀' : 'Verifying & Entering System... 🚀')
+                    : (isArabic ? 'تأكيد الكود وتفعيل الحساب 🚀' : 'Confirm & Activate 🚀')}
+                </span>
               </button>
             </div>
 
@@ -809,20 +850,40 @@ export function PersonalStep() {
               ) : null}
 
               <Field label={t.phone} icon={<Phone className={styles.style634_82} />}>
-                <input
-                  type="tel"
-                  dir="ltr"
-                  inputMode="tel"
-                  placeholder={phonePlaceholder || t.phonePlaceholder}
-                  value={personal.phone}
-                  onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
-                  className={cn(styles.input, styles.style642_83)}
-                  autoComplete="tel"
-                  required
-                />
-                <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, styles.style646_86)}>
-                  {phoneValidationHint}
-                </p>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    dir="ltr"
+                    inputMode="tel"
+                    placeholder={phonePlaceholder || t.phonePlaceholder}
+                    value={personal.phone}
+                    onChange={(event) => setPersonal({ ...personal, phone: event.target.value })}
+                    className={cn(
+                      styles.input,
+                      styles.style642_83,
+                      isPhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
+                      !isPhoneValid && personal.phone.trim() && '!border-amber-500/60 focus:!border-amber-500'
+                    )}
+                    autoComplete="tel"
+                    required
+                  />
+                  {isPhoneValid ? (
+                    <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                      <Check className="h-4 w-4 stroke-[2.5]" />
+                    </span>
+                  ) : null}
+                </div>
+                {!isPhoneValid ? (
+                  <p
+                    className={cn(
+                      isArabic ? styles.style646_84 : styles.style646_85,
+                      styles.style646_86,
+                      personal.phone.trim() && 'text-amber-400/90 font-medium'
+                    )}
+                  >
+                    {personal.phone.trim() ? (phoneValidation.message || phoneValidationHint) : phoneValidationHint}
+                  </p>
+                ) : null}
               </Field>
 
               {mode === 'register' ? (
@@ -1049,16 +1110,35 @@ export function PersonalStep() {
               label={t.resetPhone || (isArabic ? 'رقم الهاتف المسجل' : 'Registered phone number')}
               icon={<Phone className={styles.style839_143} />}
             >
-              <input
-                type="tel"
-                dir="ltr"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder={isArabic ? 'رقم هاتفك (مثال: 07XXXXXXXX)' : '07XXXXXXXX'}
-                value={resetPhone}
-                onChange={(event) => setResetPhone(event.target.value)}
-                className={cn(styles.input, styles.style847_144)}
-              />
+              <div className="relative">
+                <input
+                  type="tel"
+                  dir="ltr"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder={isArabic ? 'رقم هاتفك (مثال: 07XXXXXXXX)' : '07XXXXXXXX'}
+                  value={resetPhone}
+                  onChange={(event) => setResetPhone(event.target.value)}
+                  className={cn(
+                    styles.input,
+                    styles.style847_144,
+                    isResetPhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
+                    !isResetPhoneValid && resetPhone.trim() && '!border-amber-500/60 focus:!border-amber-500'
+                  )}
+                />
+                {isResetPhoneValid ? (
+                  <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                    <Check className="h-4 w-4 stroke-[2.5]" />
+                  </span>
+                ) : null}
+              </div>
+              {!isResetPhoneValid ? (
+                <p className={cn(isArabic ? styles.style646_84 : styles.style646_85, styles.style646_86, resetPhone.trim() && 'text-amber-400/90 font-medium')}>
+                  {resetPhone.trim()
+                    ? (resetPhoneValidation.message || phoneValidationHint)
+                    : (isArabic ? 'اكتب رقم هاتفك المسجل بالصيغة المحلية أو الدولية' : 'Enter your registered phone number in local or international format')}
+                </p>
+              ) : null}
             </Field>
 
             <Field

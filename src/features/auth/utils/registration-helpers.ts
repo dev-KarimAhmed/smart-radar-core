@@ -26,7 +26,7 @@ export function getLocationLabel(
 // leading "0") are accepted as long as a country is selected.
 export function normalizePhoneForCountry(
   rawPhone: string,
-  country: SupabaseCountryRow | null,
+  country?: SupabaseCountryRow | string | null,
   tAuto?: (key: string) => string,
 ) {
   let trimmed = String(rawPhone || '').trim().replace(/[\s()\-]/g, '');
@@ -47,13 +47,21 @@ export function normalizePhoneForCountry(
     trimmed = '+' + trimmed.slice(2);
   }
 
-  // Reject Saudi phone numbers and country
-  if (isSaudiPhoneNumber(trimmed) || isSaudiPhoneNumber(rawPhone) || isSaudiCountryCode(country?.country_code || country?.iso2)) {
-    return { ok: false as const, message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected };
-  }
+  const countryRow = typeof country === 'object' && country !== null ? country : null;
+  const rawCountryStr = typeof country === 'string' ? country : '';
+  const isoCode = (
+    typeof country === 'string'
+      ? country.trim().slice(0, 2).toUpperCase()
+      : getCountryIsoCode(countryRow)
+  ) as CountryCode | undefined;
 
-  const isoCode = getCountryIsoCode(country) as CountryCode | undefined;
-  if (isoCode === 'SA') {
+  // Reject Saudi phone numbers and country
+  if (
+    isSaudiPhoneNumber(trimmed) ||
+    isSaudiPhoneNumber(rawPhone) ||
+    isSaudiCountryCode(countryRow?.country_code || countryRow?.iso2 || rawCountryStr) ||
+    isoCode === 'SA'
+  ) {
     return { ok: false as const, message: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected };
   }
 

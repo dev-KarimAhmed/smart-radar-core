@@ -1,9 +1,12 @@
 'use client';
 
 import React from 'react';
+import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { useRegistration } from '../../hooks/use-registration';
+import { normalizePhoneForCountry } from '../../utils/registration-helpers';
 import { useTranslations } from "next-intl";
 
 const styles = {
@@ -63,10 +66,18 @@ export function VehicleStep() {
     setStep,
     personal,
     setPersonal,
+    selectedCountry,
     fillCaptainRegistrationData,
   } = useRegistration();
   const [compressing, setCompressing] = React.useState(false);
   const isTaxi = affiliation === 'office-taxi';
+
+  const officePhoneValidation = React.useMemo(() => {
+    const val = vehicle.officePhone?.trim();
+    if (!val) return { ok: false, message: tAuto('key_d9162751') };
+    return normalizePhoneForCountry(val, selectedCountry, tAuto);
+  }, [vehicle.officePhone, selectedCountry, tAuto]);
+  const isOfficePhoneValid = officePhoneValidation.ok;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,14 +162,31 @@ export function VehicleStep() {
             <label className={styles.style103_7}>
               {tAuto('key_d9162751')}
                                       </label>
-            <Input
-              type="tel"
-              placeholder={tAuto('key_d9162751')}
-              value={vehicle.officePhone}
-              onChange={(e) => setVehicle({ ...vehicle, officePhone: e.target.value })}
-              className={styles.style111_8}
-              required
-            />
+            <div className="relative">
+              <Input
+                type="tel"
+                dir="ltr"
+                placeholder={tAuto('key_d9162751')}
+                value={vehicle.officePhone}
+                onChange={(e) => setVehicle({ ...vehicle, officePhone: e.target.value })}
+                className={cn(
+                  styles.style111_8,
+                  isOfficePhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
+                  !isOfficePhoneValid && vehicle.officePhone?.trim() && '!border-amber-500/60 focus:!border-amber-500'
+                )}
+                required
+              />
+              {isOfficePhoneValid ? (
+                <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                  <Check className="h-4 w-4 stroke-[2.5]" />
+                </span>
+              ) : null}
+            </div>
+            {!isOfficePhoneValid && vehicle.officePhone?.trim() ? (
+              <p className="text-[10px] text-amber-400/90 font-medium mt-1">
+                {officePhoneValidation.message || tAuto('key_33be5d12')}
+              </p>
+            ) : null}
           </div>
           <div className={styles.style115_9}>
             <div>

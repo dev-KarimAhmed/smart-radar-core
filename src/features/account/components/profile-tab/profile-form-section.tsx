@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Globe, Loader2, MessageCircle, Phone, Save, Trash2, User } from 'lucide-react';
+import { Check, Globe, Loader2, MessageCircle, Phone, Save, Trash2, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
 import { labelFor } from './profile-shared';
 import { RecoveryEmailField } from '@/features/auth/components/recovery-email-field';
 import type { CountryRow, GovernorateRow, DistrictRow } from './profile-shared';
@@ -63,6 +65,27 @@ export function ProfileFormSection({
   isLoadingDistricts,
   handleSubmit,
 }: ProfileFormSectionProps) {
+  const selectedCountry = React.useMemo(
+    () => countries.find((c) => String(c.id) === String(countryId)) || null,
+    [countries, countryId],
+  );
+
+  const phoneValidation = React.useMemo(() => {
+    const val = phone?.trim();
+    if (!val) return { ok: false, message: isArabic ? 'اكتب رقم الهاتف' : 'Enter phone number' };
+    return normalizePhoneForCountry(val, selectedCountry as any);
+  }, [phone, selectedCountry, isArabic]);
+
+  const isPhoneValid = phoneValidation.ok;
+
+  const emergencyValidation = React.useMemo(() => {
+    const val = emergencyWhatsappContact?.trim();
+    if (!val) return { ok: true, message: '' };
+    return normalizePhoneForCountry(val, selectedCountry as any);
+  }, [emergencyWhatsappContact, selectedCountry]);
+
+  const isEmergencyValid = emergencyValidation.ok;
+
   return (
     <Card className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/20 bg-[#0B0F19]/90 text-white shadow-2xl backdrop-blur-xl">
       {/* Top glowing ambient accent */}
@@ -113,14 +136,30 @@ export function ProfileFormSection({
                 <Phone className="h-3.5 w-3.5 text-[#14F5D5]" />
                 <span>{t('phone')}</span>
               </label>
-              <Input
-                value={phone}
-                dir="ltr"
-                onChange={(event) => setPhone(event.target.value)}
-                className="h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
-                placeholder="+962790000000"
-                required
-              />
+              <div className="relative">
+                <Input
+                  value={phone}
+                  dir="ltr"
+                  onChange={(event) => setPhone(event.target.value)}
+                  className={cn(
+                    "h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]",
+                    isPhoneValid && "!border-emerald-500/70 focus-visible:!border-emerald-500 ring-1 ring-emerald-500/20",
+                    !isPhoneValid && phone.trim() && "!border-amber-500/60 focus-visible:!border-amber-500"
+                  )}
+                  placeholder="+962790000000"
+                  required
+                />
+                {isPhoneValid ? (
+                  <span className="absolute end-3.5 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                    <Check className="h-4 w-4 stroke-[2.5]" />
+                  </span>
+                ) : null}
+              </div>
+              {!isPhoneValid ? (
+                <p className="text-[11px] text-amber-400/90 font-medium pt-0.5">
+                  {phone.trim() ? (phoneValidation.message || t('phoneInvalid')) : (isArabic ? 'اكتب رقم هاتفك بالنسق المحلي أو الدولي' : 'Enter your phone number')}
+                </p>
+              ) : null}
             </div>
 
             {/* 3. Emergency WhatsApp Contact */}
@@ -130,13 +169,24 @@ export function ProfileFormSection({
                 <span>{t('emergencyWhatsappContact')}</span>
               </label>
               <div className="flex gap-2">
-                <Input
-                  value={emergencyWhatsappContact}
-                  dir="ltr"
-                  onChange={(event) => setEmergencyWhatsappContact(event.target.value)}
-                  className="h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]"
-                  placeholder={t('emergencyWhatsappPlaceholder')}
-                />
+                <div className="relative flex-1">
+                  <Input
+                    value={emergencyWhatsappContact}
+                    dir="ltr"
+                    onChange={(event) => setEmergencyWhatsappContact(event.target.value)}
+                    className={cn(
+                      "h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]",
+                      emergencyWhatsappContact.trim() && isEmergencyValid && "!border-emerald-500/70 focus-visible:!border-emerald-500 ring-1 ring-emerald-500/20",
+                      emergencyWhatsappContact.trim() && !isEmergencyValid && "!border-amber-500/60 focus-visible:!border-amber-500"
+                    )}
+                    placeholder={t('emergencyWhatsappPlaceholder')}
+                  />
+                  {emergencyWhatsappContact.trim() && isEmergencyValid ? (
+                    <span className="absolute end-3.5 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                      <Check className="h-4 w-4 stroke-[2.5]" />
+                    </span>
+                  ) : null}
+                </div>
                 {emergencyWhatsappContact ? (
                   <Button
                     type="button"
@@ -149,6 +199,11 @@ export function ProfileFormSection({
                   </Button>
                 ) : null}
               </div>
+              {emergencyWhatsappContact.trim() && !isEmergencyValid ? (
+                <p className="text-[11px] text-amber-400/90 font-medium pt-0.5">
+                  {emergencyValidation.message || (isArabic ? 'رقم الواتساب غير صالح' : 'Invalid WhatsApp phone number')}
+                </p>
+              ) : null}
             </div>
 
             {/* 4. Location Dropdowns */}

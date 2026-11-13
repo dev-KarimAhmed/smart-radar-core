@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import {
   buildRiderSignUpMetadata,
+  buildUserFromSupabaseAuth,
   validatePhoneAndPassword,
   type CaptainProfileMetadata,
   type RiderSupabaseSignInInput,
@@ -235,6 +236,7 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
       phone: validation.phone,
       password: input.password,
       expectedRole: input.expectedRole,
+      email: input.email,
     }),
   });
 
@@ -270,6 +272,18 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   const authenticatedUser = data.user || resData.user;
   await syncCaptainProfileFromAuthUser(authenticatedUser);
   cacheSupabaseSession(data.session);
+
+  // Sync sovereign user cache so route guards (/rider, /captain) hydrate instantly on mount without flicker
+  if (typeof window !== 'undefined' && authenticatedUser) {
+    const sovereignUser = buildUserFromSupabaseAuth(authenticatedUser);
+    if (sovereignUser) {
+      const storage = shouldRememberSupabaseSession() ? window.localStorage : window.sessionStorage;
+      try {
+        storage.setItem('radar_sovereign_mock_user', JSON.stringify(sovereignUser));
+      } catch {}
+    }
+  }
+
   return {
     user: authenticatedUser,
     session: data.session,

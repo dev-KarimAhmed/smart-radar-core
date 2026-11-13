@@ -19,6 +19,7 @@ export {
   signUpCaptainWithPhone,
   signInRiderWithPhone,
   verifyEmailOtpCode,
+  normalizeInternationalPhone,
   type CaptainProfileMetadata,
 } from './services/supabase-auth';
 

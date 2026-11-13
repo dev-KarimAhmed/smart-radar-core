@@ -44,6 +44,7 @@ export interface RiderSupabaseSignInInput {
   password: string;
   rememberMe?: boolean;
   expectedRole?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN';
+  email?: string;
 }
 
 export interface RiderAuthMetadata {
@@ -60,9 +61,11 @@ export interface RiderAuthMetadata {
 }
 
 export function normalizeInternationalPhone(phone: string) {
-  let cleaned = phone.trim().replace(/[\s()-]/g, '');
+  let cleaned = String(phone || '').trim().replace(/[\s()\-]/g, '');
   if (cleaned.startsWith('00')) {
     cleaned = '+' + cleaned.slice(2);
+  } else if (!cleaned.startsWith('+') && /^[1-9]\d{7,14}$/.test(cleaned)) {
+    cleaned = '+' + cleaned;
   }
   return cleaned;
 }

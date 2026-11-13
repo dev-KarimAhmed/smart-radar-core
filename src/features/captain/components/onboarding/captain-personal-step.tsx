@@ -18,6 +18,7 @@ import {
 } from '@/features/auth/contract';
 import { getCaptainPersonalSchema } from '../../lib/captain-registration-schema';
 import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../lib/validate-field';
+import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
 
 export interface CaptainPersonalValues {
   name: string;
@@ -112,6 +113,24 @@ export function CaptainPersonalStep({
 
   const isValid = isYupSchemaValid(schema, values);
   const [isCheckingAvailability, setIsCheckingAvailability] = React.useState(false);
+
+  const phoneValidation = React.useMemo(() => {
+    const cleanPhone = values.phone?.trim();
+    if (!cleanPhone) return { ok: false, message: t('phoneHint') };
+    if (!cleanPhone.startsWith('+')) {
+      return { ok: false, message: tv('phoneMissingCountryCode') || t('phoneHint') };
+    }
+    const res = normalizePhoneForCountry(cleanPhone, values.countryIso);
+    if (!res.ok) {
+      return { ok: false, message: res.message || tv('phoneInvalid') };
+    }
+    if (errors.phone && errors.phone !== tv('phoneRequired') && errors.phone !== tv('phoneMissingCountryCode') && errors.phone !== tv('phoneInvalid')) {
+      return { ok: false, message: errors.phone };
+    }
+    return { ok: true, message: '' };
+  }, [values.phone, values.countryIso, errors.phone, t, tv]);
+
+  const isPhoneValid = phoneValidation.ok;
 
   const checkEmailUniqueness = React.useCallback(
     async (emailToTest: string) => {
@@ -296,22 +315,36 @@ export function CaptainPersonalStep({
             <Phone className={styles.icon} />
             {t('phone')}
           </label>
-          <Input
-            type="tel"
-            dir="ltr"
-            placeholder={t('phonePlaceholder')}
-            value={values.phone}
-            onChange={(e) => handleFieldChange('phone', e.target.value)}
-            onBlur={() => {
-              if (values.phone?.trim()) {
-                void checkPhoneUniqueness(values.phone);
-              }
-            }}
-            className={styles.input}
-            required
-          />
-          <p className={styles.hint}>{t('phoneHint')}</p>
-          {errors.phone ? <p className={styles.error}>{errors.phone}</p> : null}
+          <div className="relative">
+            <Input
+              type="tel"
+              dir="ltr"
+              placeholder={t('phonePlaceholder')}
+              value={values.phone}
+              onChange={(e) => handleFieldChange('phone', e.target.value)}
+              onBlur={() => {
+                if (values.phone?.trim()) {
+                  void checkPhoneUniqueness(values.phone);
+                }
+              }}
+              className={cn(
+                styles.input,
+                isPhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
+                !isPhoneValid && values.phone?.trim() && '!border-amber-500/60 focus:!border-amber-500'
+              )}
+              required
+            />
+            {isPhoneValid ? (
+              <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                <Check className="h-4 w-4 stroke-[2.5]" />
+              </span>
+            ) : null}
+          </div>
+          {!isPhoneValid ? (
+            <p className={cn(styles.hint, values.phone?.trim() && 'text-amber-400/90 font-medium')}>
+              {phoneValidation.message || errors.phone || t('phoneHint')}
+            </p>
+          ) : null}
         </div>
       </div>
 

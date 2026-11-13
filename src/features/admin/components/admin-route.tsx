@@ -8,9 +8,11 @@ import { useAuth } from '@/features/auth/contract';
 import { useTranslations } from "next-intl";
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { ShieldCheck, Lock, Phone, LogOut, Zap, Loader2 } from 'lucide-react';
+import { ShieldCheck, Lock, Phone, LogOut, Zap, Loader2, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
 import { signInRiderWithPhone } from '@/features/auth/services/supabase-auth';
 
 const AdminWorkspace = dynamic(
@@ -42,6 +44,13 @@ export function AdminRoute() {
   const [adminPassword, setAdminPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDirectForm, setShowDirectForm] = useState(false);
+
+  const adminPhoneValidation = React.useMemo(() => {
+    const val = adminPhone.trim();
+    if (!val) return { ok: false, message: isArabic ? 'اكتب رقم هاتف المشرف بالصيغة الدولية (+962 أو +20)' : 'Enter admin phone in international format' };
+    return normalizePhoneForCountry(val, null, tAuto);
+  }, [adminPhone, isArabic, tAuto]);
+  const isAdminPhoneValid = adminPhoneValidation.ok;
 
   const isAdmin = Boolean(
     user?.role === 'admin' ||
@@ -210,15 +219,31 @@ export function AdminRoute() {
                   <Phone className="w-3 h-3 text-[#14B8A6]" />
                   <span>{isArabic ? 'رقم هاتف المشرف' : 'Admin Phone'}</span>
                 </label>
-                <Input
-                  type="tel"
-                  dir="ltr"
-                  value={adminPhone}
-                  onChange={(e) => setAdminPhone(e.target.value)}
-                  placeholder="+201551981922 أو +962..."
-                  className="bg-black/60 border-white/15 text-white h-10 rounded-xl text-xs"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    type="tel"
+                    dir="ltr"
+                    value={adminPhone}
+                    onChange={(e) => setAdminPhone(e.target.value)}
+                    placeholder="+201551981922 أو +962..."
+                    className={cn(
+                      "bg-black/60 border-white/15 text-white h-10 rounded-xl text-xs",
+                      isAdminPhoneValid && "!border-emerald-500/70 focus-visible:!border-emerald-500 ring-1 ring-emerald-500/20",
+                      !isAdminPhoneValid && adminPhone.trim() && "!border-amber-500/60 focus-visible:!border-amber-500"
+                    )}
+                    required
+                  />
+                  {isAdminPhoneValid ? (
+                    <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
+                      <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                    </span>
+                  ) : null}
+                </div>
+                {!isAdminPhoneValid ? (
+                  <p className="text-[10px] text-amber-400/90 font-medium pt-0.5">
+                    {adminPhone.trim() ? (adminPhoneValidation.message || (isArabic ? 'رقم المشرف غير صالح' : 'Invalid phone number')) : (isArabic ? 'اكتب رقم المشرف بالصيغة الدولية (+962 أو +20)' : 'Enter admin phone in international format')}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-1">

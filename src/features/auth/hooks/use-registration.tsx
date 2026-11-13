@@ -35,6 +35,7 @@ import {
   getDemoPhoneForCountry,
   type RegistrationRole,
 } from '../utils/registration-helpers';
+import { normalizeInternationalPhone } from '../services/supabase-auth-logic';
 import { useTranslations } from "next-intl";
 import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
 
@@ -144,7 +145,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   });
   const [authPassword, setAuthPassword] = useState('');
   const [awaitingConfirmationEmail, setAwaitingConfirmationEmail] = useState<string | null>(null);
-  const registeredAuthRef = useRef<{ phone: string; password: string; role: RegistrationRole } | null>(null);
+  const registeredAuthRef = useRef<{ phone: string; password: string; role: RegistrationRole; email?: string } | null>(null);
 
   const claimPendingRiderReferralIfNeeded = useCallback(async (targetRole: RegistrationRole, explicitRef?: string) => {
     const queryRef = typeof window !== 'undefined'
@@ -187,11 +188,26 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    const emailToVerify = (awaitingConfirmationEmail || personal.email)?.trim();
+    let savedAuth = registeredAuthRef.current;
+    if ((!savedAuth?.phone || !savedAuth?.password) && typeof window !== 'undefined') {
+      try {
+        const cached = window.sessionStorage.getItem('radar_registered_auth');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            savedAuth = parsed;
+            registeredAuthRef.current = parsed;
+          }
+        }
+      } catch {}
+    }
+
+    const emailToVerify = (awaitingConfirmationEmail || savedAuth?.email || personal.email)?.trim();
     const normalizedForVerify = normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
     const verifyPhone =
-      registeredAuthRef.current?.phone ||
-      (normalizedForVerify.ok ? normalizedForVerify.phone : personal.phone);
+      savedAuth?.phone ||
+      (normalizedForVerify.ok ? normalizedForVerify.phone : '') ||
+      normalizeInternationalPhone(personal.phone);
 
     try {
       const res = await fetch('/api/auth/verify-code', {
@@ -214,44 +230,67 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         } catch {}
       }
 
-      const loginPhone =
-        registeredAuthRef.current?.phone ||
+      const rawLoginPhone =
+        savedAuth?.phone ||
         (normalizedForVerify.ok ? normalizedForVerify.phone : '') ||
         String(data.phone || '') ||
         personal.phone;
-      const loginPassword = registeredAuthRef.current?.password || authPassword;
-      const targetRole = registeredAuthRef.current?.role || role;
 
-      // Auto login if phone & password are available
-      if (loginPhone && loginPassword) {
+      let finalLoginPhone = normalizeInternationalPhone(rawLoginPhone);
+      if (!finalLoginPhone.startsWith('+')) {
+        const countryNormalized = normalizePhoneForCountry(rawLoginPhone, selectedCountry, tAuto);
+        if (countryNormalized.ok) {
+          finalLoginPhone = countryNormalized.phone;
+        } else if (/^[1-9]\d{7,14}$/.test(finalLoginPhone)) {
+          finalLoginPhone = '+' + finalLoginPhone;
+        }
+      }
+
+      const loginPassword = savedAuth?.password || authPassword;
+      const targetRole: RegistrationRole = savedAuth?.role || role || 'rider';
+      const loginEmail = savedAuth?.email || emailToVerify || (data.email ? String(data.email) : undefined);
+
+      // Auto login immediately
+      if (finalLoginPhone && loginPassword) {
         try {
           await signInRiderWithPhone({
-            phone: loginPhone,
+            phone: finalLoginPhone,
             password: loginPassword,
             rememberMe,
             expectedRole: toSupabaseAuthRole(targetRole),
+            email: loginEmail,
           });
           await claimPendingRiderReferralIfNeeded(targetRole);
+
+          if (typeof window !== 'undefined') {
+            try {
+              window.sessionStorage.removeItem('radar_registered_auth');
+            } catch {}
+          }
+
           toast({
-            title: lang === 'ar' ? 'تم تفعيل الحساب بنجاح! 🎉' : 'Account activated successfully! 🎉',
-            description: lang === 'ar' ? 'جاري تسجيل دخولك تلقائياً الآن...' : 'Signing you in automatically...',
+            title: lang === 'ar' ? 'تم تفعيل الحساب والدخول بنجاح! 🎉' : 'Account activated & logged in! 🎉',
+            description: lang === 'ar' ? 'أهلاً بك! يتم نقلك إلى التطبيق...' : 'Welcome! Redirecting...',
           });
+
           const directPath =
             targetRole === 'driver' ? '/captain' :
             targetRole === 'rider' ? '/rider' :
             targetRole === 'admin' ? '/admin' :
             targetRole === 'advertiser' ? '/advertiser/dashboard' :
             targetRole === 'delegate' ? '/delegate' :
-            '/';
+            '/rider';
+
+          setAwaitingConfirmationEmail(null);
+
           if (typeof window !== 'undefined') {
             window.location.replace(directPath);
             return true;
           }
-          setAwaitingConfirmationEmail(null);
           router.replace(directPath);
           return true;
         } catch (loginErr) {
-          console.warn('[Auto-login after OTP failed]', loginErr);
+          console.error('[Auto-login after OTP failed]', loginErr);
         }
       }
 
@@ -794,11 +833,18 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      registeredAuthRef.current = {
+      const regAuthPayload = {
         phone: normalizedPhone.phone,
         password: authPassword,
         role,
+        email: personal.email?.trim() || undefined,
       };
+      registeredAuthRef.current = regAuthPayload;
+      if (typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.setItem('radar_registered_auth', JSON.stringify(regAuthPayload));
+        } catch {}
+      }
       const signUpResult = await signUpRiderWithPhone(signUpInput);
 
       if ((signUpResult as any).needsEmailConfirmation) {

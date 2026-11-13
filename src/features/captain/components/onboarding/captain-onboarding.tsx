@@ -7,7 +7,7 @@ import { navigateAuth } from '@/lib/auth-routing';
 import { cn } from '@/lib/utils';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useToast } from '@/hooks/use-toast';
-import { mapSupabaseAuthError, signUpCaptainWithPhone, signInRiderWithPhone, verifyEmailOtpCode, type CaptainProfileMetadata } from '@/features/auth/contract';
+import { mapSupabaseAuthError, signUpCaptainWithPhone, signInRiderWithPhone, verifyEmailOtpCode, normalizeInternationalPhone, type CaptainProfileMetadata } from '@/features/auth/contract';
 import type { AffiliationType } from '@/core/types';
 import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
@@ -93,6 +93,7 @@ function maskEmail(email: string | null): string {
 export function CaptainOnboarding() {
   const t = useTranslations('captainOnboarding');
   const { isArabic, setLanguage } = useDashboardLanguage();
+  const { toast } = useToast();
   const [isHydrated, setIsHydrated] = React.useState(false);
   const [step, setStep] = React.useState<OnboardingStep>(1);
   const [showAccuracyModal, setShowAccuracyModal] = React.useState(false);
@@ -119,9 +120,13 @@ export function CaptainOnboarding() {
     return () => clearInterval(timer);
   }, [resendCountdown]);
 
-  const handleVerifyCaptainOtp = async () => {
-    const cleanCode = captainOtpInput.trim().replace(/\D/g, '');
+  const submittedCaptainOtpRef = React.useRef<string | null>(null);
+
+  const handleVerifyCaptainOtp = React.useCallback(async (codeOverride?: string) => {
+    const cleanCode = (codeOverride ?? captainOtpInput).trim().replace(/\D/g, '');
     if (cleanCode.length !== 6 || isVerifyingCaptainOtp) return;
+    if (submittedCaptainOtpRef.current === cleanCode) return;
+    submittedCaptainOtpRef.current = cleanCode;
     setIsVerifyingCaptainOtp(true);
     try {
       const verifyRes = await verifyEmailOtpCode({
@@ -137,11 +142,13 @@ export function CaptainOnboarding() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
         }
+        const captainPhone = normalizeInternationalPhone(verifyRes.phone || personal.phone);
         await signInRiderWithPhone({
-          phone: verifyRes.phone || personal.phone,
+          phone: captainPhone,
           password: personal.password,
           rememberMe,
           expectedRole: 'CAPTAIN',
+          email: confirmedEmail || personal.email.trim(),
         });
         window.location.replace('/captain');
         return;
@@ -150,6 +157,7 @@ export function CaptainOnboarding() {
       }
       navigateAuth('login', 'driver');
     } catch (err: any) {
+      submittedCaptainOtpRef.current = null;
       toast({
         variant: 'destructive',
         title: isArabic ? 'فشل تأكيد الكود' : 'Verification failed',
@@ -158,7 +166,16 @@ export function CaptainOnboarding() {
     } finally {
       setIsVerifyingCaptainOtp(false);
     }
-  };
+  }, [captainOtpInput, isVerifyingCaptainOtp, confirmedEmail, personal, rememberMe, isArabic, toast]);
+
+  React.useEffect(() => {
+    const cleanCode = captainOtpInput.trim().replace(/\D/g, '');
+    if (cleanCode.length === 6 && !isVerifyingCaptainOtp && submittedCaptainOtpRef.current !== cleanCode) {
+      void handleVerifyCaptainOtp(cleanCode);
+    } else if (cleanCode.length < 6) {
+      submittedCaptainOtpRef.current = null;
+    }
+  }, [captainOtpInput, isVerifyingCaptainOtp, handleVerifyCaptainOtp]);
 
   const handleResendConfirmation = async () => {
     if (resendCountdown > 0 || isResending) return;
@@ -190,7 +207,6 @@ export function CaptainOnboarding() {
       setIsResending(false);
     }
   };
-  const { toast } = useToast();
 
   React.useEffect(() => {
     setIsHydrated(true);
@@ -572,11 +588,19 @@ export function CaptainOnboarding() {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
+                  autoFocus
+                  disabled={isVerifyingCaptainOtp}
                   value={captainOtpInput}
                   onChange={(e) => setCaptainOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="• • • • • •"
                   dir="ltr"
-                  className="w-full h-13 rounded-xl border-2 border-[#14B8A6]/50 bg-black/70 px-4 text-center font-mono text-2xl sm:text-3xl font-black text-[#14F5D5] tracking-[0.4em] focus:border-[#14F5D5] focus:outline-none focus:ring-2 focus:ring-[#14F5D5]/30 transition-all placeholder:tracking-normal placeholder:text-slate-600 shadow-inner"
+                  className={cn(
+                    "w-full h-13 rounded-xl border-2 bg-black/70 px-4 text-center font-mono text-2xl sm:text-3xl font-black text-[#14F5D5] tracking-[0.4em] transition-all placeholder:tracking-normal placeholder:text-slate-600 shadow-inner",
+                    captainOtpInput.length === 6
+                      ? "border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.35)]"
+                      : "border-[#14B8A6]/50 focus:border-[#14F5D5] focus:outline-none focus:ring-2 focus:ring-[#14F5D5]/30",
+                    isVerifyingCaptainOtp && "opacity-60 cursor-wait"
+                  )}
                 />
 
                 <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-300">
@@ -588,7 +612,7 @@ export function CaptainOnboarding() {
                 <button
                   type="button"
                   disabled={captainOtpInput.trim().length !== 6 || isVerifyingCaptainOtp}
-                  onClick={handleVerifyCaptainOtp}
+                  onClick={() => handleVerifyCaptainOtp()}
                   className="w-full min-h-12 flex items-center justify-center gap-2 rounded-xl bg-[#14B8A6] hover:bg-[#2DD4BF] active:scale-95 text-[#0B0F19] font-black text-sm transition shadow-[0_10px_25px_rgba(20,184,166,0.35)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isVerifyingCaptainOtp ? (
@@ -596,7 +620,11 @@ export function CaptainOnboarding() {
                   ) : (
                     <Check className="h-4 w-4 stroke-[3]" />
                   )}
-                  <span>{isArabic ? 'تأكيد الكود وتفعيل الحساب 🚀' : 'Confirm & Activate 🚀'}</span>
+                  <span>
+                    {isVerifyingCaptainOtp
+                      ? (isArabic ? 'جاري التحقق والدخول إلى النظام... 🚀' : 'Verifying & Entering System... 🚀')
+                      : (isArabic ? 'تأكيد الكود وتفعيل الحساب 🚀' : 'Confirm & Activate 🚀')}
+                  </span>
                 </button>
               </div>
 
