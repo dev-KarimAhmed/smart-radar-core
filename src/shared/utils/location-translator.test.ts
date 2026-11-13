@@ -9,6 +9,7 @@ import {
   canonicalizeGovernorateRows,
   canonicalizeDistrictRows,
   normalizeArabicText,
+  translateArabicDistrict,
 } from './location-translator';
 
 describe('location-translator', () => {
@@ -35,15 +36,12 @@ describe('location-translator', () => {
   });
 
   it('corrects governorates where name_en was populated with Arabic text', () => {
-    // Simulating row inserted by buggy SQL script
     const corruptedIrbid = { id: 13, country_id: 1, name_ar: 'اربد', name_en: 'اربد' };
     const corruptedMadaba = { id: 14, country_id: 1, name_ar: 'مادبا', name_en: 'مادبا' };
 
-    // In English mode, must return proper English!
     assert.equal(resolveLocationLabel(corruptedIrbid, 'en'), 'Irbid');
     assert.equal(resolveLocationLabel(corruptedMadaba, 'en'), 'Madaba');
 
-    // In Arabic mode, must return proper Arabic!
     assert.equal(resolveLocationLabel(corruptedIrbid, 'ar'), 'إربد');
     assert.equal(resolveLocationLabel(corruptedMadaba, 'ar'), 'مادبا');
   });
@@ -53,22 +51,18 @@ describe('location-translator', () => {
       { id: 1, country_id: 1, name_ar: 'عمّان', name_en: 'Amman' },
       { id: 6, country_id: 1, name_ar: 'مادبا', name_en: 'Madaba' },
       { id: 7, country_id: 1, name_ar: 'الكرك', name_en: 'Karak' },
-      { id: 13, country_id: 1, name_ar: 'اربد', name_en: 'اربد' }, // Corrupted name_en
-      { id: 14, country_id: 1, name_ar: 'مادبا', name_en: 'مادبا' }, // Duplicate of Madaba with corrupted name_en!
+      { id: 13, country_id: 1, name_ar: 'اربد', name_en: 'اربد' },
+      { id: 14, country_id: 1, name_ar: 'مادبا', name_en: 'مادبا' },
     ];
 
     const cleaned = canonicalizeGovernorateRows(mixedRows);
-
-    // Madaba should appear ONLY ONCE
     const madabaRows = cleaned.filter((r) => r.name_en === 'Madaba');
     assert.equal(madabaRows.length, 1);
 
-    // Irbid should have clean English
     const irbidRow = cleaned.find((r) => r.name_ar === 'إربد');
     assert.ok(irbidRow);
     assert.equal(irbidRow?.name_en, 'Irbid');
 
-    // Total rows must be 4, NOT 5
     assert.equal(cleaned.length, 4);
     assert.deepEqual(
       cleaned.map((r) => r.name_en),
@@ -76,13 +70,50 @@ describe('location-translator', () => {
     );
   });
 
-  it('translates districts with Arabic text in name_en to English', () => {
-    const row = { id: 101, governorate_id: 1, name_ar: 'قصبة عمان', name_en: 'قصبة عمان' };
-    assert.equal(resolveDistrictLabel(row, 'en'), 'Amman Qasabah');
-    assert.equal(resolveDistrictLabel(row, 'ar'), 'قصبة عمّان');
+  it('translates all Maan districts from the user screenshot to pure English', () => {
+    const maanDistricts = [
+      { id: 201, governorate_id: 8, name_ar: 'لواء قصبة معان', name_en: 'لواء قصبة معان' },
+      { id: 202, governorate_id: 8, name_ar: 'لواء البتراء', name_en: 'لواء البتراء' },
+      { id: 203, governorate_id: 8, name_ar: 'لواء الشوبك', name_en: 'لواء الشوبك' },
+      { id: 204, governorate_id: 8, name_ar: 'لواء الحسينية', name_en: 'لواء الحسينية' },
+      { id: 205, governorate_id: 8, name_ar: 'قضاء الجفر', name_en: 'قضاء الجفر' },
+      { id: 206, governorate_id: 8, name_ar: 'قضاء مريغة', name_en: 'قضاء مريغة' },
+      { id: 207, governorate_id: 8, name_ar: 'قضاء ايل', name_en: 'قضاء ايل' },
+      { id: 208, governorate_id: 8, name_ar: 'قضاء اذرح', name_en: 'قضاء اذرح' },
+      { id: 999, governorate_id: 8, name_ar: 'الواء', name_en: 'الواء' }, // corrupted dummy row
+    ];
 
-    const canonicalDistricts = canonicalizeDistrictRows([row]);
-    assert.equal(canonicalDistricts[0].name_en, 'Amman Qasabah');
+    const canonicalDistricts = canonicalizeDistrictRows(maanDistricts);
+
+    // Dummy row must be filtered out
+    assert.equal(canonicalDistricts.length, 8);
+
+    assert.equal(resolveDistrictLabel(maanDistricts[0], 'en'), "Ma'an Qasabah District");
+    assert.equal(resolveDistrictLabel(maanDistricts[1], 'en'), 'Petra District');
+    assert.equal(resolveDistrictLabel(maanDistricts[2], 'en'), 'Shobak District');
+    assert.equal(resolveDistrictLabel(maanDistricts[3], 'en'), 'Al Husseiniya District');
+    assert.equal(resolveDistrictLabel(maanDistricts[4], 'en'), 'Al Jafr Sub-district');
+    assert.equal(resolveDistrictLabel(maanDistricts[5], 'en'), 'Mureigha Sub-district');
+    assert.equal(resolveDistrictLabel(maanDistricts[6], 'en'), 'Ayl Sub-district');
+    assert.equal(resolveDistrictLabel(maanDistricts[7], 'en'), 'Udhruh Sub-district');
+
+    // Also via resolveLocationLabel
+    for (const d of canonicalDistricts) {
+      const enLabel = resolveLocationLabel(d, 'en');
+      assert.ok(enLabel.length > 0);
+      assert.ok(!/[\u0600-\u06FF]/.test(enLabel), `Expected English, got Arabic: ${enLabel}`);
+    }
+  });
+
+  it('translates Amman, Irbid, Zarqa, Balqa districts properly', () => {
+    assert.equal(resolveDistrictLabel('لواء قصبة عمان', 'en'), 'Amman Qasabah District');
+    assert.equal(resolveDistrictLabel('لواء الجامعة', 'en'), 'University District');
+    assert.equal(resolveDistrictLabel('لواء وادي السير', 'en'), 'Wadi Al Seer District');
+    assert.equal(resolveDistrictLabel('لواء قصبة اربد', 'en'), 'Irbid Qasabah District');
+    assert.equal(resolveDistrictLabel('لواء الرمثا', 'en'), 'Ramtha District');
+    assert.equal(resolveDistrictLabel('لواء قصبة السلط', 'en'), 'Salt Qasabah District');
+    assert.equal(resolveDistrictLabel('لواء قصبة الزرقاء', 'en'), 'Zarqa Qasabah District');
+    assert.equal(resolveDistrictLabel('لواء الرصيفة', 'en'), 'Russeifa District');
   });
 
   it('correctly translates Egyptian governorates', () => {

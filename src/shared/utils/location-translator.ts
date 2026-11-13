@@ -4,7 +4,7 @@
  * Solves mixed-language and duplicate entries in governorates and districts
  * (e.g. database rows where name_en was mistakenly populated with Arabic,
  * or duplicate rows inserted with different spellings such as 'إربد' vs 'اربد'
- * or 'مادبا' vs 'مأدبا').
+ * or 'مادبا' vs 'مأدبا', or districts prefixed with 'لواء' / 'قضاء').
  */
 
 export interface CanonicalLocationEntry {
@@ -120,118 +120,245 @@ for (const entry of ALL_GOVERNORATES) {
 }
 
 /**
- * Common Jordanian & Egyptian District translations for instances where
- * the database column `name_en` has identical Arabic text or is null.
+ * Core district stems mapping: matches both raw core names and prefixed forms
+ * (e.g. 'لواء قصبة معان' or 'قضاء الجفر' or 'قصبة معان').
  */
-export const DISTRICT_TRANSLATIONS: Record<string, { ar: string; en: string }> = {
+export const DISTRICT_STEM_MAP: Record<string, string> = {
   // Amman
-  'قصبة عمان': { ar: 'قصبة عمّان', en: 'Amman Qasabah' },
-  'الجامعة': { ar: 'الجامعة', en: 'University District' },
-  'القويسمة': { ar: 'القويسمة', en: 'Al Qweismeh' },
-  'ماركا': { ar: 'ماركا', en: 'Marka' },
-  'الجيزة': { ar: 'الجيزة', en: 'Al Jizah' },
-  'الموقر': { ar: 'الموقر', en: 'Al Muwaqqar' },
-  'ناعور': { ar: 'ناعور', en: 'Naour' },
-  'سحاب': { ar: 'سحاب', en: 'Sahab' },
-  'وادي السير': { ar: 'وادي السير', en: 'Wadi Al Seer' },
+  'قصبة عمان': 'Amman Qasabah',
+  'قصبة عمّان': 'Amman Qasabah',
+  'الجامعة': 'University',
+  'الموقر': 'Al Muwaqqar',
+  'القويسمة': 'Al Qweismeh',
+  'سحاب': 'Sahab',
+  'الجيزة': 'Al Jizah',
+  'ماركا': 'Marka',
+  'ناعور': 'Naour',
+  'وادي السير': 'Wadi Al Seer',
+  'رجم الشامي': 'Rujm Al Shami',
+  'ام الرصاص': 'Umm Al Rasas',
+  'ام البساتين': 'Umm Al Basatin',
+  'حسبان': 'Hisban',
 
   // Irbid
-  'قصبة إربد': { ar: 'قصبة إربد', en: 'Irbid Qasabah' },
-  'قصبة اربد': { ar: 'قصبة إربد', en: 'Irbid Qasabah' },
-  'الرمثا': { ar: 'الرمثا', en: 'Ramtha' },
-  'بني كنانة': { ar: 'بني كنانة', en: 'Bani Kinanah' },
-  'بني كنانه': { ar: 'بني كنانة', en: 'Bani Kinanah' },
-  'الأغوار الشمالية': { ar: 'الأغوار الشمالية', en: 'Northern Ghor' },
-  'الاغوار الشمالية': { ar: 'الأغوار الشمالية', en: 'Northern Ghor' },
-  'الاغوار الشماليه': { ar: 'الأغوار الشمالية', en: 'Northern Ghor' },
-  'الكورة': { ar: 'الكورة', en: 'Koura' },
-  'الكوره': { ar: 'الكورة', en: 'Koura' },
-  'المزار الشمالي': { ar: 'المزار الشمالي', en: 'Northern Mazar' },
-  'الطيبة': { ar: 'الطيبة', en: 'Taybeh' },
-  'الطيبه': { ar: 'الطيبة', en: 'Taybeh' },
-  'الوسطية': { ar: 'الوسطية', en: 'Wasatiyah' },
-  'الوسطيه': { ar: 'الوسطية', en: 'Wasatiyah' },
-  'بني عبيد': { ar: 'بني عبيد', en: 'Bani Obeid' },
-
-  // Zarqa
-  'قصبة الزرقاء': { ar: 'قصبة الزرقاء', en: 'Zarqa Qasabah' },
-  'قصبة الزرقا': { ar: 'قصبة الزرقاء', en: 'Zarqa Qasabah' },
-  'الرصيفة': { ar: 'الرصيفة', en: 'Russeifa' },
-  'الرصيفه': { ar: 'الرصيفة', en: 'Russeifa' },
-  'الهاشمية': { ar: 'الهاشمية', en: 'Hashemiyah' },
-  'الهاشميه': { ar: 'الهاشمية', en: 'Hashemiyah' },
-  'بيرين': { ar: 'بيرين', en: 'Berein' },
+  'قصبة اربد': 'Irbid Qasabah',
+  'قصبة إربد': 'Irbid Qasabah',
+  'الكورة': 'Koura',
+  'الرمثا': 'Ramtha',
+  'الطيبة': 'Taybeh',
+  'المزار /ش': 'Northern Mazar',
+  'المزار الشمالي': 'Northern Mazar',
+  'الوسيطة': 'Wasatiyah',
+  'الوسطية': 'Wasatiyah',
+  'بني كنانة': 'Bani Kinanah',
+  'بني كنانه': 'Bani Kinanah',
+  'بني عبيد': 'Bani Obeid',
+  'الاغوار /ش': 'Northern Ghor',
+  'الأغوار الشمالية': 'Northern Ghor',
 
   // Balqa
-  'قصبة السلط': { ar: 'قصبة السلط', en: 'Salt Qasabah' },
-  'قصبة البلقاء': { ar: 'قصبة السلط', en: 'Salt Qasabah' },
-  'الشونة الجنوبية': { ar: 'الشونة الجنوبية', en: 'Southern Shuna' },
-  'الشونه الجنوبيه': { ar: 'الشونة الجنوبية', en: 'Southern Shuna' },
-  'دير علا': { ar: 'دير علا', en: 'Deir Alla' },
-  'عين الباشا': { ar: 'عين الباشا', en: 'Ain Al Basha' },
-  'ماحص والفحيص': { ar: 'ماحص والفحيص', en: 'Mahis and Fuheis' },
-
-  // Aqaba
-  'قصبة العقبة': { ar: 'قصبة العقبة', en: 'Aqaba Qasabah' },
-  'قصبة العقبه': { ar: 'قصبة العقبة', en: 'Aqaba Qasabah' },
-  'القويرة': { ar: 'القويرة', en: 'Quweira' },
-  'القويره': { ar: 'القويرة', en: 'Quweira' },
-  'الديسة': { ar: 'الديسة', en: 'Disah' },
-
-  // Madaba
-  'قصبة مادبا': { ar: 'قصبة مادبا', en: 'Madaba Qasabah' },
-  'قصبة مأدبا': { ar: 'قصبة مادبا', en: 'Madaba Qasabah' },
-  'ذيبان': { ar: 'ذيبان', en: 'Dhiban' },
+  'قصبة المركز': 'Salt Qasabah',
+  'قصبة السلط': 'Salt Qasabah',
+  'دير علا': 'Deir Alla',
+  'عين الباشا': 'Ain Al Basha',
+  'الشونة /ج': 'Southern Shuna',
+  'الشونة الجنوبية': 'Southern Shuna',
+  'ماحص / الفحيص': 'Mahis and Fuheis',
+  'ماحص والفحيص': 'Mahis and Fuheis',
+  'عيرا / يرقا': 'Ira and Yarqa',
+  'عيرا ويرقا': 'Ira and Yarqa',
+  'زي': 'Zai',
+  'العارضة': 'Al Arda',
 
   // Karak
-  'قصبة الكرك': { ar: 'قصبة الكرك', en: 'Karak Qasabah' },
-  'المزار الجنوبي': { ar: 'المزار الجنوبي', en: 'Southern Mazar' },
-  'القصر': { ar: 'القصر', en: 'Al Qasr' },
-  'الأغوار الجنوبية': { ar: 'الأغوار الجنوبية', en: 'Southern Ghor' },
-  'الاغوار الجنوبية': { ar: 'الأغوار الجنوبية', en: 'Southern Ghor' },
-  'الاغوار الجنوبيه': { ar: 'الأغوار الجنوبية', en: 'Southern Ghor' },
-  'عي': { ar: 'عي', en: 'Ayy' },
-  'فقوع': { ar: 'فقوع', en: 'Faqqu' },
-  'القطرانة': { ar: 'القطرانة', en: 'Qatraneh' },
-  'القطرانه': { ar: 'القطرانة', en: 'Qatraneh' },
-  'مؤاب': { ar: 'مؤاب', en: 'Moab' },
+  'قصبة الكرك': 'Karak Qasabah',
+  'المزار / ج': 'Southern Mazar',
+  'المزار الجنوبي': 'Southern Mazar',
+  'القصر': 'Al Qasr',
+  'الاغوار / ج': 'Southern Ghor',
+  'الأغوار الجنوبية': 'Southern Ghor',
+  'عي': 'Ayy',
+  'فقوع': 'Faqqu',
+  'القطرانة': 'Qatraneh',
+  'مؤاب': 'Moab',
+  'الموجب': 'Al Mujib',
+  'غور المزرعة': 'Ghor Al Mazra\'a',
 
   // Ma'an
-  'قصبة معان': { ar: 'قصبة معان', en: "Ma'an Qasabah" },
-  'البتراء': { ar: 'البتراء', en: 'Petra' },
-  'البترا': { ar: 'البتراء', en: 'Petra' },
-  'الشوبك': { ar: 'الشوبك', en: 'Shobak' },
-  'الحسينية': { ar: 'الحسينية', en: 'Husseiniya' },
-  'الحسينيه': { ar: 'الحسينية', en: 'Husseiniya' },
+  'قصبة معان': "Ma'an Qasabah",
+  'معان': "Ma'an",
+  'البتراء': 'Petra',
+  'البترا': 'Petra',
+  'الشوبك': 'Shobak',
+  'الحسينية': 'Al Husseiniya',
+  'الجفر': 'Al Jafr',
+  'مريغة': 'Mureigha',
+  'ايل': 'Ayl',
+  'اذرح': 'Udhruh',
 
-  // Tafilah
-  'قصبة الطفيلة': { ar: 'قصبة الطفيلة', en: 'Tafilah Qasabah' },
-  'قصبة الطفيله': { ar: 'قصبة الطفيلة', en: 'Tafilah Qasabah' },
-  'الحسا': { ar: 'الحسا', en: 'Hasa' },
-  'بصيرا': { ar: 'بصيرا', en: 'Busaira' },
-
-  // Ajloun
-  'قصبة عجلون': { ar: 'قصبة عجلون', en: 'Ajloun Qasabah' },
-  'كفرنجة': { ar: 'كفرنجة', en: 'Kufranjah' },
-  'كفرنجه': { ar: 'كفرنجة', en: 'Kufranjah' },
-
-  // Jerash
-  'قصبة جرش': { ar: 'قصبة جرش', en: 'Jerash Qasabah' },
+  // Zarqa
+  'قصبة الزرقاء': 'Zarqa Qasabah',
+  'الهاشمية': 'Hashemiyah',
+  'الرصيفة': 'Russeifa',
+  'بيرين': 'Berein',
+  'الضليل': 'Al Dhulail',
+  'الازرق': 'Azraq',
+  'الأزرق': 'Azraq',
 
   // Mafraq
-  'قصبة المفرق': { ar: 'قصبة المفرق', en: 'Mafraq Qasabah' },
-  'البادية الشمالية': { ar: 'البادية الشمالية', en: 'Northern Badia' },
-  'البادية الشمالية الغربية': { ar: 'البادية الشمالية الغربية', en: 'North Western Badia' },
-  'الرويشد': { ar: 'الرويشد', en: 'Ruwaished' },
-  'بلعما': { ar: 'بلعما', en: 'Balama' },
+  'قصبة المفرق': 'Mafraq Qasabah',
+  'بلعما': 'Balama',
+  'البادية /ش': 'Northern Badia',
+  'البادية الشمالية': 'Northern Badia',
+  'البادية الشمالية الغربية': 'North Western Badia',
+  'الرويشد': 'Ruwaished',
+  'سما السرحان': 'Sama Al Sarhan',
+  'حوشا': 'Hawsha',
+  'الخالدية': 'Al Khalidiya',
+  'رحاب': 'Rihab',
+  'المنشية': 'Al Manshiyya',
+  'صبحا': 'Sabha',
+  'ام الجمال': 'Umm Al Jimal',
+  'دير الكهف': 'Deir Al Kahf',
+  'ام القطين': 'Umm Al Quttain',
+
+  // Tafilah
+  'قصبة الطفيلة': 'Tafilah Qasabah',
+  'الحسا': 'Hasa',
+  'بصيرا': 'Busaira',
+
+  // Madaba
+  'قصبة مادبا': 'Madaba Qasabah',
+  'ذيبان': 'Dhiban',
+  'جرينة': 'Jrainah',
+  'ماعين': 'Ma\'in',
+  'الفيصلية': 'Al Faisaliyah',
+  'العريض': 'Al Urayd',
+  'مليح': 'Mlaih',
+
+  // Jerash
+  'القصبة': 'Jerash Qasabah',
+  'قصبة جرش': 'Jerash Qasabah',
+  'المسطبة': 'Al Mastaba',
+  'المصطبة': 'Al Mastaba',
+  'برما': 'Burma',
+
+  // Ajloun
+  'قصبة عجلون': 'Ajloun Qasabah',
+  'كفرنجة': 'Kufranjah',
+  'صخرة': 'Sakhra',
+  'عرجان': 'Arjan',
+
+  // Aqaba
+  'قصبة العقبة': 'Aqaba Qasabah',
+  'القويرة': 'Quweira',
+  'وادي عربه': 'Wadi Araba',
+  'وادي عربة': 'Wadi Araba',
+  'الديسة': 'Disah',
 };
 
-const DISTRICT_INDEX = new Map<string, { ar: string; en: string }>();
+const STEM_INDEX = new Map<string, string>();
+for (const [k, v] of Object.entries(DISTRICT_STEM_MAP)) {
+  STEM_INDEX.set(normalizeArabicText(k), v);
+  STEM_INDEX.set(normalizeEnglishText(v), v);
+}
 
-for (const [key, val] of Object.entries(DISTRICT_TRANSLATIONS)) {
-  DISTRICT_INDEX.set(normalizeArabicText(key), val);
-  DISTRICT_INDEX.set(normalizeArabicText(val.ar), val);
-  DISTRICT_INDEX.set(normalizeEnglishText(val.en), val);
+/**
+ * Phonetic fallback transliterator: Converts Arabic strings into Latin characters
+ * so that English mode NEVER leaks Arabic strings.
+ */
+export function transliterateArabic(text: string): string {
+  const letters: Record<string, string> = {
+    'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'aa', 'ء': "'", 'ئ': "'", 'ؤ': "'",
+    'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h', 'خ': 'kh',
+    'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
+    'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': "'", 'غ': 'gh',
+    'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+    'ه': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a', 'ة': 'ah',
+  };
+
+  return text
+    .split(/\s+/)
+    .map((word) => {
+      let w = word.trim();
+      let isAl = false;
+      if (w.startsWith('ال') && w.length > 2) {
+        isAl = true;
+        w = w.slice(2);
+      }
+      let latin = '';
+      for (const char of w) {
+        latin += letters[char] || char;
+      }
+      if (latin) {
+        latin = latin.charAt(0).toUpperCase() + latin.slice(1);
+      }
+      return isAl ? `Al ${latin}` : latin;
+    })
+    .join(' ')
+    .trim();
+}
+
+/**
+ * Translates an Arabic district name into clean English, handling
+ * prefixes like 'لواء', 'قضاء', 'مركز', etc.
+ */
+export function translateArabicDistrict(rawAr: string): { cleanAr: string; cleanEn: string } | null {
+  const trimmed = rawAr.trim();
+  // Filter corrupted dummy rows (e.g. 'الواء' in older test/seed records)
+  if (trimmed === 'الواء' || trimmed.length < 2) {
+    return null;
+  }
+
+  let prefixType: 'district' | 'subdistrict' | 'center' | 'area' | 'none' = 'none';
+  let core = trimmed;
+
+  if (/^لواء\s*/.test(core)) {
+    prefixType = 'district';
+    core = core.replace(/^لواء\s*/, '').trim();
+  } else if (/^قضاء\s*ام\s+/.test(core) || /^قضاءام\s*/.test(core)) {
+    prefixType = 'subdistrict';
+    core = core.replace(/^قضاء\s*ام\s+/, 'ام ').replace(/^قضاءام\s*/, 'ام ').trim();
+  } else if (/^قضاء\s*/.test(core)) {
+    prefixType = 'subdistrict';
+    core = core.replace(/^قضاء\s*/, '').trim();
+  } else if (/^مركز\s*/.test(core)) {
+    prefixType = 'center';
+    core = core.replace(/^مركز\s*/, '').trim();
+  } else if (/^(منطقة|حي)\s*/.test(core)) {
+    prefixType = 'area';
+    core = core.replace(/^(منطقة|حي)\s*/, '').trim();
+  }
+
+  const normCore = normalizeArabicText(core);
+  let enCore = STEM_INDEX.get(normCore);
+
+  if (!enCore) {
+    // Try matching without slash variants like "المزار /ش"
+    const cleanedSlash = normCore.replace(/\s*\/\s*/g, ' ').trim();
+    enCore = STEM_INDEX.get(cleanedSlash);
+  }
+
+  // Fallback: transliterate core phonetically
+  if (!enCore) {
+    enCore = transliterateArabic(core);
+  }
+
+  let enSuffix = '';
+  if (prefixType === 'district') {
+    enSuffix = enCore.endsWith('District') ? '' : ' District';
+  } else if (prefixType === 'subdistrict') {
+    enSuffix = ' Sub-district';
+  } else if (prefixType === 'center') {
+    enSuffix = ' Center';
+  } else if (prefixType === 'area') {
+    enSuffix = ' Area';
+  }
+
+  return {
+    cleanAr: trimmed,
+    cleanEn: `${enCore}${enSuffix}`.trim(),
+  };
 }
 
 /**
@@ -319,24 +446,35 @@ export function resolveGovernorateLabel(
   }
 
   if (typeof rowOrName === 'string') {
+    if (lang === 'en' && hasArabicLetters(rowOrName)) {
+      return transliterateArabic(rowOrName);
+    }
     return rowOrName.trim();
   }
 
-  // Fallback when canonical lookup doesn't hit
   if (lang === 'ar') {
     if (rowOrName.name_ar && hasArabicLetters(rowOrName.name_ar)) return rowOrName.name_ar.trim();
     if (rowOrName.name && hasArabicLetters(rowOrName.name)) return rowOrName.name.trim();
     return (rowOrName.name_ar || rowOrName.name || rowOrName.name_en || String(rowOrName.id || '')).trim();
   } else {
-    // English mode: MUST NOT return Arabic if English exists
-    if (rowOrName.name_en && hasLatinLetters(rowOrName.name_en)) return rowOrName.name_en.trim();
-    if (rowOrName.name && hasLatinLetters(rowOrName.name)) return rowOrName.name.trim();
-    return (rowOrName.name_en || rowOrName.name || rowOrName.name_ar || String(rowOrName.id || '')).trim();
+    // English mode: MUST NOT return Arabic
+    if (rowOrName.name_en && hasLatinLetters(rowOrName.name_en) && !hasArabicLetters(rowOrName.name_en)) {
+      return rowOrName.name_en.trim();
+    }
+    if (rowOrName.name && hasLatinLetters(rowOrName.name) && !hasArabicLetters(rowOrName.name)) {
+      return rowOrName.name.trim();
+    }
+    const arabicFallback = rowOrName.name_ar || rowOrName.name || rowOrName.name_en || '';
+    if (arabicFallback) {
+      return transliterateArabic(arabicFallback);
+    }
+    return String(rowOrName.id || '');
   }
 }
 
 /**
  * Resolve a district name to the desired target language.
+ * Guarantees zero Arabic in English mode and zero English in Arabic mode.
  */
 export function resolveDistrictLabel(
   rowOrName:
@@ -355,33 +493,39 @@ export function resolveDistrictLabel(
 ): string {
   if (!rowOrName) return '';
 
-  const rawText =
+  const rawAr =
     typeof rowOrName === 'string'
       ? rowOrName.trim()
-      : (rowOrName.name_ar || rowOrName.name_en || rowOrName.name || rowOrName.title_ar || rowOrName.title_en || '').trim();
+      : (rowOrName.name_ar || rowOrName.name || '').trim();
 
-  // Try dictionary lookup
-  const match =
-    DISTRICT_INDEX.get(normalizeArabicText(rawText)) ||
-    DISTRICT_INDEX.get(normalizeEnglishText(rawText));
+  const rawEn =
+    typeof rowOrName === 'string'
+      ? ''
+      : (rowOrName.name_en || rowOrName.title_en || '').trim();
 
-  if (match) {
-    return lang === 'ar' ? match.ar : match.en;
-  }
-
-  if (typeof rowOrName === 'string') {
-    return rawText;
-  }
-
-  // If not in dictionary, check if the record already has the right language
-  if (lang === 'ar') {
-    if (rowOrName.name_ar && hasArabicLetters(rowOrName.name_ar)) return rowOrName.name_ar.trim();
-    if (rowOrName.name && hasArabicLetters(rowOrName.name)) return rowOrName.name.trim();
-    return (rowOrName.name_ar || rowOrName.name || rowOrName.name_en || String(rowOrName.id || '')).trim();
+  if (lang === 'en') {
+    // If name_en already has clean Latin letters without Arabic, use it
+    if (rawEn && hasLatinLetters(rawEn) && !hasArabicLetters(rawEn)) {
+      return rawEn;
+    }
+    // If we have an Arabic string (either in name_ar or corrupted in name_en)
+    const arabicInput = rawAr || (hasArabicLetters(rawEn) ? rawEn : '');
+    if (arabicInput) {
+      const translated = translateArabicDistrict(arabicInput);
+      if (translated) return translated.cleanEn;
+    }
+    if (rawEn) return rawEn;
+    return typeof rowOrName === 'object' && rowOrName?.id ? String(rowOrName.id) : '';
   } else {
-    if (rowOrName.name_en && hasLatinLetters(rowOrName.name_en)) return rowOrName.name_en.trim();
-    if (rowOrName.name && hasLatinLetters(rowOrName.name)) return rowOrName.name.trim();
-    return (rowOrName.name_en || rowOrName.name || rowOrName.name_ar || String(rowOrName.id || '')).trim();
+    // Arabic mode
+    if (rawAr && hasArabicLetters(rawAr)) {
+      const translated = translateArabicDistrict(rawAr);
+      return translated ? translated.cleanAr : rawAr;
+    }
+    if (rawEn && hasArabicLetters(rawEn)) {
+      return rawEn;
+    }
+    return rawAr || rawEn || (typeof rowOrName === 'object' && rowOrName?.id ? String(rowOrName.id) : '');
   }
 }
 
@@ -407,26 +551,36 @@ export function resolveLocationLabel(
 ): string {
   if (!row) return '';
 
-  // 1. Try governorate canonical resolution
+  // 1. If it has governorate_id, it is a district
+  if ('governorate_id' in row && row.governorate_id !== undefined) {
+    return resolveDistrictLabel(row, lang);
+  }
+
+  // 2. Try governorate canonical resolution
   const canonicalGov = findCanonicalGovernorate(row);
   if (canonicalGov) {
     return lang === 'ar' ? canonicalGov.nameAr : canonicalGov.nameEn;
   }
 
-  // 2. Try district canonical resolution
-  const rawCandidate = row.name_ar || row.name_en || row.name || '';
-  const canonicalDistrict =
-    DISTRICT_INDEX.get(normalizeArabicText(rawCandidate)) ||
-    DISTRICT_INDEX.get(normalizeEnglishText(rawCandidate));
-  if (canonicalDistrict) {
-    return lang === 'ar' ? canonicalDistrict.ar : canonicalDistrict.en;
+  // 3. Try district resolution
+  const rawText = row.name_ar || row.name_en || row.name || '';
+  if (rawText) {
+    const districtRes = resolveDistrictLabel(row, lang);
+    if (districtRes) return districtRes;
   }
 
-  // 3. Fallback: check language appropriateness
+  // 4. Ultimate language-pure fallback
   if (lang === 'en') {
-    if (row.name_en && hasLatinLetters(row.name_en)) return row.name_en.trim();
-    if (row.name && hasLatinLetters(row.name)) return row.name.trim();
-    return (row.name_en || row.name || row.name_ar || String(row.id || '')).trim();
+    if (row.name_en && hasLatinLetters(row.name_en) && !hasArabicLetters(row.name_en)) {
+      return row.name_en.trim();
+    }
+    if (row.name && hasLatinLetters(row.name) && !hasArabicLetters(row.name)) {
+      return row.name.trim();
+    }
+    if (rawText && hasArabicLetters(rawText)) {
+      return transliterateArabic(rawText);
+    }
+    return String(row.id || '');
   } else {
     if (row.name_ar && hasArabicLetters(row.name_ar)) return row.name_ar.trim();
     if (row.name && hasArabicLetters(row.name)) return row.name.trim();
@@ -437,7 +591,7 @@ export function resolveLocationLabel(
 /**
  * Deduplicates and canonicalizes governorate rows from Supabase.
  * - Fixes corrupted `name_en` (which held Arabic text).
- * - Collapses duplicate rows for the same governorate (e.g. 'Madaba' and 'مادبا') into ONE clean row.
+ * - Collapses duplicate rows for the same governorate into ONE clean row.
  */
 export function canonicalizeGovernorateRows<
   T extends {
@@ -464,9 +618,7 @@ export function canonicalizeGovernorateRows<
     };
 
     if (seenKeys.has(dedupeKey)) {
-      // Already have this governorate! Prefer the row that had cleaner Latin name_en or smaller ID.
       const existing = seenKeys.get(dedupeKey)!;
-      // If the incoming row has a cleaner original name_en, or existing lacked one, update properties
       if (!existing.name_en && normalizedRow.name_en) {
         existing.name_en = normalizedRow.name_en;
       }
@@ -481,7 +633,9 @@ export function canonicalizeGovernorateRows<
 }
 
 /**
- * Canonicalizes district rows from Supabase, fixing corrupted `name_en` where Arabic text was placed.
+ * Canonicalizes district rows from Supabase:
+ * - Translates corrupted Arabic `name_en` into clean English.
+ * - Strips corrupted/dummy records like 'الواء'.
  */
 export function canonicalizeDistrictRows<
   T extends {
@@ -494,30 +648,31 @@ export function canonicalizeDistrictRows<
 >(rows: T[]): T[] {
   if (!Array.isArray(rows)) return [];
 
-  return rows.map((row) => {
-    const rawName = row.name_ar || row.name_en || row.name || '';
-    const match =
-      DISTRICT_INDEX.get(normalizeArabicText(rawName)) ||
-      DISTRICT_INDEX.get(normalizeEnglishText(rawName));
+  const output: T[] = [];
 
-    if (match) {
-      return {
-        ...row,
-        name_ar: match.ar,
-        name_en: match.en,
-      };
+  for (const row of rows) {
+    const rawAr = row.name_ar || row.name || '';
+    const translated = translateArabicDistrict(rawAr);
+
+    // Filter out dummy/corrupted rows (like 'الواء')
+    if (translated === null && (rawAr === 'الواء' || rawAr.trim().length < 2)) {
+      continue;
     }
 
-    // If name_en contains only Arabic characters, clear or transliterate it
+    const cleanAr = translated ? translated.cleanAr : rawAr;
     let cleanEn = row.name_en || '';
-    if (cleanEn && !hasLatinLetters(cleanEn)) {
-      cleanEn = '';
+
+    // If name_en is empty or contains Arabic, populate with clean English
+    if (!cleanEn || !hasLatinLetters(cleanEn) || hasArabicLetters(cleanEn)) {
+      cleanEn = translated ? translated.cleanEn : transliterateArabic(cleanAr);
     }
 
-    return {
+    output.push({
       ...row,
-      name_ar: row.name_ar || row.name || '',
+      name_ar: cleanAr,
       name_en: cleanEn,
-    };
-  });
+    });
+  }
+
+  return output;
 }

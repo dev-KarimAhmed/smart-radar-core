@@ -329,35 +329,35 @@ SELECT (SELECT id FROM governorates WHERE name_ar = 'الكرك' LIMIT 1), 'قض
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء غور المزرعة' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'الكرك' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء قصبة معان', 'لواء قصبة معان'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء قصبة معان', 'Ma''an Qasabah District'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'لواء قصبة معان' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء البتراء', 'لواء البتراء'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء البتراء', 'Petra District'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'لواء البتراء' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء الشوبك', 'لواء الشوبك'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء الشوبك', 'Shobak District'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'لواء الشوبك' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء الحسينية', 'لواء الحسينية'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'لواء الحسينية', 'Al Husseiniya District'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'لواء الحسينية' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء الجفر', 'قضاء الجفر'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء الجفر', 'Al Jafr Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء الجفر' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء مريغة', 'قضاء مريغة'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء مريغة', 'Mureigha Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء مريغة' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء ايل', 'قضاء ايل'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء ايل', 'Ayl Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء ايل' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء اذرح', 'قضاء اذرح'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1), 'قضاء اذرح', 'Udhruh Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء اذرح' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'معان' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
