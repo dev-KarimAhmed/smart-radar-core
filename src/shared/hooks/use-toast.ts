@@ -28,7 +28,7 @@ function isTranslatableToastText(text: string | undefined): boolean {
   if (hasArabicScript(trimmed)) return true;
   // Require at least two words for Latin strings to avoid translating short status/voucher tokens
   return /\s+/.test(trimmed);
-}
+} 
 
 export const toast = (options: {
   title: string;
