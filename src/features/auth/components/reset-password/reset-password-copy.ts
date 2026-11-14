@@ -1,0 +1,52 @@
+export const styles = {
+  page: 'flex min-h-screen items-center justify-center bg-[#0A0F1D] px-4 py-10',
+  card: 'w-full max-w-md rounded-3xl border border-white/10 bg-[#0B0F19] p-6 shadow-2xl shadow-black/40',
+  iconWrap: 'mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#14B8A6]/15 text-[#14F5D5]',
+  icon: 'h-6 w-6',
+  title: 'mt-4 text-center text-lg font-black text-white',
+  subtitle: 'mt-2 text-center text-xs leading-relaxed text-slate-400',
+  form: 'mt-6 space-y-4',
+  label: 'block text-xs font-bold text-slate-300',
+  input: 'mt-1.5 w-full rounded-2xl border border-slate-800 bg-black/50 px-4 py-3 text-white outline-none transition focus:border-[#14B8A6]',
+  hint: 'mt-1.5 text-[10px] text-slate-500',
+  submit: 'flex w-full items-center justify-center gap-2 rounded-2xl bg-[#14B8A6] px-4 py-3 text-sm font-black text-[#04140F] transition hover:bg-[#0fa596] disabled:cursor-not-allowed disabled:opacity-50',
+  spinner: 'h-4 w-4 animate-spin',
+  error: 'rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-rose-200',
+  success: 'rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-xs font-bold leading-relaxed text-emerald-200',
+  link: 'mt-4 block w-full text-center text-xs font-bold text-slate-400 transition hover:text-slate-200',
+} as const;
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+export const resetPasswordCopy = {
+  ar: {
+    title: 'كلمة مرور جديدة',
+    tokenSubtitle: 'اكتب كلمة المرور الجديدة لحسابك.',
+    emailSubtitle: 'تم التحقق من الرابط. اكتب كلمة المرور الجديدة.',
+    missing: 'الرابط غير مكتمل أو منتهي الصلاحية. يرجى طلب استرداد كلمة المرور من جديد.',
+    password: 'كلمة المرور الجديدة',
+    confirm: 'تأكيد كلمة المرور',
+    hint: `${MIN_PASSWORD_LENGTH} أحرف على الأقل.`,
+    mismatch: 'كلمتا المرور غير متطابقتين.',
+    tooShort: `يجب ألا تقل كلمة المرور عن ${MIN_PASSWORD_LENGTH} أحرف.`,
+    submit: 'حفظ كلمة المرور',
+    done: 'تم تغيير كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.',
+    backToLogin: 'العودة لتسجيل الدخول',
+    checking: 'جاري التحقق من الرابط…',
+  },
+  en: {
+    title: 'New password',
+    tokenSubtitle: 'Enter the new password for your account.',
+    emailSubtitle: 'Link verified. Enter your new password.',
+    missing: 'This link is incomplete or has expired. Request password recovery again.',
+    password: 'New password',
+    confirm: 'Confirm password',
+    hint: `At least ${MIN_PASSWORD_LENGTH} characters.`,
+    mismatch: 'The two passwords do not match.',
+    tooShort: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+    submit: 'Save password',
+    done: 'Your password has been changed. You can sign in now.',
+    backToLogin: 'Back to sign in',
+    checking: 'Verifying the link…',
+  },
+} as const;
