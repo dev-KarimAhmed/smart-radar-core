@@ -4,10 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { db, auth } from '@/lib/firebase';
 import {
   collection,
-  getDocs,
-  doc,
-  updateDoc,
-  setDoc,
   query,
   where,
   onSnapshot
@@ -15,38 +11,14 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useTranslations } from 'next-intl';
+import {
+  type DelegateData,
+  type DriverData,
+  CONSTANTS,
+} from './sovereign-dashboard-types';
 
-export interface DelegateData {
-  id: string;
-  name: string;
-  phone: string;
-  referralCode: string;
-  referredCount: number;
-  deletionRate: number;
-  revivalRate: number;
-  pendingDues: number;
-  status: 'active' | 'suspended';
-  createdAt: string;
-  dueDate?: string;
-}
-
-export interface DriverData {
-  uid: string;
-  name: string;
-  phone: string;
-  rating?: number;
-  heartCount?: number;
-  paidHoursRemaining?: number;
-  status?: string;
-  isBanned?: boolean;
-  immunityScore?: number;
-  currentDistrict?: string;
-}
-
-const CONSTANTS = Object.freeze({
-  STABILITY_THRESHOLD_MS: 30 * 24 * 60 * 60 * 1000,
-  PENALTY_FACTOR: 0.40,
-});
+export type { DelegateData, DriverData };
+export { CONSTANTS };
 
 export const useSovereignDashboard = () => {
   const tAuto = useTranslations();
