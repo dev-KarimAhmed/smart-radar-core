@@ -2,33 +2,33 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import { dexieDb } from '@/lib/dexie-db';
 import { supabase } from '@/lib/supabase-client';
 import type { Offer } from '@/core/types';
 import {
-  acceptRideOffer,
-  cancelRideRequest,
   fetchRideOffers,
   subscribeToRideOffers,
+  cancelRideRequest,
 } from '../services/rider-server-marketplace';
-import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
-import { collectPreferredCaptainIds, prioritizeRiderOffers } from '../services/rider-offer-ranking';
+import { prioritizeRiderOffers } from '../services/rider-offer-ranking';
 import { fetchFavoriteCaptainIds } from '@/features/account/services/favorite-captains';
 import { getOfferCountdown } from '../services/offer-countdown';
 import { playNotificationSound } from '@/shared/utils/notification-sound';
 import { getServerTime } from '@/lib/server-time';
 import type { RiderMachineState, RiderMachineAction } from '../state/rider-state-machine';
+import { useCaptainSearchRadius } from './use-offers-lifecycle-radius';
+import { useOffersTimeoutScheduler } from './use-offers-lifecycle-timeout';
+import { useOfferAcceptance } from './use-offers-lifecycle-acceptance';
 
-const OFFER_TIMEOUT_MS = 240 * 1000; // 4 minute (240s) search window
-const RADAR_SCAN_STAGES_KM = [0.5, 1.0, 1.5, 2.0, 2.5] as const;
-const STAGE_WINDOW_SECONDS = 48; // 240s / 5 stages = 48s each stage
+export {
+  OFFER_TIMEOUT_MS,
+  RADAR_SCAN_STAGES_KM,
+  STAGE_WINDOW_SECONDS,
+} from './use-offers-lifecycle-constants';
 
 /**
  * Owns the incoming-offers poll/subscription for `RECEIVING_OFFERS`, the
  * auto-cancel-if-nothing-arrives timeout, the auto-expanding search radius,
- * and accepting an offer. `pendingAcceptedOfferIdRef` is exposed because the
- * ride-request status subscription (a different hook) needs to read/clear it
- * once the server confirms the acceptance.
+ * and accepting an offer.
  */
 export function useOffersLifecycle(
   state: RiderMachineState,
@@ -41,14 +41,14 @@ export function useOffersLifecycle(
 
   const [preferredCaptainIds, setPreferredCaptainIds] = React.useState<string[]>([]);
   const [expandedOfferId, setExpandedOfferId] = React.useState<string | null>(null);
-  const [captainSearchRadiusKm, setCaptainSearchRadiusKm] = React.useState<number>(0.5);
-  const [isExpandingCaptainSearch, setIsExpandingCaptainSearch] = React.useState(false);
-  const [acceptingOfferId, setAcceptingOfferId] = React.useState<string | null>(null);
 
-  // Shared with the screen's countdown UI so both sides agree on exactly
-  // when each offer's visibility window started — anchored to when THIS
-  // client first observed the offer, not the server's created_at (see
-  // services/offer-countdown.ts for why).
+  const {
+    captainSearchRadiusKm,
+    setCaptainSearchRadiusKm,
+    isExpandingCaptainSearch,
+    setIsExpandingCaptainSearch,
+  } = useCaptainSearchRadius(state.screen, state.requestStartedAt, state.requestCancelledAt);
+
   const firstSeenAtRef = React.useRef<Map<string, number>>(new Map());
 
   const refreshOffers = React.useCallback(async (isActive?: () => boolean) => {
@@ -63,15 +63,10 @@ export function useOffersLifecycle(
       if (isActive && !isActive()) return;
 
       const favoriteIds = Array.from(favIdsSet);
-      const validOffers = offers;
-
-      // حصة الراكب من السوق: 9 عروض كباتن كحد أقصى تفرز حسب: الفئة، المفضلين، الرتبة، السعر
-      const sortedOffers = prioritizeRiderOffers(validOffers, favoriteIds, pricingPreference).slice(0, 9);
-
+      const sortedOffers = prioritizeRiderOffers(offers, favoriteIds, pricingPreference).slice(0, 9);
       const nowTs = getServerTime();
       let hasNewOffer = false;
 
-      // Filter out offers that have already expired
       const nonExpiredOffers = sortedOffers.filter((offer) => {
         const offerId = offer.id || offer.driverId;
         const firstSeen = firstSeenAtRef.current.get(offerId);
@@ -127,11 +122,24 @@ export function useOffersLifecycle(
       dispatch({ type: 'RECEIVE_OFFERS', offers: nonExpiredOffers });
     } catch (error) {
       if (isActive && !isActive()) return;
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers]', error);
+      if (process.env.NODE_ENV !== 'production') console.warn('[Rider Offers]', error);
       setPreferredCaptainIds([]);
       dispatch({ type: 'RECEIVE_OFFERS', offers: [] });
     }
   }, [dispatch, language, pricingPreference, state.requestCancelledAt, state.requestId, state.screen, toast]);
+
+  const {
+    acceptingOfferId,
+    setAcceptingOfferId,
+    handleAcceptOffer,
+  } = useOfferAcceptance({
+    requestId: state.requestId,
+    language,
+    dispatch,
+    refreshOffers: () => refreshOffers(),
+    toast,
+    t,
+  });
 
   React.useEffect(() => {
     let isMounted = true;
@@ -153,12 +161,12 @@ export function useOffersLifecycle(
       state.requestId,
       () => void refreshOffers(() => isMounted),
       () => {
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Offers Realtime] subscription unavailable');
+        if (process.env.NODE_ENV !== 'production') console.warn('[Rider Offers Realtime] subscription unavailable');
       },
     );
 
     return () => {
-      isMounted = false; // لا يجوز بعد الإلغاء
+      isMounted = false;
       window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onFocus);
@@ -166,11 +174,6 @@ export function useOffersLifecycle(
     };
   }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
 
-  // Drops an offer from state the moment its captain-chosen wait_seconds
-  // window elapses — without this, an expired offer stayed in state.offers
-  // forever (only hidden at render time), so the expand logic below still
-  // considered it "present" and kept it selected: the rider had a card open
-  // that no longer rendered, and no way to see it was gone.
   React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) return;
 
@@ -189,77 +192,16 @@ export function useOffersLifecycle(
     return () => window.clearInterval(intervalId);
   }, [dispatch, state.offers, state.screen]);
 
-  React.useEffect(() => {
-    if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
+  useOffersTimeoutScheduler({
+    requestId: state.requestId,
+    screen: state.screen,
+    requestCancelledAt: state.requestCancelledAt,
+    requestStartedAt: state.requestStartedAt,
+    offers: state.offers,
+    firstSeenAtRef,
+    dispatch,
+  });
 
-    const startedAt = state.requestStartedAt ?? getServerTime();
-    const elapsed = getServerTime() - startedAt;
-    const remainingSearchMs = Math.max(0, OFFER_TIMEOUT_MS - elapsed);
-
-    // If 4-minute search is still in progress, schedule check for when the 4 minutes complete
-    if (remainingSearchMs > 0) {
-      const timeoutId = window.setTimeout(() => {
-        const now = getServerTime();
-        const hasActiveOffers = state.offers.some((offer) => {
-          const offerId = offer.id || offer.driverId;
-          const firstSeen = firstSeenAtRef.current.get(offerId);
-          return !getOfferCountdown(offer, firstSeen, now).isExpired;
-        });
-
-        // If no active offers remain at minute 4: cancel request immediately
-        if (!hasActiveOffers) {
-          cancelRideRequest(supabase, state.requestId!)
-            .catch(() => {})
-            .finally(() => {
-              dispatch({ type: 'REQUEST_CANCELLED' });
-            });
-        }
-      }, remainingSearchMs);
-
-      return () => window.clearTimeout(timeoutId);
-    }
-
-    // 4 minutes have already finished. Check if any offers are STILL running:
-    const now = getServerTime();
-    const activeOffers = state.offers.filter((offer) => {
-      const offerId = offer.id || offer.driverId;
-      const firstSeen = firstSeenAtRef.current.get(offerId);
-      return !getOfferCountdown(offer, firstSeen, now).isExpired;
-    });
-
-    // If all offer timers have ended (or no offers arrived): cancel request immediately
-    if (activeOffers.length === 0) {
-      cancelRideRequest(supabase, state.requestId!)
-        .catch(() => {})
-        .finally(() => {
-          dispatch({ type: 'REQUEST_CANCELLED' });
-        });
-      return;
-    }
-
-    // If drivers are STILL running their timers past the 4 minutes:
-    // Wait for the longest remaining offer timer before cancelling
-    const latestRemainingMs = Math.max(
-      ...activeOffers.map((offer) => {
-        const offerId = offer.id || offer.driverId;
-        const firstSeen = firstSeenAtRef.current.get(offerId);
-        const cd = getOfferCountdown(offer, firstSeen, now);
-        return cd.remainingSeconds * 1000;
-      })
-    );
-
-    const timeoutId = window.setTimeout(() => {
-      cancelRideRequest(supabase, state.requestId!)
-        .catch(() => {})
-        .finally(() => {
-          dispatch({ type: 'REQUEST_CANCELLED' });
-        });
-    }, Math.max(500, latestRemainingMs));
-
-    return () => window.clearTimeout(timeoutId);
-  }, [dispatch, state.offers, state.requestCancelledAt, state.requestId, state.requestStartedAt, state.screen]);
-
-  // Resync offers immediately when the rider returns to the app (e.g. from answering a call or WhatsApp message)
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
@@ -275,13 +217,13 @@ export function useOffersLifecycle(
     };
   }, [refreshOffers, state.requestCancelledAt, state.requestId, state.screen]);
 
-  // Handle sudden tab closure while receiving offers
   React.useEffect(() => {
     if (!state.requestId || state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) return;
 
     const onBeforeUnload = () => {
-      // Best effort to cancel the request if the rider closes the tab
-      cancelRideRequest(supabase, state.requestId!).catch(() => { });
+      if (state.requestId) {
+        cancelRideRequest(supabase, state.requestId).catch(() => {});
+      }
     };
 
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -291,115 +233,25 @@ export function useOffersLifecycle(
   }, [state.requestCancelledAt, state.requestId, state.screen]);
 
   React.useEffect(() => {
-    if (state.screen !== 'RECEIVING_OFFERS' || state.requestCancelledAt) {
-      setCaptainSearchRadiusKm(0.5);
-      setIsExpandingCaptainSearch(false);
-      return;
-    }
-
-    const syncRadiusWithTime = () => {
-      const startedAt = state.requestStartedAt ?? getServerTime();
-      const elapsedSec = Math.floor(Math.max(0, getServerTime() - startedAt) / 1000);
-      const stageIdx = Math.min(RADAR_SCAN_STAGES_KM.length - 1, Math.floor(elapsedSec / STAGE_WINDOW_SECONDS));
-      const targetRadius = RADAR_SCAN_STAGES_KM[stageIdx];
-
-      setCaptainSearchRadiusKm((current) => {
-        if (current !== targetRadius) {
-          setIsExpandingCaptainSearch(true);
-          window.setTimeout(() => setIsExpandingCaptainSearch(false), 900);
-          return targetRadius;
-        }
-        return current;
-      });
-    };
-
-    syncRadiusWithTime();
-    const intervalId = window.setInterval(syncRadiusWithTime, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [state.requestCancelledAt, state.requestStartedAt, state.screen]);
-
-  // Cards start collapsed — the rider opens whichever offer they want to look at,
-  // rather than the first one arriving being force-expanded for them. This effect
-  // only clears the expanded id once its offer is no longer in the list; it never
-  // picks a new one on its own.
-  React.useEffect(() => {
     if (state.screen !== 'RECEIVING_OFFERS' || state.offers.length === 0) {
       setExpandedOfferId(null);
       return;
     }
 
-    // Every card starts closed and only the rider opens one. This used to auto-expand the
-    // first offer, which both hid the fact that the card is expandable and gave whichever
-    // offer sorted first a permanent head start in the rider's attention.
     setExpandedOfferId((current) => {
       if (current && state.offers.some((offer) => (offer.id || offer.driverId) === current)) return current;
       return null;
     });
   }, [state.offers, state.screen]);
 
-  const handleAcceptOffer = React.useCallback(async (offer: Offer) => {
-    if (!state.requestId) {
-      toast({
-        variant: 'destructive',
-        title: t('offers.acceptNoActiveTitle'),
-        description: t('offers.acceptNoActiveDescription'),
-      });
-      return;
-    }
-
-    const offerId = offer.id;
-    if (!offerId || offerId === offer.driverId) {
-      toast({
-        variant: 'destructive',
-        title: t('offers.acceptIncompleteTitle'),
-        description: t('offers.acceptIncompleteDescription'),
-      });
-      return;
-    }
-
-    setAcceptingOfferId(offerId);
-    // Offer ID tracked centrally via SELECT_OFFER
-
-    try {
-      await acceptRideOffer(supabase, {
-        requestId: state.requestId,
-        offerId,
-      });
-      dispatch({ type: 'SELECT_OFFER', offerId });
-    } catch (error) {
-
-      if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider Accept Offer]', error);
-      void refreshOffers();
-      toast({
-        variant: 'destructive',
-        title: t('offers.acceptFailedTitle'),
-        description: getLocalizedMarketplaceError(error, language, {
-          permissionDenied: t('errors.permissionDenied'),
-          authRequired: t('errors.authRequired'),
-          network: t('errors.network'),
-          fareCalculation: t('errors.fareCalculation'),
-          missingColumns: t('errors.missingColumns'),
-          invalidStatus: t('errors.invalidStatus'),
-          foreignKeyMismatch: t('errors.foreignKeyMismatch'),
-          duplicateActive: t('errors.duplicateActive'),
-          generic: t('errors.generic'),
-        }),
-      });
-    } finally {
-      setAcceptingOfferId(null);
-    }
-  }, [dispatch, language, refreshOffers, state.requestId, t, toast]);
-
   const reset = React.useCallback(() => {
-
     firstSeenAtRef.current.clear();
     setPreferredCaptainIds([]);
     setExpandedOfferId(null);
     setCaptainSearchRadiusKm(0.5);
     setIsExpandingCaptainSearch(false);
     setAcceptingOfferId(null);
-  }, []);
+  }, [setCaptainSearchRadiusKm, setIsExpandingCaptainSearch, setAcceptingOfferId]);
 
   return {
     preferredCaptainIds,
