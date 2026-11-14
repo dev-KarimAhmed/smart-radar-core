@@ -1,24 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
-import { supabase } from '@/lib/supabase-client';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, getDocs, setDoc, query, where, limit, runTransaction } from 'firebase/firestore';
-import { Delegate, MagicLink, DelegateTask } from './delegates-shared';
+import { useDelegatesData } from './use-delegates-data';
+import { useDelegateCreationActions } from './use-delegate-creation-actions';
+import { useDelegateTaskSettlementActions } from './use-delegate-task-settlement-actions';
 
 export function useDelegatesState() {
   const t = useTranslations('adminTab.delegatesManagement');
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
-  const [delegates, setDelegates] = useState<Delegate[]>([]);
-  const [verifiedSignatures, setVerifiedSignatures] = useState<Record<string, boolean>>({});
-  const [magicLinks, setMagicLinks] = useState<MagicLink[]>([]);
-  const [tasks, setTasks] = useState<DelegateTask[]>([]);
-  const [drivers, setDrivers] = useState<any[]>([]);
+  const {
+    delegates,
+    setDelegates,
+    verifiedSignatures,
+    magicLinks,
+    tasks,
+    drivers,
+    loading
+  } = useDelegatesData();
 
-  const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<'delegates' | 'magic-links' | 'tasks' | 'performance'>('delegates');
   const [isAdding, setIsAdding] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -39,410 +41,39 @@ export function useDelegatesState() {
   const [taskDescription, setTaskDescription] = useState('');
   const [taskDeadline, setTaskDeadline] = useState('');
 
-  const lastVerifiedKey = useRef<string>('');
+  const creationActions = useDelegateCreationActions({
+    t,
+    toast,
+    setCopiedCode,
+    name,
+    setName,
+    phone,
+    setPhone,
+    district,
+    targetDaily,
+    setTargetDaily,
+    linkExpiryHours,
+    referralCountInit,
+    setReferralCountInit,
+    subRole,
+    isFleetActive,
+    setIsAdding
+  });
 
-  // Signature validation via backend-proxy (Hash-guarded to prevent duplicate network calls)
-  useEffect(() => {
-    if (delegates.length === 0) return;
-    const currentKey = delegates.map(d => `${d.id}:${d.integritySignature || ''}:${d.referredCount || 0}`).join('|');
-    if (currentKey === lastVerifiedKey.current) return;
-    lastVerifiedKey.current = currentKey;
-
-    let active = true;
-    const verifyAll = async () => {
-      try {
-        const response = await fetch('/api/verify-signatures', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            delegates: delegates.map(d => ({
-              id: d.id,
-              referredCount: d.referredCount || 0,
-              referralCode: d.referralCode || '',
-              integritySignature: d.integritySignature || '',
-              homeDistrict: (d as any).homeDistrict || (d as any).district || 'وادي السير',
-              currentH3Cell: (d as any).currentH3Cell || '892db3c2a4fffff'
-            }))
-          })
-        });
-        const data = await response.json();
-        if (active && response.ok && data.success) {
-          setVerifiedSignatures(data.results);
-        }
-      } catch (err) {
-        if (process.env.NODE_ENV !== 'production') console.warn("Backend proxy signature check skipped:", err);
-      }
-    };
-    void verifyAll();
-    return () => { active = false; };
-  }, [delegates]);
-
-  // Load real-time data from Firestore
-  useEffect(() => {
-    let unsubDelegates: (() => void) | null = null;
-    let unsubLinks: (() => void) | null = null;
-    let unsubTasks: (() => void) | null = null;
-
-    if (!authLoading && user && (user.role === 'admin' || (user as any).role === 'ADMIN')) {
-      setLoading(true);
-
-      void supabase.from('profiles').select('*').eq('role', 'CAPTAIN').then(({ data }) => {
-        if (data) {
-          setDrivers(data.map(d => ({ uid: d.id, ...d, name: d.full_name })));
-        }
-      });
-
-      unsubDelegates = onSnapshot(query(collection(db, 'delegates'), limit(100)), (snapshot) => {
-        if (snapshot.empty) {
-          setDelegates([]);
-        } else {
-          const list = snapshot.docs.map(docSnap => ({
-            id: docSnap.id,
-            ...docSnap.data()
-          } as Delegate));
-          setDelegates(list);
-        }
-        setLoading(false);
-      }, (err) => {
-        console.error("Firestore error loading delegates:", err);
-        setLoading(false);
-        handleFirestoreError(err, OperationType.LIST, 'delegates');
-      });
-
-      unsubLinks = onSnapshot(query(collection(db, 'delegate_links'), limit(100)), (snapshot) => {
-        const list = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as MagicLink));
-        setMagicLinks(list);
-      }, (err) => {
-        console.error("Firestore error loading delegate_links:", err);
-        handleFirestoreError(err, OperationType.LIST, 'delegate_links');
-      });
-
-      unsubTasks = onSnapshot(query(collection(db, 'delegate_tasks'), limit(100)), (snapshot) => {
-        const list = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        } as DelegateTask));
-        setTasks(list);
-      }, (err) => {
-        console.error("Firestore error loading delegate_tasks:", err);
-        handleFirestoreError(err, OperationType.LIST, 'delegate_tasks');
-      });
-    }
-
-    return () => {
-      if (unsubDelegates) unsubDelegates();
-      if (unsubLinks) unsubLinks();
-      if (unsubTasks) unsubTasks();
-    };
-  }, [user, authLoading]);
-
-  const handleCopy = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    toast({
-      title: 'تم النسخ ',
-      description: `تم كود إحالة المندوب الأصلي (${code}) إلى الحافظة بنجاح.`
-    });
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
-
-  const handleAddDelegate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !phone) return;
-
-    try {
-      const qPhone = query(collection(db, 'delegates'), where('phone', '==', phone));
-      const qSnap = await getDocs(qPhone);
-      if (!qSnap.empty) {
-        toast({
-          variant: 'destructive',
-          title: t('toasts.duplicatePhoneTitle'),
-          description: `المندوب المسجل بالفعل يحمل نفس رقم الهاتف (${phone}). يرجى استخدام رقم هاتف فريد.`
-        });
-        return;
-      }
-
-      const districtCode = district === 'وادي السير' ? 'GHUBAR' : district === 'الجامعة' ? 'UNIV' : district === 'الكرادة' ? 'KARR' : 'AMMAN';
-      const randomSuffix = Math.floor(Math.random() * 90) + 10;
-      const generatedCode = `JO-${districtCode}-${name.split(' ')[0].toUpperCase()}-${randomSuffix}`;
-
-      const newDelegate: Omit<Delegate, 'id'> = {
-        name,
-        phone,
-        district,
-        referralCode: generatedCode,
-        referredCount: parseInt(referralCountInit) || 0,
-        organicCount: 0,
-        churnCount: 0,
-        steadyCount: 0,
-        targetDaily: parseInt(targetDaily) || 10,
-        carriedDeficit: 0,
-        linkExpiryHours: parseInt(linkExpiryHours) || 24,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        subRole,
-        isFleetActive: subRole === 'captain' ? isFleetActive : false
-      };
-
-      const delegateId = `del-${Date.now()}`;
-      const finalDelegate = { ...newDelegate, id: delegateId, serial_id: '' };
-
-      await runTransaction(db, async (transaction) => {
-        const districtKey = (district || 'global').replace(/\s+/g, '_');
-        const counterRef = doc(db, 'system_counters', `${districtKey}_delegate_serial`);
-        const counterSnap = await transaction.get(counterRef);
-        let nextCount = 1001;
-        if (counterSnap.exists()) {
-          nextCount = (counterSnap.data().current_count || 1000) + 1;
-        }
-        const serial_id = `M-${nextCount}`;
-        finalDelegate.serial_id = serial_id;
-
-        transaction.set(counterRef, { current_count: nextCount }, { merge: true });
-        transaction.set(doc(db, 'delegates', delegateId), finalDelegate);
-      });
-      toast({
-        title: t('toasts.addSuccessTitle'),
-        description: t('toasts.addSuccessDesc', { name, target: targetDaily })
-      });
-      setName('');
-      setPhone('');
-      setReferralCountInit('0');
-      setTargetDaily('10');
-      setIsAdding(false);
-    } catch (e) {
-      console.error("Failed to add delegate:", e);
-      toast({
-        variant: 'destructive',
-        title: t('toasts.addErrorTitle'),
-        description: t('toasts.addErrorDesc')
-      });
-    }
-  };
-
-  const handleGenerateMagicLink = async (delegate: Delegate) => {
-    try {
-      const hours = delegate.linkExpiryHours || 24;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast({
-          variant: 'destructive',
-          title: t('toasts.linkErrorTitle'),
-          description: t('toasts.linkErrorDescSession')
-        });
-        return;
-      }
-
-      const response = await fetch('/api/generate-magic-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          delegateId: delegate.id,
-          delegateName: delegate.name,
-          expiryHours: hours
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        toast({
-          variant: 'destructive',
-          title: t('toasts.linkErrorTitle'),
-          description: data.error || t('toasts.linkErrorDescServer')
-        });
-        return;
-      }
-
-      toast({
-        title: t('toasts.linkSuccessTitle'),
-        description: t('toasts.linkSuccessDesc', { name: delegate.name, hours })
-      });
-    } catch (e) {
-      console.error("Error generating magic link:", e);
-      toast({
-        variant: 'destructive',
-        title: t('toasts.linkErrorTitle'),
-        description: t('toasts.linkErrorDescUnknown')
-      });
-    }
-  };
-
-  const handleRevokeLink = async (linkId: string) => {
-    try {
-      await updateDoc(doc(db, 'delegate_links', linkId), { status: 'revoked' });
-      toast({
-        title: t('toasts.revokeSuccessTitle'),
-        description: t('toasts.revokeSuccessDesc')
-      });
-    } catch (e) {
-      console.error("Error revoking link:", e);
-    }
-  };
-
-  const handleAddTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedDelegateId || !taskTitle || !taskDescription || !taskDeadline) {
-      toast({
-        variant: 'destructive',
-        title: t('toasts.taskMissingTitle'),
-        description: t('toasts.taskMissingDesc')
-      });
-      return;
-    }
-
-    const target = delegates.find(d => d.id === selectedDelegateId);
-    if (!target) return;
-
-    const newTask: Omit<DelegateTask, 'id'> = {
-      delegateId: selectedDelegateId,
-      delegateName: target.name,
-      title: taskTitle,
-      description: taskDescription,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      deadline: taskDeadline
-    };
-
-    try {
-      await addDoc(collection(db, 'delegate_tasks'), newTask);
-      toast({
-        title: t('toasts.taskAddSuccessTitle'),
-        description: t('toasts.taskAddSuccessDesc', { title: taskTitle, name: target.name })
-      });
-      setTaskTitle('');
-      setTaskDescription('');
-      setTaskDeadline('');
-    } catch (e) {
-      console.error("Error adding task:", e);
-    }
-  };
-
-  const handleCloseTask = async (taskId: string) => {
-    try {
-      const response = await fetch('/api/delegate-task-transition', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId,
-          targetStatus: 'closed',
-          delegateId: selectedDelegateId,
-          actorUid: user?.uid,
-          actorRole: 'admin'
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        toast({
-          variant: 'destructive',
-          title: t('toasts.taskCloseErrorTitle'),
-          description: data.error || t('toasts.taskCloseErrorDesc')
-        });
-        return;
-      }
-
-      toast({
-        title: t('toasts.taskCloseSuccessTitle'),
-        description: t('toasts.taskCloseSuccessDesc')
-      });
-    } catch (e) {
-      console.error("Error closing task:", e);
-    }
-  };
-
-  const toggleStatus = async (id: string, currentStatus: 'active' | 'suspended') => {
-    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-    try {
-      await updateDoc(doc(db, 'delegates', id), { status: newStatus });
-      toast({
-        title: t('toasts.statusChangeTitle'),
-        description: newStatus === 'active' ? t('toasts.statusChangeDescActive') : t('toasts.statusChangeDescSuspended')
-      });
-    } catch (e) {
-      console.error(e);
-      setDelegates(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
-    }
-  };
-
-  const processPayout = async (id: string, amount: number) => {
-    try {
-      const targetDelegate = delegates.find(d => d.id === id);
-      if (!targetDelegate) return;
-
-      const adminIdentity = user?.uid || 'SYSTEM_SOVEREIGN_ADMIN';
-
-      await addDoc(collection(db, 'audit_ledger'), {
-        action: 'DELEGATE_PAYOUT_SETTLEMENT',
-        amountPaid: amount,
-        delegateId: id,
-        delegateName: targetDelegate.name,
-        referralCode: targetDelegate.referralCode,
-        actor: adminIdentity,
-        timestamp: new Date().toISOString(),
-        verified: true,
-        protocol: 'RAD-CMD-083'
-      });
-
-      await updateDoc(doc(db, 'delegates', id), { pendingDues: 0 });
-
-      toast({
-        title: t('toasts.payoutSuccessTitle'),
-        description: t('toasts.payoutSuccessDesc', { amount })
-      });
-    } catch (e) {
-      console.error(e);
-      setDelegates(prev => prev.map(d => d.id === id ? { ...d, pendingDues: 0 } : d));
-    }
-  };
-
-  const handleReconcileAndSign = async (id: string) => {
-    try {
-      const targetDelegate = delegates.find(d => d.id === id);
-      if (!targetDelegate) return;
-
-      const adminIdentity = user?.uid || 'SYSTEM_SOVEREIGN_ADMIN';
-      const idToken = (user as any)?.token || null;
-
-      const response = await fetch('/api/reconcile-and-sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          delegateId: id,
-          actorRole: 'admin',
-          actorUid: adminIdentity,
-          idToken
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        toast({
-          variant: 'destructive',
-          title: t('toasts.signErrorTitle'),
-          description: data.error || t('toasts.signErrorDescServer')
-        });
-        return;
-      }
-
-      toast({
-        title: t('toasts.signSuccessTitle'),
-        description: t('toasts.signSuccessDesc', { name: targetDelegate.name })
-      });
-    } catch (err) {
-      console.error("Failed to reconcile and sign delegate:", err);
-      toast({
-        variant: 'destructive',
-        title: t('toasts.signErrorTitle'),
-        description: t('toasts.signErrorDescUnknown')
-      });
-    }
-  };
+  const settlementActions = useDelegateTaskSettlementActions({
+    t,
+    toast,
+    user,
+    delegates,
+    setDelegates,
+    selectedDelegateId,
+    taskTitle,
+    setTaskTitle,
+    taskDescription,
+    setTaskDescription,
+    taskDeadline,
+    setTaskDeadline
+  });
 
   return {
     t,
@@ -467,22 +98,22 @@ export function useDelegatesState() {
     referralCountInit, setReferralCountInit,
     subRole, setSubRole,
     isFleetActive, setIsFleetActive,
-    handleAddDelegate,
+    handleAddDelegate: creationActions.handleAddDelegate,
     
     // Task Form
     selectedDelegateId, setSelectedDelegateId,
     taskTitle, setTaskTitle,
     taskDescription, setTaskDescription,
     taskDeadline, setTaskDeadline,
-    handleAddTask,
+    handleAddTask: settlementActions.handleAddTask,
 
     // Actions
-    handleCopy,
-    handleGenerateMagicLink,
-    handleRevokeLink,
-    handleCloseTask,
-    toggleStatus,
-    processPayout,
-    handleReconcileAndSign
+    handleCopy: creationActions.handleCopy,
+    handleGenerateMagicLink: creationActions.handleGenerateMagicLink,
+    handleRevokeLink: creationActions.handleRevokeLink,
+    handleCloseTask: settlementActions.handleCloseTask,
+    toggleStatus: settlementActions.toggleStatus,
+    processPayout: settlementActions.processPayout,
+    handleReconcileAndSign: settlementActions.handleReconcileAndSign
   };
 }
