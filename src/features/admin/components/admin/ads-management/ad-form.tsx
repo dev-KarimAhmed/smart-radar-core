@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Loader2, PlusCircle, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,27 +25,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { jordanGovernorates, getDistrictsByGovernorate } from '@/lib/data';
 import type { AdInput } from '@/core/types';
 import { styles } from './ads-management-styles';
-
-const getAdFormSchema = (t: any) =>
-  z.object({
-    title: z.string().min(5, t('schema.titleMin')),
-    description: z.string().min(10, t('schema.descMin')),
-    posterUrl: z.string().url(t('schema.posterUrlValid')),
-    actionUrl: z.string().url(t('schema.actionUrlValid')),
-    buttonText: z.string().min(2, t('schema.buttonTextMin')),
-    role: z.enum(['driver', 'rider', 'all']),
-    targetImpressions: z.coerce.number().min(1000, t('schema.targetImpressionsMin')),
-    endDate: z.date({ required_error: t('schema.endDateRequired') }),
-    geo: z
-      .object({
-        governorate: z.string().optional(),
-        district: z.string().optional(),
-      })
-      .optional(),
-  });
+import { getAdFormSchema } from './ad-form-schema';
+import { AdFormGeoPicker } from './ad-form-geo-picker';
 
 interface AdFormProps {
   onFinish: (data: AdInput) => Promise<boolean>;
@@ -74,7 +56,6 @@ export function AdForm({ onFinish, isProcessing }: AdFormProps) {
   });
 
   const selectedGov = watch('geo.governorate');
-  const districts = useMemo(() => (selectedGov ? getDistrictsByGovernorate(selectedGov) : []), [selectedGov]);
 
   const onSubmit = async (data: any) => {
     const formattedData = {
@@ -163,50 +144,7 @@ export function AdForm({ onFinish, isProcessing }: AdFormProps) {
             </div>
           </div>
 
-          <div className={styles.style142_14}>
-            <div className={styles.style143_15}>
-              <Label>{t('form.govLabel')}</Label>
-              <Controller
-                control={control}
-                name="geo.governorate"
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('form.allGovs')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jordanGovernorates.map((g) => (
-                        <SelectItem key={g} value={g}>
-                          {g}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-            <div className={styles.style156_16}>
-              <Label>{t('form.districtLabel')}</Label>
-              <Controller
-                control={control}
-                name="geo.district"
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedGov}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('form.allDistricts')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {districts.map((d) => (
-                        <SelectItem key={d} value={d}>
-                          {d}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-          </div>
+          <AdFormGeoPicker control={control} selectedGov={selectedGov} t={t} />
 
           <div className={styles.style171_17}>
             <Label>{t('form.endDateLabel')}</Label>
