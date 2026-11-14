@@ -1,0 +1,17 @@
+export const headerStyles = {
+  root: 'sticky top-0 z-50 flex w-full flex-col shadow-xl',
+  primary: 'flex h-14 sm:h-16 items-center justify-between border-b border-white/[0.06] bg-[#0A0F1D]/80 px-3 sm:px-4 shadow-[0_4px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl',
+  spacer: 'h-10 w-10',
+  menuButton: 'relative h-10 w-10 rounded-full p-0 shadow-sm transition-transform hover:scale-105',
+  menuAvatar: 'h-10 w-10 border-2 border-white/20',
+  menuFallback: 'bg-black/50 font-bold text-white',
+  menuContent: 'w-[288px] border-white/[0.06] bg-[#0A0F1D]/95 p-0 backdrop-blur-xl sm:max-w-xs',
+  actions: 'flex items-center gap-4',
+  notification: 'relative h-10 w-10 text-white/70 hover:bg-white/10',
+  language: 'ms-auto h-8 shrink-0 gap-1 rounded-lg border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-2 text-[10px] font-black text-[#14F5D5] hover:bg-[#14B8A6]/20 hover:text-[#14F5D5]',
+  srOnly: 'sr-only',
+  requestRideWrapper: 'absolute left-1/2 -translate-x-1/2 flex items-center justify-center',
+  requestRideButton: 'h-11 sm:h-12 gap-2.5 rounded-full border-2 border-[#14F5D5]/60 bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] px-5 sm:px-7 text-base sm:text-lg font-black text-slate-950 shadow-[0_0_25px_rgba(20,245,213,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer',
+  btnLogo: 'h-6 sm:h-7 w-auto object-contain shrink-0',
+  headerCenterLogo: 'h-8 sm:h-9 w-auto object-contain drop-shadow-[0_0_12px_rgba(20,184,166,0.35)]',
+} as const;
