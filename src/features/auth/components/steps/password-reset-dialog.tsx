@@ -175,3 +175,4 @@ export function getSupportPhone() {
     || '';
   return rawPhone.replace(/\D/g, '');
 }
+

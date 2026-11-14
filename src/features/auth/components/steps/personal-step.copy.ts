@@ -234,3 +234,4 @@ export function maskEmail(email: string | null): string {
   const masked = '*'.repeat(Math.max(name.length - 2, 4));
   return `${name[0]}${masked}${name[name.length - 1]}@${domain}`;
 }
+
