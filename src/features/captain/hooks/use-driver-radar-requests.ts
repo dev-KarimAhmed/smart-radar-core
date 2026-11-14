@@ -4,16 +4,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
 import type { Trip, User } from '@/core/types';
-import { estimateHaversineDistanceKm } from '../services/ride-location';
 import { getCaptainCancelCooldown, type CaptainCancelCooldownState } from '../services/captain-cancel-cooldown';
 import {
   MAX_RADAR_REQUEST_AGE_MS,
-  RADAR_FALLBACK_LIMIT,
-  RADAR_MAX_DISTANCE_KM,
-  mapRideRequestToTrip,
   playSystemNotificationSound,
   type RadarLocation,
 } from '../services/driver-radar-mapper';
+import {
+  mergePendingRadarRows,
+  filterAndRankRadarRequests,
+  hasNewPendingRequests,
+} from '../services/driver-radar-requests-filter';
 
 interface UseDriverRadarRequestsProps {
   user: User | null;
@@ -145,18 +146,7 @@ export function useDriverRadarRequests({
         p_limit: 50,
       });
 
-      if (pendingRows && Array.isArray(pendingRows)) {
-        const existingIds = new Set(allRows.map((r: any) => r.id));
-        for (const pRow of pendingRows) {
-          if (
-            String((pRow as any)?.status || '').toUpperCase() === 'PENDING' &&
-            !existingIds.has((pRow as any).id)
-          ) {
-            allRows.push(pRow);
-            existingIds.add((pRow as any).id);
-          }
-        }
-      }
+      allRows = mergePendingRadarRows(allRows, pendingRows);
     }
 
     if (error) {
@@ -166,48 +156,18 @@ export function useDriverRadarRequests({
       return;
     }
 
-    const now = Date.now();
-    const mappedRequests = Array.isArray(allRows)
-      ? (allRows.map(mapRideRequestToTrip).filter(Boolean) as Trip[])
-      : [];
+    const rankedRequests = filterAndRankRadarRequests({
+      allRows,
+      activePendingTripIds,
+      loc,
+      cells,
+    });
 
-    const rankedRequests = mappedRequests
-      .filter((request) => {
-        const isPendingOffer = Boolean(activePendingTripIds && activePendingTripIds.includes(request.id));
-        if (isPendingOffer) return true;
-        const createdMs = request.createdAt ? new Date(request.createdAt).getTime() : 0;
-        return createdMs > 0 && now - createdMs <= MAX_RADAR_REQUEST_AGE_MS;
-      })
-      .map((request) => {
-        const driverDistanceKm =
-          estimateHaversineDistanceKm(loc.lat, loc.lng, request.pickupCoords.lat, request.pickupCoords.lng) ??
-          Number.POSITIVE_INFINITY;
-        const isInH3Disk = request.h3Index ? cells.includes(request.h3Index) : false;
-        return { request, driverDistanceKm, isInH3Disk };
-      })
-      .filter(({ driverDistanceKm }) => Number.isFinite(driverDistanceKm) && driverDistanceKm <= RADAR_MAX_DISTANCE_KM)
-      .sort((a, b) => {
-        if (a.isInH3Disk !== b.isInH3Disk) return a.isInH3Disk ? -1 : 1;
-        return a.driverDistanceKm - b.driverDistanceKm;
-      })
-      .slice(0, RADAR_FALLBACK_LIMIT)
-      .map(({ request }) => request);
-
-    let hasNewRequest = false;
-    const currentIds = new Set(rankedRequests.map((req) => req.id));
-
-    for (const req of rankedRequests) {
-      if (!previousRequestIdsRef.current.has(req.id)) {
-        hasNewRequest = true;
-        break;
-      }
-    }
-
-    if (hasNewRequest) {
+    if (hasNewPendingRequests(rankedRequests, previousRequestIdsRef.current)) {
       playSystemNotificationSound();
     }
 
-    previousRequestIdsRef.current = currentIds;
+    previousRequestIdsRef.current = new Set(rankedRequests.map((req) => req.id));
     setRadarLockMessage('');
     setRawRequests(rankedRequests);
   }, [checkTimeBundle]);
