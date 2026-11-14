@@ -2,107 +2,20 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Award,
-  Crown,
-  Sparkles,
-  TrendingUp,
-  Star,
-  Heart,
-  ChevronDown,
-  ShieldCheck,
-  CheckCircle2,
-  Lock,
-  Zap,
-} from 'lucide-react';
+import { Award, Star, Heart, TrendingUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { CAPTAIN_RANK_RULES, type CaptainRankName } from '@/features/captain/services/captain-rank';
-import { rankIncreaseFactorForTier } from '@/features/captain/services/offer-band';
+import type { CaptainRankName } from '@/features/captain/services/captain-rank';
+import {
+  historyRanksStyles as styles,
+  RANK_DETAILS,
+  RANK_HIERARCHY,
+  type HistoryRanksPointsProps,
+} from './ranks/history-ranks-types';
+import { HistoryRanksLadder } from './ranks/history-ranks-ladder';
 
-const styles = {
-  card: 'relative overflow-hidden rounded-3xl border border-amber-500/25 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white',
-  accentBar: 'absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent shadow-[0_0_12px_rgba(251,191,36,0.5)]',
-  header: 'p-4 sm:p-5 pb-3.5 sm:pb-3',
-  headerButton: 'w-full text-right cursor-pointer select-none transition-colors hover:bg-white/[0.02]',
-  headerRow: 'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3',
-  headerInfo: 'flex items-center gap-3 min-w-0',
-  iconBox: 'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]',
-  icon: 'h-5 w-5',
-  title: 'text-base font-black text-white font-sans',
-  descDesktop: 'hidden sm:block text-xs text-slate-400 mt-0.5 leading-relaxed font-sans',
-  descMobile: 'sm:hidden text-xs text-slate-400 leading-relaxed font-sans truncate min-w-0 flex-1',
-  actionsRow: 'flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-white/[0.05] sm:border-0 shrink-0',
-  actionsGroup: 'flex items-center gap-2 shrink-0',
-  countBadge: 'shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 sm:px-3 py-1 text-xs font-bold text-amber-300 shadow-sm font-mono flex items-center gap-1.5',
-  chevronBox: 'flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 transition-all hover:bg-amber-500/20 shrink-0',
-  chevronIcon: 'h-4 w-4 transition-transform duration-200',
-  chevronRotated: 'rotate-180',
-  content: 'p-5 pt-2 space-y-4',
-} as const;
-
-interface HistoryRanksPointsProps {
-  isArabic?: boolean;
-}
-
-const RANK_DETAILS: Record<CaptainRankName, {
-  nameAr: string;
-  nameEn: string;
-  color: string;
-  border: string;
-  bg: string;
-  icon: any;
-  ceilingPercent: number;
-}> = {
-  DIAMOND: {
-    nameAr: 'ماسي',
-    nameEn: 'Diamond',
-    color: 'text-cyan-300',
-    border: 'border-cyan-400/40',
-    bg: 'bg-gradient-to-br from-cyan-500/20 via-cyan-900/10 to-blue-950/30',
-    icon: Crown,
-    ceilingPercent: 25,
-  },
-  PLATINUM: {
-    nameAr: 'بلاتيني',
-    nameEn: 'Platinum',
-    color: 'text-purple-300',
-    border: 'border-purple-400/40',
-    bg: 'bg-gradient-to-br from-purple-500/20 via-purple-900/10 to-indigo-950/30',
-    icon: Sparkles,
-    ceilingPercent: 20,
-  },
-  GOLD: {
-    nameAr: 'ذهبي',
-    nameEn: 'Gold',
-    color: 'text-amber-300',
-    border: 'border-amber-400/40',
-    bg: 'bg-gradient-to-br from-amber-500/20 via-amber-900/10 to-yellow-950/30',
-    icon: Award,
-    ceilingPercent: 15,
-  },
-  SILVER: {
-    nameAr: 'فضي',
-    nameEn: 'Silver',
-    color: 'text-slate-300',
-    border: 'border-slate-400/30',
-    bg: 'bg-gradient-to-br from-slate-500/20 via-slate-800/10 to-slate-900/30',
-    icon: Award,
-    ceilingPercent: 10,
-  },
-  BRONZE: {
-    nameAr: 'برونزي',
-    nameEn: 'Bronze',
-    color: 'text-amber-600',
-    border: 'border-amber-700/30',
-    bg: 'bg-gradient-to-br from-amber-800/20 via-amber-950/10 to-orange-950/30',
-    icon: Award,
-    ceilingPercent: 5,
-  },
-};
-
-const RANK_HIERARCHY: CaptainRankName[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
+export * from './ranks/history-ranks-types';
+export * from './ranks/history-ranks-ladder';
 
 export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps) {
   const { user } = useAuth();
@@ -112,15 +25,12 @@ export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps)
   const rawRank = (user?.rank || (user as any)?.tier || 'BRONZE').toUpperCase() as CaptainRankName;
   const currentRank: CaptainRankName = RANK_HIERARCHY.includes(rawRank) ? rawRank : 'BRONZE';
   const rankMeta = RANK_DETAILS[currentRank] || RANK_DETAILS.BRONZE;
-  const rankRules = CAPTAIN_RANK_RULES[currentRank] || { minRating: 4.0, minHearts: 0 };
 
   const rating = Number(user?.rating || (user as any)?.average_rating || 5.0).toFixed(1);
   const hearts = Number((user as any)?.heart_count || (user as any)?.hearts || 12);
   const completedRides = Number((user as any)?.completed_trips_count || (user as any)?.total_rides || 8);
 
   const currentRankIndex = RANK_HIERARCHY.indexOf(currentRank);
-  const nextRank = currentRankIndex < RANK_HIERARCHY.length - 1 ? RANK_HIERARCHY[currentRankIndex + 1] : null;
-  const nextRankRules = nextRank ? CAPTAIN_RANK_RULES[nextRank] : null;
 
   return (
     <Card className={styles.card} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -235,73 +145,13 @@ export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps)
             </div>
           </div>
 
-          {/* 2. Rank Progression Ladder */}
-          <div className="space-y-2.5 pt-2">
-            <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-amber-400" />
-              <span>{isArabic ? 'سلم ترقيات الكابتن ومتطلباتها:' : 'Rank Progression Ladder:'}</span>
-            </h4>
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {RANK_HIERARCHY.map((rankKey, idx) => {
-                const meta = RANK_DETAILS[rankKey];
-                const rules = CAPTAIN_RANK_RULES[rankKey];
-                const isPassed = idx <= currentRankIndex;
-                const isCurrent = rankKey === currentRank;
-
-                return (
-                  <div
-                    key={rankKey}
-                    className={cn(
-                      'rounded-2xl border p-2.5 text-center transition-all',
-                      isCurrent
-                        ? cn(meta.border, meta.bg, 'shadow-lg ring-1 ring-amber-400/30')
-                        : isPassed
-                        ? 'border-emerald-500/30 bg-emerald-950/20 text-slate-300'
-                        : 'border-white/5 bg-black/30 text-slate-500 opacity-60'
-                    )}
-                  >
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      {isCurrent ? (
-                        <meta.icon className={cn('h-4 w-4', meta.color)} />
-                      ) : isPassed ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                      ) : (
-                        <Lock className="h-3 w-3 text-slate-500" />
-                      )}
-                      <span className={cn('text-xs font-bold', isCurrent && meta.color)}>
-                        {isArabic ? meta.nameAr : meta.nameEn}
-                      </span>
-                    </div>
-
-                    <div className="text-[10px] font-mono text-slate-400">
-                      <span>★ {rules.minRating.toFixed(1)}</span>
-                      {rules.minHearts > 0 && <span> + {rules.minHearts}♥</span>}
-                    </div>
-
-                    <span className="text-[9px] text-slate-400 block mt-0.5">
-                      +{meta.ceilingPercent}% {isArabic ? 'سقف' : 'ceiling'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 3. Next Rank Progress Hint */}
-          {nextRank && nextRankRules && (
-            <div className="rounded-2xl border border-white/5 bg-black/40 p-3 text-xs text-slate-300 leading-relaxed flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-[#14F5D5] shrink-0" />
-              <span>
-                {isArabic
-                  ? `للوصول إلى رتبة (${RANK_DETAILS[nextRank].nameAr}): يلزمك تقييم أسبوعي لا يقل عن ${nextRankRules.minRating.toFixed(1)} نجوم مع ${nextRankRules.minHearts} إعجاب.`
-                  : `To unlock (${RANK_DETAILS[nextRank].nameEn}) rank: You need at least ${nextRankRules.minRating.toFixed(1)} rating and ${nextRankRules.minHearts} hearts.`}
-              </span>
-            </div>
-          )}
+          <HistoryRanksLadder
+            isArabic={isArabic}
+            currentRank={currentRank}
+            currentRankIndex={currentRankIndex}
+          />
         </CardContent>
       )}
     </Card>
   );
 }
-
