@@ -326,7 +326,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/api/auth/resend-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailToResend, phone: personal.phone }),
+        body: JSON.stringify({
+          email: emailToResend,
+          phone: personal.phone,
+          lang: (lang === 'en' ? 'en' : 'ar'),
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -824,6 +828,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         governorateId,
         districtId,
         rememberMe,
+        lang: (lang === 'en' ? 'en' : 'ar') as 'ar' | 'en',
       };
 
       if ((process.env.NODE_ENV !== 'production')) {

@@ -80,10 +80,18 @@ export async function requestPasswordRecovery(phone: string, email?: string) {
     // Ignore in unauthenticated context
   }
 
+  const currentLang = typeof window !== 'undefined'
+    ? (window.localStorage.getItem('radar_dashboard_language') === 'en' ? 'en' : 'ar')
+    : 'ar';
+
   const response = await fetch('/api/password-reset/request', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ phone, email: email?.trim() || undefined }),
+    body: JSON.stringify({
+      phone,
+      email: email?.trim() || undefined,
+      lang: currentLang,
+    }),
   });
 
   const payload = await readJson<{

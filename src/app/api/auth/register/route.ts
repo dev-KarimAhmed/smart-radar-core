@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { sendAccountConfirmationEmail, sendCaptainContractEmail } from '@/server/services/email-service';
+import { sendAccountConfirmationEmail, sendCaptainContractEmail, resolveEmailLanguage } from '@/server/services/email-service';
 import { saveCaptainContract } from '@/server/services/contract-pdf-service';
 import { getAppOrigin } from '@/lib/utils';
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
@@ -138,6 +138,14 @@ export async function POST(req: Request) {
     const otpCode = crypto.randomInt(100000, 1000000).toString();
     const otpExpiresAt = Date.now() + 15 * 60 * 1000;
 
+    // Resolve user's preferred language from body, cookies, or headers
+    const lang = resolveEmailLanguage({
+      explicitLang: body.lang || body.preferredLanguage,
+      cookieHeader: req.headers.get('cookie'),
+      customHeader: req.headers.get('x-dashboard-language'),
+      acceptLanguage: req.headers.get('accept-language'),
+    });
+
     // 4. Build metadata
     const isEgypt = countryId === 2 || normalizedPhone.startsWith('+20');
     const userRole: 'RIDER' | 'CAPTAIN' = (role === 'DRIVER' || role === 'CAPTAIN') ? 'CAPTAIN' : 'RIDER';
@@ -154,6 +162,7 @@ export async function POST(req: Request) {
       district_id: districtId,
       email_otp_code: otpCode,
       email_otp_expires_at: otpExpiresAt,
+      preferred_language: lang,
     };
 
     if (captainProfile) {
@@ -218,6 +227,16 @@ export async function POST(req: Request) {
 
     const userId = newUser.user.id;
 
+    // Explicitly sync preferred_language into profiles table
+    try {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ preferred_language: lang })
+        .eq('id', userId);
+    } catch (profileSyncErr) {
+      console.warn('[Registration API] Failed to update preferred_language in profile:', profileSyncErr);
+    }
+
     // Automatically grant sovereign welcome hours if captain
     if (userRole === 'CAPTAIN') {
       try {
@@ -231,28 +250,29 @@ export async function POST(req: Request) {
       void (async () => {
         try {
           const contractRes = await saveCaptainContract({
-          captainId: userId,
-          fullName,
-          phone: normalizedPhone,
-          email: rawEmail,
-          nationalIdNumber: captainProfile?.national_id_number,
-          licenseNumber: captainProfile?.license_number,
-          plateNumber: captainProfile?.plate_number,
-          vehicleMake: captainProfile?.make || captainProfile?.vehicle_brand,
-          vehicleModel: captainProfile?.model || captainProfile?.vehicle_model,
-          vehicleYear: captainProfile?.year || captainProfile?.vehicle_year,
-          governorate: captainProfile?.governorate,
-          district: captainProfile?.district,
-          ipAddress: clientIp,
-        });
+            captainId: userId,
+            fullName,
+            phone: normalizedPhone,
+            email: rawEmail,
+            nationalIdNumber: captainProfile?.national_id_number,
+            licenseNumber: captainProfile?.license_number,
+            plateNumber: captainProfile?.plate_number,
+            vehicleMake: captainProfile?.make || captainProfile?.vehicle_brand,
+            vehicleModel: captainProfile?.model || captainProfile?.vehicle_model,
+            vehicleYear: captainProfile?.year || captainProfile?.vehicle_year,
+            governorate: captainProfile?.governorate,
+            district: captainProfile?.district,
+            ipAddress: clientIp,
+          });
 
-        await sendCaptainContractEmail({
-          to: rawEmail,
-          captainName: fullName,
-          pdfBuffer: contractRes.pdfBuffer,
-          contractHash: contractRes.contractHash,
-          acceptedAt: contractRes.acceptedAt,
-        });
+          await sendCaptainContractEmail({
+            to: rawEmail,
+            captainName: fullName,
+            pdfBuffer: contractRes.pdfBuffer,
+            contractHash: contractRes.contractHash,
+            acceptedAt: contractRes.acceptedAt,
+            lang,
+          });
         } catch (contractErr) {
           console.warn('[Registration API] Async captain contract email error:', contractErr);
         }
@@ -264,7 +284,7 @@ export async function POST(req: Request) {
       ? `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`
       : getAppOrigin();
 
-    const redirectTo = `${reqOrigin}/auth/confirm`;
+    const redirectTo = `${reqOrigin}/auth/confirm?lang=${lang}`;
 
     let confirmUrl = '';
     const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
@@ -280,7 +300,7 @@ export async function POST(req: Request) {
       confirmUrl = linkData.properties.action_link;
     } else {
       // Direct verification link fallback
-      confirmUrl = `${redirectTo}?email=${encodeURIComponent(rawEmail)}&uid=${encodeURIComponent(userId)}`;
+      confirmUrl = `${redirectTo}&email=${encodeURIComponent(rawEmail)}&uid=${encodeURIComponent(userId)}`;
     }
 
     // 6. Send confirmation email via Resend
@@ -291,6 +311,7 @@ export async function POST(req: Request) {
         userName: fullName,
         confirmUrl,
         otpCode,
+        lang,
       });
       emailSent = emailRes.success;
       if (!emailRes.success) {
@@ -307,7 +328,9 @@ export async function POST(req: Request) {
       needsEmailConfirmation: true,
       emailSent,
       phone: normalizedPhone,
-      message: 'تم إنشاء الحساب بنجاح! تم إرسال كود التفعيل (6 أرقام) إلى بريدك الإلكتروني، صالح لمدة 15 دقيقة.',
+      message: lang === 'en'
+        ? 'Account created successfully! A 6-digit activation code has been sent to your email (valid for 15 minutes).'
+        : 'تم إنشاء الحساب بنجاح! تم إرسال كود التفعيل (6 أرقام) إلى بريدك الإلكتروني، صالح لمدة 15 دقيقة.',
     });
   } catch (error: any) {
     console.error('[Registration API Error]:', error);

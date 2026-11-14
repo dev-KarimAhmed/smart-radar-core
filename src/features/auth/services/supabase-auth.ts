@@ -48,6 +48,7 @@ export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
       governorateId: input.governorateId,
       districtId: input.districtId,
       captainProfile: input.captainProfile || null,
+      lang: input.lang || (typeof window !== 'undefined' ? (window.localStorage.getItem('radar_dashboard_language') === 'en' ? 'en' : 'ar') : 'ar'),
     }),
   });
 

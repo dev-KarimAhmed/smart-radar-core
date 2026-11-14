@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { Router, type Request } from 'express';
 
 import { requireRole } from './supabase-identity';
-import { sendPasswordResetEmail, getSenderFromEmail } from '../services/email-service';
+import { sendPasswordResetEmail, getSenderFromEmail, resolveEmailLanguage } from '../services/email-service';
 import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '../../core/logic/saudi-restriction';
 
 /**
@@ -283,8 +283,20 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
       console.warn('[password-reset] Failed to sync auth.users email:', err);
     }
 
+    const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : null;
+    const customHeader = typeof req.headers['x-dashboard-language'] === 'string' ? req.headers['x-dashboard-language'] : null;
+    const acceptLanguage = typeof req.headers['accept-language'] === 'string' ? req.headers['accept-language'] : null;
+
+    const lang = resolveEmailLanguage({
+      explicitLang: req.body?.lang || req.body?.preferredLanguage,
+      profileLang: (user as any)?.preferred_language || (user as any)?.user_metadata?.preferred_language,
+      cookieHeader,
+      customHeader,
+      acceptLanguage,
+    });
+
     const origin = resolveAppOrigin(req);
-    const redirectTo = `${origin}/reset-password`;
+    const redirectTo = `${origin}/reset-password?lang=${lang}`;
 
     // 1. Generate link via admin API (has NO RATE LIMITS and always succeeds)
     let actionLink: string | null = null;
@@ -326,6 +338,7 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
           to: targetEmail,
           resetUrl: actionLink,
           otpCode: emailOtp,
+          lang,
         });
         emailSentViaResend = resendRes.success;
         if (resendRes.success) {
@@ -371,11 +384,15 @@ passwordResetRouter.post('/password-reset/request', async (req, res) => {
     if (!emailSent) {
       return res.status(500).json({
         success: false,
-        error: 'تعذّر إرسال بريد استعادة كلمة المرور في الوقت الحالي. يرجى المحاولة لاحقاً أو التواصل مع الدعم الفني.',
+        error: lang === 'en'
+          ? 'Failed to send password reset email at this time. Please try again later or contact support.'
+          : 'تعذّر إرسال بريد استعادة كلمة المرور في الوقت الحالي. يرجى المحاولة لاحقاً أو التواصل مع الدعم الفني.',
       });
     }
 
-    const message = `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`;
+    const message = lang === 'en'
+      ? `A password reset link has been sent successfully to (${targetEmail}). Please check your inbox or spam folder.`
+      : `تم إرسال رابط استعادة كلمة المرور بنجاح إلى (${targetEmail}). يرجى فتح بريدك الإلكتروني (صندوق الوارد أو مجلد Spam) والضغط على الرابط لإعادة تعيين كلمة المرور.`;
 
     return res.json({
       success: true,

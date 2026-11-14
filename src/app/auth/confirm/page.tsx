@@ -124,8 +124,23 @@ function ConfirmContent() {
     };
   }, [searchParams]);
 
-  const langParam = searchParams?.get('lang') || 'ar';
-  const isArabic = langParam !== 'en';
+  const langParam = searchParams?.get('lang');
+  const [resolvedLang, setResolvedLang] = useState<'ar' | 'en'>(langParam === 'en' ? 'en' : 'ar');
+
+  useEffect(() => {
+    if (langParam === 'en' || langParam === 'ar') {
+      setResolvedLang(langParam);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem('radar_dashboard_language');
+      if (stored === 'en' || stored === 'ar') {
+        setResolvedLang(stored);
+      }
+    } catch {}
+  }, [langParam]);
+
+  const isArabic = resolvedLang !== 'en';
   const roleParam = searchParams?.get('role') || '';
   const loginUrl = roleParam === 'captain' || roleParam === 'driver' ? '/login/driver' : '/';
 

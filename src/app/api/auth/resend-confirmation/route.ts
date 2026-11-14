@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { sendAccountConfirmationEmail } from '@/server/services/email-service';
+import { sendAccountConfirmationEmail, resolveEmailLanguage } from '@/server/services/email-service';
 import { getAppOrigin } from '@/lib/utils';
 import { isSaudiPhoneNumber, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
 
@@ -30,29 +30,32 @@ export async function POST(req: Request) {
     let targetEmail = rawEmail;
     let targetName = 'عزيزنا المستخدم';
     let targetUserId: string | null = providedUserId || null;
+    let profilePreferredLang: string | null = null;
 
     if (rawEmail) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('id, full_name, email')
+        .select('id, full_name, email, preferred_language')
         .ilike('email', rawEmail)
         .maybeSingle();
 
       if (profile) {
         targetName = profile.full_name || targetName;
         targetEmail = profile.email || targetEmail;
+        if (profile.preferred_language) profilePreferredLang = profile.preferred_language;
         if (!targetUserId) targetUserId = profile.id;
       }
     } else if (rawPhone) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('id, full_name, email')
+        .select('id, full_name, email, preferred_language')
         .eq('phone', rawPhone)
         .maybeSingle();
 
       if (profile && profile.email) {
         targetName = profile.full_name || targetName;
         targetEmail = profile.email;
+        if (profile.preferred_language) profilePreferredLang = profile.preferred_language;
         if (!targetUserId) targetUserId = profile.id;
       }
     }
@@ -115,12 +118,21 @@ export async function POST(req: Request) {
       console.warn('[Resend-Confirmation] Failed to update user metadata with new OTP:', updateErr);
     }
 
+    // Resolve language
+    const lang = resolveEmailLanguage({
+      explicitLang: body.lang || body.preferredLanguage,
+      profileLang: profilePreferredLang || authUser?.user_metadata?.preferred_language,
+      cookieHeader: req.headers.get('cookie'),
+      customHeader: req.headers.get('x-dashboard-language'),
+      acceptLanguage: req.headers.get('accept-language'),
+    });
+
     // 3. Generate confirmation link
     const reqOrigin = req.headers.get('origin') || req.headers.get('x-forwarded-host')
       ? `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`
       : getAppOrigin();
 
-    const redirectTo = `${reqOrigin}/auth/confirm`;
+    const redirectTo = `${reqOrigin}/auth/confirm?lang=${lang}`;
 
     let confirmUrl = '';
     const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
@@ -134,7 +146,7 @@ export async function POST(req: Request) {
     if (!linkErr && linkData?.properties?.action_link) {
       confirmUrl = linkData.properties.action_link;
     } else {
-      confirmUrl = `${redirectTo}?email=${encodeURIComponent(targetEmail)}&uid=${encodeURIComponent(authUser.id)}`;
+      confirmUrl = `${redirectTo}&email=${encodeURIComponent(targetEmail)}&uid=${encodeURIComponent(authUser.id)}`;
     }
 
     // 4. Send email via Resend
@@ -143,19 +155,24 @@ export async function POST(req: Request) {
       userName: targetName,
       confirmUrl,
       otpCode: newOtpCode,
+      lang,
     });
 
     if (!emailRes.success) {
       console.warn('[Resend-Confirmation] Email dispatch error:', emailRes.error);
       return NextResponse.json({
         success: false,
-        error: 'تعذر إرسال البريد الإلكتروني حالياً. يرجى المحاولة بعد قليل.',
+        error: lang === 'en'
+          ? 'Failed to send confirmation email at this time. Please try again shortly.'
+          : 'تعذر إرسال البريد الإلكتروني حالياً. يرجى المحاولة بعد قليل.',
       }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      message: 'تم إرسال كود تفعيل جديد مكون من 6 أرقام إلى بريدك الإلكتروني (صالح لمدة 15 دقيقة).',
+      message: lang === 'en'
+        ? 'A new 6-digit activation code has been sent to your email (valid for 15 minutes).'
+        : 'تم إرسال كود تفعيل جديد مكون من 6 أرقام إلى بريدك الإلكتروني (صالح لمدة 15 دقيقة).',
     });
   } catch (error: any) {
     console.error('[Resend-Confirmation API Error]:', error);

@@ -14,6 +14,7 @@ export interface RiderSupabaseSignUpInput {
   districtId: number;
   rememberMe?: boolean;
   captainProfile?: CaptainProfileMetadata;
+  lang?: 'ar' | 'en' | string;
 }
 
 export interface CaptainProfileMetadata {
