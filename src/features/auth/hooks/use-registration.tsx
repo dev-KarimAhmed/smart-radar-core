@@ -1,138 +1,50 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { AffiliationType } from '@/core/types';
-import { buildRiderSignUpMetadata, isInvalidPhoneOrPasswordError, mapSupabaseAuthError, signInRiderWithPhone, signUpRiderWithPhone } from '../services/supabase-auth';
-import { shouldRememberSupabaseSession, supabase } from '@/lib/supabase-client';
-import { getAuthRedirectUrl } from '@/lib/utils';
+import { shouldRememberSupabaseSession } from '@/lib/supabase-client';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { useToast } from '@/hooks/use-toast';
+import type { RegistrationRole } from '../utils/registration-helpers';
+import { useTranslations } from 'next-intl';
+
+import type {
+  RegistrationStep,
+  AuthMode,
+  LocationOption,
+  PersonalRegistrationState,
+  RegistrationContextType,
+} from '../types/registration-context-types';
+import { useRegistrationLocations } from './registration/use-registration-locations';
+import { useRegistrationValidation } from './registration/use-registration-validation';
 import {
-  claimCaptainReferral,
-  getPendingCaptainReferral,
-  storePendingCaptainReferral,
-  clearPendingCaptainReferral,
-  removeReferralParamFromUrl,
-} from '@/features/referral/services/captain-referral';
-import {
-  useSupabaseCountries,
-  getCountryDialCode,
-  getCountryIsoCode,
-  type SupabaseCountryRow,
-} from './use-supabase-countries';
-import {
-  useSupabaseGovernorates,
-  useSupabaseDistricts,
-  normalizeGovernorates,
-  normalizeDistricts,
-} from './use-supabase-locations';
-import { useDetectedCountryCode } from './use-detected-country-code';
-import {
-  getLocationLabel,
-  normalizePhoneForCountry,
-  toSupabaseAuthRole,
-  getDemoPhoneForCountry,
-  type RegistrationRole,
-} from '../utils/registration-helpers';
-import { normalizeInternationalPhone } from '../services/supabase-auth-logic';
-import { useTranslations } from "next-intl";
-import { recordLegalDeclaration } from '@/features/account/services/legal-log-service';
+  useRegistrationDevMocks,
+  isStrictDevelopment,
+} from './registration/use-registration-dev-mocks';
+import { useRegistrationEmailVerification } from './registration/use-registration-email-verification';
+import { useRegistrationSubmit } from './registration/use-registration-submit';
 
-const styles = {
-  root: "",
-} as const;
-
-
-/**
- * Must be the literal `process.env.NODE_ENV` expression. Bundlers replace exactly that text
- * at build time; anything reached dynamically — `globalThis.process?.env?.NODE_ENV` — is left
- * as a runtime lookup, and there is no `process` object in a browser. So the previous version
- * was TRUE during the server render and FALSE on the client, and the dev-only mock-data block
- * it gates rendered into the SSR HTML and then vanished during hydration:
- *
- *   Hydration failed because the server rendered HTML didn't match the client.
- *
- * `import.meta.env` is Vite's API and is empty here — leftover from the dead Vite SPA
- * (see CLAUDE.md), so both of the first two checks were always false anyway.
- */
-const isStrictDevelopment = process.env.NODE_ENV === 'development';
-
-type RegistrationStep = 'role' | 'personal' | 'affiliation' | 'vehicle' | 'admin' | 'advertiser' | 'ProfessionalStep';
-type AuthMode = 'register' | 'login';
-type LocationOption = { id: string; label: string; labelEn: string; value: string };
-
-interface PersonalRegistrationState {
-  name: string;
-  phone: string;
-  email: string;
-  country: string;
-  gov: string;
-  district: string;
-  verificationDoc: string;
-}
-
-interface RegistrationContextType {
-  step: RegistrationStep;
-  setStep: (step: RegistrationStep) => void;
-  role: RegistrationRole;
-  setRole: (role: RegistrationRole) => void;
-  authMode: AuthMode;
-  setAuthMode: (mode: AuthMode) => void;
-  lang: 'ar' | 'en';
-  setLang: (lang: 'ar' | 'en') => void;
-  personal: PersonalRegistrationState;
-  setPersonal: (personal: PersonalRegistrationState | ((current: PersonalRegistrationState) => PersonalRegistrationState)) => void;
-  authPassword: string;
-  setAuthPassword: (password: string) => void;
-  rememberMe: boolean;
-  setRememberMe: (remember: boolean) => void;
-  advertiserProfile: { companyName: string; commercialRegister: string; adLicense: string; businessType: string };
-  setAdvertiserProfile: (profile: any) => void;
-  affiliation: AffiliationType | null;
-  setAffiliation: (affiliation: any) => void;
-  vehicle: any;
-  setVehicle: (vehicle: any) => void;
-  isSubmitting: boolean;
-  locationDataLoading: boolean;
-  countries: LocationOption[];
-  selectedCountry: SupabaseCountryRow | null;
-  phonePlaceholder: string;
-  phoneValidationHint: string;
-  governorates: LocationOption[];
-  districts: LocationOption[];
-  canUseDevMockData: boolean;
-  fillRandomRegistrationData: () => void;
-  fillCaptainRegistrationData: () => void;
-  validateBeforeAccuracyConfirm: () => Promise<boolean>;
-  handlePersonalSubmit: (e: React.FormEvent) => void;
-  handleVehicleSubmit: (e: React.FormEvent) => void;
-  handleAdvertiserSubmit: (e: React.FormEvent) => void;
-  adminCreds: any;
-  setAdminCreds: (creds: any) => void;
-  handleAdminSubmit: (e: React.FormEvent) => void;
-  handleLogoTap: () => void;
-  // Bumped whenever a login attempt fails with a wrong phone/password, so the
-  // "create a new account" link can replay its attention animation — see
-  // PersonalStep, where the link's `key` is tied to this value.
-  createAccountPulseKey: number;
-  awaitingConfirmationEmail: string | null;
-  setAwaitingConfirmationEmail: (email: string | null) => void;
-  resendConfirmationEmail: (overrideEmail?: string) => Promise<boolean>;
-  verifyEmailCode: (code: string) => Promise<boolean>;
-}
+export type {
+  RegistrationStep,
+  AuthMode,
+  LocationOption,
+  PersonalRegistrationState,
+  RegistrationContextType,
+};
 
 const RegistrationContext = createContext<RegistrationContextType | undefined>(undefined);
 
 export function RegistrationProvider({ children }: { children: ReactNode }) {
-    const tAuto = useTranslations('auto');
-  const router = useRouter();
-  const { toast } = useToast();
+  const tAuto = useTranslations('auto');
   const [step, setStep] = useState<RegistrationStep>('role');
   const [role, setRole] = useState<RegistrationRole>(null);
   const [authMode, setAuthMode] = useState<AuthMode>('register');
-  // Language is owned by the shared LocaleProvider (persisted + synced app-wide),
-  // so the auth/home flow and the role dashboards always agree on the language.
   const { language: lang, setLanguage: setLang } = useDashboardLanguage();
   const [personal, setPersonal] = useState<PersonalRegistrationState>({
     name: '',
@@ -146,955 +58,108 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [authPassword, setAuthPassword] = useState('');
   const [awaitingConfirmationEmail, setAwaitingConfirmationEmail] = useState<string | null>(null);
   const registeredAuthRef = useRef<{ phone: string; password: string; role: RegistrationRole; email?: string } | null>(null);
-
-  const claimPendingRiderReferralIfNeeded = useCallback(async (targetRole: RegistrationRole, explicitRef?: string) => {
-    const queryRef = typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('ref') ||
-        new URLSearchParams(window.location.search).get('captain')
-      : null;
-    const refCode = (explicitRef || getPendingCaptainReferral() || queryRef || '').trim();
-    if (targetRole !== 'rider' || !refCode) return;
-
-    try {
-      const claimResult = await claimCaptainReferral(refCode);
-      if (claimResult.success && typeof window !== 'undefined') {
-        window.sessionStorage.setItem('radar_just_linked_captain_name', claimResult.captain_name || '');
-      }
-      if (process.env.NODE_ENV !== 'production') {
-        console.info('[Referral on Signup Claimed]', claimResult);
-      }
-    } catch (referralErr) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[Referral on Signup Error]', referralErr);
-      }
-    } finally {
-      clearPendingCaptainReferral();
-      removeReferralParamFromUrl();
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.removeItem('radar_newly_registered_referral');
-        window.dispatchEvent(new CustomEvent('radar_favorites_updated'));
-      }
-    }
-  }, []);
-
-  const verifyEmailCode = async (code: string): Promise<boolean> => {
-    const cleanCode = code.trim().replace(/\D/g, '');
-    if (cleanCode.length !== 6) {
-      toast({
-        variant: 'destructive',
-        title: lang === 'ar' ? 'رمز تفعيل غير مكتمل' : 'Incomplete code',
-        description: lang === 'ar' ? 'يرجى إدخال كود التفعيل المكون من 6 أرقام.' : 'Please enter the 6-digit activation code.',
-      });
-      return false;
-    }
-
-    let savedAuth = registeredAuthRef.current;
-    if ((!savedAuth?.phone || !savedAuth?.password) && typeof window !== 'undefined') {
-      try {
-        const cached = window.sessionStorage.getItem('radar_registered_auth');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && typeof parsed === 'object') {
-            savedAuth = parsed;
-            registeredAuthRef.current = parsed;
-          }
-        }
-      } catch {}
-    }
-
-    const emailToVerify = (awaitingConfirmationEmail || savedAuth?.email || personal.email)?.trim();
-    const normalizedForVerify = normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
-    const verifyPhone =
-      savedAuth?.phone ||
-      (normalizedForVerify.ok ? normalizedForVerify.phone : '') ||
-      normalizeInternationalPhone(personal.phone);
-
-    try {
-      const res = await fetch('/api/auth/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: cleanCode,
-          email: emailToVerify,
-          phone: verifyPhone,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'كود التفعيل غير صحيح أو انتهت صلاحيته.');
-      }
-
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
-        } catch {}
-      }
-
-      const rawLoginPhone =
-        savedAuth?.phone ||
-        (normalizedForVerify.ok ? normalizedForVerify.phone : '') ||
-        String(data.phone || '') ||
-        personal.phone;
-
-      let finalLoginPhone = normalizeInternationalPhone(rawLoginPhone);
-      if (!finalLoginPhone.startsWith('+')) {
-        const countryNormalized = normalizePhoneForCountry(rawLoginPhone, selectedCountry, tAuto);
-        if (countryNormalized.ok) {
-          finalLoginPhone = countryNormalized.phone;
-        } else if (/^[1-9]\d{7,14}$/.test(finalLoginPhone)) {
-          finalLoginPhone = '+' + finalLoginPhone;
-        }
-      }
-
-      const loginPassword = savedAuth?.password || authPassword;
-      const targetRole: RegistrationRole = savedAuth?.role || role || 'rider';
-      const loginEmail = savedAuth?.email || emailToVerify || (data.email ? String(data.email) : undefined);
-
-      // Auto login immediately
-      if (finalLoginPhone && loginPassword) {
-        try {
-          await signInRiderWithPhone({
-            phone: finalLoginPhone,
-            password: loginPassword,
-            rememberMe,
-            expectedRole: toSupabaseAuthRole(targetRole),
-            email: loginEmail,
-          });
-          await claimPendingRiderReferralIfNeeded(targetRole);
-
-          if (typeof window !== 'undefined') {
-            try {
-              window.sessionStorage.removeItem('radar_registered_auth');
-            } catch {}
-          }
-
-          toast({
-            title: lang === 'ar' ? 'تم تفعيل الحساب والدخول بنجاح! 🎉' : 'Account activated & logged in! 🎉',
-            description: lang === 'ar' ? 'أهلاً بك! يتم نقلك إلى التطبيق...' : 'Welcome! Redirecting...',
-          });
-
-          const directPath =
-            targetRole === 'driver' ? '/captain' :
-            targetRole === 'rider' ? '/rider' :
-            targetRole === 'admin' ? '/admin' :
-            targetRole === 'advertiser' ? '/advertiser/dashboard' :
-            targetRole === 'delegate' ? '/delegate' :
-            '/rider';
-
-          setAwaitingConfirmationEmail(null);
-
-          if (typeof window !== 'undefined') {
-            window.location.replace(directPath);
-            return true;
-          }
-          router.replace(directPath);
-          return true;
-        } catch (loginErr) {
-          console.error('[Auto-login after OTP failed]', loginErr);
-        }
-      }
-
-      toast({
-        title: lang === 'ar' ? 'تم تفعيل الحساب بنجاح! 🎉' : 'Account activated successfully! 🎉',
-        description: data.message || (lang === 'ar' ? 'تم تأكيد بريدك الإلكتروني بنجاح.' : 'Your email has been confirmed successfully.'),
-      });
-      setAwaitingConfirmationEmail(null);
-      setAuthMode('login');
-      return true;
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: lang === 'ar' ? 'فشل تأكيد الكود' : 'Verification failed',
-        description: err?.message || (lang === 'ar' ? 'كود التفعيل غير صحيح أو انتهت صلاحيته.' : 'Invalid or expired code.'),
-      });
-      return false;
-    }
-  };
-
-  const resendConfirmationEmail = async (overrideEmail?: string) => {
-    const emailToResend = (overrideEmail || awaitingConfirmationEmail || personal.email)?.trim();
-    if (!emailToResend) {
-      toast({
-        variant: 'destructive',
-        title: lang === 'ar' ? 'البريد الإلكتروني غير متوفر' : 'Email missing',
-        description: lang === 'ar' ? 'يرجى إدخال بريدك الإلكتروني لإعادة إرسال رسالة التأكيد.' : 'Please provide your email to resend confirmation.',
-      });
-      return false;
-    }
-
-    try {
-      const res = await fetch('/api/auth/resend-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: emailToResend,
-          phone: personal.phone,
-          lang: (lang === 'en' ? 'en' : 'ar'),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'تعذر إعادة إرسال رسالة التأكيد.');
-      }
-      toast({
-        title: lang === 'ar' ? 'تم الإرسال بنجاح ✉️' : 'Sent successfully ✉️',
-        description: data.message || (lang === 'ar' ? 'تم إرسال رابط تأكيد جديد إلى بريدك الإلكتروني.' : 'New confirmation link sent to your email.'),
-      });
-      return true;
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: lang === 'ar' ? 'خطأ أثناء الإرسال' : 'Dispatch error',
-        description: err?.message || (lang === 'ar' ? 'تعذر إعادة إرسال رسالة التأكيد. حاول مرة أخرى لاحقاً.' : 'Failed to resend confirmation email.'),
-      });
-      return false;
-    }
-  };
-  // Keep the first SSR/client render identical. Browser storage is hydrated
-  // after mount so the remember-me preference cannot cause a hydration diff.
   const [rememberMe, setRememberMe] = useState(false);
   const [advertiserProfile, setAdvertiserProfile] = useState({ companyName: '', commercialRegister: '', adLicense: '', businessType: 'commercial' });
   const [affiliation, setAffiliation] = useState<AffiliationType | null>(null);
   const [vehicle, setVehicle] = useState({ year: '', plate: '', sideId: '', make: '', color: '', officeName: '', officePhone: '', companyName: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createAccountPulseKey, setCreateAccountPulseKey] = useState(0);
-  const [logoTapCount, setLogoTapCount] = useState(0);
   const [adminCreds, setAdminCreds] = useState({ email: '', password: '' });
-  const [selectedCountry, setSelectedCountry] = useState<SupabaseCountryRow | null>(null);
-  const detectedCountryCode = useDetectedCountryCode();
-
-  const { countryRows, loading: countriesLoading } = useSupabaseCountries({
-    onError: () =>
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_2a3ac6a0'),
-        description: tAuto('key_4a1a36ba'),
-      }),
-  });
-  const countryIdNum = Number(personal.country) || null;
-  const governorateIdNum = Number(personal.gov) || null;
-  const { governorateRows, loading: governoratesLoading } = useSupabaseGovernorates(countryIdNum, {
-    onError: () =>
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_64ee8ed7'),
-        description: tAuto('key_4966bf15'),
-      }),
-  });
-  const { districtRows, loading: districtsLoading } = useSupabaseDistricts(governorateIdNum, {
-    onError: () =>
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_ae97e002'),
-        description: tAuto('key_9a947721'),
-      }),
-  });
   const isSubmittingRef = useRef(false);
-
-  const locationDataLoading = countriesLoading || governoratesLoading || districtsLoading;
 
   useEffect(() => {
     setRememberMe(shouldRememberSupabaseSession());
-    // Only capture referral parameter when registering a new account, never on login routes
-    if (typeof window !== 'undefined') {
-      try {
-        const isLoginRoute = window.location.pathname.includes('/login');
-        if (isLoginRoute) {
-          clearPendingCaptainReferral();
-          removeReferralParamFromUrl();
-          window.sessionStorage.removeItem('radar_newly_registered_referral');
-          return;
-        }
-        const params = new URLSearchParams(window.location.search);
-        const ref = params.get('ref') || params.get('captain');
-        if (ref && ref.trim()) {
-          storePendingCaptainReferral(ref.trim());
-        }
-      } catch {
-        // ignore
-      }
-    }
   }, []);
 
-  // Strict rule: if the user switches to or views the login form, referral must never apply
-  useEffect(() => {
-    if (authMode === 'login') {
-      clearPendingCaptainReferral();
-      removeReferralParamFromUrl();
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.removeItem('radar_newly_registered_referral');
-      }
-    }
-  }, [authMode]);
-
-  useEffect(() => {
-    const countryId = Number(personal.country);
-    setSelectedCountry(countryRows.find((country) => country.id === countryId) || null);
-  }, [countryRows, personal.country]);
-
-  useEffect(() => {
-    if (personal.country || !detectedCountryCode || countryRows.length === 0) return;
-
-    const detectedCountry = countryRows.find((country) => getCountryIsoCode(country) === detectedCountryCode);
-    if (!detectedCountry) return;
-
-    setPersonal((current) =>
-      current.country ? current : { ...current, country: String(detectedCountry.id), gov: '', district: '' },
-    );
-  }, [countryRows, detectedCountryCode, personal.country]);
-
-  // Clears the dependent fields whenever their parent selection changes; the
-  // rows themselves are fetched by the hooks above, keyed off the same ids.
-  useEffect(() => {
-    setPersonal((current) => (current.gov || current.district ? { ...current, gov: '', district: '' } : current));
-  }, [personal.country]);
-
-  useEffect(() => {
-    setPersonal((current) => (current.district ? { ...current, district: '' } : current));
-  }, [personal.gov]);
-
-  const countries = useMemo(
-    () =>
-      countryRows.map((country) => ({
-        id: String(country.id),
-        label: getLocationLabel(country, 'ar'),
-        labelEn: getLocationLabel(country, 'en'),
-        value: String(country.id),
-      })),
-    [countryRows],
-  );
-
-  const governorates = useMemo(
-    () =>
-      governorateRows.map((governorate) => ({
-        id: String(governorate.id),
-        label: getLocationLabel(governorate, 'ar'),
-        labelEn: getLocationLabel(governorate, 'en'),
-        value: String(governorate.id),
-      })),
-    [governorateRows],
-  );
-
-  const districts = useMemo(
-    () =>
-      districtRows.map((district) => ({
-        id: String(district.id),
-        label: getLocationLabel(district, 'ar'),
-        labelEn: getLocationLabel(district, 'en'),
-        value: String(district.id),
-      })),
-    [districtRows],
-  );
-
-  const phonePlaceholder = useMemo(() => getDemoPhoneForCountry(selectedCountry), [selectedCountry]);
-  const phoneValidationHint =
-    lang === 'ar'
-      ? tAuto('key_1a0de9e5')
-      : "Write your number in your country's local format, or international format if you prefer";
-
-  const fillRandomRegistrationData = useCallback(() => {
-    if (!isStrictDevelopment) return;
-
-    if (!selectedCountry || !personal.gov || districtRows.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_4e1d745a'),
-        description: tAuto('key_a041f296'),
-      });
-      return;
-    }
-
-    const dialCode = getCountryDialCode(selectedCountry);
-    if (!dialCode) {
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_a644ed7b'),
-        description: tAuto('key_912f6acb'),
-      });
-      return;
-    }
-
-    const randomDistrict = districtRows[Math.floor(Math.random() * districtRows.length)];
-    const serial = String(Date.now()).slice(-6);
-    const demoPhone = getDemoPhoneForCountry(selectedCountry);
-
-    setAuthMode('register');
-    setPersonal((current) => ({
-      ...current,
-      name: `مستخدم تجربة ${serial}`,
-      phone: demoPhone,
-      email: `test${serial}@example.com`,
-      country: String(selectedCountry.id),
-      gov: personal.gov,
-      district: String(randomDistrict.id),
-    }));
-    setAuthPassword(`Test${serial}!`);
-
-    toast({
-      title: tAuto('key_294a26b3'),
-      description: tAuto('key_38e7e080'),
-    });
-  }, [districtRows, personal.gov, selectedCountry, toast]);
-
-  const fillCaptainRegistrationData = useCallback(async () => {
-    const country =
-      selectedCountry ||
-      countryRows.find((row) => String(row.id) === personal.country) ||
-      countryRows[0] ||
-      null;
-
-    let governorateOptions = governorateRows.filter((row) => row.country_id === country?.id);
-    if (country && governorateOptions.length === 0) {
-      const { data, error } = await supabase
-        .from('governorates')
-        .select('*')
-        .eq('country_id', country.id)
-        .order('id', { ascending: true });
-      if (!error) {
-        governorateOptions = normalizeGovernorates(data);
-      }
-    }
-
-    const governorateId = Number(
-      personal.gov && governorateOptions.some((row) => row.id === Number(personal.gov))
-        ? personal.gov
-        : governorateOptions[0]?.id,
-    );
-
-    let districtOptions = districtRows.filter((district) => district.governorate_id === governorateId);
-    if (Number.isInteger(governorateId) && governorateId > 0 && districtOptions.length === 0) {
-      const { data, error } = await supabase
-        .from('districts')
-        .select('*')
-        .eq('governorate_id', governorateId)
-        .order('id', { ascending: true });
-      if (!error) {
-        districtOptions = normalizeDistricts(data);
-      }
-    }
-
-    const districtId = Number(
-      personal.district && districtOptions.some((row) => row.id === Number(personal.district))
-        ? personal.district
-        : districtOptions[0]?.id,
-    );
-
-    if (!country || !Number.isInteger(governorateId) || !Number.isInteger(districtId)) {
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_7e63a867'),
-        description: tAuto('key_f67ac42d'),
-      });
-      return;
-    }
-
-    const serial = String(Date.now()).slice(-6);
-    const demoPhone = getDemoPhoneForCountry(country);
-    const plateSuffix = serial.slice(-4);
-
-    setAuthMode('register');
-    setRole('driver');
-    setAffiliation(affiliation || 'smart-app');
-    setPersonal((current) => ({
-      ...current,
-      name: `Captain Test ${serial}`,
-      phone: demoPhone,
-      email: `captain${serial}@example.com`,
-      country: String(country.id),
-      gov: String(governorateId),
-      district: String(districtId),
-      verificationDoc: current.verificationDoc || 'dev-captain-license',
-    }));
-    setAuthPassword(`Captain${serial}!`);
-    setVehicle((current: any) => ({
-      ...current,
-      make: 'Toyota Corolla',
-      color: 'black',
-      plate: `TEST-${plateSuffix}`,
-      year: '2022',
-      companyName: 'bynkcom',
-      officeName: 'مكتب بينكم التجريبي',
-      officePhone: demoPhone,
-      sideId: `D-${plateSuffix}`,
-    }));
-
-    toast({
-      title: tAuto('key_c3d38c4f'),
-      description: tAuto('key_61287ae0'),
-    });
-  }, [
-    affiliation,
+  const {
+    selectedCountry,
     countryRows,
-    districtRows,
     governorateRows,
-    personal.country,
-    personal.district,
-    personal.gov,
-    selectedCountry,
-    toast,
-  ]);
-
-  const validateAuthFields = useCallback(() => {
-    const countryId = Number(personal.country);
-    const governorateId = Number(personal.gov);
-    const districtId = Number(personal.district);
-    const selectedGovernorate = governorateRows.find(
-      (governorate) => governorate.id === governorateId && governorate.country_id === countryId,
-    );
-    const selectedDistrict = districtRows.find(
-      (district) => district.id === districtId && district.governorate_id === governorateId,
-    );
-
-    if (!personal.phone || !authPassword) {
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_e1da8e5b'),
-        description: tAuto('key_48c653a4'),
-      });
-      return null;
-    }
-
-    const normalizedPhone = normalizePhoneForCountry(personal.phone, selectedCountry, tAuto);
-    if (!normalizedPhone.ok) {
-      toast({
-        variant: 'destructive',
-        title: tAuto('key_c4fdecb8'),
-        description: normalizedPhone.message,
-      });
-      return null;
-    }
-
-    if (authMode === 'register') {
-      if (
-        !personal.name.trim() ||
-        !Number.isInteger(countryId) ||
-        !Number.isInteger(governorateId) ||
-        !Number.isInteger(districtId) ||
-        !selectedCountry ||
-        !selectedGovernorate ||
-        !selectedDistrict
-      ) {
-        toast({
-          variant: 'destructive',
-          title: tAuto('key_e1da8e5b'),
-          description: tAuto('key_97c980d3'),
-        });
-        return null;
-      }
-
-      const cleanEmail = personal.email?.trim() || '';
-      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-        toast({
-          variant: 'destructive',
-          title: tAuto('key_e1da8e5b'),
-          description: lang === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح لتفعيل الحساب.' : 'Please enter a valid email address.',
-        });
-        return null;
-      }
-
-      if (authPassword.length < 6) {
-        toast({
-          variant: 'destructive',
-          title: tAuto('key_e1da8e5b'),
-          description: lang === 'ar' ? 'كلمة المرور ضعيفة. يجب ألا تقل عن 6 أحرف.' : 'Password must be at least 6 characters.',
-        });
-        return null;
-      }
-    }
-
-    return { countryId, governorateId, districtId, normalizedPhone };
-  }, [
+    districtRows,
+    locationDataLoading,
+    countries,
+    governorates,
+    districts,
+    phonePlaceholder,
+    phoneValidationHint,
+  } = useRegistrationLocations({
+    personal,
+    setPersonal,
     authMode,
-    authPassword,
-    districtRows,
-    governorateRows,
     lang,
-    personal.country,
-    personal.district,
-    personal.email,
-    personal.gov,
-    personal.name,
-    personal.phone,
-    selectedCountry,
     tAuto,
-    toast,
-  ]);
+  });
 
-  const validateBeforeAccuracyConfirm = useCallback(async (): Promise<boolean> => {
-    const validated = validateAuthFields();
-    if (!validated) return false;
-    if (authMode !== 'register') return true;
+  const { validateAuthFields, validateBeforeAccuracyConfirm } = useRegistrationValidation({
+    personal,
+    authPassword,
+    authMode,
+    selectedCountry,
+    governorateRows,
+    districtRows,
+    lang,
+    tAuto,
+    isSubmittingRef,
+    setIsSubmitting,
+  });
 
-    isSubmittingRef.current = true;
-    setIsSubmitting(true);
-    try {
-      const cleanEmail = personal.email?.trim().toLowerCase() || null;
-      const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
-        p_national_id: null,
-        p_license_number: null,
-        p_plate_number: null,
-        p_email: cleanEmail,
-        p_phone: validated.normalizedPhone.phone,
-      });
-
-      if (!rpcError && availability) {
-        if (availability.phone_taken) {
-          toast({
-            variant: 'destructive',
-            title: tAuto('key_71272649'),
-            description: lang === 'ar'
-              ? 'رقم الهاتف مسجل بالفعل مسبقاً. يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.'
-              : 'This phone number is already registered. Please log in instead.',
-          });
-          return false;
-        }
-        if (availability.email_taken) {
-          toast({
-            variant: 'destructive',
-            title: tAuto('key_71272649'),
-            description: lang === 'ar'
-              ? 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.'
-              : 'This email address is already registered to another account.',
-          });
-          return false;
-        }
-      }
-      return true;
-    } catch {
-      return true;
-    } finally {
-      setIsSubmitting(false);
-      isSubmittingRef.current = false;
-    }
-  }, [authMode, lang, personal.email, tAuto, toast, validateAuthFields]);
-
-  const submitSupabaseAuth = useCallback(async () => {
-    if (isSubmittingRef.current) return;
-
-    const validated = validateAuthFields();
-    if (!validated) return;
-    const { countryId, governorateId, districtId, normalizedPhone } = validated;
-
-    isSubmittingRef.current = true;
-    setIsSubmitting(true);
-
-    try {
-      const queryRef = typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('ref') ||
-          new URLSearchParams(window.location.search).get('captain')
-        : null;
-      const pendingRef = (getPendingCaptainReferral() || queryRef || '').trim();
-
-      if (authMode === 'login') {
-        // STRICT RULE: If the user logs in, they ALREADY have an account.
-        // Even if ?ref= was in the URL or storage, referral must NEVER be applied!
-        clearPendingCaptainReferral();
-        removeReferralParamFromUrl();
-        if (typeof window !== 'undefined') {
-          window.sessionStorage.removeItem('radar_newly_registered_referral');
-        }
-
-        await signInRiderWithPhone({
-          phone: normalizedPhone.phone,
-          password: authPassword,
-          rememberMe,
-          expectedRole: toSupabaseAuthRole(role),
-        });
-
-        toast({
-          title: tAuto('key_93857427'),
-          description: tAuto('key_79708394'),
-        });
-        // Don't push a role-based route directly here: AuthContext may not have
-        // picked up the fresh session yet, which would race this navigation and
-        // land on a route that still sees `user === null`. Go to `/` and let
-        // its effect redirect once `useAuth()` actually reflects the new session.
-        router.replace('/');
-        return;
-      }
-
-      // authMode === 'register'
-      if (role === 'rider' && pendingRef && typeof window !== 'undefined') {
-        window.sessionStorage.setItem('radar_newly_registered_referral', pendingRef);
-      }
-
-      const signUpInput = {
-        phone: normalizedPhone.phone,
-        password: authPassword,
-        fullName: personal.name.trim(),
-        email: personal.email?.trim() || undefined,
-        role: toSupabaseAuthRole(role),
-        countryId,
-        governorateId,
-        districtId,
-        rememberMe,
-        lang: (lang === 'en' ? 'en' : 'ar') as 'ar' | 'en',
-      };
-
-      if ((process.env.NODE_ENV !== 'production')) {
-        console.info('[Supabase Auth Payload]', {
-          mode: 'register',
-          data: buildRiderSignUpMetadata(signUpInput),
-        });
-      }
-
-      const regAuthPayload = {
-        phone: normalizedPhone.phone,
-        password: authPassword,
-        role,
-        email: personal.email?.trim() || undefined,
-      };
-      registeredAuthRef.current = regAuthPayload;
-      if (typeof window !== 'undefined') {
-        try {
-          window.sessionStorage.setItem('radar_registered_auth', JSON.stringify(regAuthPayload));
-        } catch {}
-      }
-      const signUpResult = await signUpRiderWithPhone(signUpInput);
-
-      if ((signUpResult as any).needsEmailConfirmation) {
-        setAwaitingConfirmationEmail((signUpResult as any).email || personal.email.trim());
-        toast({
-          title: lang === 'ar' ? 'تم إنشاء الحساب بنجاح! ✉️' : 'Account created successfully! ✉️',
-          description: lang === 'ar'
-            ? 'تم إرسال كود التفعيل المكون من 6 أرقام إلى بريدك الإلكتروني.'
-            : 'A 6-digit verification code has been sent to your email.',
-        });
-        return;
-      }
-
-      const isExistingUser =
-        Array.isArray(signUpResult.user?.identities) &&
-        signUpResult.user.identities.length === 0;
-
-      if (isExistingUser) {
-        clearPendingCaptainReferral();
-        removeReferralParamFromUrl();
-        if (typeof window !== 'undefined') {
-          window.sessionStorage.removeItem('radar_newly_registered_referral');
-        }
-        return;
-      }
-
-      // Claim referral link exclusively for new rider signups
-      if (role === 'rider' && pendingRef) {
-        let hasActiveSession = Boolean(signUpResult.session);
-
-        if (!hasActiveSession) {
-          try {
-            const signInRes = await signInRiderWithPhone({
-              phone: normalizedPhone.phone,
-              password: authPassword,
-              rememberMe,
-              expectedRole: 'RIDER',
-            });
-            if (signInRes.session) {
-              hasActiveSession = true;
-            }
-          } catch (autoSignInErr) {
-            if (process.env.NODE_ENV !== 'production') {
-              console.warn('[Auto sign-in on registration]', autoSignInErr);
-            }
-          }
-        }
-
-        if (hasActiveSession) {
-          await claimPendingRiderReferralIfNeeded(role, pendingRef);
-        }
-      }
-
-      if (signUpResult.session && personal.email?.trim().includes('@')) {
-        const { error: emailError } = await supabase.auth.updateUser(
-          { email: personal.email.trim() },
-          { emailRedirectTo: getAuthRedirectUrl('/reset-password') },
-        );
-        if (emailError && (process.env.NODE_ENV !== 'production')) {
-          console.warn('[Registration Email Update Error]', emailError);
-        }
-      }
-
-      if (role === 'driver') {
-        const userId = signUpResult.user?.id;
-        if (userId) {
-          const isTaxi = affiliation === 'office-taxi';
-          const { error: profileError } = await supabase.from('captain_profiles').upsert({
-            id: userId,
-            vehicle_type: isTaxi ? tAuto('key_0870671f') : tAuto('key_3e71cbbc'),
-            vehicle_brand: isTaxi ? null : vehicle.make,
-            vehicle_year: Number(vehicle.year) || null,
-            plate_number: vehicle.plate,
-            employment_type: isTaxi ? vehicle.officeName : vehicle.companyName,
-            affiliation_type: affiliation,
-            office_phone: isTaxi ? vehicle.officePhone : null,
-            side_id: isTaxi ? vehicle.sideId : null,
-            identity_url: personal.verificationDoc,
-            verification_status: 'PENDING'
-          });
-
-          if (profileError) {
-            console.error('[Captain Profile Insert Error]', profileError);
-            throw new Error(profileError.message || tAuto('key_643f2795'));
-          }
-
-          // Trigger sovereign welcome flight hours credit for new captain
-          try {
-            const token = (signUpResult as any)?.session?.access_token;
-            if (token) {
-              void fetch('/api/captain/welcome-credit', {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-              }).catch((err) => console.warn('[Welcome Credit Hook] Async error:', err));
-            }
-          } catch (e) {
-            console.warn('[Welcome Credit Trigger]', e);
-          }
-        }
-      }
-
-      const newUserId = signUpResult.user?.id;
-      if (newUserId) {
-        void recordLegalDeclaration({
-          userId: newUserId,
-          userSerialId: (signUpResult.user as any)?.serial_id || ('U-' + newUserId.slice(0, 6).toUpperCase()),
-          actionType: 'NEW_ACCOUNT',
-          actionLabel: lang === 'ar' ? 'تسجيل حساب جديد' : 'New Account Registration',
-          isArabic: lang === 'ar',
-        });
-      }
-
-      toast({
-        title: tAuto('key_b4c64c00'),
-        description: role === 'driver'
-          ? tAuto('key_cd6703e6')
-          : tAuto('key_7132f656'),
-      });
-      if (signUpResult.session) {
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
-          } catch {}
-        }
-        // Same reasoning as the login branch above: let `/` redirect once
-        // AuthContext actually reflects the new session, instead of racing it.
-        router.replace('/');
-      } else {
-        setAuthMode('login');
-        router.replace('/');
-      }
-    } catch (error) {
-      if ((process.env.NODE_ENV !== 'production')) {
-        const authError = error as { name?: string; code?: string; status?: number; message?: string };
-        console.warn('[Supabase Auth]', {
-          mode: authMode,
-          role,
-          name: authError?.name,
-          code: authError?.code,
-          status: authError?.status,
-          message: authError?.message,
-        });
-      }
-
-      const isAccountInUse = `${(error as any)?.message || ''}`.includes('account_in_use') || `${(error as any)?.message || ''}`.includes('قيد الاستخدام');
-      if (isAccountInUse) {
-        toast({
-          variant: 'destructive',
-          title: lang === 'ar' ? 'الحساب قيد الاستخدام حالياً' : 'Account Already In Use',
-          description: lang === 'ar'
-            ? 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز الآخر.'
-            : 'This account is currently active on another device. You cannot log in until it is logged out from the other device.',
-          duration: 8000,
-        });
-        return;
-      }
-
-      const isUnconfirmed = (error as any)?.message === 'email_not_confirmed' || `${(error as any)?.message || ''}`.includes('email_not_confirmed');
-      if (isUnconfirmed) {
-        setAwaitingConfirmationEmail(personal.email?.trim() || (error as any)?.email || null);
-        toast({
-          variant: 'destructive',
-          title: lang === 'ar' ? 'الحساب قيد الانتظار' : 'Account pending verification',
-          description: lang === 'ar'
-            ? 'يرجى تأكيد حسابك عبر الرابط المرسل إلى بريدك الإلكتروني أولاً لتفعيل الحساب.'
-            : 'Please confirm your email using the link sent to your inbox before logging in.',
-        });
-        return;
-      }
-
-      const wrongCredentials = authMode === 'login' && isInvalidPhoneOrPasswordError(error);
-      if (wrongCredentials) setCreateAccountPulseKey((key) => key + 1);
-
-      toast({
-        variant: 'destructive',
-        title: authMode === 'register' ? tAuto('key_71272649') : tAuto('key_64bc4896'),
-        description: wrongCredentials
-          ? `${mapSupabaseAuthError(error)} يمكنك إنشاء حساب جديد إذا لم يكن لديك حساب بعد.`
-          : mapSupabaseAuthError(error),
-      });
-    } finally {
-      setIsSubmitting(false);
-      isSubmittingRef.current = false;
-    }
-  }, [
+  const { fillRandomRegistrationData, fillCaptainRegistrationData } = useRegistrationDevMocks({
+    selectedCountry,
+    countryRows,
+    governorateRows,
+    districtRows,
+    personal,
+    setPersonal,
+    setAuthMode,
+    setAuthPassword,
+    setRole,
+    setAffiliation,
     affiliation,
+    setVehicle,
+    tAuto,
+  });
+
+  const { verifyEmailCode, resendConfirmationEmail } = useRegistrationEmailVerification({
+    registeredAuthRef,
+    awaitingConfirmationEmail,
+    setAwaitingConfirmationEmail,
+    personal,
+    selectedCountry,
+    authPassword,
+    role,
+    rememberMe,
+    lang,
+    setAuthMode,
+    tAuto,
+  });
+
+  const {
+    handlePersonalSubmit,
+    handleVehicleSubmit,
+    handleAdvertiserSubmit,
+    handleLogoTap,
+    handleAdminSubmit,
+  } = useRegistrationSubmit({
     authMode,
     authPassword,
-    districtRows,
-    governorateRows,
-    personal.country,
-    personal.district,
-    personal.gov,
-    personal.name,
-    personal.phone,
-    personal.email,
-    personal.verificationDoc,
-    rememberMe,
     role,
-    router,
-    selectedCountry,
-    toast,
-    validateAuthFields,
+    personal,
+    rememberMe,
+    affiliation,
     vehicle,
-  ]);
+    lang,
+    setAwaitingConfirmationEmail,
+    registeredAuthRef,
+    setCreateAccountPulseKey,
+    setAuthMode,
+    setStep,
+    validateAuthFields,
+    isSubmittingRef,
+    setIsSubmitting,
+    tAuto,
+  });
 
-  const handlePersonalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    void submitSupabaseAuth();
-  };
-  const handleVehicleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    void submitSupabaseAuth();
-  };
-  const handleAdvertiserSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      variant: 'destructive',
-      title: tAuto('key_002904c4'),
-      description: tAuto('key_dea165fb'),
-    });
-  };
-
-  const handleLogoTap = () => {
-    const newCount = logoTapCount + 1;
-    setLogoTapCount(newCount);
-    if (newCount >= 5) {
-      setStep('admin');
-      setLogoTapCount(0);
-    }
-  };
-
-  const handleAdminSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      variant: 'destructive',
-      title: tAuto('key_002904c4'),
-      description: tAuto('key_91e1ce75'),
-    });
-  };
-
-  const value = {
+  const value: RegistrationContextType = {
     step,
     setStep,
     role,
@@ -1151,4 +216,3 @@ export function useRegistration() {
   }
   return context;
 }
-
