@@ -37,7 +37,7 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
   {
     id: 'captain-sector-ad-1',
     title: 'أنت سائق؟ حوّل حركتك إلى فرصة للربح',
-    description: 'أعلن، زد دخلك، واستفد من مزايا المنصة وارتق في التقييم من البرونزي إلى الألماسي بدون أي عمولات.',
+    description: 'أعلن، زد دخلك، واستفد من مزايا المنصة وارتق في التقييم من البرونزي إلى البلاتيني بدون أي عمولات.',
     bannerUrl: '/captain-ads/1.jpeg',
     imageUrl: '/captain-ads/1.jpeg',
     image: '/captain-ads/1.jpeg',
@@ -52,7 +52,7 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
     phone: '0790000000',
     content: {
       title: 'أنت سائق؟ حوّل حركتك إلى فرصة للربح',
-      description: 'أعلن، زد دخلك، واستفد من مزايا المنصة وارتق في التقييم من البرونزي إلى الألماسي بدون أي عمولات.',
+      description: 'أعلن، زد دخلك، واستفد من مزايا المنصة وارتق في التقييم من البرونزي إلى البلاتيني بدون أي عمولات.',
       media: { url: '/captain-ads/1.jpeg', type: 'image' },
     },
     action: {
@@ -112,7 +112,7 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
   {
     id: 'captain-sector-ad-4',
     title: 'من قمرة مركبة... إلى قائد إعلانات',
-    description: 'اجعل قمرة مركبتك مساحة للإعلان، وافتح لنفسك فرصة دخل إضافي مع بينكم. ارتق بالرتب لتوسع صلاحياتك الإعلانية.',
+    description: 'اجعل قمرة مركبتك مساحة للإعلان، وافتح لنفسك فرصة دخل إضافي مع بينكم. ارتق بالرتب (برونزي، فضي، ذهبي، بلاتيني) لتوسع صلاحياتك الإعلانية.',
     bannerUrl: '/captain-ads/4.jpeg',
     imageUrl: '/captain-ads/4.jpeg',
     image: '/captain-ads/4.jpeg',
@@ -127,7 +127,7 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
     phone: '0790000000',
     content: {
       title: 'من قمرة مركبة... إلى قائد إعلانات',
-      description: 'اجعل قمرة مركبتك مساحة للإعلان، وافتح لنفسك فرصة دخل إضافي مع بينكم. ارتق بالرتب لتوسع صلاحياتك الإعلانية.',
+      description: 'اجعل قمرة مركبتك مساحة للإعلان، وافتح لنفسك فرصة دخل إضافي مع بينكم. ارتق بالرتب (برونزي، فضي، ذهبي، بلاتيني) لتوسع صلاحياتك الإعلانية.',
       media: { url: '/captain-ads/4.jpeg', type: 'image' },
     },
     action: {
