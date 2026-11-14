@@ -53,3 +53,4 @@ test('CAPTAIN_SECTOR_ADS contains complete bilingual copy for all 5 ads', () => 
     assert.ok(ad.badgeTextEn && ad.badgeTextEn.length > 0, `Ad ${ad.id} missing English badgeText`);
   }
 });
+

@@ -35,3 +35,4 @@ export interface CaptainSectorAd {
     buttonTextEn?: string;
   };
 }
+

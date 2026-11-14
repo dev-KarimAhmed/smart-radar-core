@@ -91,3 +91,4 @@ export function getAdCta(
   }
   return ad?.action?.buttonText || ad?.buttonText || fallback;
 }
+
