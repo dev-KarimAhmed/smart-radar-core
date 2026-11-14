@@ -3,272 +3,54 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { AdStage } from '@/features/ads/ad-stage/contract';
-import { useAuth } from '@/hooks/use-auth';
-import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
-import { useRiderDashboardMachine } from '../state/rider-state-machine';
-import { useRiderGeolocation } from '../hooks/use-rider-geolocation';
-import { getLastKnownLocation } from '@/shared/hooks/use-live-geolocation';
-import { useCaptainPresence } from '../hooks/use-captain-presence';
-import { useEmergencyContact } from '../hooks/use-emergency-contact';
-import { useCountryConfig } from '../hooks/use-country-config';
-import { getCountryDefaultCenter } from '@/shared/hooks/use-country-config';
-import { useDestinationSelectionState } from '../hooks/use-destination-selection-state';
-import { useServerFareAndRoute } from '../hooks/use-server-fare-and-route';
-import { useOffersLifecycle } from '../hooks/use-offers-lifecycle';
-import { useRideRequestStatusSync } from '../hooks/use-ride-request-status-sync';
-import { useSendCancelRideRequest } from '../hooks/use-send-cancel-ride-request';
-import { useTripCompletion } from '../hooks/use-trip-completion';
-import { useRiderProfileSummary } from '../hooks/use-rider-profile-summary';
-import { useRiderOperations } from '../hooks/use-rider-operations';
-import { buildRiderDestination } from '../services/rider-destination-normalizers';
+import { useRiderViewController } from '../hooks/use-rider-view-controller';
 import { IdleMapScreen } from './idle-map-screen';
 import { RiderShellFrame } from './rider-shell-frame';
 import { RiderActiveScreen } from './rider-active-screen';
 import { RiderModals } from './rider-modals';
 import { RiderDashboard } from './rider-dashboard';
-import { supabase } from '@/lib/supabase-client';
 
 const styles = {
   adRiverWrapper: "hidden overflow-hidden rounded-[24px] border border-[#14B8A6]/15 bg-[#0B0F19]/88 shadow-2xl shadow-black/35 backdrop-blur-xl lg:block",
 } as const;
 
-export function RiderViewTab({ onExitRequestFlow, isStandbyDismissed = false }: { onExitRequestFlow?: () => void; isStandbyDismissed?: boolean } = {}) {
-  const { user } = useAuth();
-  const { isArabic, language } = useDashboardLanguage();
-  const { state, dispatch, showAdRiver } = useRiderDashboardMachine();
-  const riderOperations = useRiderOperations();
-  useActiveTripReloadGuard(Boolean(state.requestId) && (state.screen === 'RECEIVING_OFFERS' || state.screen === 'TRIP_ACTIVE'));
-
-  // Sync rider online presence in profiles table
-  React.useEffect(() => {
-    if (!user?.uid || user.role !== 'rider') return;
-    if (riderOperations.accountSecurityStatus) return;
-
-    void supabase
-      .from('profiles')
-      .update({ status: 'ACTIVE', updated_at: new Date().toISOString() })
-      .eq('id', user.uid)
-      .neq('status', 'BANNED');
-
-    return () => {
-      void supabase
-        .from('profiles')
-        .update({ status: 'IDLE', updated_at: new Date().toISOString() })
-        .eq('id', user.uid)
-        .neq('status', 'BANNED');
-    };
-  }, [user?.uid, user?.role, riderOperations.accountSecurityStatus]);
-
-  const lastKnown = getLastKnownLocation();
-  const isInitialJordanCoords = lastKnown
-    ? lastKnown.lat >= 29.0 && lastKnown.lat <= 33.5 && lastKnown.lng >= 34.5 && lastKnown.lng <= 39.5
-    : false;
-  const activeCountryId = user?.countryId ?? (isInitialJordanCoords ? 1 : undefined);
-  const countryConfig = useCountryConfig(activeCountryId);
-  const geolocation = useRiderGeolocation(language, getCountryDefaultCenter(countryConfig));
-  const captainPresence = useCaptainPresence(user?.uid, activeCountryId, geolocation.riderH3Cell);
-  const emergencyContact = useEmergencyContact(user?.uid, {
-    captainId: state.activeTrip?.captainId || (state.activeTrip?.captain as any)?.id || undefined,
-    captainName:
-      (state.activeTrip?.captain?.nickname ||
-      state.activeTrip?.captain?.full_name ||
-      state.activeTrip?.captain?.name ||
-      state.activeTrip?.captainName) ?? undefined,
-    captainPhone:
-      (state.activeTrip?.captainPhone || state.activeTrip?.captain?.phone) ?? undefined,
-    captainSerial:
-      (state.activeTrip?.captain?.serial_number ||
-      (state.activeTrip?.captain as any)?.serial ||
-      state.activeTrip?.captainSerial ||
-      state.activeTrip?.captainId?.slice(0, 8).toUpperCase()) ?? undefined,
-    vehicleModel:
-      (state.activeTrip?.captain?.vehicle_model ||
-      state.activeTrip?.vehicleType) ?? undefined,
-    vehiclePlate:
-      (state.activeTrip?.captain?.plate_number ||
-      state.activeTrip?.captain?.license_plate ||
-      state.activeTrip?.vehiclePlate) ?? undefined,
-    vehicleColor: state.activeTrip?.captain?.vehicle_color ?? undefined,
-    destinationLabel: (state.activeTrip?.destinationLabel || state.destination?.label) ?? undefined,
-    requestId: state.activeTrip?.tripId || state.requestId,
-    riderLocation: geolocation.riderLocation,
-  });
-
-  const destination = useDestinationSelectionState({
+export function RiderViewTab({
+  onExitRequestFlow,
+  isStandbyDismissed = false,
+}: {
+  onExitRequestFlow?: () => void;
+  isStandbyDismissed?: boolean;
+} = {}) {
+  const {
     user,
+    isArabic,
     language,
+    state,
+    dispatch,
+    showAdRiver,
     countryConfig,
-    riderLocation: geolocation.riderLocation,
-    riderLocationStatus: geolocation.locationStatus,
-  });
-  const { pin, geography, search, mapPicker, clipboard, selectionHandlers } = destination;
-
-  const tripCompletion = useTripCompletion(state, dispatch, user?.uid);
-  const offers = useOffersLifecycle(state, dispatch, language, tripCompletion.pricingPreference);
-  const effectiveCountryId = activeCountryId ?? (
-    geolocation.riderLocation.lat >= 29.0 && geolocation.riderLocation.lat <= 33.5 &&
-    geolocation.riderLocation.lng >= 34.5 && geolocation.riderLocation.lng <= 39.5 ? 1 : undefined
-  );
-  const fareAndRoute = useServerFareAndRoute({
-    activeCountryId: effectiveCountryId,
-    trafficFactor: countryConfig?.traffic_factor,
-    riderLocation: geolocation.riderLocation,
-    riderLocationStatus: geolocation.locationStatus,
-    selectedDestinationCoords: destination.selectedDestinationCoords,
-    selectedDistrict: geography.selectedDistrict,
-    destinationDataError: geography.destinationDataError,
-    isDestinationPinMoving: pin.isDestinationPinMoving,
-  });
-
-  const selectedDraftDestination = React.useMemo(() => {
-    if (!geography.selectedDistrict || !destination.selectedDestinationCoords) return null;
-    const builtDestination = buildRiderDestination(
-      geography.selectedDistrict,
-      geolocation.riderLocation,
-      fareAndRoute.currentServerFare,
-      destination.selectedDestinationCoords,
-      fareAndRoute.currentRouteEstimate?.distanceKm ?? null,
-      undefined,
-      // Goes into the stored label, so the captain's request card names where the rider is
-      // actually going instead of the district they picked from the dropdown.
-      destination.pinnedPlaceLabel,
-    );
-    return search.destinationSearchStatus === 'selected' && search.destinationSearchQuery.trim()
-      ? { ...builtDestination, label: search.destinationSearchQuery.trim() }
-      : builtDestination;
-  }, [
-    destination.pinnedPlaceLabel,
-    destination.selectedDestinationCoords,
-    fareAndRoute.currentRouteEstimate?.distanceKm,
-    fareAndRoute.currentServerFare,
-    geography.selectedDistrict,
-    geolocation.riderLocation,
-    search.destinationSearchQuery,
-    search.destinationSearchStatus,
-  ]);
-
-  const statusSync = useRideRequestStatusSync({
-    userId: user?.uid,
+    geolocation,
+    captainPresence,
+    emergencyContact,
+    destination,
+    pin,
+    geography,
+    search,
+    mapPicker,
+    clipboard,
+    selectionHandlers,
+    fareAndRoute,
     selectedDraftDestination,
-    language,
-    state,
-    dispatch,
-  });
-
-  const resetRideDraftState = React.useCallback(() => {
-    geography.reset();
-    pin.reset();
-    search.reset();
-    clipboard.reset();
-    fareAndRoute.reset();
-    offers.reset();
-    captainPresence.reset();
-    // statusSync no longer needs resetting: the countdown it used to hold in state is now
-    // derived from the trip's own server timestamps, so clearing the trip clears the timer.
-    tripCompletion.reset();
-    destination.setIsCaptainScanPreviewActive(false);
-
-    try {
-      [
-        'radar_ride_request_draft',
-        'radar_destination_draft',
-        'radar_auction_draft',
-        'radar_external_location_draft',
-        'radar_request_flow',
-        'radar_active_rider_machine_state',
-        'radar_rider_trip_status',
-        'radar_rider_passenger_count',
-      ].forEach((key) => window.localStorage.removeItem(key));
-    } catch {
-      // Storage can be unavailable in private browsing; in-memory state is still reset.
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [captainPresence, clipboard, destination, fareAndRoute, geography, offers, pin, search, statusSync, tripCompletion]);
-
-  const sendCancel = useSendCancelRideRequest({
-    userId: user?.uid,
-    activeCountryId,
-    riderLocation: geolocation.riderLocation,
-    pickupAddress: geolocation.currentAddressName,
-    selectedDraftDestination,
-    selectedDestinationCoords: destination.selectedDestinationCoords,
-    isServerFareLoading: fareAndRoute.isServerFareLoading,
-    isRouteEstimateLoading: fareAndRoute.isRouteEstimateLoading,
-    currentRouteEstimate: fareAndRoute.currentRouteEstimate,
-    language,
-    state,
-    dispatch,
-    pricingPreference: tripCompletion.pricingPreference,
-    riderCount: tripCompletion.riderCount,
-    onExitRequestFlow,
+    tripCompletion,
+    offers,
+    statusSync,
+    sendCancel,
+    riderProfile,
+    systemMessages,
+    currencyLabel,
     resetRideDraftState,
-    locationStatus: geolocation.locationStatus,
-  });
-
-  // [ACT-SSOT-07] Broadcast live rider state to outer shell to eliminate shell blindness
-  React.useEffect(() => {
-    const statusMap: Record<string, string> = {
-      IDLE_MAP: 'idle',
-      DESTINATION_SELECTION: 'searching',
-      RECEIVING_OFFERS: 'searching',
-      TRIP_ACTIVE: 'busy',
-      RATING_MODAL: 'rating',
-      PURGE_LEDGER: 'idle',
-      FAVORITE_CAPTAINS: 'idle',
-    };
-    const currentStatus = statusMap[state.screen] || 'idle';
-    window.dispatchEvent(new CustomEvent('sovereign-status-change', {
-      detail: { role: 'rider', status: currentStatus },
-    }));
-  }, [state.screen]);
-
-  const { riderProfile, systemMessages, currencyLabel } = useRiderProfileSummary(user, language, countryConfig, geolocation.locationStatus, geolocation.liveCurrencyCode);
-
-  // Only trigger open destination on initial transition when user explicitly requests ride from standby
-  const prevStandbyDismissedRef = React.useRef(isStandbyDismissed);
-  React.useEffect(() => {
-    if (!prevStandbyDismissedRef.current && isStandbyDismissed) {
-      dispatch({ type: 'OPEN_DESTINATION' });
-    }
-    prevStandbyDismissedRef.current = isStandbyDismissed;
-  }, [isStandbyDismissed, dispatch]);
-
-  React.useEffect(() => {
-    const handleExit = () => {
-      resetRideDraftState();
-      dispatch({ type: 'RESET_TO_IDLE' });
-    };
-    window.addEventListener('exit-request-flow', handleExit);
-    return () => window.removeEventListener('exit-request-flow', handleExit);
-  }, [dispatch, resetRideDraftState]);
-
-  // Auto-dissolve active ride request / buoy if account becomes suspended or banned
-  React.useEffect(() => {
-    if (riderOperations.accountSecurityStatus && state.requestId) {
-      void sendCancel.handleCancelRideRequest();
-      resetRideDraftState();
-      dispatch({ type: 'RESET_TO_IDLE' });
-    }
-  }, [riderOperations.accountSecurityStatus, state.requestId, sendCancel, resetRideDraftState, dispatch]);
-
-  const handleCloseOrCancel = React.useCallback(async () => {
-    if (state.requestId) {
-      try {
-        await sendCancel.handleCancelRideRequest();
-      } catch (err) {
-        console.warn('[RiderView] error cancelling ride request:', err);
-      }
-    }
-    resetRideDraftState();
-    dispatch({ type: 'RESET_TO_IDLE' });
-    if (onExitRequestFlow) {
-      onExitRequestFlow();
-    }
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('exit-request-flow'));
-    }
-  }, [dispatch, onExitRequestFlow, resetRideDraftState, sendCancel, state.requestId]);
+    handleCloseOrCancel,
+  } = useRiderViewController({ onExitRequestFlow, isStandbyDismissed });
 
   return (
     <>
