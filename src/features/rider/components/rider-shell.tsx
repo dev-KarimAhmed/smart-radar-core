@@ -9,62 +9,44 @@ import { RouteErrorBoundary } from '@/shared/components/layout/route-error-bound
 import { RouteLoading } from '@/shared/components/layout/route-loading';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useRiderOperations } from '../hooks/use-rider-operations';
 import { AppSidebar } from './app-sidebar';
 import { DesktopRiderSidebar } from './desktop-rider-sidebar';
-import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useTranslations } from "next-intl";
 import { useReferralListener } from '@/features/referral/hooks/use-referral-listener';
 import { ReferralConflictModal } from '@/features/referral/components/referral-conflict-modal';
+import { styles, CRITICAL_RIDER_STATES } from './rider-shell-styles';
+import { RiderSecurityScreen } from './rider-security-screens';
 
 const RiderView = dynamic(
   () => import('./rider-view').then((module) => module.RiderViewTab),
   { loading: function Loading() {
-      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_1b555d14')} />; } },
+      const tAuto = useTranslations('auto'); return <RouteLoading label={tAuto('key_1b555d14')} />; } },
 );
 const HistoryScreen = dynamic(
   () => import('@/features/account/history/contract').then((module) => module.HistoryTab),
   { loading: function Loading() {
-      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_a14eef96')} />; } },
+      const tAuto = useTranslations('auto'); return <RouteLoading label={tAuto('key_a14eef96')} />; } },
 );
 const ProfileScreen = dynamic(
   () => import('@/features/account/profile/contract').then((module) => module.ProfileTab),
   { loading: function Loading() {
-      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_890243fa')} />; } },
+      const tAuto = useTranslations('auto'); return <RouteLoading label={tAuto('key_890243fa')} />; } },
 );
 const VaultScreen = dynamic(
   () => import('@/features/account/vault/contract').then((module) => module.VaultTab),
   { loading: function Loading() {
-      const tAuto = useTranslations('auto'); const t = useTranslations('auto'); return <RouteLoading label={tAuto('key_4ccb93e5')} />; } },
+      const tAuto = useTranslations('auto'); return <RouteLoading label={tAuto('key_4ccb93e5')} />; } },
 );
 const NotificationsScreen = dynamic(
   () => import('@/features/account/components/notifications-tab').then((module) => module.NotificationsTab),
   { loading: function Loading() { return <RouteLoading label="Loading..." />; } },
 );
 
-const styles = {
-  root: 'flex min-h-screen w-full flex-col bg-[#0A0F1D] text-white lg:h-screen lg:overflow-hidden',
-  header: 'sticky top-0 z-[100] w-full shrink-0 lg:hidden',
-  main: 'relative flex w-full flex-1 flex-col overflow-y-visible lg:h-screen lg:min-h-0 lg:overflow-hidden',
-  mainShifted: 'lg:ps-[288px]',
-  mainStandby: 'h-[calc(100dvh-120px)] overflow-hidden flex flex-col justify-start items-center pt-2 lg:h-full lg:justify-center lg:pt-0',
-  adStage: 'relative z-[80] flex w-full flex-1 flex-col justify-start items-center pt-2 border-b-2 border-[#14B8A6]/20 shadow-[0_10px_30px_rgba(20,184,166,0.08)] lg:h-full lg:justify-center lg:pt-0',
-  content: 'w-full flex-1 p-4 md:p-8',
-  contentHome: 'p-0 md:p-0 lg:p-0',
-  contentInner: 'min-h-0 overflow-y-auto scrollbar-thin px-0 py-4 md:px-0 md:py-6',
-  contentHidden: 'hidden',
-  footer: 'sticky bottom-0 z-[100] w-full shrink-0 lg:hidden',
-} as const;
-
-const CRITICAL_RIDER_STATES = ['searching', 'busy', 'rating', 'checkpoint_required'];
-
 export function RiderShell() {
-    const tAuto = useTranslations('auto');
-    const t = useTranslations('auto');
+  const tAuto = useTranslations('auto');
   const { loading, logout, user } = useAuth();
-  const { toast } = useToast();
   const dashboardLanguage = useDashboardLanguage();
   const riderOperations = useRiderOperations();
   const isArabic = dashboardLanguage.language === 'ar';
@@ -112,70 +94,22 @@ export function RiderShell() {
 
   if (riderOperations?.accountSecurityStatus === 'BANNED') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0B0F19] p-6 text-center text-white" dir={dashboardLanguage.isArabic ? 'rtl' : 'ltr'}>
-        <div className="max-w-md w-full space-y-5 rounded-3xl border border-rose-500/40 bg-[#160808]/95 p-7 text-center text-white shadow-2xl backdrop-blur-2xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/15 border border-rose-500/30">
-            <ShieldAlert className="h-9 w-9 text-rose-500 animate-pulse" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-xl font-black text-rose-200">
-              {dashboardLanguage.isArabic ? 'حساب المستخدم محظور نهائياً 🚫' : 'Rider Account Permanently Banned 🚫'}
-            </h1>
-            <p className="text-xs leading-6 text-rose-100/80">
-              {dashboardLanguage.isArabic
-                ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف طلب الرحلات وعزل الحساب عن الرادار.'
-                : 'Your account has been permanently banned by platform administration due to policy violations. Ride requests and radar access have been disabled.'}
-            </p>
-          </div>
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="inline-flex items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/50 px-6 py-2.5 text-xs font-black text-rose-300 hover:bg-rose-500/30 transition shadow-lg cursor-pointer"
-            >
-              {dashboardLanguage.isArabic ? 'تسجيل الخروج' : 'Log Out'}
-            </button>
-          </div>
-        </div>
-      </div>
+      <RiderSecurityScreen
+        status="BANNED"
+        isArabic={dashboardLanguage.isArabic}
+        onLogout={() => void logout()}
+      />
     );
   }
 
   if (riderOperations?.accountSecurityStatus === 'SUSPENDED') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0B0F19] p-6 text-center text-white" dir={dashboardLanguage.isArabic ? 'rtl' : 'ltr'}>
-        <div className="max-w-md w-full space-y-5 rounded-3xl border border-amber-500/40 bg-[#171208]/95 p-7 text-center text-white shadow-2xl backdrop-blur-2xl">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30">
-            <AlertTriangle className="h-9 w-9 text-amber-500 animate-pulse" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-xl font-black text-amber-200">
-              {dashboardLanguage.isArabic ? 'حساب المستخدم معلق مؤقتاً ⚠️' : 'Rider Account Suspended ⚠️'}
-            </h1>
-            <p className="text-xs leading-6 text-amber-100/80">
-              {dashboardLanguage.isArabic
-                ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات لمراجعة معايير النزاهة والمناعة السلوكية. يرجى مراجعة الإدارة أو التواصل مع الدعم لفك التعليق وتنشيط الحساب.'
-                : 'Your account is temporarily suspended by platform administration to review behavioral immunity standards. Please contact support.'}
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => void riderOperations.refreshSecurityStatus()}
-              className="inline-flex items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/50 px-5 py-2.5 text-xs font-black text-amber-300 hover:bg-amber-500/30 transition shadow-lg cursor-pointer"
-            >
-              {dashboardLanguage.isArabic ? 'تحديث الحالة 🔄' : 'Refresh 🔄'}
-            </button>
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 px-5 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition cursor-pointer"
-            >
-              {dashboardLanguage.isArabic ? 'تسجيل الخروج' : 'Log Out'}
-            </button>
-          </div>
-        </div>
-      </div>
+      <RiderSecurityScreen
+        status="SUSPENDED"
+        isArabic={dashboardLanguage.isArabic}
+        onLogout={() => void logout()}
+        onRefresh={() => void riderOperations.refreshSecurityStatus()}
+      />
     );
   }
 
