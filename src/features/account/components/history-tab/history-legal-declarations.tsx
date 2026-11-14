@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ShieldCheck, Clock, FileCheck2, UserCheck, ShieldAlert, Bell } from 'lucide-react';
+import { ChevronDown, FileCheck2, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -11,112 +10,15 @@ import {
   type LegalDeclarationRecord,
   LEGAL_DECLARATION_TEXT,
 } from '../../services/legal-log-service';
-import { resolveNotificationForDisplay } from '@/shared/utils/notification-i18n';
+import {
+  legalDeclarationsStyles as styles,
+  type HistoryLegalDeclarationsProps,
+} from './legal/legal-declarations-styles';
+import { LegalDeclarationCard } from './legal/legal-declaration-card';
 
-const LEGAL_DECLARATION_TEXT_EN =
-  'You are solely responsible for the accuracy and authenticity of all entered personal and professional data, and Bynkcom Network bears no legal liability for any discrepancy or inaccuracy therein...';
-
-function getLocalizedActionLabel(item: LegalDeclarationRecord, isArabic: boolean): string {
-  const label = (item.actionLabel || '').trim();
-  if (isArabic) {
-    if (item.actionType === 'NEW_ACCOUNT' || label === 'New Account Registration') return 'تسجيل حساب جديد';
-    if (item.actionType === 'VEHICLE_UPDATE' || label === 'Vehicle Details Update') return 'تعديل بيانات المركبة';
-    if (item.actionType === 'PROFILE_UPDATE' || label === 'Account Details Update') return 'تعديل بيانات الحساب';
-    if (item.actionType === 'ADMIN_NOTIFICATION' || label === 'Official Admin Notice Acknowledged') return 'إشعار إداري رسمي مقروء';
-    return label;
-  }
-
-  if (item.actionType === 'NEW_ACCOUNT' || label === 'تسجيل حساب جديد') return 'New Account Registration';
-  if (item.actionType === 'VEHICLE_UPDATE' || label === 'تعديل بيانات المركبة' || label === 'تحديث بيانات المركبة والوثائق') {
-    return 'Vehicle Details Update';
-  }
-  if (
-    item.actionType === 'PROFILE_UPDATE' ||
-    label === 'تعديل بيانات الحساب' ||
-    label === 'تعديل بيانات الحساب الشخصي'
-  ) {
-    return 'Account Details Update';
-  }
-  if (label === 'تعديل بيانات الحساب والمركبة') {
-    return 'Account & Vehicle Details Update';
-  }
-  if (item.actionType === 'ADMIN_NOTIFICATION' || label === 'إشعار إداري رسمي مقروء') {
-    return 'Official Admin Notice Acknowledged';
-  }
-  return label;
-}
-
-function getLocalizedDeclarationText(item: LegalDeclarationRecord, isArabic: boolean): string {
-  const text = (item.declarationText || '').trim();
-  if (!isArabic) {
-    if (text === LEGAL_DECLARATION_TEXT || text.includes('انت المسؤول عن صحة ومصداقية كافة البيانات المدخلة')) {
-      return LEGAL_DECLARATION_TEXT_EN;
-    }
-    const adminPrefixAr = 'تم استلام وقراءة والإقرار رسمياً بمضمون الإشعار الإداري الصادر عن الإدارة:';
-    if (text.startsWith(adminPrefixAr)) {
-      const rest = text.slice(adminPrefixAr.length).trim();
-      const m = rest.match(/^"([^"]+)"\s*—\s*([\s\S]+)$/);
-      if (m) {
-        const resolved = resolveNotificationForDisplay({ title: m[1], description: m[2] }, false);
-        return `Officially received, reviewed and acknowledged administrative notice: "${resolved.title}" — ${resolved.description}`;
-      }
-      return `Officially received, reviewed and acknowledged administrative notice: ${rest}`;
-    }
-    return text;
-  }
-
-  if (text === LEGAL_DECLARATION_TEXT_EN) {
-    return LEGAL_DECLARATION_TEXT;
-  }
-  const adminPrefixEn = 'Officially received, reviewed and acknowledged administrative notice:';
-  if (text.startsWith(adminPrefixEn)) {
-    const rest = text.slice(adminPrefixEn.length).trim();
-    const m = rest.match(/^"([^"]+)"\s*—\s*([\s\S]+)$/);
-    if (m) {
-      const resolved = resolveNotificationForDisplay({ title: m[1], description: m[2] }, true);
-      return `تم استلام وقراءة والإقرار رسمياً بمضمون الإشعار الإداري الصادر عن الإدارة: "${resolved.title}" — ${resolved.description}`;
-    }
-    return `تم استلام وقراءة والإقرار رسمياً بمضمون الإشعار الإداري الصادر عن الإدارة: ${rest}`;
-  }
-  return text;
-}
-
-const styles = {
-  card: 'relative overflow-hidden rounded-3xl border border-amber-500/25 bg-[#0B0F19]/90 shadow-2xl backdrop-blur-xl w-full text-white',
-  accentBar: 'absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent shadow-[0_0_12px_rgba(251,191,36,0.5)]',
-  header: 'p-4 sm:p-5 pb-3.5 sm:pb-3',
-  headerButton: 'w-full text-start cursor-pointer select-none transition-colors hover:bg-white/[0.02]',
-  headerRow: 'flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3',
-  headerInfo: 'flex items-center gap-3 min-w-0',
-  iconBox: 'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]',
-  icon: 'h-5 w-5',
-  title: 'text-base font-black text-white font-sans',
-  descDesktop: 'hidden sm:block text-xs text-slate-400 mt-0.5 leading-relaxed font-sans',
-  descMobile: 'sm:hidden text-xs text-slate-400 leading-relaxed font-sans truncate min-w-0 flex-1',
-  actionsRow: 'flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-white/[0.05] sm:border-0 shrink-0',
-  actionsGroup: 'flex items-center gap-2 shrink-0',
-  countBadge: 'shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 sm:px-3 py-1 text-xs font-bold text-amber-300 shadow-sm font-mono',
-  chevronBox: 'flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 transition-all hover:bg-amber-500/20 shrink-0',
-  chevronIcon: 'h-4 w-4 transition-transform duration-200',
-  chevronRotated: 'rotate-180',
-  content: 'p-5 pt-2',
-  emptyBox: 'rounded-2xl border border-dashed border-white/10 bg-black/20 p-6 text-center flex flex-col items-center justify-center gap-2.5 my-2',
-  emptyIcon: 'h-8 w-8 text-slate-500',
-  emptyTitle: 'text-xs font-semibold text-slate-400',
-  emptyDesc: 'text-[11px] text-slate-500 leading-normal max-w-sm',
-  list: 'space-y-3.5 max-h-[500px] overflow-y-auto pr-1',
-  itemCard: 'group relative rounded-2xl border border-amber-500/20 bg-gradient-to-b from-white/[0.03] to-transparent p-4 transition-all hover:border-amber-500/40 space-y-3',
-  metaRow: 'flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5',
-  badgeConfirmed: 'inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-0.5 text-[11px] font-black text-emerald-300 shadow-sm',
-  badgeAction: 'inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black text-amber-300',
-  idGroup: 'flex flex-wrap items-center gap-3 text-xs text-slate-300 font-mono',
-  timeRow: 'flex items-center gap-1.5 text-xs text-slate-400 font-mono',
-  textCard: 'rounded-xl border border-white/5 bg-black/40 p-3 text-xs leading-relaxed text-amber-100/90 font-medium',
-} as const;
-
-interface HistoryLegalDeclarationsProps {
-  isArabic?: boolean;
-}
+export * from './legal/legal-declarations-styles';
+export * from './legal/legal-declarations-helpers';
+export * from './legal/legal-declaration-card';
 
 export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclarationsProps) {
   const { user } = useAuth();
@@ -226,53 +128,7 @@ export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclar
           ) : (
             <div className={styles.list}>
               {declarations.map((item) => (
-                <div key={item.id} className={styles.itemCard}>
-                  {/* Meta row: Action, Status Badge & IDs */}
-                  <div className={styles.metaRow}>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={cn(styles.badgeAction, item.actionType === 'ADMIN_NOTIFICATION' && 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300')}>
-                        {item.actionType === 'ADMIN_NOTIFICATION' ? (
-                          <Bell className="h-3 w-3 text-cyan-400" />
-                        ) : (
-                          <FileCheck2 className="h-3 w-3" />
-                        )}
-                        <span>{getLocalizedActionLabel(item, isArabic)}</span>
-                      </span>
-
-                      <span className={styles.badgeConfirmed}>
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>{isArabic ? 'معتمد وموثق رقمياً 🛡️' : 'Digitally Certified'}</span>
-                      </span>
-                    </div>
-
-                    <div className={styles.timeRow}>
-                      <Clock className="h-3.5 w-3.5 text-amber-400" />
-                      <span>{item.preciseTime}</span>
-                    </div>
-                  </div>
-
-                  {/* ID details row */}
-                  <div className={styles.idGroup}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-slate-400">{isArabic ? 'رقم الإقرار:' : 'Deed ID:'}</span>
-                      <span className="text-amber-300 font-bold">{item.id}</span>
-                    </div>
-
-                    <span className="text-white/20">|</span>
-
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-slate-400">{isArabic ? 'رقم المستخدم في النظام:' : 'User Serial ID:'}</span>
-                      <span className="text-[#14F5D5] font-bold">{item.userSerialId}</span>
-                    </div>
-                  </div>
-
-                  {/* Legal Deed Text */}
-                  <div className={styles.textCard}>
-                    <p className="text-amber-100/90 leading-relaxed font-sans text-xs sm:text-[13px]">
-                      {getLocalizedDeclarationText(item, isArabic)}
-                    </p>
-                  </div>
-                </div>
+                <LegalDeclarationCard key={item.id} item={item} isArabic={isArabic} />
               ))}
             </div>
           )}
