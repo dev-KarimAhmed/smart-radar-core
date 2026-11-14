@@ -36,3 +36,4 @@ test('calculateNextScrollStep wraps continuously at loop points', () => {
   const rtlStep = calculateNextScrollStep(-50, 10, 500, 'rtl');
   assert.equal(rtlStep, -60);
 });
+

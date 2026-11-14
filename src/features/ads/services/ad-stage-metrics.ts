@@ -94,3 +94,4 @@ export function getVisibleAdForMetric(track: HTMLDivElement, ads: any[]) {
   const index = Math.round(Math.abs(track.scrollLeft) / (cardWidth + gap)) % ads.length;
   return ads[index] || null;
 }
+

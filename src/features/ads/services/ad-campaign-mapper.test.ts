@@ -55,3 +55,4 @@ test('mapAdCampaignRow extracts nested media and resolves image/video correctly'
   const mappedVideo = mapAdCampaignRow(videoRow);
   assert.equal(mappedVideo.videoUrl, 'https://media.example.com/video.mp4');
 });
+

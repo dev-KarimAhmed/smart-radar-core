@@ -88,3 +88,4 @@ export function buildBrandPlaceholderAd(
     isPlaceholder: true,
   };
 }
+
