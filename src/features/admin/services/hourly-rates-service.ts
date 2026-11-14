@@ -79,3 +79,4 @@ export async function applyHourlyRateToAllDistricts(
     throw new Error(data.error || 'Failed to apply hourly rate to districts');
   }
 }
+

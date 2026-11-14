@@ -41,3 +41,4 @@ describe('riders-management logic & immunity rules', () => {
     assert.equal(sampleRider.trust_score >= 4.5, true);
   });
 });
+

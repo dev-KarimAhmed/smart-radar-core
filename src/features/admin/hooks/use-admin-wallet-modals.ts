@@ -131,3 +131,4 @@ export function useAdminWalletModals({ isArabic, onReceiptActionSuccess }: UseAd
     handleSendReceiptMessage,
   };
 }
+

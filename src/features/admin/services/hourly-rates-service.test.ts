@@ -50,3 +50,4 @@ describe('hourly-rates types and fallback calculations', () => {
     assert.equal(jordan.radar_hour_price, 1);
   });
 });
+

@@ -71,3 +71,4 @@ export function RidersStatsBar({ stats, isArabic, t }: RidersStatsBarProps) {
     </div>
   );
 }
+

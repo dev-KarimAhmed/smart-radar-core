@@ -64,3 +64,4 @@ export function WalletLedgerSubtab({ ledger, isArabic, t }: WalletLedgerSubtabPr
     </div>
   );
 }
+

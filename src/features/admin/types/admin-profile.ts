@@ -15,3 +15,4 @@ export interface AdminProfile {
   allowed_sectors?: AdminSectorId[];
   is_primary?: boolean;
 }
+

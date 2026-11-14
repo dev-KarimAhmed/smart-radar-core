@@ -28,3 +28,4 @@ export interface CustomRatesMatrix {
 }
 
 export type HourlyRateFilterMode = 'all' | 'custom_only' | 'default_only';
+

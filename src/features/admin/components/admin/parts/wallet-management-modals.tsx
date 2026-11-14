@@ -102,3 +102,4 @@ export function WalletManagementModals({ manager }: WalletManagementModalsProps)
     </>
   );
 }
+

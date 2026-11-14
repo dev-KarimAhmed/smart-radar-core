@@ -48,3 +48,4 @@ export interface RiderStats {
 
 export type RiderMessageType = 'info' | 'admin_message' | 'warning' | 'urgent';
 export type RiderBulkScope = 'all' | 'selected' | 'filtered';
+

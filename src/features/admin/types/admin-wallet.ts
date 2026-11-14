@@ -84,3 +84,4 @@ export type WalletSubTab =
   | 'rates'
   | 'channels'
   | 'delegates';
+
