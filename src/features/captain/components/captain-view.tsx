@@ -3,7 +3,6 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
-import type { Trip } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useActiveTripReloadGuard } from '@/shared/hooks/use-active-trip-reload-guard';
@@ -24,6 +23,7 @@ import {
   initialCaptainDashboardState,
 } from '../state/captain-state-machine';
 import { useCaptainSyncEffects } from '../hooks/use-captain-sync-effects';
+import { useCaptainViewController } from '../hooks/use-captain-view-controller';
 import { CaptainHeader } from './view/captain-header';
 import { CaptainBanners } from './view/captain-banners';
 import { CaptainBottomNav } from './view/captain-bottom-nav';
@@ -49,19 +49,7 @@ export function DriverViewTab() {
   const { isTimeTamperingDetected } = useDeviceTimeGuard();
   const { isOffline, isReconnecting } = useConnectionGuard();
   const countryConfig = useCountryConfig(user?.countryId);
-  const { canShowInstallButton, canPromptNative, triggerNativeInstall, isStandalone } = usePwaInstall('captain');
-  const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined' || !user) return;
-    const pending = localStorage.getItem('radar_pending_pwa_install_prompt');
-    if (pending === 'true') {
-      localStorage.removeItem('radar_pending_pwa_install_prompt');
-      if (!isStandalone) {
-        setIsInstallModalOpen(true);
-      }
-    }
-  }, [isStandalone, user]);
+  const { isStandalone } = usePwaInstall('captain');
 
   const isDriverLocationLive = driverOps?.driverLocation && (driverOps.driverLocation as { source?: string }).source === 'gps';
   const { currencyCode: liveCurrencyCode, countryCode: liveCountryCode } = useLiveCurrencyFromLocation(
@@ -75,52 +63,49 @@ export function DriverViewTab() {
     isInDifferentCountry,
     driverOps?.activationNonce ?? 0,
   );
-  const [isManualPriceSetupOpen, setIsManualPriceSetupOpen] = React.useState(false);
-  const [isPendingActivation, setIsPendingActivation] = React.useState(false);
-
-  // Security guard: If a captain has 'active' status in DB/state but tariff is incomplete, revert to 'idle'
-  React.useEffect(() => {
-    const isTariffMissing = currentTariff.baseFare === null || currentTariff.pricePerKm === null || currentTariff.pricePerMin === null;
-    if (isTariffMissing && driverOps?.driverStatus === 'active') {
-      void driverOps.toggleDriverStatus('idle');
-    }
-  }, [currentTariff.baseFare, currentTariff.pricePerKm, currentTariff.pricePerMin, driverOps]);
-
-  const handleClosePriceSetup = React.useCallback(() => {
-    setIsManualPriceSetupOpen(false);
-    setIsPendingActivation(false);
-    dismissPriceSetup();
-    if (driverOps?.driverStatus === 'active') {
-      const isTariffMissing = currentTariff.baseFare === null || currentTariff.pricePerKm === null || currentTariff.pricePerMin === null;
-      if (isTariffMissing) {
-        void driverOps.toggleDriverStatus('idle');
-      }
-    }
-  }, [dismissPriceSetup, driverOps, currentTariff.baseFare, currentTariff.pricePerKm, currentTariff.pricePerMin]);
 
   const { marketIndicator } = useCaptainMarketIndicator(user);
   const [state, dispatch] = React.useReducer(captainDashboardReducer, initialCaptainDashboardState);
-  const [_prefilledOfferPrice, setPrefilledOfferPrice] = React.useState<number | null>(null);
-  const [_prefilledPricingMode, setPrefilledPricingMode] = React.useState<'FREE' | 'APP' | 'TAXI' | null>(null);
   const screen = state.screen === 'ACTIVE_TRIP' && !driverOps?.activeRequest ? 'RADAR_MAP' : state.screen;
   useActiveTripReloadGuard(screen === 'ACTIVE_TRIP');
 
   useCaptainSyncEffects({ driverOps, isOffline, state, dispatch, toast, t });
 
+  const {
+    isInstallModalOpen,
+    setIsInstallModalOpen,
+    isManualPriceSetupOpen,
+    setIsManualPriceSetupOpen,
+    isPendingActivation,
+    setIsPendingActivation,
+    handleClosePriceSetup,
+    submitBid,
+    submitDirectBid,
+    selectRequest,
+    completeTrip,
+  } = useCaptainViewController({
+    user,
+    driverOps,
+    currentTariff,
+    state,
+    dispatch,
+    dismissPriceSetup,
+    isStandalone,
+  });
+
   if (!driverOps) {
     return <div className={styles.loading}><Loader2 className={styles.loadingIcon} />{t('loading')}</div>;
   }
 
-  const securityScreen = (
-    <CaptainSecurityScreens
-      isTimeTamperingDetected={isTimeTamperingDetected}
-      accountSecurityStatus={driverOps.accountSecurityStatus}
-      direction={direction}
-      onLogout={() => void logout()}
-    />
-  );
   if (isTimeTamperingDetected || driverOps.accountSecurityStatus === 'BANNED' || driverOps.accountSecurityStatus === 'SUSPENDED') {
-    return securityScreen;
+    return (
+      <CaptainSecurityScreens
+        isTimeTamperingDetected={isTimeTamperingDetected}
+        accountSecurityStatus={driverOps.accountSecurityStatus}
+        direction={direction}
+        onLogout={() => void logout()}
+      />
+    );
   }
 
   const isActive = driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy';
@@ -128,39 +113,6 @@ export function DriverViewTab() {
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
   const currency = liveCurrencyCode || getCurrencyLabel(countryConfig, user, language);
-
-  const submitBid = async (price: number, waitSeconds: number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
-    if (!state.selectedRequest) return;
-    const ok = await driverOps.submitOffer({ tripId: state.selectedRequest.id, offerPrice: price, waitSeconds, pricingMode });
-    if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: state.selectedRequest.id });
-  };
-
-  const submitDirectBid = async (request: Trip, price: number, waitSeconds = 120, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
-    const ok = await driverOps.submitOffer({ tripId: request.id, offerPrice: price, waitSeconds, pricingMode });
-    if (ok) dispatch({ type: 'OFFER_SUBMITTED', requestId: request.id });
-  };
-
-  const selectRequest = (request: Trip, initialPrice?: string | number, pricingMode?: 'FREE' | 'APP' | 'TAXI') => {
-    const parsed = initialPrice ? parseFloat(String(initialPrice)) : null;
-    setPrefilledOfferPrice(parsed && !isNaN(parsed) && parsed > 0 ? parsed : null);
-    setPrefilledPricingMode(pricingMode ?? null);
-    dispatch({ type: 'SELECT_REQUEST', request });
-  };
-
-  const completeTrip = async () => {
-    const trip = driverOps.activeRequest;
-    const riderId = trip?.riderId || driverOps.acceptedRider?.uid || '';
-    const riderName = driverOps.acceptedRider?.name;
-    const requestId = trip?.id || '';
-    const ok = await driverOps.endTrip();
-    if (!ok) return;
-    if (requestId && riderId) {
-      dispatch({
-        type: 'TRIP_COMPLETED',
-        completedTrip: { requestId, riderId, riderName },
-      });
-    }
-  };
 
   return (
     <div className={styles.root} dir={direction}>
