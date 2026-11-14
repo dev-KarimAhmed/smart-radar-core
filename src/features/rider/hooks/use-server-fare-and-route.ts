@@ -1,52 +1,44 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase-client';
-import { fetchRoadRoute, type RoadRouteEstimate } from '@/lib/road-route';
+import { fetchRoadRoute } from '@/lib/road-route';
 import { calculateServerFare, mapRiderMarketplaceError } from '../services/rider-server-marketplace';
 import { buildFareRequestKey } from '../services/rider-destination-normalizers';
-import type { DistrictOption } from '../services/rider-destination-normalizers';
-import type { RiderLocation } from '../components/rider-map';
+import {
+  FARE_RECALCULATION_DEBOUNCE_MS,
+  isUsableRiderLocation,
+  isNearbyOriginLocation,
+  type UseServerFareAndRouteParams,
+  type ServerFareState,
+  type RouteEstimateState,
+} from './server-fare-and-route-helpers';
 
-const FARE_RECALCULATION_DEBOUNCE_MS = 350;
+export * from './server-fare-and-route-helpers';
 
 /**
  * Debounced server-fare + road-route estimate, keyed by origin/destination/
  * country so a stale response for a since-changed destination never applies.
  */
-export function useServerFareAndRoute(params: {
-  activeCountryId: number | undefined;
-  riderLocation: RiderLocation;
-  /**
-   * 'fallback' means riderLocation is still the hardcoded placeholder, not a GPS fix. The
-   * fare must not be built on it — see hasUsableRiderLocation below.
-   */
-  riderLocationStatus?: string;
-  selectedDestinationCoords: RiderLocation | null;
-  selectedDistrict: DistrictOption | null;
-  destinationDataError: string | null;
-  isDestinationPinMoving: boolean;
-  /** countries.traffic_factor for the active country; see fetchRoadRoute. */
-  trafficFactor?: number | null;
-}) {
-  const { activeCountryId, riderLocation, riderLocationStatus, selectedDestinationCoords, selectedDistrict, destinationDataError, isDestinationPinMoving, trafficFactor } = params;
+export function useServerFareAndRoute(params: UseServerFareAndRouteParams) {
+  const {
+    activeCountryId,
+    riderLocation,
+    riderLocationStatus,
+    selectedDestinationCoords,
+    selectedDistrict,
+    destinationDataError,
+    isDestinationPinMoving,
+    trafficFactor,
+  } = params;
   const t = useTranslations('riderView');
 
-  const [serverFareState, setServerFareState] = React.useState<{
-    key: string;
-    fare: number | null;
-    isLoading: boolean;
-    error: string | null;
-  }>({
+  const [serverFareState, setServerFareState] = React.useState<ServerFareState>({
     key: '',
     fare: null,
     isLoading: false,
     error: null,
   });
-  const [routeEstimateState, setRouteEstimateState] = React.useState<{
-    key: string;
-    estimate: RoadRouteEstimate | null;
-    isLoading: boolean;
-  }>({
+  const [routeEstimateState, setRouteEstimateState] = React.useState<RouteEstimateState>({
     key: '',
     estimate: null,
     isLoading: false,
@@ -59,21 +51,9 @@ export function useServerFareAndRoute(params: {
 
   const currentServerFare = serverFareState.key === fareRequestKey ? serverFareState.fare : null;
   const currentRouteEstimate = routeEstimateState.key === fareRequestKey ? routeEstimateState.estimate : null;
-  /**
-   * A real GPS fix, not the placeholder.
-   *
-   * This used to reject only 0,0 — which let the hardcoded INITIAL_RIDER_LOCATION through as
-   * though it were the rider's position. That constant is Tahrir Square (30.0444, 31.2357),
-   * so a rider whose GPS had not resolved yet, or who denied permission, was quoted and
-   * charged for a trip starting in downtown Cairo. `locationStatus` already knew the
-   * difference; nothing was asking it.
-   */
-  const isDummyCairo = Math.abs(riderLocation.lat - 30.0444) < 0.001 && Math.abs(riderLocation.lng - 31.2357) < 0.001;
-  const hasUsableRiderLocation =
-    Number.isFinite(riderLocation.lat) &&
-    Number.isFinite(riderLocation.lng) &&
-    (riderLocation.lat !== 0 || riderLocation.lng !== 0) &&
-    (!isDummyCairo || riderLocationStatus === 'live');
+
+  const hasUsableRiderLocation = isUsableRiderLocation(riderLocation, riderLocationStatus);
+
   const isRouteEstimateLoading =
     !!selectedDestinationCoords &&
     (!hasUsableRiderLocation || routeEstimateState.key !== fareRequestKey || routeEstimateState.isLoading || isDestinationPinMoving);
@@ -95,11 +75,7 @@ export function useServerFareAndRoute(params: {
       return;
     }
 
-    const isNearbyOrigin =
-      Math.abs(selectedDestinationCoords.lat - riderLocation.lat) < 0.0008 &&
-      Math.abs(selectedDestinationCoords.lng - riderLocation.lng) < 0.0008;
-
-    if (isNearbyOrigin) {
+    if (isNearbyOriginLocation(riderLocation, selectedDestinationCoords)) {
       setServerFareState({
         key: fareRequestKey,
         fare: null,
@@ -126,10 +102,6 @@ export function useServerFareAndRoute(params: {
       error: null,
     });
 
-    // Wait for the route before quoting. The fare has to be built from the same distance
-    // and duration the rider is being shown, and this effect used to race the route fetch
-    // instead of following it — so the quote was computed from the server's own fallback
-    // estimate even when a real route arrived a moment later.
     if (isRouteEstimateLoading) return;
 
     const timeoutId = window.setTimeout(() => {
@@ -137,8 +109,6 @@ export function useServerFareAndRoute(params: {
         origin: riderLocation,
         destination: selectedDestinationCoords,
         countryId,
-        // Null when the router failed; the RPC then falls back to its own estimate, which
-        // is the same formula fetchRoadRoute falls back to.
         roadKm: currentRouteEstimate?.distanceKm ?? null,
         durationMinutes: currentRouteEstimate?.durationMinutes ?? null,
       })
@@ -167,14 +137,6 @@ export function useServerFareAndRoute(params: {
       active = false;
       window.clearTimeout(timeoutId);
     };
-    // `fareRequestKey` already captures every meaningful change in
-    // riderLocation/selectedDestinationCoords (it's derived from them) —
-    // listing those objects here too would re-run this on every GPS ping,
-    // since watchPosition hands back a new object each time even when the
-    // rider hasn't materially moved, flickering the UI back to "loading".
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // currentRouteEstimate/isRouteEstimateLoading are listed so the quote re-runs once the
-    // route lands — that sequencing is the whole point of the guard above.
   }, [
     activeCountryId,
     destinationDataError,
@@ -183,6 +145,8 @@ export function useServerFareAndRoute(params: {
     t,
     isRouteEstimateLoading,
     currentRouteEstimate,
+    riderLocation,
+    selectedDestinationCoords,
   ]);
 
   React.useEffect(() => {
@@ -191,11 +155,7 @@ export function useServerFareAndRoute(params: {
       return;
     }
 
-    const isNearbyOrigin =
-      Math.abs(selectedDestinationCoords.lat - riderLocation.lat) < 0.0008 &&
-      Math.abs(selectedDestinationCoords.lng - riderLocation.lng) < 0.0008;
-
-    if (isNearbyOrigin) {
+    if (isNearbyOriginLocation(riderLocation, selectedDestinationCoords)) {
       setRouteEstimateState({
         key: fareRequestKey,
         estimate: { distanceKm: 0, durationMinutes: 0, isFallback: false },
@@ -212,8 +172,6 @@ export function useServerFareAndRoute(params: {
         riderLocation,
         selectedDestinationCoords,
         selectedDistrict?.tortuosityFactor || 1.3,
-        // OSRM reports free-flow time; this converts it to a realistic one, once, so the
-        // shown / stored / charged duration are the same number everywhere downstream.
         Number(trafficFactor) || undefined,
       ).then((estimate) => {
         if (!active) return;
@@ -231,11 +189,14 @@ export function useServerFareAndRoute(params: {
       active = false;
       window.clearTimeout(timeoutId);
     };
-    // Same reasoning as the fare effect above — `fareRequestKey` already
-    // captures riderLocation/selectedDestinationCoords changes; keeping the
-    // raw objects here too re-triggers this on every GPS ping.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fareRequestKey, hasUsableRiderLocation, selectedDistrict?.tortuosityFactor, trafficFactor]);
+  }, [
+    fareRequestKey,
+    hasUsableRiderLocation,
+    selectedDistrict?.tortuosityFactor,
+    trafficFactor,
+    riderLocation,
+    selectedDestinationCoords,
+  ]);
 
   const reset = React.useCallback(() => {
     setServerFareState({ key: '', fare: null, isLoading: false, error: null });
