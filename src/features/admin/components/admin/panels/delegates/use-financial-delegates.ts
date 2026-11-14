@@ -2,8 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import type { FinancialDelegate, DelegateFormData, DelegatesCopy } from './financial-delegates-types';
+import {
+  fetchDelegatesDirectoryApi,
+  fetchDelegatesListApi,
+  saveDelegateApi,
+  toggleDelegateStatusApi,
+  deleteDelegateApi,
+} from './financial-delegates-service';
+
+export * from './financial-delegates-service';
 
 interface UseFinancialDelegatesProps {
   t: DelegatesCopy;
@@ -41,8 +49,7 @@ export function useFinancialDelegates({ t }: UseFinancialDelegatesProps) {
 
   const fetchDirectory = useCallback(async () => {
     try {
-      const res = await adminFetch('/api/admin/financial-delegates?type=directory');
-      const data = await res.json();
+      const data = await fetchDelegatesDirectoryApi();
       if (data.success) {
         if (Array.isArray(data.governorates)) setGovernorates(data.governorates);
         if (Array.isArray(data.districts)) setDistricts(data.districts);
@@ -55,8 +62,7 @@ export function useFinancialDelegates({ t }: UseFinancialDelegatesProps) {
   const fetchDelegates = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminFetch('/api/admin/financial-delegates');
-      const data = await res.json();
+      const data = await fetchDelegatesListApi();
       if (data.success && Array.isArray(data.delegates)) {
         setDelegates(data.delegates);
       } else {
@@ -117,28 +123,7 @@ export function useFinancialDelegates({ t }: UseFinancialDelegatesProps) {
 
     setSaving(true);
     try {
-      const payload = {
-        id: editingDelegate?.id,
-        name: formData.name.trim(),
-        phone: formData.phone.trim().replace(/^\+/, ''),
-        whatsapp: formData.whatsapp.trim() ? formData.whatsapp.trim().replace(/^\+/, '') : null,
-        countryId: formData.countryId ? Number(formData.countryId) : 1,
-        governorateId: formData.governorateId ? Number(formData.governorateId) : null,
-        governorateName: formData.governorateName.trim() || null,
-        districtId: formData.districtId ? Number(formData.districtId) : null,
-        districtName: formData.districtName.trim() || null,
-        notes: formData.notes.trim() || null,
-        isActive: formData.isActive,
-      };
-
-      const method = editingDelegate ? 'PUT' : 'POST';
-      const res = await adminFetch('/api/admin/financial-delegates', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
+      const data = await saveDelegateApi(formData, editingDelegate?.id);
       if (data.success) {
         toast({ title: t.opSuccess, description: data.message, variant: 'default' });
         setIsModalOpen(false);
@@ -155,12 +140,7 @@ export function useFinancialDelegates({ t }: UseFinancialDelegatesProps) {
 
   const handleToggle = async (delegate: FinancialDelegate) => {
     try {
-      const res = await adminFetch('/api/admin/financial-delegates', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: delegate.id, isActive: !delegate.isActive }),
-      });
-      const data = await res.json();
+      const data = await toggleDelegateStatusApi(delegate.id, !delegate.isActive);
       if (data.success) {
         toast({ title: t.updated, description: data.message });
         setDelegates((prev) =>
@@ -178,10 +158,7 @@ export function useFinancialDelegates({ t }: UseFinancialDelegatesProps) {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      const res = await adminFetch(`/api/admin/financial-delegates?id=${deleteTarget.id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+      const data = await deleteDelegateApi(deleteTarget.id);
       if (data.success) {
         toast({ title: t.deleted, description: data.message });
         setDelegates((prev) => prev.filter((d) => d.id !== deleteTarget.id));
