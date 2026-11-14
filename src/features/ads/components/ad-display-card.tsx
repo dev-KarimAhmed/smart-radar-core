@@ -111,38 +111,64 @@ export function AdDisplayCard({
     <article
       dir={direction}
       onClick={onOpen ? (event) => onOpen(event, ad) : undefined}
+      style={ad?.isCaptainSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
       className={cn(
         styles.style87_1,
+        ad?.isCaptainSectorAd && '!p-0 overflow-hidden border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)]',
         isPlaceholder && styles.style88_2,
         !onOpen && styles.staticCursor,
-        className
+        className,
+        'box-border flex-shrink-0 flex-grow-0'
       )}
     >
-      <img
-        src={image}
-        alt={title}
-        onError={(event) => {
-          event.currentTarget.src = FALLBACK_IMAGE;
-        }}
-        className={cn(
-          styles.style99_3,
-          isPlaceholder
-            ? styles.style101_4
-            : styles.style102_5
-        )}
-        referrerPolicy="no-referrer"
-      />
-      <div className={cn(styles.style106_6, isPlaceholder ? styles.style106_7 : styles.style106_8)} />
-      <div
-        className={cn(
-          styles.style109_9,
-          isPlaceholder
-            ? styles.style111_10
-            : styles.style112_11
-        )}
-      />
+      {/* For captain sector ads: full bleed poster filling 100% of the frame exactly like 2.jpeg */}
+      {ad?.isCaptainSectorAd ? (
+        <img
+          src={image}
+          alt={title}
+          onError={(event) => {
+            if (ad?.fallbackImageUrl && event.currentTarget.src !== ad.fallbackImageUrl) {
+              event.currentTarget.src = ad.fallbackImageUrl;
+            } else {
+              event.currentTarget.src = FALLBACK_IMAGE;
+            }
+          }}
+          className="relative z-[1] h-full w-full object-cover p-0 transition-transform duration-500 group-hover:scale-[1.02]"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        <>
+          <img
+            src={image}
+            alt={title}
+            onError={(event) => {
+              if (ad?.fallbackImageUrl && event.currentTarget.src !== ad.fallbackImageUrl) {
+                event.currentTarget.src = ad.fallbackImageUrl;
+              } else {
+                event.currentTarget.src = FALLBACK_IMAGE;
+              }
+            }}
+            className={cn(
+              styles.style99_3,
+              isPlaceholder
+                ? styles.style101_4
+                : styles.style102_5
+            )}
+            referrerPolicy="no-referrer"
+          />
+          <div className={cn(styles.style106_6, isPlaceholder ? styles.style106_7 : styles.style106_8)} />
+          <div
+            className={cn(
+              styles.style109_9,
+              isPlaceholder
+                ? styles.style111_10
+                : styles.style112_11
+            )}
+          />
+        </>
+      )}
 
-      {showHeart && (
+      {!ad?.isCaptainSectorAd && showHeart && (
         <button
           type="button"
           aria-label={isHearted ? copy.removeAd : copy.saveAd}
@@ -163,25 +189,29 @@ export function AdDisplayCard({
         </button>
       )}
 
-      <div className={styles.style137_16}>
-        <Zap className={styles.style138_17} />
-        <span>{resolvedBadgeText}</span>
-      </div>
-
-      <div className={styles.style142_18}>
-        <div className={styles.style143_19}>
-          <h3 className={styles.style144_20}>
-            {highlightBrand(title)}
-          </h3>
-          <p className={styles.style147_21}>
-            {highlightBrand(description)}
-          </p>
+      {!ad?.isCaptainSectorAd && (
+        <div className={styles.style137_16}>
+          <Zap className={styles.style138_17} />
+          <span>{resolvedBadgeText}</span>
         </div>
+      )}
 
-        <span className={cn(styles.style152_22, !onOpen && styles.staticCursor)}>
-          {actionText}
-        </span>
-      </div>
+      {!ad?.isCaptainSectorAd && (
+        <div className={styles.style142_18}>
+          <div className={styles.style143_19}>
+            <h3 className={styles.style144_20}>
+              {highlightBrand(title)}
+            </h3>
+            <p className={styles.style147_21}>
+              {highlightBrand(description)}
+            </p>
+          </div>
+
+          <span className={cn(styles.style152_22, !onOpen && styles.staticCursor)}>
+            {actionText}
+          </span>
+        </div>
+      )}
     </article>
   );
 }

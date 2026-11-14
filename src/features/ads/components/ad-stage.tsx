@@ -14,6 +14,7 @@ import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-client';
 import { recordRiderActivity } from '@/features/referral/services/captain-referral';
+import { CAPTAIN_SECTOR_ADS } from '../config/captain-sector-ads';
 
 const styles = {
   style384_1: "relative",
@@ -46,13 +47,13 @@ const styles = {
   style490_28: "no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-6 sm:gap-8 overflow-x-auto items-center h-full",
   style491_29: "justify-center px-6 sm:px-16",
   style491_30: "px-14 lg:justify-center",
-  style497_31: "flex-shrink-0 my-auto h-full flex items-center justify-center",
+  style497_31: "flex-shrink-0 flex-grow-0 my-auto h-full flex items-center justify-center",
   style518_32: "fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4 md:justify-center",
   style526_33: "relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6",
-  style534_34: "absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-xl shadow-black/35 backdrop-blur-md transition hover:border-red-400/40 hover:bg-red-950/70",
-  style536_35: "h-5 w-5",
+  style534_34: "flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-md transition hover:border-red-400/40 hover:bg-red-950/70 shrink-0",
+  style536_35: "h-4 w-4",
   style539_36: "mx-auto mb-1 h-1 w-12 rounded-full bg-[#14B8A6]/30",
-  style541_37: "flex items-center justify-between border-b border-white/5 pb-3 pe-12",
+  style541_37: "flex items-center justify-between gap-3 border-b border-white/10 pb-3",
   style542_38: "flex items-center gap-2 text-xs font-black text-[#14F5D5]",
   style543_39: "h-4 w-4 animate-pulse text-[#14F5D5]",
   style551_40: "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black transition-all duration-300",
@@ -73,12 +74,12 @@ const styles = {
   style601_55: "h-4 w-4 text-[#14F5D5]",
   style609_56: "flex w-full items-center justify-center gap-2.5 rounded-2xl border border-blue-700/50 bg-blue-700 p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(29,78,216,0.25)] transition hover:bg-blue-600",
   style611_57: "h-4 w-4 text-white",
-  style629_58: "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(0,0,0,0.35)]",
+  style629_58: "relative overflow-hidden rounded-3xl border border-white/10 bg-[#07101F] shadow-[0_18px_40px_rgba(0,0,0,0.35)] flex items-center justify-center p-0 mx-auto w-full max-w-[min(420px,100%)] max-h-[62vh]",
   style632_59: "aspect-video w-full bg-black object-cover",
-  style644_60: "aspect-video w-full bg-[#07101F] object-cover",
+  style644_60: "w-full h-full max-h-[62vh] object-contain mx-auto block bg-[#07101F]",
   stageFull: "h-full w-full flex-1 justify-center items-center min-h-[calc(100vh-7.5rem)]",
   stageCompact: "h-[280px] w-full sm:h-[320px]",
-  cardFull: "h-[calc(100vh-7.65rem)] min-h-[460px] w-[290px] sm:w-[350px] md:w-[400px] lg:w-[440px] max-w-[88vw]",
+  cardFull: "!h-[min(540px,calc(100vh-9.5rem))] !min-h-[min(540px,calc(100vh-9.5rem))] !max-h-[min(540px,calc(100vh-9.5rem))] aspect-[904/1280] !w-auto !max-w-[min(382px,85vw)] !flex-shrink-0 !flex-grow-0",
   cardCompact: "h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]",
 } as const;
 
@@ -309,6 +310,15 @@ export function AdStage({
   const [canScrollRight, setCanScrollRight] = useState(true);
 
   const adsToUse = useMemo(() => {
+    if (audience === 'captain') {
+      const audienceAds = filterAdsByAudience(serverAds, 'captain');
+      const filteredServerAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, audienceAds);
+      if (filteredServerAds.length > 0) {
+        return [...filteredServerAds, ...CAPTAIN_SECTOR_ADS];
+      }
+      return CAPTAIN_SECTOR_ADS;
+    }
+
     const audienceAds = filterAdsByAudience(serverAds, audience);
     const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, audienceAds);
     if (filteredAds.length > 0) return filteredAds;
@@ -809,15 +819,6 @@ export function AdStage({
               dir={direction}
               onClick={(event) => event.stopPropagation()}
             >
-              <button
-                type="button"
-                aria-label="Close ad"
-                onClick={() => setTakeoverAd(null)}
-                className={styles.style534_34}
-              >
-                <X className={styles.style536_35} />
-              </button>
-
               <div className={styles.style539_36} />
 
               <div className={styles.style541_37}>
@@ -825,29 +826,15 @@ export function AdStage({
                   <ShieldCheck className={styles.style543_39} />
                   {copy.trustedAd}
                 </span>
-                {!takeoverAd.isPlaceholder ? (
-                  <button
-                    type="button"
-                    onClick={(event) => toggleHeart(event, takeoverAd)}
-                    className={cn(
-                      styles.style551_40,
-                      heartedAdIds.includes(takeoverAd.id)
-                        ? styles.style553_41
-                        : styles.style554_42,
-                    )}
-                    aria-pressed={heartedAdIds.includes(takeoverAd.id)}
-                  >
-                    <Heart
-                      className={cn(
-                        styles.style560_43,
-                        heartedAdIds.includes(takeoverAd.id) && styles.style561_44,
-                      )}
-                    />
-                    {heartedAdIds.includes(takeoverAd.id)
-                      ? ((copy as unknown as Record<string, string>).removeFavorite || (isArabic ? tAuto('key_446a5f99') : 'Remove favorite'))
-                      : ((copy as unknown as Record<string, string>).favorite || (isArabic ? tAuto('key_9ddc8cd6') : 'Favorite'))}
-                  </button>
-                ) : null}
+
+                <button
+                  type="button"
+                  aria-label="Close ad"
+                  onClick={() => setTakeoverAd(null)}
+                  className={styles.style534_34}
+                >
+                  <X className={styles.style536_35} />
+                </button>
               </div>
 
               <AdTakeoverMedia ad={takeoverAd} />
@@ -884,7 +871,8 @@ export function AdStage({
                   {copy.call}
                 </a>
 
-                <a
+                {/* زر فتح الموقع - معطل مؤقتاً */}
+                {/* <a
                   href={takeoverAd.geoLoc || 'https://www.openstreetmap.org/'}
                   target="_blank"
                   onClick={(event) => event.stopPropagation()}
@@ -892,7 +880,7 @@ export function AdStage({
                 >
                   <MapPin className={styles.style611_57} />
                   {copy.openLocation}
-                </a>
+                </a> */}
               </div>
             </motion.div>
           </div>
@@ -906,9 +894,17 @@ function AdTakeoverMedia({ ad }: { ad: any }) {
   const media = getAdMedia(ad);
   const title = getAdTitle(ad, 'Ad media');
   const fallbackImage = getAdImage(ad) || PLACEHOLDER_BANNER_URL;
+  const isCaptainSectorAd = Boolean(
+    ad?.isCaptainSectorAd ||
+    ad?.adType === 'CAPTAIN_PROFESSIONAL' ||
+    (typeof ad?.id === 'string' && ad.id.startsWith('captain-sector-ad-'))
+  );
 
   return (
-    <div className={styles.style629_58}>
+    <div
+      className={styles.style629_58}
+      style={isCaptainSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
+    >
       {media.kind === 'video' && media.url ? (
         <video
           className={styles.style632_59}
@@ -923,11 +919,16 @@ function AdTakeoverMedia({ ad }: { ad: any }) {
         <img
           src={media.url || fallbackImage}
           alt={title}
+          style={isCaptainSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
           className={styles.style644_60}
           loading="lazy"
           referrerPolicy="no-referrer"
           onError={(event) => {
-            event.currentTarget.src = PLACEHOLDER_BANNER_URL;
+            if (ad?.fallbackImageUrl && event.currentTarget.src !== ad.fallbackImageUrl) {
+              event.currentTarget.src = ad.fallbackImageUrl;
+            } else {
+              event.currentTarget.src = PLACEHOLDER_BANNER_URL;
+            }
           }}
         />
       )}
