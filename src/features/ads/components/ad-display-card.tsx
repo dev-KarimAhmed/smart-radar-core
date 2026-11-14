@@ -33,6 +33,24 @@ const styles = {
 } as const;
 
 
+import {
+  AD_CARD_COPY,
+  FALLBACK_IMAGE,
+  getAdCta,
+  getAdDescription,
+  getAdImage,
+  getAdTitle,
+} from '../services/ad-card-helpers';
+
+export {
+  AD_CARD_COPY,
+  FALLBACK_IMAGE,
+  getAdCta,
+  getAdDescription,
+  getAdImage,
+  getAdTitle,
+};
+
 type AdDisplayCardProps = {
   ad: any;
   isHearted?: boolean;
@@ -43,50 +61,6 @@ type AdDisplayCardProps = {
   ctaText?: string;
   showHeart?: boolean;
 };
-
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200';
-
-const AD_CARD_COPY = {
-  ar: {
-    fallbackTitle: 'إعلان قريب منك',
-    fallbackDescription: 'اكتشف عرضاً مناسباً في منطقتك وتواصل مع المعلن مباشرة.',
-    fallbackCta: 'عرض التفاصيل',
-    defaultBadge: 'إعلان قريب',
-    saveAd: 'حفظ الإعلان',
-    removeAd: 'إزالة الإعلان من المفضلة',
-  },
-  en: {
-    fallbackTitle: 'Nearby ad',
-    fallbackDescription: 'Discover a useful offer in your area and contact the advertiser directly.',
-    fallbackCta: 'View details',
-    defaultBadge: 'Nearby ad',
-    saveAd: 'Save ad',
-    removeAd: 'Remove ad from vault',
-  },
-} as const;
-
-export function getAdImage(ad: any) {
-  return (
-    ad?.content?.posterUrl ||
-    ad?.posterUrl ||
-    ad?.bannerUrl ||
-    ad?.imageUrl ||
-    FALLBACK_IMAGE
-  );
-}
-
-export function getAdTitle(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackTitle) {
-  return ad?.content?.title || ad?.title || fallback;
-}
-
-export function getAdDescription(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackDescription) {
-  return ad?.content?.description || ad?.description || fallback;
-}
-
-export function getAdCta(ad: any, fallback: string = AD_CARD_COPY.ar.fallbackCta) {
-  return ad?.action?.buttonText || ad?.buttonText || fallback;
-}
 
 export function AdDisplayCard({
   ad,
@@ -100,11 +74,11 @@ export function AdDisplayCard({
 }: AdDisplayCardProps) {
   const { direction, language } = useDashboardLanguage();
   const copy = AD_CARD_COPY[language];
-  const title = getAdTitle(ad, copy.fallbackTitle);
-  const description = getAdDescription(ad, copy.fallbackDescription);
+  const title = getAdTitle(ad, copy.fallbackTitle, language);
+  const description = getAdDescription(ad, copy.fallbackDescription, language);
   const image = getAdImage(ad);
-  const actionText = ctaText || getAdCta(ad, copy.fallbackCta);
-  const resolvedBadgeText = badgeText || copy.defaultBadge;
+  const actionText = ctaText || getAdCta(ad, copy.fallbackCta, language);
+  const resolvedBadgeText = badgeText || (language === 'en' && ad?.badgeTextEn ? ad.badgeTextEn : copy.defaultBadge);
   const isPlaceholder = Boolean(ad?.isPlaceholder);
 
   return (

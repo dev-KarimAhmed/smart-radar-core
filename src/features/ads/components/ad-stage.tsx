@@ -1,13 +1,21 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Heart, MapPin, MessageCircle, Navigation, Phone, Plus, ShieldCheck, X } from 'lucide-react';
+import { AnimatePresence, useReducedMotion } from 'motion/react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { AdDisplayCard, getAdDescription, getAdImage, getAdTitle } from './ad-display-card';
+import { AdDisplayCard } from './ad-display-card';
+import { AdTakeoverModal } from './ad-takeover-modal';
 import { AdCardSkeleton } from './ad-card-skeleton';
 import { getAdManualScrollDelta, getAdScrollDelta, wrapAdScrollPosition } from '../services/ad-stage-scroll';
 import { filterAdsByAudience, readAdAudience, type AdAudience } from '../services/ad-audience';
+import {
+  firstMediaObject,
+  firstString,
+  isImageMedia,
+  isVideoMedia,
+  PLACEHOLDER_BANNER_URL,
+} from '../services/ad-media-helpers';
 import { useAuth } from '@/hooks/use-auth';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { useAdCampaigns } from '@/hooks/use-ad-campaigns';
@@ -48,35 +56,6 @@ const styles = {
   style491_29: "justify-center px-6 sm:px-16",
   style491_30: "px-14 lg:justify-center",
   style497_31: "flex-shrink-0 flex-grow-0 my-auto h-full flex items-center justify-center",
-  style518_32: "fixed inset-0 z-[100] flex flex-col items-center justify-end bg-black/85 p-0 backdrop-blur-sm md:p-4 md:justify-center",
-  style526_33: "relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[32px] border-t-2 border-[#14B8A6]/40 bg-[#070D19] px-6 pt-6 pb-28 shadow-[0_-12px_45px_rgba(20,184,166,0.25)] md:rounded-[32px] md:border-x-2 md:p-6",
-  style534_34: "flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#0B0F19]/90 text-white shadow-md transition hover:border-red-400/40 hover:bg-red-950/70 shrink-0",
-  style536_35: "h-4 w-4",
-  style539_36: "mx-auto mb-1 h-1 w-12 rounded-full bg-[#14B8A6]/30",
-  style541_37: "flex items-center justify-between gap-3 border-b border-white/10 pb-3",
-  style542_38: "flex items-center gap-2 text-xs font-black text-[#14F5D5]",
-  style543_39: "h-4 w-4 animate-pulse text-[#14F5D5]",
-  style551_40: "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-black transition-all duration-300",
-  style553_41: "border-rose-400/40 bg-rose-500/15 text-rose-200 shadow-[0_0_18px_rgba(244,63,94,0.22)]",
-  style554_42: "border-[#14B8A6]/25 bg-[#14B8A6]/10 text-[#14F5D5] hover:bg-[#14B8A6]/15",
-  style560_43: "h-4 w-4 transition-transform duration-300",
-  style561_44: "scale-110 fill-rose-300 text-rose-300",
-  style573_45: "space-y-2",
-  style573_46: "text-right",
-  style573_47: "text-left",
-  style574_48: "rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-[10px] font-black text-[#14F5D5]",
-  style577_49: "mt-2 text-xl font-black leading-tight text-white",
-  style580_50: "pt-1 text-xs leading-relaxed text-gray-300",
-  style585_51: "mt-1.5 flex flex-col gap-3",
-  style590_52: "flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#00cc66]/50 bg-[#00cc66] p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(0,204,102,0.25)] transition hover:bg-[#00e271]",
-  style592_53: "h-4 w-4 text-white",
-  style599_54: "flex w-full items-center justify-center gap-2.5 rounded-2xl border border-[#14B8A6]/35 bg-[#131C31] p-3.5 text-xs font-black text-[#14F5D5] shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition hover:bg-[#14B8A6]/15",
-  style601_55: "h-4 w-4 text-[#14F5D5]",
-  style609_56: "flex w-full items-center justify-center gap-2.5 rounded-2xl border border-blue-700/50 bg-blue-700 p-3.5 text-xs font-black text-white shadow-[0_4px_15px_rgba(29,78,216,0.25)] transition hover:bg-blue-600",
-  style611_57: "h-4 w-4 text-white",
-  style629_58: "relative overflow-hidden rounded-3xl border border-white/10 bg-[#07101F] shadow-[0_18px_40px_rgba(0,0,0,0.35)] flex items-center justify-center p-0 mx-auto w-full max-w-[min(420px,100%)] max-h-[62vh]",
-  style632_59: "aspect-video w-full bg-black object-cover",
-  style644_60: "w-full h-full max-h-[62vh] object-contain mx-auto block bg-[#07101F]",
   stageFull: "h-full w-full flex-1 justify-center items-center min-h-[calc(100vh-7.5rem)]",
   stageCompact: "h-[280px] w-full sm:h-[320px]",
   cardFull: "!h-[min(540px,calc(100vh-9.5rem))] !min-h-[min(540px,calc(100vh-9.5rem))] !max-h-[min(540px,calc(100vh-9.5rem))] aspect-[904/1280] !w-auto !max-w-[min(382px,85vw)] !flex-shrink-0 !flex-grow-0",
@@ -154,12 +133,6 @@ const AD_STAGE_COPY = {
     fallbackGovernorate: 'Capital',
   },
 } as const;
-
-const PLACEHOLDER_BANNER_URL =
-  'data:image/svg+xml;utf8,' +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B0F19"/><stop offset="1" stop-color="#074C49"/></linearGradient><pattern id="p" width="72" height="72" patternUnits="userSpaceOnUse"><path d="M0 72L72 0M-18 18L18-18M54 90L90 54" stroke="#14F5D5" stroke-opacity=".22" stroke-width="2"/></pattern></defs><rect width="1200" height="800" fill="url(#g)"/><rect width="1200" height="800" fill="url(#p)"/><circle cx="965" cy="145" r="190" fill="#14F5D5" fill-opacity=".16"/><circle cx="210" cy="710" r="250" fill="#14B8A6" fill-opacity=".14"/></svg>',
-  );
 
 type AdStageCopy = (typeof AD_STAGE_COPY)['ar' | 'en'];
 
@@ -806,133 +779,16 @@ export function AdStage({
 
       <AnimatePresence>
         {takeoverAd && (
-          <div
-            className={styles.style518_32}
-            onClick={() => setTakeoverAd(null)}
-          >
-            <motion.div
-              initial={{ y: '100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className={styles.style526_33}
-              dir={direction}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className={styles.style539_36} />
-
-              <div className={styles.style541_37}>
-                <span className={styles.style542_38}>
-                  <ShieldCheck className={styles.style543_39} />
-                  {copy.trustedAd}
-                </span>
-
-                <button
-                  type="button"
-                  aria-label="Close ad"
-                  onClick={() => setTakeoverAd(null)}
-                  className={styles.style534_34}
-                >
-                  <X className={styles.style536_35} />
-                </button>
-              </div>
-
-              <AdTakeoverMedia ad={takeoverAd} />
-
-              <div className={cn(styles.style573_45, isArabic ? styles.style573_46 : styles.style573_47)}>
-                <span className={styles.style574_48}>
-                  {getBadgeText(takeoverAd, copy)}
-                </span>
-                <h3 className={styles.style577_49}>
-                  {getAdTitle(takeoverAd, copy.nearbyBadge)}
-                </h3>
-                <p className={styles.style580_50}>
-                  {getAdDescription(takeoverAd, copy.emptyDescription)}
-                </p>
-              </div>
-
-              <div className={styles.style585_51}>
-                <a
-                  href={`https://wa.me/${takeoverAd.whatsapp || takeoverAd.advertiserData?.whatsapp || '962798888888'}?text=${encodeURIComponent(copy.whatsappMessage(getAdTitle(takeoverAd, copy.nearbyBadge)))}`}
-                  target="_blank"
-                  onClick={(event) => event.stopPropagation()}
-                  className={styles.style590_52}
-                >
-                  <MessageCircle className={styles.style592_53} />
-                  {copy.whatsapp}
-                </a>
-
-                <a
-                  href={`tel:${takeoverAd.phone || takeoverAd.advertiserData?.phone || '0798888888'}`}
-                  onClick={(event) => event.stopPropagation()}
-                  className={styles.style599_54}
-                >
-                  <Phone className={styles.style601_55} />
-                  {copy.call}
-                </a>
-
-                {/* زر فتح الموقع - معطل مؤقتاً */}
-                {/* <a
-                  href={takeoverAd.geoLoc || 'https://www.openstreetmap.org/'}
-                  target="_blank"
-                  onClick={(event) => event.stopPropagation()}
-                  className={styles.style609_56}
-                >
-                  <MapPin className={styles.style611_57} />
-                  {copy.openLocation}
-                </a> */}
-              </div>
-            </motion.div>
-          </div>
+          <AdTakeoverModal
+            takeoverAd={takeoverAd}
+            onClose={() => setTakeoverAd(null)}
+            copy={copy}
+            direction={direction}
+            language={language}
+          />
         )}
       </AnimatePresence>
     </section>
-  );
-}
-
-function AdTakeoverMedia({ ad }: { ad: any }) {
-  const media = getAdMedia(ad);
-  const title = getAdTitle(ad, 'Ad media');
-  const fallbackImage = getAdImage(ad) || PLACEHOLDER_BANNER_URL;
-  const isCaptainSectorAd = Boolean(
-    ad?.isCaptainSectorAd ||
-    ad?.adType === 'CAPTAIN_PROFESSIONAL' ||
-    (typeof ad?.id === 'string' && ad.id.startsWith('captain-sector-ad-'))
-  );
-
-  return (
-    <div
-      className={styles.style629_58}
-      style={isCaptainSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
-    >
-      {media.kind === 'video' && media.url ? (
-        <video
-          className={styles.style632_59}
-          src={media.url}
-          poster={media.posterUrl || fallbackImage}
-          controls
-          playsInline
-          preload="metadata"
-          onClick={(event) => event.stopPropagation()}
-        />
-      ) : (
-        <img
-          src={media.url || fallbackImage}
-          alt={title}
-          style={isCaptainSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
-          className={styles.style644_60}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={(event) => {
-            if (ad?.fallbackImageUrl && event.currentTarget.src !== ad.fallbackImageUrl) {
-              event.currentTarget.src = ad.fallbackImageUrl;
-            } else {
-              event.currentTarget.src = PLACEHOLDER_BANNER_URL;
-            }
-          }}
-        />
-      )}
-    </div>
   );
 }
 
@@ -1093,191 +949,4 @@ function mapAdCampaignRow(row: Record<string, any>) {
       posterUrl,
     },
   };
-}
-
-function getAdMedia(ad: any): { kind: 'image' | 'video'; url?: string; posterUrl?: string } {
-  const primaryMedia = firstMediaObject(ad?.media, ad?.asset, ad?.creative, ad?.content?.media, ad?.content?.asset, ad?.content?.creative, ad?.assets, ad?.content?.assets);
-  const mediaType = firstString(
-    ad?.mediaType,
-    ad?.media_type,
-    ad?.contentType,
-    ad?.content_type,
-    ad?.mimeType,
-    ad?.mime_type,
-    ad?.adFormat,
-    ad?.ad_format,
-    ad?.format,
-    ad?.type,
-    ad?.kind,
-    primaryMedia?.mediaType,
-    primaryMedia?.media_type,
-    primaryMedia?.contentType,
-    primaryMedia?.content_type,
-    primaryMedia?.mimeType,
-    primaryMedia?.mime_type,
-    primaryMedia?.format,
-    primaryMedia?.type,
-    primaryMedia?.kind,
-    ad?.content?.mediaType,
-    ad?.content?.media_type,
-    ad?.content?.contentType,
-    ad?.content?.content_type,
-    ad?.content?.mimeType,
-    ad?.content?.mime_type,
-    ad?.content?.adFormat,
-    ad?.content?.ad_format,
-    ad?.content?.format,
-    ad?.content?.type,
-  );
-  const videoUrl = firstString(
-    ad?.videoUrl,
-    ad?.video_url,
-    ad?.video,
-    ad?.videoSrc,
-    ad?.video_src,
-    primaryMedia?.videoUrl,
-    primaryMedia?.video_url,
-    primaryMedia?.video,
-    primaryMedia?.videoSrc,
-    primaryMedia?.video_src,
-    ad?.content?.videoUrl,
-    ad?.content?.video_url,
-    ad?.content?.video,
-    ad?.content?.videoSrc,
-    ad?.content?.video_src,
-  );
-  const mediaUrl = firstString(
-    ad?.mediaUrl,
-    ad?.media_url,
-    ad?.fileUrl,
-    ad?.file_url,
-    ad?.assetUrl,
-    ad?.asset_url,
-    ad?.creativeUrl,
-    ad?.creative_url,
-    primaryMedia?.url,
-    primaryMedia?.src,
-    primaryMedia?.href,
-    primaryMedia?.mediaUrl,
-    primaryMedia?.media_url,
-    primaryMedia?.fileUrl,
-    primaryMedia?.file_url,
-    primaryMedia?.assetUrl,
-    primaryMedia?.asset_url,
-    primaryMedia?.creativeUrl,
-    primaryMedia?.creative_url,
-    ad?.content?.mediaUrl,
-    ad?.content?.media_url,
-    ad?.content?.fileUrl,
-    ad?.content?.file_url,
-    ad?.content?.assetUrl,
-    ad?.content?.asset_url,
-    ad?.content?.creativeUrl,
-    ad?.content?.creative_url,
-  );
-  const posterUrl = firstString(
-    ad?.posterUrl,
-    ad?.poster_url,
-    ad?.bannerUrl,
-    ad?.banner_url,
-    primaryMedia?.posterUrl,
-    primaryMedia?.poster_url,
-    primaryMedia?.bannerUrl,
-    primaryMedia?.banner_url,
-    ad?.content?.posterUrl,
-    ad?.content?.poster_url,
-    ad?.content?.bannerUrl,
-    ad?.content?.banner_url,
-  );
-  const imageUrl = firstString(
-    ad?.imageUrl,
-    ad?.image_url,
-    ad?.image,
-    ad?.adImage,
-    ad?.ad_image,
-    ad?.thumbnailUrl,
-    ad?.thumbnail_url,
-    ad?.coverUrl,
-    ad?.cover_url,
-    primaryMedia?.imageUrl,
-    primaryMedia?.image_url,
-    primaryMedia?.image,
-    primaryMedia?.thumbnailUrl,
-    primaryMedia?.thumbnail_url,
-    primaryMedia?.coverUrl,
-    primaryMedia?.cover_url,
-    ad?.content?.imageUrl,
-    ad?.content?.image_url,
-    ad?.content?.image,
-    ad?.content?.adImage,
-    ad?.content?.ad_image,
-    ad?.content?.thumbnailUrl,
-    ad?.content?.thumbnail_url,
-    ad?.content?.coverUrl,
-    ad?.content?.cover_url,
-    posterUrl,
-    getAdImage(ad),
-  );
-
-  if (videoUrl) return { kind: 'video', url: videoUrl, posterUrl: imageUrl || posterUrl };
-  if (isVideoMedia(mediaUrl, mediaType)) return { kind: 'video', url: mediaUrl, posterUrl: imageUrl || posterUrl };
-  if (imageUrl) return { kind: 'image', url: imageUrl };
-  if (isImageMedia(mediaUrl, mediaType)) return { kind: 'image', url: mediaUrl };
-
-  return { kind: 'image', url: getAdImage(ad) || PLACEHOLDER_BANNER_URL };
-}
-
-function isVideoMedia(url: string | undefined, mediaType: string | undefined) {
-  return Boolean(url) && (isVideoType(mediaType) || isVideoUrl(url));
-}
-
-function isVideoType(mediaType: string | undefined) {
-  const type = String(mediaType || '').toLowerCase();
-  return type.includes('video')
-    || type.includes('mp4')
-    || type.includes('webm')
-    || type.includes('ogg')
-    || type.includes('mov')
-    || type.includes('m4v');
-}
-
-function isVideoUrl(url: string | undefined) {
-  const value = String(url || '').toLowerCase().split('?')[0];
-  return /\.(mp4|webm|ogg|mov|m4v)$/i.test(value)
-    || value.includes('/video/')
-    || value.includes('/videos/')
-    || value.includes('video_')
-    || value.includes('video-')
-    || value.includes('ad-videos');
-}
-
-function isImageMedia(url: string | undefined, mediaType: string | undefined) {
-  const type = String(mediaType || '').toLowerCase();
-  const value = String(url || '').toLowerCase().split('?')[0];
-  return type.includes('image')
-    || /\.(jpg|jpeg|png|webp|gif|avif|svg)$/i.test(value)
-    || value.startsWith('data:image/')
-    || (!isVideoMedia(url, mediaType) && Boolean(url));
-}
-
-function firstString(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return undefined;
-}
-
-function firstMediaObject(...values: unknown[]): Record<string, any> | undefined {
-  for (const value of values) {
-    if (Array.isArray(value)) {
-      const found = value.find((item) => item && typeof item === 'object' && !Array.isArray(item));
-      if (found) return found as Record<string, any>;
-    }
-
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return value as Record<string, any>;
-    }
-  }
-
-  return undefined;
 }

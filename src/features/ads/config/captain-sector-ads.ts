@@ -1,49 +1,27 @@
-export interface CaptainSectorAd {
-  id: string;
-  title: string;
-  description: string;
-  bannerUrl: string;
-  imageUrl: string;
-  image: string;
-  fallbackImageUrl?: string;
-  buttonText: string;
-  ctaText: string;
-  badgeText: string;
-  for_driver: boolean;
-  forDriver: boolean;
-  adType: 'CAPTAIN_PROFESSIONAL';
-  isCaptainSectorAd: boolean;
-  whatsapp?: string;
-  phone?: string;
-  content: {
-    title: string;
-    description: string;
-    media: {
-      url: string;
-      type: 'image';
-    };
-  };
-  action: {
-    buttonText: string;
-  };
-}
+import type { CaptainSectorAd } from '../types/captain-sector-ad';
+
+export type { CaptainSectorAd } from '../types/captain-sector-ad';
 
 /**
  * إعلانات قطاع الكباتن الرسمية في بينكم
- * المعروضة في شريط إعلانات الكابتن عند التواجد في وضع "غير متاح" (Offline)
- * مصدر الصور: public/اعلانات بينكم قطاع الكابين و public/captain-ads
+ * تدعم اللغتين العربية والإنجليزية لضمان عرض منسق حسب لغة الواجهة
  */
 export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
   {
     id: 'captain-sector-ad-1',
     title: 'أنت سائق؟ حوّل حركتك إلى فرصة للربح',
+    titleEn: 'Are you a driver? Turn your trips into profit',
     description: 'أعلن، زد دخلك، واستفد من مزايا المنصة وارتق في التقييم من البرونزي إلى البلاتيني بدون أي عمولات.',
+    descriptionEn: 'Advertise, boost your income, enjoy platform benefits, and advance your rank from Bronze to Platinum with zero commissions.',
     bannerUrl: '/captain-ads/1.jpeg',
     imageUrl: '/captain-ads/1.jpeg',
     image: '/captain-ads/1.jpeg',
     buttonText: 'اكتشف المزايا',
+    buttonTextEn: 'Explore Benefits',
     ctaText: 'اكتشف المزايا',
+    ctaTextEn: 'Explore Benefits',
     badgeText: 'للكباتن',
+    badgeTextEn: 'For drivers',
     for_driver: true,
     forDriver: true,
     adType: 'CAPTAIN_PROFESSIONAL',
@@ -52,23 +30,31 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
     phone: '0790000000',
     content: {
       title: 'أنت سائق؟ حوّل حركتك إلى فرصة للربح',
+      titleEn: 'Are you a driver? Turn your trips into profit',
       description: 'أعلن، زد دخلك، واستفد من مزايا المنصة وارتق في التقييم من البرونزي إلى البلاتيني بدون أي عمولات.',
+      descriptionEn: 'Advertise, boost your income, enjoy platform benefits, and advance your rank from Bronze to Platinum with zero commissions.',
       media: { url: '/captain-ads/1.jpeg', type: 'image' },
     },
     action: {
       buttonText: 'اكتشف المزايا',
+      buttonTextEn: 'Explore Benefits',
     },
   },
   {
     id: 'captain-sector-ad-2',
     title: 'انتشار لا يتوقف - شبكة بينكم للإعلان الرقمي',
+    titleEn: 'Non-Stop Reach - Bynkcom Digital Ad Network',
     description: 'أنت كابتن، صمم إعلانك وارفعه خلال دقائق وحدد نطاق نشاط مركبتك للوصول إلى جمهورك المستهدف.',
+    descriptionEn: 'As a captain, design and publish your ad in minutes, set your vehicle active radius, and connect with your target audience.',
     bannerUrl: '/captain-ads/2.jpeg',
     imageUrl: '/captain-ads/2.jpeg',
     image: '/captain-ads/2.jpeg',
     buttonText: 'ارفع إعلانك',
+    buttonTextEn: 'Publish Your Ad',
     ctaText: 'ارفع إعلانك',
+    ctaTextEn: 'Publish Your Ad',
     badgeText: 'للكباتن',
+    badgeTextEn: 'For drivers',
     for_driver: true,
     forDriver: true,
     adType: 'CAPTAIN_PROFESSIONAL',
@@ -77,23 +63,31 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
     phone: '0790000000',
     content: {
       title: 'انتشار لا يتوقف - شبكة بينكم للإعلان الرقمي',
+      titleEn: 'Non-Stop Reach - Bynkcom Digital Ad Network',
       description: 'أنت كابتن، صمم إعلانك وارفعه خلال دقائق وحدد نطاق نشاط مركبتك للوصول إلى جمهورك المستهدف.',
+      descriptionEn: 'As a captain, design and publish your ad in minutes, set your vehicle active radius, and connect with your target audience.',
       media: { url: '/captain-ads/2.jpeg', type: 'image' },
     },
     action: {
       buttonText: 'ارفع إعلانك',
+      buttonTextEn: 'Publish Your Ad',
     },
   },
   {
     id: 'captain-sector-ad-3',
     title: 'رابطك الخاص هو البداية - بدون عمولات',
+    titleEn: 'Your Direct Link is the Start - Zero Commissions',
     description: 'مهما كان التطبيق الذي تعمل معه... أنت على شاشات هواتف الجميع مستخدمين بينكم. أعلن عن نفسك وكن حاضراً في المحيط.',
+    descriptionEn: 'Whatever app you drive with, reach everyone using Bynkcom across your area. Promote yourself and stay visible with zero fees.',
     bannerUrl: '/captain-ads/3.jpeg',
     imageUrl: '/captain-ads/3.jpeg',
     image: '/captain-ads/3.jpeg',
     buttonText: 'ابدأ الآن',
+    buttonTextEn: 'Start Now',
     ctaText: 'ابدأ الآن',
+    ctaTextEn: 'Start Now',
     badgeText: 'للكباتن',
+    badgeTextEn: 'For drivers',
     for_driver: true,
     forDriver: true,
     adType: 'CAPTAIN_PROFESSIONAL',
@@ -102,23 +96,31 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
     phone: '0790000000',
     content: {
       title: 'رابطك الخاص هو البداية - بدون عمولات',
+      titleEn: 'Your Direct Link is the Start - Zero Commissions',
       description: 'مهما كان التطبيق الذي تعمل معه... أنت على شاشات هواتف الجميع مستخدمين بينكم. أعلن عن نفسك وكن حاضراً في المحيط.',
+      descriptionEn: 'Whatever app you drive with, reach everyone using Bynkcom across your area. Promote yourself and stay visible with zero fees.',
       media: { url: '/captain-ads/3.jpeg', type: 'image' },
     },
     action: {
       buttonText: 'ابدأ الآن',
+      buttonTextEn: 'Start Now',
     },
   },
   {
     id: 'captain-sector-ad-4',
     title: 'من قمرة مركبة... إلى قائد إعلانات',
+    titleEn: 'From Vehicle Cockpit... to Advertising Leader',
     description: 'اجعل قمرة مركبتك مساحة للإعلان، وافتح لنفسك فرصة دخل إضافي مع بينكم. ارتق بالرتب (برونزي، فضي، ذهبي، بلاتيني) لتوسع صلاحياتك الإعلانية.',
+    descriptionEn: 'Turn your car interior into an ad space and unlock extra income with Bynkcom. Advance through tiers (Bronze, Silver, Gold, Platinum) to expand your advertising privileges.',
     bannerUrl: '/captain-ads/4.jpeg',
     imageUrl: '/captain-ads/4.jpeg',
     image: '/captain-ads/4.jpeg',
     buttonText: 'مزايا الكابتن المعلن',
+    buttonTextEn: 'Captain Privileges',
     ctaText: 'مزايا الكابتن المعلن',
+    ctaTextEn: 'Captain Privileges',
     badgeText: 'للكباتن',
+    badgeTextEn: 'For drivers',
     for_driver: true,
     forDriver: true,
     adType: 'CAPTAIN_PROFESSIONAL',
@@ -127,23 +129,31 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
     phone: '0790000000',
     content: {
       title: 'من قمرة مركبة... إلى قائد إعلانات',
+      titleEn: 'From Vehicle Cockpit... to Advertising Leader',
       description: 'اجعل قمرة مركبتك مساحة للإعلان، وافتح لنفسك فرصة دخل إضافي مع بينكم. ارتق بالرتب (برونزي، فضي، ذهبي، بلاتيني) لتوسع صلاحياتك الإعلانية.',
+      descriptionEn: 'Turn your car interior into an ad space and unlock extra income with Bynkcom. Advance through tiers (Bronze, Silver, Gold, Platinum) to expand your advertising privileges.',
       media: { url: '/captain-ads/4.jpeg', type: 'image' },
     },
     action: {
       buttonText: 'مزايا الكابتن المعلن',
+      buttonTextEn: 'Captain Privileges',
     },
   },
   {
     id: 'captain-sector-ad-5',
     title: 'حوّل رحلاتك إلى فرصة دخل إضافي مع بينكم',
+    titleEn: 'Turn Your Rides into Extra Revenue with Bynkcom',
     description: 'هل أنت كابتن في قطاع النقل الذكي؟ ادخل إلى عالم الإعلان الرقمي داخل المركبات وشارك رابطك مع عملائك لزيادة دخلك المالي.',
+    descriptionEn: 'Are you a rideshare captain? Step into digital in-vehicle advertising and share your link with riders to maximize your earnings.',
     bannerUrl: '/captain-ads/5.png',
     imageUrl: '/captain-ads/5.png',
     image: '/captain-ads/5.png',
     buttonText: 'انضم الآن',
+    buttonTextEn: 'Join Now',
     ctaText: 'انضم الآن',
+    ctaTextEn: 'Join Now',
     badgeText: 'للكباتن',
+    badgeTextEn: 'For drivers',
     for_driver: true,
     forDriver: true,
     adType: 'CAPTAIN_PROFESSIONAL',
@@ -152,12 +162,14 @@ export const CAPTAIN_SECTOR_ADS: CaptainSectorAd[] = [
     phone: '0790000000',
     content: {
       title: 'حوّل رحلاتك إلى فرصة دخل إضافي مع بينكم',
+      titleEn: 'Turn Your Rides into Extra Revenue with Bynkcom',
       description: 'هل أنت كابتن في قطاع النقل الذكي؟ ادخل إلى عالم الإعلان الرقمي داخل المركبات وشارك رابطك مع عملائك لزيادة دخلك المالي.',
+      descriptionEn: 'Are you a rideshare captain? Step into digital in-vehicle advertising and share your link with riders to maximize your earnings.',
       media: { url: '/captain-ads/5.png', type: 'image' },
     },
     action: {
       buttonText: 'انضم الآن',
+      buttonTextEn: 'Join Now',
     },
   },
 ];
-
