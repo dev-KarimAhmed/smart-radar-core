@@ -17,9 +17,16 @@ import { useSendCancelRideRequest } from './use-send-cancel-ride-request';
 import { useTripCompletion } from './use-trip-completion';
 import { useRiderProfileSummary } from './use-rider-profile-summary';
 import { useRiderOperations } from './use-rider-operations';
-import { buildRiderDestination } from '../services/rider-destination-normalizers';
 import { useRiderPresenceSync } from './use-rider-presence-sync';
 import { clearRiderDraftStorage } from '../services/rider-draft-storage';
+import {
+  isJordanCoordinates,
+  resolveActiveCountryId,
+  resolveRiderEmergencyContext,
+  resolveSelectedDraftDestination,
+} from './rider-view-controller-helpers';
+
+export * from './rider-view-controller-helpers';
 
 export interface UseRiderViewControllerOptions {
   onExitRequestFlow?: () => void;
@@ -38,39 +45,14 @@ export function useRiderViewController({
   useRiderPresenceSync(user, Boolean(riderOperations.accountSecurityStatus), state.screen);
 
   const lastKnown = getLastKnownLocation();
-  const isInitialJordanCoords = lastKnown
-    ? lastKnown.lat >= 29.0 && lastKnown.lat <= 33.5 && lastKnown.lng >= 34.5 && lastKnown.lng <= 39.5
-    : false;
-  const activeCountryId = user?.countryId ?? (isInitialJordanCoords ? 1 : undefined);
+  const activeCountryId = resolveActiveCountryId(user?.countryId, lastKnown);
   const countryConfig = useCountryConfig(activeCountryId);
   const geolocation = useRiderGeolocation(language, getCountryDefaultCenter(countryConfig));
   const captainPresence = useCaptainPresence(user?.uid, activeCountryId, geolocation.riderH3Cell);
-  const emergencyContact = useEmergencyContact(user?.uid, {
-    captainId: state.activeTrip?.captainId || (state.activeTrip?.captain as any)?.id || undefined,
-    captainName:
-      (state.activeTrip?.captain?.nickname ||
-      state.activeTrip?.captain?.full_name ||
-      state.activeTrip?.captain?.name ||
-      state.activeTrip?.captainName) ?? undefined,
-    captainPhone:
-      (state.activeTrip?.captainPhone || state.activeTrip?.captain?.phone) ?? undefined,
-    captainSerial:
-      (state.activeTrip?.captain?.serial_number ||
-      (state.activeTrip?.captain as any)?.serial ||
-      state.activeTrip?.captainSerial ||
-      state.activeTrip?.captainId?.slice(0, 8).toUpperCase()) ?? undefined,
-    vehicleModel:
-      (state.activeTrip?.captain?.vehicle_model ||
-      state.activeTrip?.vehicleType) ?? undefined,
-    vehiclePlate:
-      (state.activeTrip?.captain?.plate_number ||
-      state.activeTrip?.captain?.license_plate ||
-      state.activeTrip?.vehiclePlate) ?? undefined,
-    vehicleColor: state.activeTrip?.captain?.vehicle_color ?? undefined,
-    destinationLabel: (state.activeTrip?.destinationLabel || state.destination?.label) ?? undefined,
-    requestId: state.activeTrip?.tripId || state.requestId,
-    riderLocation: geolocation.riderLocation,
-  });
+  const emergencyContact = useEmergencyContact(
+    user?.uid,
+    resolveRiderEmergencyContext(state, geolocation.riderLocation)
+  );
 
   const destination = useDestinationSelectionState({
     user,
@@ -83,10 +65,7 @@ export function useRiderViewController({
 
   const tripCompletion = useTripCompletion(state, dispatch, user?.uid);
   const offers = useOffersLifecycle(state, dispatch, language, tripCompletion.pricingPreference);
-  const effectiveCountryId = activeCountryId ?? (
-    geolocation.riderLocation.lat >= 29.0 && geolocation.riderLocation.lat <= 33.5 &&
-    geolocation.riderLocation.lng >= 34.5 && geolocation.riderLocation.lng <= 39.5 ? 1 : undefined
-  );
+  const effectiveCountryId = activeCountryId ?? (isJordanCoordinates(geolocation.riderLocation) ? 1 : undefined);
   const fareAndRoute = useServerFareAndRoute({
     activeCountryId: effectiveCountryId,
     trafficFactor: countryConfig?.traffic_factor,
@@ -99,19 +78,16 @@ export function useRiderViewController({
   });
 
   const selectedDraftDestination = React.useMemo(() => {
-    if (!geography.selectedDistrict || !destination.selectedDestinationCoords) return null;
-    const builtDestination = buildRiderDestination(
-      geography.selectedDistrict,
-      geolocation.riderLocation,
-      fareAndRoute.currentServerFare,
-      destination.selectedDestinationCoords,
-      fareAndRoute.currentRouteEstimate?.distanceKm ?? null,
-      undefined,
-      destination.pinnedPlaceLabel,
-    );
-    return search.destinationSearchStatus === 'selected' && search.destinationSearchQuery.trim()
-      ? { ...builtDestination, label: search.destinationSearchQuery.trim() }
-      : builtDestination;
+    return resolveSelectedDraftDestination({
+      selectedDistrict: geography.selectedDistrict,
+      selectedDestinationCoords: destination.selectedDestinationCoords,
+      riderLocation: geolocation.riderLocation,
+      currentServerFare: fareAndRoute.currentServerFare,
+      distanceKm: fareAndRoute.currentRouteEstimate?.distanceKm,
+      pinnedPlaceLabel: destination.pinnedPlaceLabel,
+      destinationSearchStatus: search.destinationSearchStatus,
+      destinationSearchQuery: search.destinationSearchQuery,
+    });
   }, [
     destination.pinnedPlaceLabel,
     destination.selectedDestinationCoords,
