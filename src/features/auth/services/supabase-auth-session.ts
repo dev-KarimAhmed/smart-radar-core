@@ -27,8 +27,12 @@ export function clearSupabaseSessionCache() {
   clearSupabaseAuthStorage();
 }
 
-export async function checkAccountInUse(supabase: any, identifier: string, currentDeviceId: string): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
+export async function checkAccountInUse(
+  supabase: any,
+  identifier: string,
+  currentDeviceId: string,
+): Promise<boolean> {
+  if (typeof window === 'undefined' || !supabase || !identifier || !currentDeviceId) return false;
   const isEmail = identifier.includes('@');
   const cleanId = isEmail
     ? identifier.trim().toLowerCase()
@@ -36,49 +40,118 @@ export async function checkAccountInUse(supabase: any, identifier: string, curre
 
   if (!cleanId) return false;
 
-  const channelName = (isEmail ? 'user-session-email-' : 'user-session-phone-') + cleanId;
+  const channelsToCheck = [
+    (isEmail ? 'user-session-email-' : 'user-session-phone-') + cleanId,
+  ];
+  if (!isEmail) {
+    const rawClean = identifier.trim().replace(/[\s()-]/g, '');
+    if (rawClean && rawClean !== cleanId) {
+      channelsToCheck.push('user-session-phone-' + rawClean);
+    }
+  }
 
   return new Promise((resolve) => {
     let resolved = false;
+    const channels: any[] = [];
+    let waitTimer: any = null;
 
-    const channel = supabase.channel(channelName);
-
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
+    const cleanup = () => {
+      if (!resolved) resolved = true;
+      if (waitTimer) clearTimeout(waitTimer);
+      if (safetyTimer) clearTimeout(safetyTimer);
+      channels.forEach((ch) => {
         try {
-          void supabase.removeChannel(channel);
+          void supabase.removeChannel(ch);
         } catch {}
-        resolve(false);
-      }
-    }, 650);
+      });
+    };
 
-    channel.on('broadcast', { event: 'session_active' }, (payload: any) => {
-      const foreignDeviceId = payload.payload?.deviceId;
+    // Overall safety timer (max 2 seconds)
+    const safetyTimer = setTimeout(() => {
+      cleanup();
+      resolve(false);
+    }, 2000);
+
+    const onSessionActive = (payload: any) => {
+      const foreignDeviceId = payload?.payload?.deviceId || payload?.deviceId;
       if (foreignDeviceId && foreignDeviceId !== currentDeviceId && !resolved) {
-        resolved = true;
-        clearTimeout(timer);
-        try {
-          void supabase.removeChannel(channel);
-        } catch {}
+        cleanup();
         resolve(true);
       }
-    });
+    };
 
-    channel.subscribe((status: string) => {
-      if (status === 'SUBSCRIBED') {
-        channel.send({
-          type: 'broadcast',
-          event: 'check_active_session',
-          payload: { deviceId: currentDeviceId },
-        });
-      }
+    channelsToCheck.forEach((channelName) => {
+      const ch = supabase.channel(channelName);
+      channels.push(ch);
+
+      ch.on('broadcast', { event: 'session_active' }, onSessionActive);
+
+      ch.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED' && !resolved) {
+          void ch.send({
+            type: 'broadcast',
+            event: 'check_active_session',
+            payload: { deviceId: currentDeviceId },
+          });
+
+          if (!waitTimer) {
+            waitTimer = setTimeout(() => {
+              if (!resolved) {
+                cleanup();
+                resolve(false);
+              }
+            }, 800);
+          }
+        }
+      });
     });
   });
 }
 
 export async function checkAccountInUseByPhone(supabase: any, phone: string, currentDeviceId: string): Promise<boolean> {
   return checkAccountInUse(supabase, phone, currentDeviceId);
+}
+
+export function broadcastSessionTakeover(
+  supabase: any,
+  userId: string,
+  phone: string | null | undefined,
+  email: string | null | undefined,
+  currentDeviceId: string,
+): void {
+  if (typeof window === 'undefined' || !supabase || !currentDeviceId) return;
+
+  const channelNames: string[] = [];
+  if (userId) channelNames.push('user-session-' + userId);
+
+  if (phone) {
+    const digits = phone.trim().replace(/\D/g, '');
+    if (digits) channelNames.push('user-session-phone-' + digits);
+    const rawClean = phone.trim().replace(/[\s()-]/g, '');
+    if (rawClean && rawClean !== digits) channelNames.push('user-session-phone-' + rawClean);
+  }
+
+  if (email && email.includes('@')) {
+    channelNames.push('user-session-email-' + email.trim().toLowerCase());
+  }
+
+  channelNames.forEach((chName) => {
+    const ch = supabase.channel(chName);
+    ch.subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') {
+        void ch.send({
+          type: 'broadcast',
+          event: 'session_takeover',
+          payload: { deviceId: currentDeviceId },
+        });
+        setTimeout(() => {
+          try {
+            void supabase.removeChannel(ch);
+          } catch {}
+        }, 1200);
+      }
+    });
+  });
 }
 
 export async function verifyEmailOtpCode(params: {

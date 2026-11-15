@@ -40,15 +40,20 @@ export function handleAuthSubmitError({
     });
   }
 
-  const isAccountInUse = `${(error as any)?.message || ''}`.includes('account_in_use') || `${(error as any)?.message || ''}`.includes('قيد الاستخدام');
+  const isAccountInUse =
+    (error as any)?.code === 'account_in_use' ||
+    (error as any)?.code === 'active_session_exists' ||
+    `${(error as any)?.message || ''}`.includes('account_in_use') ||
+    `${(error as any)?.message || ''}`.includes('قيد الاستخدام') ||
+    `${(error as any)?.message || ''}`.includes('مسجل دخول');
   if (isAccountInUse) {
     toast({
       variant: 'destructive',
       title: lang === 'ar' ? 'الحساب قيد الاستخدام حالياً' : 'Account Already In Use',
       description: lang === 'ar'
-        ? 'هذا الحساب مفتوح حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز الآخر.'
-        : 'This account is currently active on another device. You cannot log in until it is logged out from the other device.',
-      duration: 8000,
+        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.'
+        : 'This account is currently active on another device or browser. You cannot log in until it is logged out from the active session first.',
+      duration: 10000,
     });
     return;
   }

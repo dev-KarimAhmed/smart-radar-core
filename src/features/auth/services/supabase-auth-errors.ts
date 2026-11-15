@@ -30,8 +30,13 @@ export function mapSupabaseAuthError(error: unknown) {
 
   if (candidateMsg) {
     const rawMsg = candidateMsg.trim();
-    if (rawMsg.includes('account_in_use') || rawMsg.includes('قيد الاستخدام')) {
-      return 'الحساب قيد الاستخدام حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم الخروج من الجهاز الآخر.';
+    if (
+      rawMsg.includes('account_in_use') ||
+      rawMsg.includes('قيد الاستخدام') ||
+      rawMsg.includes('مسجل دخول حالياً') ||
+      rawMsg.includes('active_session')
+    ) {
+      return 'الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.';
     }
     if (/[\u0600-\u06FF]/.test(rawMsg)) {
       if (!rawMsg.includes('duplicate key') && !rawMsg.includes('Database error') && !rawMsg.includes('syntax error')) {
@@ -50,9 +55,11 @@ export function mapSupabaseAuthError(error: unknown) {
 
   if (
     fullText.includes('account_in_use') ||
-    fullText.includes('قيد الاستخدام')
+    fullText.includes('قيد الاستخدام') ||
+    fullText.includes('مسجل دخول حالياً') ||
+    fullText.includes('active_session')
   ) {
-    return 'الحساب قيد الاستخدام حالياً على جهاز آخر. لا يمكنك تسجيل الدخول حتى يتم الخروج من الجهاز الآخر.';
+    return 'الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.';
   }
 
   if (

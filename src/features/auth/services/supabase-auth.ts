@@ -14,6 +14,7 @@ import {
   clearSupabaseSessionCache,
   checkAccountInUse,
   checkAccountInUseByPhone,
+  broadcastSessionTakeover,
   verifyEmailOtpCode,
   AUTH_TOKEN_STORAGE_KEY,
 } from './supabase-auth-session';
@@ -126,11 +127,34 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
 
   const { supabase } = await import('@/lib/supabase-client');
 
+  let currentDeviceId = '';
   if (typeof window !== 'undefined') {
-    let currentDeviceId = window.localStorage.getItem('radar_device_id') || '';
-    if (!currentDeviceId) {
-      currentDeviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
-      window.localStorage.setItem('radar_device_id', currentDeviceId);
+    try {
+      currentDeviceId = window.localStorage.getItem('radar_device_id') || '';
+      if (!currentDeviceId) {
+        currentDeviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString();
+        window.localStorage.setItem('radar_device_id', currentDeviceId);
+      }
+    } catch {
+      currentDeviceId = 'dev-' + Math.random().toString(36).slice(2);
+    }
+  }
+
+  // 1. Strict single-session check: reject login if account is already active on another device/browser
+  if (currentDeviceId && typeof window !== 'undefined') {
+    const isPhoneActive = await checkAccountInUse(supabase, validation.phone, currentDeviceId);
+    const isEmailActive = input.email ? await checkAccountInUse(supabase, input.email, currentDeviceId) : false;
+
+    if (isPhoneActive || isEmailActive) {
+      const isAr = typeof window !== 'undefined'
+        ? (window.localStorage.getItem('radar_dashboard_language') !== 'en')
+        : true;
+      const errorMsg = isAr
+        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.'
+        : 'This account is currently active on another device or browser. You cannot log in until it is logged out from the other device first.';
+      const err = new Error(errorMsg);
+      (err as any).code = 'account_in_use';
+      throw err;
     }
   }
 
@@ -177,6 +201,17 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   const authenticatedUser = data.user || resData.user;
   await syncCaptainProfileFromAuthUser(authenticatedUser);
   cacheSupabaseSession(data.session);
+
+  // 2. Broadcast takeover to terminate any stale or reconnected foreign session
+  if (currentDeviceId && authenticatedUser) {
+    broadcastSessionTakeover(
+      supabase,
+      authenticatedUser.id,
+      validation.phone,
+      input.email || authenticatedUser.email,
+      currentDeviceId,
+    );
+  }
 
   // Sync sovereign user cache so route guards (/rider, /captain) hydrate instantly on mount without flicker
   if (typeof window !== 'undefined' && authenticatedUser) {

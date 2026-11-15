@@ -38,9 +38,9 @@ export function useSessionTakeover(
       if (!isMounted) return;
 
       const handleCheckActive = (payload: any, ch: any) => {
-        const foreignDeviceId = payload.payload?.deviceId;
+        const foreignDeviceId = payload?.payload?.deviceId || payload?.deviceId;
         if (foreignDeviceId && deviceId && foreignDeviceId !== deviceId) {
-          ch.send({
+          void ch.send({
             type: 'broadcast',
             event: 'session_active',
             payload: { deviceId },
@@ -49,7 +49,7 @@ export function useSessionTakeover(
       };
 
       const handleForeignTakeover = (payload: any) => {
-        const foreignDeviceId = payload.payload?.deviceId;
+        const foreignDeviceId = payload?.payload?.deviceId || payload?.deviceId;
         if (foreignDeviceId && deviceId && foreignDeviceId !== deviceId) {
           toast({
             variant: 'destructive',
