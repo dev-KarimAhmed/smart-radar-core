@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import type { User } from '@/core/types';
 import { cn } from '@/lib/utils';
-import { CaptainAdsSeatsManager, SHOW_CAPTAIN_AD_PACKAGES } from '../captain-ads-seats-manager';
+import { CaptainAdsSeatsManager } from '../captain-ads-seats-manager';
 import { toHoursMinutes } from '../../types/driver-wallet-types';
 
 interface DriverWalletBalanceCardProps {
@@ -180,10 +180,8 @@ export function DriverWalletBalanceCard({
             </div>
           ) : null}
 
-          {/* 🛡️ إخفاء باقات الإعلانات مؤقتاً بناءً على رغبة العميل لعدم جاهزيتها */}
-          {SHOW_CAPTAIN_AD_PACKAGES && (
-            <CaptainAdsSeatsManager user={user} language={language} />
-          )}
+          {/* شريط إدارة ورفع الإعلانات للكابتن */}
+          <CaptainAdsSeatsManager user={user} language={language} />
         </div>
       )}
     </div>

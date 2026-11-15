@@ -167,7 +167,7 @@ export function CaptainAdsManagerModal({
                   {t('newAd')} ({ads.length + 1} / 3)
                 </h3>
                 <p className={styles.vacantSubtitle}>
-                  {isArabic ? 'مساحة متاحة ضمن باقة الخدمات / A' : t('availableSlot')}
+                  {isArabic ? 'مساحة متاحة لإعلانك الترويجي' : t('availableSlot')}
                 </p>
                 <button
                   type="button"
@@ -185,8 +185,8 @@ export function CaptainAdsManagerModal({
         <div className="p-4 sm:p-5 border-t border-white/10 bg-[#070D19]/95 flex items-center justify-between shrink-0">
           <div className="text-xs text-slate-400 font-sans">
             {isArabic
-              ? 'الحد الأقصى 3 إعلانات ترويجية نشطة ضمن باقة الخدمات / A'
-              : 'Max 3 promotional ads within Services Package A'}
+              ? 'الحد الأقصى 3 إعلانات ترويجية نشطة'
+              : 'Max 3 active promotional ads'}
           </div>
           <button
             type="button"
