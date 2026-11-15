@@ -61,9 +61,9 @@ export function PersonalBrandHeader({
       <div className={styles.style348_10}>
         <a href={getLandingPageUrl()} className="inline-block transition hover:opacity-90">
           <Image
-            src="/logo.png"
+            src="/icons/logo-header.png"
             alt={isArabic ? 'شعار بينكم' : 'Bynkcom logo'}
-            width={380}
+            width={585}
             height={152}
             priority
             className={styles.brandLogoImg}
