@@ -3,13 +3,14 @@ import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
 import { setFavoriteCaptain, fetchFavoriteCaptainIds } from '@/features/account/services/favorite-captains';
 import {
-  CriterionVerdict,
+  AdComplianceVerdict,
   RatingModalProps,
-  VehicleRatingKey,
-  CaptainRatingKey,
+  VehicleCriterionKey,
+  VehicleRatings,
+  CaptainRatings,
   initialVehicleRatings,
   initialCaptainRatings,
-  toScoredCriteria,
+  buildDetailedStarsPayload,
 } from './rating-types';
 
 export function useRatingModal({
@@ -31,8 +32,8 @@ export function useRatingModal({
   const [comment, setComment] = useState('');
   const [saveFavorite, setSaveFavorite] = useState(false);
   const [isAlreadyFavorite, setIsAlreadyFavorite] = useState(false);
-  const [vehicle, setVehicle] = useState(initialVehicleRatings);
-  const [captain, setCaptain] = useState(initialCaptainRatings);
+  const [vehicle, setVehicle] = useState<VehicleRatings>(initialVehicleRatings);
+  const [captain, setCaptain] = useState<CaptainRatings>(initialCaptainRatings);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,21 +69,26 @@ export function useRatingModal({
     };
   }, [isOpen, tripId, captainId]);
 
-  const handleSetVehicle = (key: VehicleRatingKey, verdict: Exclude<CriterionVerdict, null>) => {
-    setVehicle((previous) => ({ ...previous, [key]: previous[key] === verdict ? null : verdict }));
+  const handleSetAdCompliance = (verdict: AdComplianceVerdict) => {
+    setCaptain((prev) => ({ ...prev, adCompliance: verdict }));
   };
 
-  const handleSetCaptain = (key: CaptainRatingKey, verdict: Exclude<CriterionVerdict, null>) => {
-    setCaptain((previous) => ({ ...previous, [key]: previous[key] === verdict ? null : verdict }));
+  const handleSetCommunication = (stars: number) => {
+    setCaptain((prev) => ({ ...prev, communication: stars }));
+  };
+
+  const handleSetVehicleRating = (key: VehicleCriterionKey, stars: number) => {
+    setVehicle((prev) => ({ ...prev, [key]: stars }));
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const detailedStarsPayload = {
-        vehicle: toScoredCriteria(vehicle),
-        captain: toScoredCriteria(captain),
-      };
+      const detailedStarsPayload = buildDetailedStarsPayload({
+        captain,
+        vehicle,
+        isFavorite: saveFavorite,
+      });
 
       const { error } = await supabase.from('reviews').insert({
         trip_id: tripId,
@@ -104,19 +110,21 @@ export function useRatingModal({
       }
 
       if (saveFavorite) {
-        window.localStorage.setItem(
-          `radar_preferred_captain_${captainId}`,
-          JSON.stringify({
-            captainId,
-            driverId: captainId,
-            captainName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
-            fullName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
-            captainPhone: captainPhone || '',
-            phoneNumber: captainPhone || '',
-            vehicleSpecs: vehicleInfo || tAuto('ratingModal_notAvailable'),
-            savedTimestamp: Date.now(),
-          }),
-        );
+        try {
+          window.localStorage.setItem(
+            `radar_preferred_captain_${captainId}`,
+            JSON.stringify({
+              captainId,
+              driverId: captainId,
+              captainName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
+              fullName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
+              captainPhone: captainPhone || '',
+              phoneNumber: captainPhone || '',
+              vehicleSpecs: vehicleInfo || tAuto('ratingModal_notAvailable'),
+              savedTimestamp: Date.now(),
+            }),
+          );
+        } catch {}
       }
 
       toast({
@@ -187,8 +195,9 @@ export function useRatingModal({
     isAlreadyFavorite,
     vehicle,
     captain,
-    handleSetVehicle,
-    handleSetCaptain,
+    handleSetAdCompliance,
+    handleSetCommunication,
+    handleSetVehicleRating,
     handleSubmit,
     handleBlockDriver,
   };
