@@ -72,18 +72,6 @@ export function HistoryRanksLadder({
           })}
         </div>
       </div>
-
-      {/* 3. Next Rank Progress Hint */}
-      {nextRank && nextRankRules && (
-        <div className="rounded-2xl border border-white/5 bg-black/40 p-3 text-xs text-slate-300 leading-relaxed flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-[#14F5D5] shrink-0" />
-          <span>
-            {isArabic
-              ? `للوصول إلى رتبة (${RANK_DETAILS[nextRank].nameAr}): يلزمك تقييم أسبوعي لا يقل عن ${nextRankRules.minRating.toFixed(1)} نجوم مع ${nextRankRules.minHearts} إعجاب.`
-              : `To unlock (${RANK_DETAILS[nextRank].nameEn}) rank: You need at least ${nextRankRules.minRating.toFixed(1)} rating and ${nextRankRules.minHearts} hearts.`}
-          </span>
-        </div>
-      )}
     </div>
   );
 }

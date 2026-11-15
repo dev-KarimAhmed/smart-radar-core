@@ -1,26 +1,30 @@
 'use client';
 
 import React, { useId } from 'react';
-import { Sparkles, Tv } from 'lucide-react';
+import { Sparkles, Tv, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { User } from '@/core/types';
 import { useCaptainAdsManager } from '../hooks/use-captain-ads-manager';
-import { CaptainAdsManagerModal } from './ads-seats/captain-ads-manager-modal';
+import { styles } from './ads-seats/captain-ads-styles';
+import { CaptainAdsSeatsGrid } from './ads-seats/captain-ads-seats-grid';
 import { CaptainAdEditModal } from './ads-seats/captain-ad-edit-modal';
 import { CaptainAdDeleteModal } from './ads-seats/captain-ad-delete-modal';
-import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
 
 export * from './ads-seats/captain-ads-styles';
 export * from '../hooks/use-captain-ads-manager';
-export * from './ads-seats/captain-ads-manager-modal';
+export * from './ads-seats/captain-ads-seats-grid';
 export * from './ads-seats/captain-ad-edit-modal';
 export * from './ads-seats/captain-ad-delete-modal';
-export * from './ads-seats/captain-ad-package-modal';
 
 export interface CaptainAdsSeatsManagerProps {
   user: User | null;
   language?: 'ar' | 'en';
 }
+
+/**
+ * 🛡️ مفتاح باقات الإعلانات (مخفية مؤقتاً لعدم اكتمال جاهزيتها)
+ */
+export const SHOW_CAPTAIN_AD_PACKAGES = false;
 
 export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeatsManagerProps) {
   const t = useTranslations('captainAds');
@@ -30,55 +34,58 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
   const state = useCaptainAdsManager({ user, t });
 
   return (
-    <div className="w-full pt-3.5 border-t border-white/10" dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* شريط زري باقة الإعلانات وإدارة الإعلانات (داخل القائمة المنسدلة للرصيد) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        {/* 1. زر اختار باقة اعلانك (متاح دائماً ويفتح نافذة الباقة وحصص النشر) */}
-        <button
-          type="button"
-          onClick={() => state.setIsPackageModalOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-teal-500 via-[#14F5D5] to-emerald-400 p-3 sm:p-3.5 text-xs sm:text-sm font-black text-slate-950 shadow-lg shadow-teal-500/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-        >
-          <Sparkles className="h-4.5 w-4.5 shrink-0 text-slate-950" />
-          <span>{isArabic ? 'اختار باقة اعلانك' : 'Choose Ad Package'}</span>
-          <span className="px-2 py-0.5 rounded-lg bg-black/20 text-slate-950 text-[11px] font-bold">
-            {isArabic ? (state.isPackageActive ? 'مفعلة ✓' : 'الدخول') : (state.isPackageActive ? 'Active ✓' : 'Enter')}
-          </span>
-        </button>
+    <div className={styles.container} dir={isArabic ? 'rtl' : 'ltr'}>
+      {/* الترويسة الرئيسية للنظام الإعلاني (في مكانها الأصلي وبدون حد أقصى) */}
+      <div className={styles.headerWrapper}>
+        <div className={styles.titleRow}>
+          <div className={styles.headerIconBox}>
+            <Tv className={styles.titleIcon} />
+          </div>
+          <div>
+            <h2 className={styles.titleText}>
+              {isArabic ? 'إدارة النشر وترويج إعلاناتك المعروضة في المحيط' : t('title')}
+            </h2>
+            <p className={styles.subtitleText}>
+              {isArabic
+                ? 'تظهر إعلاناتك الترويجية على بطاقتك على شاشة تفاصيل الرحلة فور قبول عرضك، تلقائياً وبدون حد أقصى'
+                : t('subtitle')}
+            </p>
+          </div>
+        </div>
 
-        {/* 2. زر ارفع وعدل اعلانك - لا يكون موجوداً إلا بعد اختيار باقة ودفعها وتفعيلها تماماً من الأدمن */}
-        {state.isPackageActive ? (
+        <div className={styles.headerActionsRight}>
+          <div className={styles.seatSummaryBadge}>
+            <Sparkles className={styles.sparklesIcon} />
+            <span>
+              {isArabic ? `${state.ads.length} إعلان نشط` : `${state.ads.length} Active Ads`}
+            </span>
+          </div>
+
           <button
             type="button"
-            onClick={() => state.setIsAdsManagerModalOpen(true)}
-            className="flex-1 flex items-center justify-center gap-2.5 rounded-2xl border border-[#14F5D5]/80 bg-[#061F22]/90 hover:bg-[#14F5D5]/20 p-3 sm:p-3.5 text-xs sm:text-sm font-black text-[#14F5D5] shadow-lg shadow-cyan-500/10 active:scale-95 transition-all cursor-pointer group"
+            onClick={() => state.handleOpenAddForSeat(state.nextSeatNumber)}
+            className={styles.addNewHeaderBtn}
           >
-            <Tv className="h-4.5 w-4.5 shrink-0 text-[#14F5D5] group-hover:scale-110 transition-transform" />
-            <span>{isArabic ? 'ارفع وعدل اعلانك' : 'Upload & Edit Ads'}</span>
-            <span className="px-2 py-0.5 rounded-lg bg-[#14F5D5]/20 text-[#14F5D5] text-[11px] font-bold">
-              {state.ads.length}/3
-            </span>
+            <Plus className={styles.plusIcon} />
+            <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
           </button>
-        ) : null}
+        </div>
       </div>
 
-      {/* 1. نافذة إدارة النشر وترويج الإعلانات */}
-      <CaptainAdsManagerModal
-        mounted={state.mounted}
-        isOpen={state.isAdsManagerModalOpen}
-        isArabic={isArabic}
+      {/* شبكة المقاعد الإعلانية (مفتوحة بدون حد أقصى) */}
+      <CaptainAdsSeatsGrid
         ads={state.ads}
         nextSeatNumber={state.nextSeatNumber}
+        isArabic={isArabic}
         t={t}
-        onClose={() => state.setIsAdsManagerModalOpen(false)}
+        onOpenAddForSeat={state.handleOpenAddForSeat}
         onOpenEdit={state.handleOpenEdit}
         onToggleStatus={state.handleToggleStatus}
         onDeleteClick={(ad) => state.setAdToDelete(ad)}
-        onOpenAddForSeat={state.handleOpenAddForSeat}
         onImageError={state.handleImageError}
       />
 
-      {/* 2. نافذة إنشاء / تعديل الإعلان */}
+      {/* نافذة إنشاء / تعديل الإعلان */}
       <CaptainAdEditModal
         mounted={state.mounted}
         isOpen={state.isModalOpen}
@@ -99,7 +106,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
         onImageError={state.handleImageError}
       />
 
-      {/* 3. نافذة تأكيد الحذف */}
+      {/* نافذة تأكيد الحذف */}
       <CaptainAdDeleteModal
         mounted={state.mounted}
         isOpen={Boolean(state.adToDelete)}
@@ -107,16 +114,6 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
         t={t}
         onConfirm={state.handleConfirmDelete}
         onCancel={() => state.setAdToDelete(null)}
-      />
-
-      {/* 4. نافذة شاشة باقة الخدمات / A */}
-      <CaptainAdPackageModal
-        mounted={state.mounted}
-        isOpen={state.isPackageModalOpen}
-        isArabic={isArabic}
-        onClose={() => state.setIsPackageModalOpen(false)}
-        onGoToPayment={state.handleGoToPayment}
-        onActivatePackage={state.handleActivatePackage}
       />
     </div>
   );
