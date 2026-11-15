@@ -449,31 +449,31 @@ SELECT (SELECT id FROM governorates WHERE name_ar = 'الطفيلة' LIMIT 1), '
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'لواء بصيرا' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'الطفيلة' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'لواء قصبة مادبا', 'لواء قصبة مادبا'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'لواء قصبة مادبا', 'Madaba Qasabah District'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'لواء قصبة مادبا' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'لواء ذيبان', 'لواء ذيبان'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'لواء ذيبان', 'Dhiban District'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'لواء ذيبان' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء جرينة', 'قضاء جرينة'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء جرينة', 'Jrainah Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء جرينة' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء ماعين', 'قضاء ماعين'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء ماعين', 'Ma''in Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء ماعين' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء الفيصلية', 'قضاء الفيصلية'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء الفيصلية', 'Al Faisaliyah Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء الفيصلية' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء العريض', 'قضاء العريض'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء العريض', 'Al Urayd Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء العريض' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)
-SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء مليح', 'قضاء مليح'
+SELECT (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1), 'قضاء مليح', 'Mlaih Sub-district'
 WHERE NOT EXISTS (SELECT 1 FROM districts WHERE name_ar = 'قضاء مليح' AND governorate_id = (SELECT id FROM governorates WHERE name_ar = 'مادبا' LIMIT 1));
 
 INSERT INTO districts (governorate_id, name_ar, name_en)

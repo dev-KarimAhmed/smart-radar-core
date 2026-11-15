@@ -87,6 +87,11 @@ export const JORDAN_DISTRICT_DESTINATIONS: JordanDistrictDestination[] = [
 
   district('madaba', 'مادبا', 'Madaba', 'قصبة مادبا', 'Madaba Qasabah', 31.7195, 35.7933, 1.28),
   district('madaba', 'مادبا', 'Madaba', 'ذيبان', 'Dhiban', 31.499, 35.782, 1.24),
+  district('madaba', 'مادبا', 'Madaba', 'جرينة', 'Jrainah', 31.758, 35.789, 1.25),
+  district('madaba', 'مادبا', 'Madaba', 'ماعين', "Ma'in", 31.681, 35.733, 1.30),
+  district('madaba', 'مادبا', 'Madaba', 'الفيصلية', 'Al Faisaliyah', 31.764, 35.748, 1.25),
+  district('madaba', 'مادبا', 'Madaba', 'العريض', 'Al Urayd', 31.523, 35.728, 1.28),
+  district('madaba', 'مادبا', 'Madaba', 'مليح', 'Mlaih', 31.545, 35.812, 1.25),
 
   district('karak', 'الكرك', 'Karak', 'قصبة الكرك', 'Karak Qasabah', 31.180, 35.704, 1.34),
   district('karak', 'الكرك', 'Karak', 'المزار الجنوبي', 'Southern Mazar', 31.067, 35.694, 1.32),

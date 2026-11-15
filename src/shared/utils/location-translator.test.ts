@@ -122,4 +122,26 @@ describe('location-translator', () => {
     assert.equal(resolveGovernorateLabel('Cairo', 'ar'), 'القاهرة');
     assert.equal(resolveGovernorateLabel('Alexandria', 'ar'), 'الإسكندرية');
   });
+
+  it('translates all Madaba districts and sub-districts accurately in English and Arabic', () => {
+    // 2 Districts (ألوية)
+    assert.equal(resolveDistrictLabel('لواء قصبة مادبا', 'en'), 'Madaba Qasabah District');
+    assert.equal(resolveDistrictLabel('لواء ذيبان', 'en'), 'Dhiban District');
+
+    // 5 Sub-districts (أقضية)
+    assert.equal(resolveDistrictLabel('قضاء جرينة', 'en'), 'Jrainah Sub-district');
+    assert.equal(resolveDistrictLabel('قضاء ماعين', 'en'), "Ma'in Sub-district");
+    assert.equal(resolveDistrictLabel('قضاء الفيصلية', 'en'), 'Al Faisaliyah Sub-district');
+    assert.equal(resolveDistrictLabel('قضاء العريض', 'en'), 'Al Urayd Sub-district');
+    assert.equal(resolveDistrictLabel('قضاء مليح', 'en'), 'Mlaih Sub-district');
+
+    // Raw stems without prefixes
+    assert.equal(resolveDistrictLabel('قصبة مادبا', 'en'), 'Madaba Qasabah');
+    assert.equal(resolveDistrictLabel('ذيبان', 'en'), 'Dhiban');
+    assert.equal(resolveDistrictLabel('جرينة', 'en'), 'Jrainah');
+    assert.equal(resolveDistrictLabel('ماعين', 'en'), "Ma'in");
+    assert.equal(resolveDistrictLabel('الفيصلية', 'en'), 'Al Faisaliyah');
+    assert.equal(resolveDistrictLabel('العريض', 'en'), 'Al Urayd');
+    assert.equal(resolveDistrictLabel('مليح', 'en'), 'Mlaih');
+  });
 });
