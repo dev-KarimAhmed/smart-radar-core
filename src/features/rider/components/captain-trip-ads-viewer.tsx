@@ -13,9 +13,14 @@ import { TripAdLightbox } from './trip-ads/trip-ad-lightbox';
 export interface CaptainTripAdsViewerProps {
   captainId: string;
   isArabic?: boolean;
+  isFavoriteCaptain?: boolean;
 }
 
-export function CaptainTripAdsViewer({ captainId, isArabic = true }: CaptainTripAdsViewerProps) {
+export function CaptainTripAdsViewer({
+  captainId,
+  isArabic = true,
+  isFavoriteCaptain,
+}: CaptainTripAdsViewerProps) {
   const t = useTranslations('captainAds');
 
   const {
@@ -37,7 +42,7 @@ export function CaptainTripAdsViewer({ captainId, isArabic = true }: CaptainTrip
     handleNextAd,
     handlePrevAd,
     handleImageError,
-  } = useCaptainTripAds(captainId);
+  } = useCaptainTripAds(captainId, isFavoriteCaptain);
 
   if (ads.length === 0) {
     return null;

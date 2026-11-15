@@ -7,6 +7,7 @@ import { formatMoney, isTripStartedStatus } from '../services/rider-view-format'
 import { resolveColorDisplayName } from '@/shared/services/color-name';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
+import { fetchFavoriteCaptainIds } from '@/features/account/contract';
 import { CaptainTripAdsViewer } from './captain-trip-ads-viewer';
 import { TripActiveScreenProps } from './trip-active/trip-active-types';
 import { TripActiveHeader } from './trip-active/trip-active-header';
@@ -84,6 +85,39 @@ export function TripActiveScreen({
 
   const vehicleColor = resolveColorDisplayName(activeTrip.captain?.vehicle_color, isArabic ? 'ar' : 'en');
 
+  const captainTargetId = activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId || '';
+  const [isFavorite, setIsFavorite] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined' && captainTargetId) {
+      try {
+        if (window.localStorage.getItem(`radar_preferred_captain_${captainTargetId}`)) return true;
+      } catch {}
+    }
+    return false;
+  });
+
+  React.useEffect(() => {
+    if (!captainTargetId) return;
+    let isMounted = true;
+    void fetchFavoriteCaptainIds().then((favIds) => {
+      if (isMounted) {
+        setIsFavorite(favIds.has(String(captainTargetId)));
+      }
+    });
+
+    const handleUpdate = () => {
+      void fetchFavoriteCaptainIds().then((favIds) => {
+        if (isMounted) setIsFavorite(favIds.has(String(captainTargetId)));
+      });
+    };
+    window.addEventListener('rider-favorites-updated', handleUpdate);
+    window.addEventListener('radar_favorites_updated', handleUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('rider-favorites-updated', handleUpdate);
+      window.removeEventListener('radar_favorites_updated', handleUpdate);
+    };
+  }, [captainTargetId]);
+
   const destinationMapsUrl =
     (activeTrip as any).destinationGoogleMapsUrl
     || ((activeTrip as any).destinationLat && (activeTrip as any).destinationLng
@@ -102,6 +136,7 @@ export function TripActiveScreen({
         activeTripStatus={activeTripStatus}
         tripHasStarted={tripHasStarted}
         displayTimer={displayTimer}
+        isFavorite={isFavorite}
       />
 
       {/* 1.2. تنبيه طلب الإلغاء بالتوافق المشترك */}
@@ -113,10 +148,11 @@ export function TripActiveScreen({
       />
 
       {/* 1.5. إعلانات الكابتن الترويجية - تظهر في شاشة التفاصيل وتختفي فور بدء الرحلة */}
-      {!tripHasStarted && (activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId) ? (
+      {!tripHasStarted && captainTargetId ? (
         <CaptainTripAdsViewer
-          captainId={activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId || ''}
+          captainId={captainTargetId}
           isArabic={isArabic}
+          isFavoriteCaptain={isFavorite}
         />
       ) : null}
 

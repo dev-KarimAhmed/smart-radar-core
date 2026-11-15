@@ -3535,6 +3535,8 @@
     "ratingModal_captainCommunication": "Communication",
     "ratingModal_favoriteSave": "Save captain as preferred",
     "ratingModal_favoriteWillSave": "Captain will be saved as preferred",
+    "ratingModal_favoriteAlreadySaved": "Captain is already in your favorites",
+    "ratingModal_favoriteAlreadySavedDesc": "Saved in your favorites and prioritized for your upcoming ride requests.",
     "ratingModal_favoriteDescription": "Save {name} for future trips.",
     "ratingModal_favoriteFallbackDescription": "Save this captain for future trips.",
     "ratingModal_commentLabel": "Additional notes (optional)",

@@ -11,7 +11,7 @@ import {
 } from '@/features/account/contract';
 import { useTripAdsPreferences } from './use-trip-ads-preferences';
 
-export function useCaptainTripAds(captainId: string) {
+export function useCaptainTripAds(captainId: string, initialIsFavorite?: boolean) {
   const [ads, setAds] = useState<CaptainAdItem[]>(() => {
     if (typeof window !== 'undefined' && captainId) {
       const cached = getCaptainAds(captainId);
@@ -22,7 +22,15 @@ export function useCaptainTripAds(captainId: string) {
   });
   const [activeAdIndex, setActiveAdIndex] = useState<number>(0);
   const [storyProgress, setStoryProgress] = useState<number>(0);
-  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [isFavorite, setIsFavorite] = useState<boolean>(() => {
+    if (initialIsFavorite !== undefined) return initialIsFavorite;
+    if (typeof window !== 'undefined' && captainId) {
+      try {
+        if (window.localStorage.getItem(`radar_preferred_captain_${captainId}`)) return true;
+      } catch {}
+    }
+    return false;
+  });
   const [isHeartLoading, setIsHeartLoading] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
   const [lightboxAd, setLightboxAd] = useState<CaptainAdItem | null>(null);
@@ -57,9 +65,10 @@ export function useCaptainTripAds(captainId: string) {
 
   useEffect(() => {
     setMounted(true);
+    if (initialIsFavorite !== undefined) setIsFavorite(initialIsFavorite);
     void loadAds();
     void checkFavoriteStatus();
-  }, [loadAds, checkFavoriteStatus]);
+  }, [loadAds, checkFavoriteStatus, initialIsFavorite]);
 
   useEffect(() => {
     if (ads.length > 0) {

@@ -10,6 +10,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNotifications } from '@/shared/hooks/use-notifications';
 
 export type HistoryCategoryKey = 'all' | 'financial' | 'legal' | 'activity' | 'customers' | 'ranks';
 
@@ -78,6 +79,8 @@ export interface HistoryFilterBarProps {
   onSelectCategory: (category: HistoryCategoryKey) => void;
   isPassenger: boolean;
   isArabic: boolean;
+  activityUnreadCount?: number;
+  hasActivityUnread?: boolean;
 }
 
 export function HistoryFilterBar({
@@ -85,7 +88,13 @@ export function HistoryFilterBar({
   onSelectCategory,
   isPassenger,
   isArabic,
+  activityUnreadCount,
+  hasActivityUnread,
 }: HistoryFilterBarProps) {
+  const { tripUnreadCount, hasTripUnread } = useNotifications();
+  const count = activityUnreadCount ?? tripUnreadCount;
+  const hasUnread = hasActivityUnread ?? hasTripUnread;
+
   const categories = isPassenger
     ? HISTORY_CATEGORIES.filter((cat) => cat.key !== 'financial' && cat.key !== 'ranks')
     : HISTORY_CATEGORIES;
@@ -109,7 +118,7 @@ export function HistoryFilterBar({
               type="button"
               onClick={() => onSelectCategory(cat.key)}
               className={cn(
-                'w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 rounded-2xl border text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-[0.98] text-center',
+                'relative w-full flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 rounded-2xl border text-xs sm:text-sm font-black transition-all cursor-pointer active:scale-[0.98] text-center',
                 isActive
                   ? cat.activeClass
                   : 'border-white/10 bg-black/40 text-slate-400 hover:text-white hover:bg-white/5 hover:border-white/20'
@@ -117,6 +126,11 @@ export function HistoryFilterBar({
             >
               <Icon className={cn('h-4 w-4 shrink-0', isActive ? cat.color : 'text-slate-500')} />
               <span className="whitespace-nowrap">{isArabic ? cat.labelAr : cat.labelEn}</span>
+              {cat.key === 'activity' && hasUnread && count > 0 && (
+                <span className="absolute -top-1.5 ltr:-right-1.5 rtl:-left-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse ring-1 ring-[#0A0F1D] z-10">
+                  {count > 99 ? '99+' : count}
+                </span>
+              )}
             </button>
           );
         })}

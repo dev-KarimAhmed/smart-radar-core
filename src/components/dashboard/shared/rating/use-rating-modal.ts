@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
-import { setFavoriteCaptain } from '@/features/account/services/favorite-captains';
+import { setFavoriteCaptain, fetchFavoriteCaptainIds } from '@/features/account/services/favorite-captains';
 import {
   CriterionVerdict,
   RatingModalProps,
@@ -30,17 +30,43 @@ export function useRatingModal({
   const [confirmBlock, setConfirmBlock] = useState(false);
   const [comment, setComment] = useState('');
   const [saveFavorite, setSaveFavorite] = useState(false);
+  const [isAlreadyFavorite, setIsAlreadyFavorite] = useState(false);
   const [vehicle, setVehicle] = useState(initialVehicleRatings);
   const [captain, setCaptain] = useState(initialCaptainRatings);
 
   useEffect(() => {
     if (!isOpen) return;
-    setSaveFavorite(false);
+    let isMounted = true;
     setConfirmBlock(false);
     setComment('');
     setVehicle(initialVehicleRatings);
     setCaptain(initialCaptainRatings);
-  }, [isOpen, tripId]);
+
+    if (captainId) {
+      let synchronousIsFav = false;
+      if (typeof window !== 'undefined') {
+        try {
+          synchronousIsFav = Boolean(window.localStorage.getItem(`radar_preferred_captain_${captainId}`));
+        } catch {}
+      }
+      setIsAlreadyFavorite(synchronousIsFav);
+      setSaveFavorite(synchronousIsFav);
+
+      void fetchFavoriteCaptainIds().then((favIds) => {
+        if (!isMounted) return;
+        const isFav = favIds.has(String(captainId));
+        setIsAlreadyFavorite(isFav);
+        setSaveFavorite(isFav);
+      });
+    } else {
+      setIsAlreadyFavorite(false);
+      setSaveFavorite(false);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, tripId, captainId]);
 
   const handleSetVehicle = (key: VehicleRatingKey, verdict: Exclude<CriterionVerdict, null>) => {
     setVehicle((previous) => ({ ...previous, [key]: previous[key] === verdict ? null : verdict }));
@@ -158,6 +184,7 @@ export function useRatingModal({
     setComment,
     saveFavorite,
     setSaveFavorite,
+    isAlreadyFavorite,
     vehicle,
     captain,
     handleSetVehicle,

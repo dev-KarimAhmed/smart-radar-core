@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Heart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export interface TripActiveHeaderProps {
@@ -11,6 +11,7 @@ export interface TripActiveHeaderProps {
   activeTripStatus: string;
   tripHasStarted: boolean;
   displayTimer: string;
+  isFavorite?: boolean;
 }
 
 export function TripActiveHeader({
@@ -20,6 +21,7 @@ export function TripActiveHeader({
   activeTripStatus,
   tripHasStarted,
   displayTimer,
+  isFavorite = false,
 }: TripActiveHeaderProps) {
   const t = useTranslations('riderView');
 
@@ -54,6 +56,12 @@ export function TripActiveHeader({
             <h2 className="text-xl sm:text-2xl font-black text-white truncate leading-tight">
               {captainName}
             </h2>
+            {isFavorite ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-amber-500/20 px-2.5 py-0.5 text-xs font-black text-amber-200 shadow-[0_0_14px_rgba(251,191,36,0.3)]">
+                <Heart className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
+                <span>{isArabic ? 'كابتن مفضل' : 'Favorite Captain'}</span>
+              </span>
+            ) : null}
             {serialNumber ? (
               <span className="font-mono text-xs font-black text-[#14F5D5] bg-[#14B8A6]/15 border border-[#14B8A6]/35 rounded-md px-2 py-0.5 shadow-sm">
                 #{serialNumber}

@@ -39,6 +39,7 @@ export function RatingModal(props: RatingModalProps) {
     setComment,
     saveFavorite,
     setSaveFavorite,
+    isAlreadyFavorite,
     vehicle,
     captain,
     handleSetVehicle,
@@ -98,20 +99,48 @@ export function RatingModal(props: RatingModalProps) {
 
           <button
             type="button"
-            onClick={() => setSaveFavorite((value) => !value)}
-            className={cn(styles.style247_10, saveFavorite ? styles.style249_11 : styles.style250_12)}
-            aria-pressed={saveFavorite}
+            onClick={() => {
+              if (isAlreadyFavorite) return;
+              setSaveFavorite((value) => !value);
+            }}
+            className={cn(
+              styles.style247_10,
+              saveFavorite || isAlreadyFavorite ? styles.style249_11 : styles.style250_12,
+              isAlreadyFavorite && 'border-amber-500/40 bg-amber-500/10 cursor-default'
+            )}
+            aria-pressed={saveFavorite || isAlreadyFavorite}
+            disabled={isAlreadyFavorite}
           >
             <div className={styles.style254_13}>
-              <span className={styles.style255_14}>
-                {saveFavorite ? tAuto('ratingModal_favoriteWillSave') : tAuto('ratingModal_favoriteSave')}
+              <span className={cn(styles.style255_14, isAlreadyFavorite && 'text-amber-300 font-black')}>
+                {isAlreadyFavorite
+                  ? tAuto('ratingModal_favoriteAlreadySaved')
+                  : saveFavorite
+                    ? tAuto('ratingModal_favoriteWillSave')
+                    : tAuto('ratingModal_favoriteSave')}
               </span>
               <span className={styles.style258_15}>
-                {captainName ? tAuto('ratingModal_favoriteDescription', { name: captainName }) : tAuto('ratingModal_favoriteFallbackDescription')}
+                {isAlreadyFavorite
+                  ? tAuto('ratingModal_favoriteAlreadySavedDesc')
+                  : captainName
+                    ? tAuto('ratingModal_favoriteDescription', { name: captainName })
+                    : tAuto('ratingModal_favoriteFallbackDescription')}
               </span>
             </div>
-            <span className={cn(styles.style263_16, saveFavorite ? styles.style265_17 : styles.style266_18)}>
-              <Heart className={cn(styles.style269_19, saveFavorite ? styles.style269_20 : '')} />
+            <span
+              className={cn(
+                styles.style263_16,
+                saveFavorite || isAlreadyFavorite ? styles.style265_17 : styles.style266_18,
+                isAlreadyFavorite && 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+              )}
+            >
+              <Heart
+                className={cn(
+                  styles.style269_19,
+                  saveFavorite || isAlreadyFavorite ? styles.style269_20 : '',
+                  isAlreadyFavorite && 'fill-amber-400 text-amber-400'
+                )}
+              />
             </span>
           </button>
 

@@ -3535,6 +3535,8 @@
     "ratingModal_captainCommunication": "التواصل",
     "ratingModal_favoriteSave": "حفظ السائق في المفضلين",
     "ratingModal_favoriteWillSave": "سيتم حفظ السائق في المفضلين",
+    "ratingModal_favoriteAlreadySaved": "الكابتن مضاف لمفضلاتك بالفعل",
+    "ratingModal_favoriteAlreadySavedDesc": "مسجل في قائمة مفضلاتك ولديه أولوية الظهور في طلباتك القادمة.",
     "ratingModal_favoriteDescription": "احفظ {name} لتفضيله في الرحلات القادمة.",
     "ratingModal_favoriteFallbackDescription": "احفظ هذا السائق لتفضيله في الرحلات القادمة.",
     "ratingModal_commentLabel": "ملاحظات إضافية (اختياري)",
