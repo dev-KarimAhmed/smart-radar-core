@@ -6,12 +6,11 @@ import {
   getClientIp,
   getServerSupabaseAdmin,
 } from '@/shared/server/api-auth-guard';
+import { verifySingleSession, claimActiveSession } from './login-session-guard';
+import { resolveFallbackEmail } from './login-email-fallback';
+import { checkEmailConfirmation, validateRoleAndStatus } from './login-profile-checks';
 
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
-const PRIMARY_OWNER_ID = '70b4a26f-10ac-4888-8df6-c3a5ad824b8a';
-const PRIMARY_OWNER_PHONES = new Set(['+201551981922', '+201551981977', '201551981977']);
-// Cutoff timestamp for email verification rollout: Oct 23, 2026 15:30:00 UTC
-const EMAIL_CONFIRM_CUTOFF_MS = 1792769400000;
 
 function normalizePhone(phone: string): string {
   let cleaned = phone.trim().replace(/[\s()-]/g, '');
@@ -40,6 +39,7 @@ export async function POST(req: Request) {
     const password = String(body.password || '');
     const expectedRole = body.expectedRole ? String(body.expectedRole).trim().toUpperCase() : undefined;
     const rawEmail = body.email ? String(body.email).trim().toLowerCase() : undefined;
+    const incomingDeviceId = String(body.deviceId || '').trim();
 
     if (isSaudiPhoneNumber(normalizedPhone) || isSaudiPhoneNumber(rawPhone)) {
       return NextResponse.json(
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       password,
     });
 
-    // Attempt 2: Email fallback resolved server-side (avoids public profiles exposure)
+    // Attempt 2: Email fallback resolved server-side
     if (signInRes.error) {
       const errMsg = (signInRes.error.message || '').toLowerCase();
       const errCode = String((signInRes.error as { code?: string }).code || '').toLowerCase();
@@ -90,35 +90,11 @@ export async function POST(req: Request) {
         errMsg.includes('phone');
 
       if (isCredentialsOrPhoneErr) {
-        let fallbackEmail: string | null = (rawEmail && rawEmail.includes('@')) ? rawEmail : null;
-        if (!fallbackEmail) {
-          const { data: profileByPhone } = await adminClient
-            .from('profiles')
-            .select('email')
-            .eq('phone', normalizedPhone)
-            .maybeSingle();
-
-          if (profileByPhone?.email && String(profileByPhone.email).includes('@')) {
-            fallbackEmail = String(profileByPhone.email).trim().toLowerCase();
-          } else {
-            const phoneDigits = normalizedPhone.replace(/\D/g, '');
-            const { data: rpcRows, error: rpcErr } = await adminClient.rpc('find_account_by_phone', {
-              p_phone_digits: phoneDigits,
-            });
-            const rpcRow = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
-            const rpcId = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { user_id?: unknown }).user_id : undefined;
-            const rpcEmail = rpcRow && typeof rpcRow === 'object' ? (rpcRow as { email?: unknown }).email : undefined;
-            if (!rpcErr && typeof rpcEmail === 'string' && rpcEmail.includes('@')) {
-              fallbackEmail = rpcEmail.trim().toLowerCase();
-            } else if (!rpcErr && typeof rpcId === 'string') {
-              const { data: userLookup } = await adminClient.auth.admin.getUserById(rpcId);
-              const emailCandidate = userLookup?.user?.email || String(userLookup?.user?.user_metadata?.email || '');
-              if (emailCandidate && emailCandidate.includes('@')) {
-                fallbackEmail = emailCandidate.trim().toLowerCase();
-              }
-            }
-          }
-        }
+        const fallbackEmail = await resolveFallbackEmail({
+          adminClient,
+          normalizedPhone,
+          rawEmail,
+        });
 
         if (fallbackEmail) {
           const emailSignInRes = await anonClient.auth.signInWithPassword({
@@ -141,83 +117,58 @@ export async function POST(req: Request) {
 
     const { user, session } = signInRes.data;
 
-    // Email confirmation check with legacy grandfathering
-    const userEmail = user.email || (user.user_metadata?.email as string | undefined);
-    const createdAtMs = user.created_at ? new Date(user.created_at).getTime() : 0;
-    const isPreFeatureAccount = createdAtMs > 0 && createdAtMs < EMAIL_CONFIRM_CUTOFF_MS;
-    const isPhoneOnlyAccount = !userEmail || !userEmail.includes('@');
-    const requiresEmailConfirmation = !isPreFeatureAccount && !isPhoneOnlyAccount;
-
-    let isEmailConfirmed = Boolean(user.email_confirmed_at);
-    if (requiresEmailConfirmation && !isEmailConfirmed) {
-      // Check admin auth or profile if email_verified is true (handles immediate verification sync)
-      const { data: freshUser } = await adminClient.auth.admin.getUserById(user.id);
-      if (freshUser?.user?.email_confirmed_at) {
-        isEmailConfirmed = true;
-      } else {
-        const { data: profCheck } = await adminClient.from('profiles').select('email_verified').eq('id', user.id).maybeSingle();
-        if (profCheck?.email_verified) {
-          isEmailConfirmed = true;
-        }
-      }
-    }
-
-    if (requiresEmailConfirmation && !isEmailConfirmed) {
+    // Email confirmation verification
+    const emailCheck = await checkEmailConfirmation({ adminClient, user, normalizedPhone });
+    if (!emailCheck.ok) {
       return NextResponse.json(
-        {
-          success: false,
-          code: 'email_not_confirmed',
-          error: 'email_not_confirmed',
-          email: userEmail,
-          phone: normalizedPhone,
-        },
+        { success: false, ...emailCheck.responsePayload },
         { status: 403 },
       );
     }
 
-    // Authoritative profile role and status check
+    // Authoritative profile role, status, and active session check
     const { data: profile } = await adminClient
       .from('profiles')
-      .select('id, role, status, rank_audit_log')
+      .select('id, role, status, rank_audit_log, active_device_id, last_seen_at')
       .eq('id', user.id)
       .maybeSingle();
 
-    const profileStatus = String(profile?.status || 'ACTIVE').toUpperCase();
-    const auditLogs = Array.isArray(profile?.rank_audit_log) ? (profile.rank_audit_log as string[]) : [];
-    const isTemporarySuspension = profileStatus === 'SUSPENDED' || (profileStatus === 'BANNED' && auditLogs.includes('ACCOUNT_SUSPENDED'));
-    const isPermanentBan = profileStatus === 'BANNED' && !isTemporarySuspension;
+    // 1. Strict single-session check on database level
+    const sessionCheck = await verifySingleSession({
+      adminClient,
+      userId: user.id,
+      incomingDeviceId,
+      profileActiveDeviceId: profile?.active_device_id,
+      profileLastSeenAt: profile?.last_seen_at,
+    });
 
-    if (isPermanentBan) {
+    if (!sessionCheck.allowed) {
       return NextResponse.json(
-        { success: false, code: 'account_banned', error: 'هذا الحساب محظور من استخدام المنصة.' },
-        { status: 403 },
+        {
+          success: false,
+          code: sessionCheck.code || 'account_in_use',
+          error: sessionCheck.error || 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.',
+        },
+        { status: 409 },
       );
     }
 
-    const dbRole = String(profile?.role || user.user_metadata?.role || 'RIDER').toUpperCase();
-    const isPrimaryOwner =
-      user.id === PRIMARY_OWNER_ID ||
-      PRIMARY_OWNER_PHONES.has(String(user.phone || '')) ||
-      PRIMARY_OWNER_PHONES.has(String(user.user_metadata?.phone || ''));
-
-    if (expectedRole === 'ADMIN' && (profileStatus === 'BANNED' || profileStatus === 'SUSPENDED')) {
+    // Role and status verification
+    const roleCheck = validateRoleAndStatus({ profile, user, expectedRole });
+    if (!roleCheck.ok) {
       return NextResponse.json(
-        { success: false, code: 'admin_suspended', error: 'حساب الإدارة موقوف أو محظور حالياً.' },
-        { status: 403 },
+        { success: false, code: roleCheck.code, error: roleCheck.error },
+        { status: roleCheck.status },
       );
     }
 
-    if (expectedRole) {
-      if (dbRole !== expectedRole && !(isPrimaryOwner && expectedRole === 'ADMIN')) {
-        return NextResponse.json(
-          {
-            success: false,
-            code: 'role_mismatch',
-            error: `role_mismatch:${dbRole}:${expectedRole}`,
-          },
-          { status: 403 },
-        );
-      }
+    // 2. Claim active session for this device in the database
+    if (incomingDeviceId) {
+      await claimActiveSession({
+        adminClient,
+        userId: user.id,
+        deviceId: incomingDeviceId,
+      });
     }
 
     return NextResponse.json({

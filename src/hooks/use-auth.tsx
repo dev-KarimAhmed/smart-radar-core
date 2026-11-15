@@ -115,6 +115,16 @@ function AuthContent({ children }: { children: ReactNode }) {
       window.sessionStorage.removeItem('radar_sovereign_mock_user');
     }
     restorePreservedLanguage(preservedLanguage);
+    const logoutUserId = user?.uid;
+    const currentDeviceId =
+      typeof window !== 'undefined' ? window.localStorage.getItem('radar_device_id') : undefined;
+    if (logoutUserId || currentDeviceId) {
+      void fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: logoutUserId, deviceId: currentDeviceId }),
+      }).catch(() => {});
+    }
     setUser(null);
     try {
       const { supabase } = await import('@/lib/supabase-client');

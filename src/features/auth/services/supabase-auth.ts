@@ -166,6 +166,7 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
       password: input.password,
       expectedRole: input.expectedRole,
       email: input.email,
+      deviceId: currentDeviceId,
     }),
   });
 
@@ -177,6 +178,18 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   }
 
   if (!response.ok || !resData?.success || !resData?.session?.access_token || !resData?.session?.refresh_token) {
+    if (resData?.code === 'account_in_use' || response.status === 409) {
+      const isAr = typeof window !== 'undefined'
+        ? (window.localStorage.getItem('radar_dashboard_language') !== 'en')
+        : true;
+      const errorMsg = resData?.error || (isAr
+        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.'
+        : 'This account is currently active on another device or browser. You cannot log in until it is logged out from the other device first.');
+      const err = new Error(errorMsg);
+      (err as any).code = 'account_in_use';
+      throw err;
+    }
+
     if (resData?.code === 'email_not_confirmed' || resData?.error === 'email_not_confirmed') {
       const unconfirmedErr = new Error('email_not_confirmed');
       (unconfirmedErr as any).email = resData?.email;

@@ -1,6 +1,7 @@
 import { useEffect, type MutableRefObject } from 'react';
 import type { User as SovereignUser } from '@/core/types';
-import { DASHBOARD_LANGUAGE_KEY, DASHBOARD_LANGUAGE_EVENT } from '../use-dashboard-language';
+
+export { useProfileLanguageSync } from './use-profile-language-sync';
 
 export function useSessionTakeover(
   user: SovereignUser | null,
@@ -30,6 +31,43 @@ export function useSessionTakeover(
       }
     }
 
+    // 1. Authoritative heartbeat to claim & verify active session
+    const sendHeartbeat = async () => {
+      if (!isMounted || !user?.uid || !deviceId) return;
+      try {
+        const res = await fetch('/api/auth/session/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.uid, deviceId }),
+        });
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data?.conflict) {
+            toast({
+              variant: 'destructive',
+              title: 'تم إنهاء الجلسة',
+              description: 'تم تسجيل الدخول إلى هذا الحساب من جهاز آخر، تم إنهاء هذه الجلسة.',
+              duration: 10000,
+            });
+            void forceKickoutRef.current();
+          }
+        }
+      } catch {}
+    };
+
+    void sendHeartbeat();
+    const heartbeatInterval = setInterval(sendHeartbeat, 60000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void sendHeartbeat();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    // 2. Realtime broadcast channels for immediate zero-latency peer detection
     const phoneKey = user.phone ? user.phone.trim().replace(/[\s()-]/g, '') : '';
     const phoneDigits = user.phone ? user.phone.trim().replace(/\D/g, '') : '';
     const emailKey = (user as any).email ? String((user as any).email).trim().toLowerCase() : '';
@@ -90,6 +128,10 @@ export function useSessionTakeover(
 
     return () => {
       isMounted = false;
+      clearInterval(heartbeatInterval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
       void import('@/lib/supabase-client').then(({ supabase }) => {
         try {
           if (channel) supabase.removeChannel(channel);
@@ -100,48 +142,4 @@ export function useSessionTakeover(
       });
     };
   }, [user?.uid, user?.phone, (user as any)?.email, toast, forceKickoutRef]);
-}
-
-export function useProfileLanguageSync(user: SovereignUser | null): void {
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    const syncLanguageToProfile = async (targetLang: 'ar' | 'en') => {
-      try {
-        const { supabase } = await import('@/lib/supabase-client');
-        await supabase
-          .from('profiles')
-          .update({ preferred_language: targetLang })
-          .eq('id', user.uid);
-      } catch (err) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[useAuth] Failed to sync preferred_language:', err);
-        }
-      }
-    };
-
-    const stored = typeof window !== 'undefined'
-      ? (window.localStorage.getItem(DASHBOARD_LANGUAGE_KEY) as 'ar' | 'en' | null)
-      : null;
-    if (stored === 'en' || stored === 'ar') {
-      void syncLanguageToProfile(stored);
-    }
-
-    const handleLangChange = (event: Event) => {
-      const detail = (event as CustomEvent<'ar' | 'en'>).detail;
-      if (detail === 'en' || detail === 'ar') {
-        void syncLanguageToProfile(detail);
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener(DASHBOARD_LANGUAGE_EVENT, handleLangChange);
-      }
-    };
-  }, [user?.uid]);
 }
