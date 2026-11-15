@@ -108,3 +108,20 @@ export const styles = {
   countdownLabel: "shrink-0 font-mono text-xs font-black tabular-nums text-[#14F5D5]",
   countdownLabelUrgent: "shrink-0 font-mono text-xs font-black tabular-nums text-rose-300 animate-pulse",
 } as const;
+
+export function getRankBadgeStyle(rank: string): string {
+  switch (rank) {
+    case 'DIAMOND':
+      return 'border-cyan-300/60 bg-gradient-to-r from-cyan-500/25 to-blue-600/25 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]';
+    case 'PLATINUM':
+      return 'border-cyan-400/50 bg-cyan-500/15 text-cyan-200';
+    case 'GOLD':
+      return 'border-amber-400/60 bg-amber-500/20 text-amber-200';
+    case 'BRONZE':
+      return 'border-amber-700/50 bg-amber-800/20 text-amber-300';
+    case 'SILVER':
+      return 'border-slate-400/50 bg-slate-500/20 text-slate-200';
+    default:
+      return 'border-[#14B8A6]/40 bg-[#14B8A6]/15 text-[#14F5D5]';
+  }
+}

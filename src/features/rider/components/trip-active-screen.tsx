@@ -147,8 +147,8 @@ export function TripActiveScreen({
         cancelBannerRef={cancelBannerRef}
       />
 
-      {/* 1.5. إعلانات الكابتن الترويجية - تظهر في شاشة التفاصيل وتختفي فور بدء الرحلة */}
-      {!tripHasStarted && captainTargetId ? (
+      {/* 1.5. إعلانات الكابتن الترويجية - تظهر في تفاصيل الكابتن عند قبول العرض وخلال الرحلة */}
+      {captainTargetId ? (
         <CaptainTripAdsViewer
           captainId={captainTargetId}
           isArabic={isArabic}

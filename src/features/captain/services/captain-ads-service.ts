@@ -12,6 +12,18 @@ function getCacheKey(captainId: string): string {
   return `cached_captain_ads_${safeId}`;
 }
 
+function setCachedAds(captainId: string, ads: CaptainAdItem[]) {
+  if (typeof window === 'undefined') return;
+  const key = getCacheKey(captainId);
+  const data = JSON.stringify(ads);
+  try {
+    sessionStorage.setItem(key, data);
+  } catch {}
+  try {
+    localStorage.setItem(key, data);
+  } catch {}
+}
+
 function notifyAdsUpdated(captainId: string) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(
@@ -45,9 +57,7 @@ export async function fetchCaptainAds(captainId: string): Promise<CaptainAdItem[
             ...a,
             imageUrl: normalizeCaptainAdImageUrl(a.imageUrl),
           }));
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem(getCacheKey(captainId), JSON.stringify(realAds));
-        }
+        setCachedAds(captainId, realAds);
         return realAds;
       }
     }
@@ -66,7 +76,8 @@ export async function fetchCaptainAds(captainId: string): Promise<CaptainAdItem[
 export function getCaptainAds(captainId: string): CaptainAdItem[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = sessionStorage.getItem(getCacheKey(captainId));
+    const key = getCacheKey(captainId);
+    const raw = sessionStorage.getItem(key) || localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
@@ -116,7 +127,7 @@ export async function saveCaptainAd(
       const current = getCaptainAds(captainId);
       const filtered = current.filter((a) => a.seatNumber !== payload.seatNumber);
       const updated = [...filtered, data.ad].sort((a, b) => a.seatNumber - b.seatNumber);
-      sessionStorage.setItem(getCacheKey(captainId), JSON.stringify(updated));
+      setCachedAds(captainId, updated);
 
       notifyAdsUpdated(captainId);
       return data.ad;
@@ -161,7 +172,7 @@ export async function updateCaptainAd(
             }
           : a
       );
-      sessionStorage.setItem(getCacheKey(captainId), JSON.stringify(updated));
+      setCachedAds(captainId, updated);
       notifyAdsUpdated(captainId);
       return true;
     }
@@ -188,7 +199,7 @@ export async function deleteCaptainAd(captainId: string, adId: string): Promise<
     if (res.ok) {
       const current = getCaptainAds(captainId);
       const filtered = current.filter((a) => a.id !== adId);
-      sessionStorage.setItem(getCacheKey(captainId), JSON.stringify(filtered));
+      setCachedAds(captainId, filtered);
       notifyAdsUpdated(captainId);
       return true;
     }

@@ -46,6 +46,12 @@ export function useTripAdsPreferences(captainId: string, onReloadAds: () => void
       }
     };
 
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === `cached_captain_ads_${captainId}` || e.key === 'cached_captain_ads_default_captain') {
+        onReloadAds();
+      }
+    };
+
     const onFavUpdated = (e: any) => {
       if (!e?.detail?.captainId || e.detail.captainId === captainId) {
         onReloadFavorites();
@@ -56,6 +62,7 @@ export function useTripAdsPreferences(captainId: string, onReloadAds: () => void
     window.addEventListener(CAPTAIN_ADS_CONFIG.CUSTOM_EVENTS.STREAM_SPEED_CHANGED, onSpeed);
     window.addEventListener(CAPTAIN_ADS_CONFIG.CUSTOM_EVENTS.PAUSE_CHANGED, onPause);
     window.addEventListener(CAPTAIN_ADS_CONFIG.CUSTOM_EVENTS.ADS_UPDATED, onAdsUpdated);
+    window.addEventListener('storage', onStorage);
     window.addEventListener('rider-favorites-updated', onFavUpdated);
 
     return () => {
@@ -63,6 +70,7 @@ export function useTripAdsPreferences(captainId: string, onReloadAds: () => void
       window.removeEventListener(CAPTAIN_ADS_CONFIG.CUSTOM_EVENTS.STREAM_SPEED_CHANGED, onSpeed);
       window.removeEventListener(CAPTAIN_ADS_CONFIG.CUSTOM_EVENTS.PAUSE_CHANGED, onPause);
       window.removeEventListener(CAPTAIN_ADS_CONFIG.CUSTOM_EVENTS.ADS_UPDATED, onAdsUpdated);
+      window.removeEventListener('storage', onStorage);
       window.removeEventListener('rider-favorites-updated', onFavUpdated);
     };
   }, [captainId, onReloadAds, onReloadFavorites]);

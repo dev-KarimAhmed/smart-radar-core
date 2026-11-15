@@ -131,8 +131,9 @@ function AdTakeoverMedia({ ad }: { ad: any }) {
   const fallbackImage = getAdImage(ad) || PLACEHOLDER_BANNER_URL;
   const isCaptainSectorAd = Boolean(
     ad?.isCaptainSectorAd ||
+    ad?.isRiderSectorAd ||
     ad?.adType === 'CAPTAIN_PROFESSIONAL' ||
-    (typeof ad?.id === 'string' && ad.id.startsWith('captain-sector-ad-'))
+    (typeof ad?.id === 'string' && (ad.id.startsWith('captain-sector-ad-') || ad.id.startsWith('rider-sector-ad-')))
   );
 
   return (

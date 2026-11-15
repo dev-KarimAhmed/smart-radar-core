@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-client';
 import { recordRiderActivity } from '@/features/referral/services/captain-referral';
 import { CAPTAIN_SECTOR_ADS } from '../config/captain-sector-ads';
+import { RIDER_SECTOR_ADS } from '../config/rider-sector-ads';
 
 function getBadgeText(ad: any, copy: AdStageCopy) {
   if (ad.adType === 'RIDER_BENEFIT') return copy.riderBadge;
@@ -65,20 +66,13 @@ export function AdStage({
     if (audience === 'captain') {
       const audienceAds = filterAdsByAudience(serverAds, 'captain');
       const filteredServerAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, audienceAds);
-      if (filteredServerAds.length > 0) {
-        return [...filteredServerAds, ...CAPTAIN_SECTOR_ADS];
-      }
-      return CAPTAIN_SECTOR_ADS;
+      return filteredServerAds.length > 0 ? [...filteredServerAds, ...CAPTAIN_SECTOR_ADS] : CAPTAIN_SECTOR_ADS;
     }
 
     const audienceAds = filterAdsByAudience(serverAds, audience);
     const filteredAds = filterAdsByLocalContext(liveDistrict, liveGovernorate, audienceAds);
-    if (filteredAds.length > 0) return filteredAds;
-
-    return [
-      buildBrandPlaceholderAd(copy, hasAdFetchIssue ? copy.emptyFetchIssue : copy.emptyDescription, audience),
-    ];
-  }, [audience, copy, hasAdFetchIssue, liveDistrict, liveGovernorate, serverAds]);
+    return filteredAds.length > 0 ? [...filteredAds, ...RIDER_SECTOR_ADS] : RIDER_SECTOR_ADS;
+  }, [audience, liveDistrict, liveGovernorate, serverAds]);
 
   const displayAds = useMemo(() => {
     if (adsToUse.length <= 1) return adsToUse;
