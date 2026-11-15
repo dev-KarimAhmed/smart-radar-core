@@ -9,6 +9,7 @@ import type { CaptainReceiptItem } from '../types/driver-wallet-types';
 import { useDriverWalletDirectory } from '../hooks/use-driver-wallet-directory';
 import { useDriverWalletReceipts } from '../hooks/use-driver-wallet-receipts';
 import { DriverWalletBalanceCard } from './wallet/driver-wallet-balance-card';
+import { CaptainAdsSeatsManager } from './captain-ads-seats-manager';
 import { DriverWalletRechargeSection } from './wallet/driver-wallet-recharge-section';
 import { DriverWalletReceiptsList } from './wallet/driver-wallet-receipts-list';
 import { DriverWalletDelegateCard } from './wallet/driver-wallet-delegate-card';
@@ -100,7 +101,10 @@ export function DriverWalletTab({
         t={t}
       />
 
-      {/* 3. Digital Recharge Section */}
+      {/* 3. Captain Promotional Ad Seats Manager (مكانها الأصلي في الشاشة وبدون حد أقصى) */}
+      <CaptainAdsSeatsManager user={user} language={language} />
+
+      {/* 4. Digital Recharge Section */}
       <DriverWalletRechargeSection
         language={language}
         effectiveChannels={effectiveChannels}

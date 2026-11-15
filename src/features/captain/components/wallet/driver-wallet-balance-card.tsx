@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import type { User } from '@/core/types';
 import { cn } from '@/lib/utils';
-import { CaptainAdsSeatsManager } from '../captain-ads-seats-manager';
 import { toHoursMinutes } from '../../types/driver-wallet-types';
 
 interface DriverWalletBalanceCardProps {
@@ -179,9 +178,6 @@ export function DriverWalletBalanceCard({
               <p className="mt-1 text-amber-200/80">{walletIsMissing ? t('walletMissingBody') : t('walletErrorBody')}</p>
             </div>
           ) : null}
-
-          {/* شريط إدارة ورفع الإعلانات للكابتن */}
-          <CaptainAdsSeatsManager user={user} language={language} />
         </div>
       )}
     </div>
