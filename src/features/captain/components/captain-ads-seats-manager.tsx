@@ -22,12 +22,23 @@ export interface CaptainAdsSeatsManagerProps {
   language?: 'ar' | 'en';
 }
 
+/**
+ * 🛡️ ميزة باقات مقاعد الإعلانات للكابتن
+ * تم إخفاؤها مؤقتاً بناءً على طلب العميل لعدم اكتمال جاهزيتها بعد.
+ * يمكن إعادة تفعيلها فوراً بتغيير القيمة إلى true.
+ */
+export const SHOW_CAPTAIN_AD_PACKAGES = false;
+
 export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeatsManagerProps) {
   const t = useTranslations('captainAds');
   const isArabic = language === 'ar';
   const fileInputId = useId();
 
   const state = useCaptainAdsManager({ user, t });
+
+  if (!SHOW_CAPTAIN_AD_PACKAGES) {
+    return null;
+  }
 
   return (
     <div className="w-full pt-3.5 border-t border-white/10" dir={isArabic ? 'rtl' : 'ltr'}>

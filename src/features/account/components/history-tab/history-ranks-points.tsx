@@ -2,10 +2,18 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Award, Star, Heart, TrendingUp, ChevronDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Award,
+  TrendingUp,
+  Star,
+  Heart,
+  ChevronDown,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import type { CaptainRankName } from '@/features/captain/services/captain-rank';
+import { rankIncreaseFactorForTier } from '@/features/captain/services/offer-band';
 import {
   historyRanksStyles as styles,
   RANK_DETAILS,
@@ -16,27 +24,6 @@ import { HistoryRanksLadder } from './ranks/history-ranks-ladder';
 
 export * from './ranks/history-ranks-types';
 export * from './ranks/history-ranks-ladder';
-import { Badge } from '@/components/ui/badge';
-import {
-  Award,
-  TrendingUp,
-  Star,
-  Heart,
-  ChevronDown,
-  CheckCircle2,
-  Lock,
-  Zap,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/use-auth';
-import { CAPTAIN_RANK_RULES, type CaptainRankName } from '@/features/captain/services/captain-rank';
-import { rankIncreaseFactorForTier } from '@/features/captain/services/offer-band';
-import {
-  styles,
-  type HistoryRanksPointsProps,
-  RANK_DETAILS,
-  RANK_HIERARCHY,
-} from './history-ranks-constants';
 
 export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps) {
   const { user } = useAuth();
@@ -177,64 +164,6 @@ export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps)
             currentRank={currentRank}
             currentRankIndex={currentRankIndex}
           />
-          {/* 2. Rank Tiers Ladder */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-              <span className="flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-amber-400" />
-                {isArabic ? 'سلم ترقيات الكابتن ومتطلباتها:' : 'Captain Rank Progression Ladder:'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {RANK_HIERARCHY.map((rankKey) => {
-                const meta = RANK_DETAILS[rankKey];
-                const rules = CAPTAIN_RANK_RULES[rankKey];
-                const isCurrent = rankKey === currentRank;
-                const rankIdx = RANK_HIERARCHY.indexOf(rankKey);
-                const currentIdx = RANK_HIERARCHY.indexOf(currentRank);
-                const isUnlocked = rankIdx <= currentIdx;
-
-                return (
-                  <div
-                    key={rankKey}
-                    className={cn(
-                      'rounded-xl border p-2.5 text-center transition-all relative overflow-hidden',
-                      isCurrent
-                        ? cn('border-amber-400/80 bg-amber-500/10 shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/30', meta.color)
-                        : isUnlocked
-                        ? 'border-white/10 bg-white/[0.03] text-slate-300'
-                        : 'border-white/5 bg-black/40 text-slate-600 opacity-60'
-                    )}
-                  >
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      {isUnlocked ? (
-                        isCurrent ? (
-                          <meta.icon className={cn('h-3.5 w-3.5', meta.color)} />
-                        ) : (
-                          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                        )
-                      ) : (
-                        <Lock className="h-3 w-3 text-slate-500" />
-                      )}
-                      <span className={cn('text-xs font-bold', isCurrent && meta.color)}>
-                        {isArabic ? meta.nameAr : meta.nameEn}
-                      </span>
-                    </div>
-
-                    <div className="text-[10px] font-mono text-slate-400">
-                      <span>★ {rules.minRating.toFixed(1)}</span>
-                      {rules.minHearts > 0 && <span> + {rules.minHearts}♥</span>}
-                    </div>
-
-                    <span className="text-[9px] text-slate-400 block mt-0.5">
-                      +{meta.ceilingPercent}% {isArabic ? 'سقف' : 'ceiling'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </CardContent>
       )}
     </Card>

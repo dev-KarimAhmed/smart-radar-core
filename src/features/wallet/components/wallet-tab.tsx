@@ -20,6 +20,8 @@ import { DriverPackageCard } from './wallet/driver-package-card';
 import { WalletPurchaseModal } from './wallet/wallet-purchase-modal';
 import { WalletTransactionsList } from './wallet/wallet-transactions-list';
 
+export const SHOW_WORK_PACKAGES = false;
+
 export function WalletTab() {
   const { user } = useAuth();
   const { isArabic, language } = useDashboardLanguage();
@@ -133,10 +135,12 @@ export function WalletTab() {
                 <span>{copy.bonus}: <span className={styles.style136_34}>{formatMinutes(bonusMinutesRemaining, language)}</span></span>
               </div>
 
-              <div className={styles.style139_35}>
-                <span>{copy.currentPackage}: <span className={styles.style140_36}>{activePackageName || copy.none}</span></span>
-                <span>{copy.fromServer}</span>
-              </div>
+              {SHOW_WORK_PACKAGES && (
+                <div className={styles.style139_35}>
+                  <span>{copy.currentPackage}: <span className={styles.style140_36}>{activePackageName || copy.none}</span></span>
+                  <span>{copy.fromServer}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -149,7 +153,7 @@ export function WalletTab() {
 
               <div className={styles.style153_42}>
                 <span className={styles.style154_43}>
-                  {walletLoaded ? copy.noActivePackages : copy.loadingBalance}
+                  {walletLoaded ? (SHOW_WORK_PACKAGES ? copy.noActivePackages : copy.balanceStatus) : copy.loadingBalance}
                 </span>
                 <p className={styles.style157_44}>
                   {copy.serverDataHint}
@@ -164,7 +168,7 @@ export function WalletTab() {
         )}
       </div>
 
-      {isDriver && (
+      {SHOW_WORK_PACKAGES && isDriver && (
         <div className={styles.style171_46}>
           <div className={styles.style172_47}>
             <h2 className={styles.style173_48}>{copy.workPackages}</h2>
@@ -198,13 +202,15 @@ export function WalletTab() {
         onClose={() => setIsChargingFunds(false)}
       />
 
-      <WalletPurchaseModal
-        purchasingPackage={purchasingPackage}
-        loading={loading}
-        onConfirm={handlePurchasePackage}
-        onCancel={() => setPurchasingPackage(null)}
-        copy={copy}
-      />
+      {SHOW_WORK_PACKAGES && (
+        <WalletPurchaseModal
+          purchasingPackage={purchasingPackage}
+          loading={loading}
+          onConfirm={handlePurchasePackage}
+          onCancel={() => setPurchasingPackage(null)}
+          copy={copy}
+        />
+      )}
 
       <SovereignFinancialActivityChart
         transactions={transactions}
