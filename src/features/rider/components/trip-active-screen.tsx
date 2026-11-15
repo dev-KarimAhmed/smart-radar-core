@@ -1,46 +1,21 @@
 'use client';
 
 import React from 'react';
-import {
-  AlertTriangle,
-  Car,
-  Clock,
-  ExternalLink,
-  Facebook,
-  Instagram,
-  MapPin,
-  Palette,
-  Phone,
-  ShieldAlert,
-  ShieldCheck,
-  X,
-} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { cn, formatTelUri } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { formatMoney, isTripStartedStatus } from '../services/rider-view-format';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
-import type { RiderActiveTrip } from '../state/rider-state-machine';
-import type { TripCountdown } from '@/shared/services/trip-countdown';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase-client';
-import {
-  getRefreshedSupabaseAuthHeaders,
-  getSupabaseAuthHeaders,
-} from '@/shared/services/supabase-auth-headers';
 import { CaptainTripAdsViewer } from './captain-trip-ads-viewer';
+import { TripActiveScreenProps } from './trip-active/trip-active-types';
+import { TripActiveHeader } from './trip-active/trip-active-header';
+import { TripMutualCancelBanner } from './trip-active/trip-mutual-cancel-banner';
+import { TripDestinationCard } from './trip-active/trip-destination-card';
+import { TripVehicleCard } from './trip-active/trip-vehicle-card';
+import { TripActionsPanel } from './trip-active/trip-actions-panel';
 
-export interface TripActiveScreenProps {
-  isArabic: boolean;
-  activeTrip: RiderActiveTrip;
-  countdown?: TripCountdown;
-  etaSeconds?: number;
-  currencyLabel: string;
-  isCancellingRideRequest: boolean;
-  onEmergencyWhatsapp: () => void;
-  onCancelRideRequest: () => void;
-}
+export type { TripActiveScreenProps };
 
 export function TripActiveScreen({
   isArabic,
@@ -80,9 +55,6 @@ export function TripActiveScreen({
     onCancelledConfirmed: onCancelRideRequest,
   });
 
-  const { toast } = useToast();
-  const [isConfirmingDirectCancel, setIsConfirmingDirectCancel] = React.useState(false);
-  const [isDirectCancelling, setIsDirectCancelling] = React.useState(false);
   const cancelBannerRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -90,84 +62,6 @@ export function TripActiveScreen({
       cancelBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [mutualCancel.pendingRequestFrom]);
-
-  const handleDirectCancelRider = React.useCallback(async () => {
-    setIsDirectCancelling(true);
-    try {
-      let cancelled = false;
-      try {
-        const { error } = await supabase.rpc('cancel_ride_request', { p_request_id: activeTrip.tripId });
-        if (!error) {
-          cancelled = true;
-        } else {
-          const msg = String(error.message || '').toLowerCase();
-          if (msg.includes('cannot_cancel_active_trip')) {
-            toast({
-              variant: 'warning',
-              title: isArabic ? 'الرحلة بدأت بالفعل' : 'Trip Already Started',
-              description: isArabic
-                ? 'لا يمكن إلغاء الرحلة بشكل فردي بعد بدئها؛ يرجى استخدام طلب الإلغاء بالتوافق.'
-                : 'Cannot cancel unilaterally after trip start; please request mutual cancellation.',
-            });
-            return;
-          }
-          if (msg.includes('ride_request_closed')) {
-            cancelled = true;
-          }
-        }
-      } catch {}
-
-      if (!cancelled) {
-        const baseHeaders = { 'Content-Type': 'application/json' };
-        let authHeaders = await getSupabaseAuthHeaders(baseHeaders);
-        if (!authHeaders.Authorization) {
-          authHeaders = await getRefreshedSupabaseAuthHeaders(baseHeaders);
-        }
-        let res = await fetch('/api/trip/mutual-cancel', {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({
-            requestId: activeTrip.tripId,
-            action: 'ACCEPT',
-            cancelledByRole: 'rider',
-          }),
-        });
-        if (res.status === 401) {
-          const refreshedHeaders = await getRefreshedSupabaseAuthHeaders(baseHeaders);
-          if (refreshedHeaders.Authorization) {
-            res = await fetch('/api/trip/mutual-cancel', {
-              method: 'POST',
-              headers: refreshedHeaders,
-              body: JSON.stringify({
-                requestId: activeTrip.tripId,
-                action: 'ACCEPT',
-                cancelledByRole: 'rider',
-              }),
-            });
-          }
-        }
-        const json = (await res.json().catch(() => null)) as { success?: boolean } | null;
-        if (!res.ok || !json?.success) {
-          throw new Error('direct_cancel_failed');
-        }
-      }
-
-      toast({
-        title: isArabic ? 'تم إلغاء الرحلة' : 'Trip Cancelled',
-        description: isArabic ? 'تم إلغاء الرحلة بنجاح قبل بدئها.' : 'Trip cancelled successfully before start.',
-      });
-      onCancelRideRequest?.();
-    } catch {
-      toast({
-        variant: 'destructive',
-        title: isArabic ? 'فشل الإلغاء' : 'Cancellation Failed',
-        description: isArabic ? 'تعذر إلغاء الرحلة، يرجى المحاولة مجدداً.' : 'Could not cancel trip, please try again.',
-      });
-    } finally {
-      setIsDirectCancelling(false);
-      setIsConfirmingDirectCancel(false);
-    }
-  }, [activeTrip.tripId, isArabic, onCancelRideRequest, toast]);
 
   const serialNumber = activeTrip.captain?.serial_number
     || (activeTrip.captain as any)?.serial
@@ -178,8 +72,6 @@ export function TripActiveScreen({
     || activeTrip.captain?.name
     || activeTrip.captainName
     || t('trip.captainFallbackName');
-
-  const captainPhone = activeTrip.captainPhone || activeTrip.captain?.phone;
 
   const plateNumber = activeTrip.captain?.plate_number
     || activeTrip.captain?.license_plate
@@ -200,117 +92,25 @@ export function TripActiveScreen({
         ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeTrip.destinationLabel)}`
         : null);
 
-  const timerLabel = activeTripStatus === 'ARRIVED'
-    ? (isArabic ? 'السائق بانتظارك' : t('trip.driverArrivedTitle'))
-    : tripHasStarted
-    ? (isArabic ? 'الوقت المتبقي للوصول' : t('trip.timeRemaining'))
-    : (isArabic ? 'وقت الوصول المتوقع' : t('trip.driverArrival'));
-
   return (
     <div className={cn("space-y-3 sm:space-y-3.5", isArabic ? "text-right" : "text-left")} dir={isArabic ? 'rtl' : 'ltr'}>
       {/* 1. الترويسة الرئيسية: بيانات السائق والتايمر الواضح */}
-      <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-3.5 sm:p-4 shadow-xl shadow-black/40">
-        <div className="pointer-events-none absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
+      <TripActiveHeader
+        isArabic={isArabic}
+        captainName={captainName}
+        serialNumber={serialNumber}
+        activeTripStatus={activeTripStatus}
+        tripHasStarted={tripHasStarted}
+        displayTimer={displayTimer}
+      />
 
-        <div className="flex items-center justify-between gap-3">
-          {/* بيانات السائق وحالة المسار */}
-          <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
-            {/* مؤشر الحالة الفعلي (بدون عبارة الرحلة بدأت) */}
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#14B8A6]/35 bg-[#14B8A6]/10 px-2.5 py-0.5 shadow-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
-              </span>
-              <span className="text-[10px] font-black text-[#14F5D5]">
-                {activeTripStatus === 'ARRIVED'
-                  ? (isArabic ? 'وصل السائق إلى موقعك' : t('trip.driverArrivedTitle'))
-                  : tripHasStarted
-                  ? (isArabic ? 'الرحلة جارية الآن' : t('trip.started'))
-                  : (isArabic ? 'السائق في الطريق إليك' : 'Driver on the way')}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl sm:text-2xl font-black text-white truncate leading-tight">
-                {captainName}
-              </h2>
-              {serialNumber ? (
-                <span className="font-mono text-xs font-black text-[#14F5D5] bg-[#14B8A6]/15 border border-[#14B8A6]/35 rounded-md px-2 py-0.5 shadow-sm">
-                  #{serialNumber}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* التايمر الرقمي الواضح جداً */}
-          <div className="shrink-0 flex flex-col items-center justify-center rounded-2xl border-2 border-[#14B8A6]/40 bg-[#040814] px-3.5 py-2 sm:px-4 sm:py-2.5 text-center min-w-[110px] shadow-lg shadow-[#14B8A6]/10">
-            <div className="flex items-center gap-1 text-[#14F5D5] mb-0.5">
-              <Clock className="h-3.5 w-3.5 animate-pulse text-[#14F5D5]" />
-              <span className="text-[10px] font-black text-slate-300 whitespace-nowrap">
-                {timerLabel}
-              </span>
-            </div>
-            <strong className="font-mono text-2xl sm:text-3xl font-black text-[#14F5D5] tracking-wider block drop-shadow-[0_0_10px_rgba(20,245,213,0.4)]">
-              {displayTimer}
-            </strong>
-          </div>
-        </div>
-      </div>
-
-      {/* 1.2. تنبيه طلب الإلغاء بالتوافق المشترك في أعلى الشاشة لظهوره فوراً دون الحاجة للتمرير */}
-      {mutualCancel.pendingRequestFrom === 'captain' ? (
-        <div ref={cancelBannerRef} className="space-y-3 rounded-2xl border-2 border-amber-500/60 bg-amber-950/40 p-4 shadow-xl shadow-amber-950/40">
-          <div className="flex items-center gap-2 text-amber-300 font-black text-sm">
-            <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
-            <span>{isArabic ? 'الكابتن المعلن يطلب إلغاء الرحلة!' : 'Captain requested trip cancellation!'}</span>
-          </div>
-          <p className="text-xs text-amber-100/90 leading-relaxed">
-            {isArabic
-              ? 'طلب الكابتن المعلن إلغاء الرحلة بالتوافق المشترك. هل توافق على إلغاء الرحلة؟'
-              : 'The captain has requested mutual cancellation. Do you agree to cancel?'}
-          </p>
-          <div className="flex gap-2.5 pt-1">
-            <button
-              type="button"
-              disabled={mutualCancel.isProcessing || isCancellingRideRequest}
-              onClick={mutualCancel.acceptCancel}
-              className="h-10 flex-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-xs font-black text-slate-950 transition cursor-pointer disabled:opacity-50"
-            >
-              {mutualCancel.isProcessing || isCancellingRideRequest
-                ? (isArabic ? 'جاري الإلغاء...' : 'Cancelling...')
-                : (isArabic ? 'موافق على الإلغاء' : 'Accept Cancel')}
-            </button>
-            <button
-              type="button"
-              disabled={mutualCancel.isProcessing || isCancellingRideRequest}
-              onClick={mutualCancel.declineCancel}
-              className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition cursor-pointer"
-            >
-              {isArabic ? 'رفض الإلغاء' : 'Decline'}
-            </button>
-          </div>
-        </div>
-      ) : mutualCancel.pendingRequestFrom === 'rider' ? (
-        <div className="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-sm">
-            <Clock className="h-4 w-4 animate-spin text-amber-400" />
-            <span>{isArabic ? 'تم إرسال طلب الإلغاء... بانتظار موافقة الكابتن المعلن' : 'Cancellation requested... waiting for captain'}</span>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            {isArabic
-              ? 'يتطلب إلغاء الرحلة موافقة الطرفين. الكابتن المعلن يراجع طلبك الآن.'
-              : 'Cancelling requires mutual agreement. Waiting for captain confirmation.'}
-          </p>
-          <button
-            type="button"
-            disabled={mutualCancel.isProcessing}
-            onClick={mutualCancel.revokeCancel}
-            className="h-9 px-4 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10"
-          >
-            {isArabic ? 'تراجع عن طلب الإلغاء' : 'Revoke Request'}
-          </button>
-        </div>
-      ) : null}
+      {/* 1.2. تنبيه طلب الإلغاء بالتوافق المشترك */}
+      <TripMutualCancelBanner
+        isArabic={isArabic}
+        mutualCancel={mutualCancel}
+        isCancellingRideRequest={isCancellingRideRequest}
+        cancelBannerRef={cancelBannerRef}
+      />
 
       {/* 1.5. إعلانات الكابتن الترويجية - تظهر في شاشة التفاصيل وتختفي فور بدء الرحلة */}
       {!tripHasStarted && (activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId) ? (
@@ -320,94 +120,20 @@ export function TripActiveScreen({
         />
       ) : null}
 
-      {/* 2. بطاقة الوجهة المتجه إليها - تظهر كاملة بدون أي اقتطاع تحت أي ظرف */}
-      <div className="relative overflow-hidden rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-r from-[#14B8A6]/15 via-[#081324] to-[#040812] p-4 shadow-lg shadow-black/20">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0 flex-1">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/20 text-[#14F5D5] shadow-sm mt-0.5">
-              <MapPin className="h-5 w-5 text-[#14F5D5]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="block text-[11px] font-black uppercase tracking-wider text-[#14F5D5]/90 mb-1">
-                {isArabic ? 'الوجهة المتجه إليها' : 'Destination'}
-              </span>
-              {/* العنوان يظهر كاملاً بدون اقتطاع تحت أي ظرف */}
-              <h3
-                className="text-base sm:text-lg font-black text-white leading-relaxed break-words whitespace-normal"
-                dir="auto"
-              >
-                {activeTrip.destinationLabel || (isArabic ? 'الوجهة المحددة' : 'Selected Destination')}
-              </h3>
-            </div>
-          </div>
-          {destinationMapsUrl ? (
-            <a
-              href={destinationMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#14B8A6]/35 bg-[#14B8A6]/15 hover:bg-[#14B8A6]/25 px-2.5 sm:px-3 py-2 text-xs font-black text-[#14F5D5] transition-all cursor-pointer shadow-sm active:scale-95"
-              title={isArabic ? 'افتح في خرائط Google' : 'Open in Google Maps'}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span className="whitespace-nowrap">{isArabic ? 'خرائط Google' : 'Google Maps'}</span>
-            </a>
-          ) : null}
-        </div>
-      </div>
+      {/* 2. بطاقة الوجهة المتجه إليها */}
+      <TripDestinationCard
+        isArabic={isArabic}
+        destinationLabel={activeTrip.destinationLabel}
+        destinationMapsUrl={destinationMapsUrl}
+      />
 
       {/* 3. صندوق أمان وسلامة الراكب والتحقق من لوحة السيارة */}
-      <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-[#0B1220] to-[#050912] p-4 sm:p-5 shadow-xl shadow-amber-500/10">
-        {/* شريط التنبيه البارز وبخط كبير جداً */}
-        <div className="flex items-center gap-2.5 pb-3 border-b border-amber-500/25">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
-            <ShieldAlert className="h-5 w-5 text-amber-400 animate-pulse" />
-          </div>
-          <div>
-            <p className="text-[10px] sm:text-xs font-bold text-amber-200/80 mt-0.5">
-              {isArabic ? 'تحقق من مصداقية البيانات المعروضة في الخدمة' : 'Verify the authenticity of the data displayed in the service'}
-            </p>
-          </div>
-        </div>
-
-        {/* 1. بوكس رقم اللوحة بعرض الكارد بالكامل وبخط ضخم */}
-        <div className="mt-3.5 flex flex-col items-center justify-center rounded-xl border-2 border-[#14B8A6]/40 bg-[#02050B] p-3.5 text-center shadow-inner">
-          <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-300 mb-1">
-            {isArabic ? 'رقم اللوحة' : 'License Plate'}
-          </span>
-          <strong className="font-mono text-3xl sm:text-4xl font-black tracking-widest text-[#14F5D5] drop-shadow-[0_0_14px_rgba(20,245,213,0.55)] py-1">
-            {plateNumber}
-          </strong>
-        </div>
-
-        {/* 2. تحته بوكسين: واحد لنوع السيارة والتاني للون السيارة */}
-        <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-          {/* بوكس نوع السيارة */}
-          <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-black/30 p-3 text-center min-w-0">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 mb-1">
-              {isArabic ? 'نوع السيارة' : 'Vehicle Model'}
-            </span>
-            <div className="flex items-center justify-center gap-1.5 max-w-full">
-              <Car className="h-4 w-4 text-[#14F5D5] shrink-0" />
-              <strong className="text-sm sm:text-base font-black text-white truncate">
-                {vehicleModel}
-              </strong>
-            </div>
-          </div>
-
-          {/* بوكس لون السيارة */}
-          <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-black/30 p-3 text-center min-w-0">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 mb-1">
-              {isArabic ? 'لون السيارة' : 'Vehicle Color'}
-            </span>
-            <div className="flex items-center justify-center gap-1.5 max-w-full">
-              <Palette className="h-4 w-4 text-[#14F5D5] shrink-0" />
-              <strong className="text-sm sm:text-base font-black text-white truncate">
-                {vehicleColor || (isArabic ? 'غير محدد' : 'Not specified')}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TripVehicleCard
+        isArabic={isArabic}
+        plateNumber={plateNumber}
+        vehicleModel={vehicleModel}
+        vehicleColor={vehicleColor}
+      />
 
       {/* 4. كارد السعر النهائي المحدد */}
       <div className="flex items-center justify-between rounded-2xl border border-[#14B8A6]/25 bg-gradient-to-r from-[#14B8A6]/10 via-[#0B1424] to-[#040812] px-5 py-4 shadow-lg">
@@ -426,119 +152,16 @@ export function TripActiveScreen({
         </div>
       </div>
 
-      {/* 5. أزرار الإجراءات: زر الاتصال بالكابتن بعرض الكارد وتحته زر إلغاء الطلب */}
-      <div className="space-y-2.5 pt-1">
-        {/* زر الاتصال بالكابتن بعرض الكارد بالكامل */}
-        <a
-          href={captainPhone ? formatTelUri(captainPhone) : '#'}
-          onClick={(e) => {
-            if (!captainPhone) {
-              e.preventDefault();
-            }
-          }}
-          className={cn(
-            "w-full flex items-center justify-center gap-2.5 h-12 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 hover:bg-[#14B8A6]/25 text-[#14F5D5] font-black text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer shadow-md shadow-[#14B8A6]/10",
-            !captainPhone && "opacity-50 cursor-not-allowed pointer-events-none"
-          )}
-          title={isArabic ? 'اتصال بالكابتن المعلن' : t('trip.callCaptain')}
-        >
-          <Phone className="h-4 w-4 shrink-0" />
-          <span>{isArabic ? 'اتصال بالكابتن المعلن' : 'Call Captain'}</span>
-        </a>
-
-        {/* زر الإلغاء قبل البدء أو زر SOS وطلب الإلغاء بالتوافق بعد بدء الرحلة */}
-        {!mutualCancel.pendingRequestFrom && !tripHasStarted ? (
-          !isConfirmingDirectCancel ? (
-            <button
-              type="button"
-              onClick={() => setIsConfirmingDirectCancel(true)}
-              disabled={isCancellingRideRequest || isDirectCancelling}
-              className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-rose-500/40 bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 font-black text-sm py-2.5 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 shadow-md shadow-rose-500/10"
-            >
-              <X className="h-4 w-4 text-rose-400" />
-              <span>{isArabic ? 'إلغاء الرحلة ×' : 'Cancel Trip ×'}</span>
-            </button>
-          ) : (
-            <div className="space-y-3 rounded-2xl border border-rose-500/30 bg-rose-950/30 p-4 text-center">
-              <p className="text-xs text-rose-200 font-bold leading-relaxed">
-                {isArabic
-                  ? 'هل أنت متأكد من رغبتك في إلغاء الرحلة؟'
-                  : 'Are you sure you want to cancel the trip?'}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={isDirectCancelling}
-                  onClick={handleDirectCancelRider}
-                  className="h-10 flex-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-black text-white transition cursor-pointer disabled:opacity-50"
-                >
-                  {isDirectCancelling
-                    ? (isArabic ? 'جاري الإلغاء...' : 'Cancelling...')
-                    : (isArabic ? 'تأكيد الإلغاء' : 'Confirm Cancel')}
-                </button>
-                <button
-                  type="button"
-                  disabled={isDirectCancelling}
-                  onClick={() => setIsConfirmingDirectCancel(false)}
-                  className="h-10 flex-1 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 transition cursor-pointer"
-                >
-                  {isArabic ? 'تراجع' : 'Back'}
-                </button>
-              </div>
-            </div>
-          )
-        ) : tripHasStarted ? (
-          <div className="space-y-2.5">
-            <button
-              type="button"
-              onClick={onEmergencyWhatsapp}
-              className="w-full flex items-center justify-center gap-2 h-12 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black text-sm py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer shadow-lg shadow-red-600/30 border border-red-500/40"
-            >
-              <ShieldCheck className="h-5 w-5 animate-pulse" />
-              <span>{t('emergency.sosButton')}</span>
-            </button>
-            {!mutualCancel.pendingRequestFrom && (
-              <button
-                type="button"
-                onClick={() => void mutualCancel.requestCancel()}
-                disabled={isCancellingRideRequest || mutualCancel.isProcessing}
-                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs py-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
-              >
-                <X className="h-3.5 w-3.5 text-rose-400" />
-                <span>{mutualCancel.isProcessing ? (isArabic ? 'جاري الإرسال...' : 'Sending...') : (isArabic ? 'طلب إلغاء الرحلة بالتوافق' : 'Request Mutual Cancellation')}</span>
-              </button>
-            )}
-          </div>
-        ) : null}
-
-        {/* روابط السوشيال إن وجدت في الأسفل */}
-        {(activeTrip.captain?.facebook_url || activeTrip.captain?.instagram_url) && (
-          <div className="flex items-center justify-center gap-2 pt-1">
-            {activeTrip.captain?.facebook_url && (
-              <a
-                href={activeTrip.captain.facebook_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-                title="Facebook"
-              >
-                <Facebook className="h-4 w-4" />
-              </a>
-            )}
-            {activeTrip.captain?.instagram_url && (
-              <a
-                href={activeTrip.captain.instagram_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-                title="Instagram"
-              >
-                <Instagram className="h-4 w-4" />
-              </a>
-            )}
-          </div>
-        )}
-      </div>
+      {/* 5. أزرار الإجراءات */}
+      <TripActionsPanel
+        isArabic={isArabic}
+        activeTrip={activeTrip}
+        tripHasStarted={tripHasStarted}
+        mutualCancel={mutualCancel}
+        isCancellingRideRequest={isCancellingRideRequest}
+        onEmergencyWhatsapp={onEmergencyWhatsapp}
+        onCancelRideRequest={onCancelRideRequest}
+      />
     </div>
   );
 }

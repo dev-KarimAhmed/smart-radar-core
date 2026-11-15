@@ -1,15 +1,13 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase-client';
-import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import type { Offer } from '@/core/types';
-import { cancelRideRequest, fetchRideOffers, subscribeToRideRequestStatus } from '../services/rider-server-marketplace';
-import { getLocalizedMarketplaceError } from '../services/rider-offer-presentation';
 import type { RiderDestination, RiderMachineAction, RiderMachineState } from '../state/rider-state-machine';
 import { useTripCountdown } from '@/shared/hooks/use-trip-countdown';
-import { normalizeCancelRole } from '@/shared/hooks/mutual-cancellation-helpers';
+import { useRequestMountResync } from './status-sync/use-request-mount-resync';
+import { useRequestRealtimeSub } from './status-sync/use-request-realtime-sub';
+import { useRequestReconciliation } from './status-sync/use-request-reconciliation';
+import { useRequestCaptainPhone } from './status-sync/use-request-captain-phone';
 
 /**
  * Owns the server ride-request status subscription that drives most
@@ -28,21 +26,9 @@ export function useRideRequestStatusSync(params: {
 
   const { toast } = useToast();
   const t = useTranslations('riderView');
-  /** Which request has already had its arrival announced, so it is announced exactly once. */
   const announcedArrivalForRef = React.useRef<string | null>(null);
   const arrivalToastDismissRef = React.useRef<(() => void) | null>(null);
 
-  /**
-   * The trip countdown.
-   *
-   * This used to be `React.useState(0)` plus an interval that decremented it, seeded from
-   * `state.activeTrip.etaSeconds`. `buildActiveTrip` returns a fresh object for every
-   * realtime row, so every status change and every `updated_at` touch restarted the
-   * countdown at its full value — and the value itself was the trip's length regardless of
-   * whether the captain was still driving over. It is now derived from the server's own
-   * accepted_at / started_at, so it cannot be restarted by a re-render and reads the same
-   * here as it does on the captain's screen.
-   */
   const countdown = useTripCountdown({
     status: state.activeTrip?.status,
     acceptedAtMs: state.activeTrip?.acceptedAtMs,
@@ -53,10 +39,6 @@ export function useRideRequestStatusSync(params: {
     tripDistanceKm: state.activeTrip?.distanceKm,
   });
 
-  // The status-subscription effect below only re-subscribes when requestId
-  // changes (the same id spans accepted -> arrived -> started), so its
-  // closure would otherwise see a stale `state.screen` from whenever the
-  // subscription was created. Read the live values through these refs instead.
   const screenRef = React.useRef(state.screen);
   React.useEffect(() => {
     screenRef.current = state.screen;
@@ -79,312 +61,46 @@ export function useRideRequestStatusSync(params: {
     }
   }, [dispatch, selectedDraftDestination]);
 
-// [ACT-SSOT-01] Removed duplicate reactive CONFIRM_DESTINATION useEffect to enforce single user pulse
-
-
-
-  // Resync on mount/reload — without this, a reload mid-trip previously wiped
-  // the whole flow back to the idle map even though the ride_requests row was
-  // still active on the server. Look up the rider's own still-open request
-  // and rebuild the screen it was on instead of blindly resetting.
-  React.useEffect(() => {
-    if (!userId) {
-      dispatch({ type: 'RESET_TO_IDLE' });
-      return;
-    }
-
-    let isCancelled = false;
-
-    (async () => {
-      const { data, error } = await supabase
-        .from('ride_requests')
-        .select('*')
-        .eq('rider_id', userId)
-        .not('status', 'in', '("COMPLETED","CANCELLED")')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (isCancelled) return;
-
-      if (error || !data) {
-        dispatch({ type: 'RESET_TO_IDLE' });
-        return;
-      }
-
-      const row = data as Record<string, unknown>;
-      const requestId = String(row.id || '');
-      if (!requestId) {
-        dispatch({ type: 'RESET_TO_IDLE' });
-        return;
-      }
-
-      const status = String(row.status || '').toUpperCase();
-      if (status === 'PENDING' || status === 'RECEIVING_OFFERS') {
-        const createdAt = row.created_at ? new Date(row.created_at as string).getTime() : 0;
-        const now = Date.now();
-        // If the request was created more than 180 seconds (3 minutes) ago, it is expired.
-        if (createdAt > 0 && now - createdAt > 180000) {
-          void cancelRideRequest(supabase, requestId).catch(() => {});
-          dispatch({ type: 'RESET_TO_IDLE' });
-          return;
-        }
-        // The row goes along too: the destination only ever lived in client state, so
-        // without it a reload mid-auction left the rider looking at "الوجهة: غير متاح".
-        dispatch({ type: 'REHYDRATE_SEARCHING', requestId, row });
-        return;
-      }
-
-      // Stale active trip guard: ignore and auto-close abandoned trips from previous sessions (> 4 hours, matching MAX_CHARGEABLE_MINUTES)
-      const lastTouch = new Date((row.started_at || row.updated_at || row.created_at || 0) as string).getTime();
-      if (lastTouch > 0 && Date.now() - lastTouch > 4 * 60 * 60 * 1000) {
-        try {
-          const authHeaders = await getSupabaseAuthHeaders({ 'Content-Type': 'application/json' });
-          await fetch('/api/trip/mutual-cancel', {
-            method: 'POST',
-            headers: authHeaders,
-            body: JSON.stringify({ requestId, action: 'ACCEPT', role: 'rider' }),
-          });
-        } catch {}
-        dispatch({ type: 'RESET_TO_IDLE' });
-        return;
-      }
-
-      let offers: Offer[] = [];
-      try {
-        offers = await fetchRideOffers(supabase, requestId);
-      } catch (offersError) {
-        if ((process.env.NODE_ENV !== 'production')) console.warn('[Rider status sync] resync offers fetch failed:', offersError);
-      }
-
-      if (isCancelled) return;
-      dispatch({ type: 'REHYDRATE_ACTIVE_TRIP', requestId, row, offers });
-    })();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [dispatch, userId]);
+  useRequestMountResync({
+    userId,
+    dispatch,
+  });
 
   React.useEffect(() => {
     window.addEventListener('rider-open-destination', openDestination);
     return () => window.removeEventListener('rider-open-destination', openDestination);
   }, [openDestination]);
 
-  React.useEffect(() => {
-    if (!state.requestId) return;
+  useRequestRealtimeSub({
+    requestId: state.requestId,
+    language,
+    dispatch,
+    pendingAcceptedOfferIdRef,
+    announcedArrivalForRef,
+    arrivalToastDismissRef,
+    t,
+    toast,
+  });
 
-    return subscribeToRideRequestStatus(
-      supabase,
-      state.requestId,
-      (row) => {
-        const status = String(row.status || '').toUpperCase();
+  useRequestReconciliation({
+    requestId: state.requestId,
+    screen: state.screen,
+    dispatch,
+    screenRef,
+    activeTripRef,
+    pendingAcceptedOfferIdRef,
+    announcedArrivalForRef,
+    arrivalToastDismissRef,
+    t,
+    toast,
+  });
 
-        if (status === 'RECEIVING_OFFERS') {
-          dispatch({ type: 'SERVER_STATUS_RECEIVING_OFFERS' });
-        }
-
-        if (
-          status === 'ACCEPTED'
-          || status === 'EN_ROUTE'
-          || status === 'ARRIVED'
-          || status === 'STARTED'
-          || status === 'TRIP_ACTIVE'
-          || status === 'ACTIVE'
-          || status === 'IN_PROGRESS'
-        ) {
-          dispatch({
-            type: 'SERVER_STATUS_ACCEPTED',
-            row: {
-              ...row,
-              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
-            },
-          });
-          if (status === 'ACCEPTED') {
-            // pendingAcceptedOfferId managed centrally by state machine
-          }
-
-          // The captain pressing "إبلاغ الراكب بالوصول" is the one transition the rider is
-          // actively waiting on, so it gets an announcement rather than only a changed
-          // banner. Fired off the realtime row, so it needs no page reload.
-          //
-          // Guarded by a ref because the subscription re-delivers the row on any column
-          // change: without it, every later update while still ARRIVED re-announces.
-          if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
-            announcedArrivalForRef.current = state.requestId;
-            const arrivalToast = toast({
-              title: t('trip.driverArrivedTitle'),
-              description: t('trip.driverArrivedNote'),
-              variant: 'success',
-              duration: 15000,
-            });
-            arrivalToastDismissRef.current = arrivalToast?.dismiss || null;
-            // Best-effort only: unsupported on iOS Safari and silently ignored when the
-            // page has never been interacted with.
-            try {
-              navigator.vibrate?.([120, 60, 120]);
-            } catch {
-              // A missing buzz is not worth breaking the status update over.
-            }
-          }
-        }
-
-        if (status === 'CANCELLED') {
-          // pendingAcceptedOfferId managed centrally by state machine
-          arrivalToastDismissRef.current?.();
-          arrivalToastDismissRef.current = null;
-          dispatch({ type: 'REQUEST_CANCELLED' });
-        }
-
-        if (status === 'COMPLETED') {
-          // pendingAcceptedOfferId managed centrally by state machine
-          arrivalToastDismissRef.current?.();
-          arrivalToastDismissRef.current = null;
-          dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
-        }
-      },
-      (error) => {
-        // Do not pop up destructive toasts on transient websocket reconnects during page navigation.
-        // The background reconciler (reconcile) below guarantees safety and state sync.
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Rider status sync] Realtime subscription notice:', error);
-        }
-      },
-    );
-  }, [dispatch, language, state.requestId, t, toast]);
-
-  /**
-   * Safety net & background recovery: re-read the request's status while any request is active.
-   *
-   * Leaving that screen or missing events during backgrounding (taking a call, checking a message)
-   * depended on realtime events. If the socket dropped or paused during backgrounding,
-   * this reconciliation catches state changes (ACCEPTED, CANCELLED, COMPLETED) immediately when
-   * the rider returns to the page.
-   */
-  React.useEffect(() => {
-    if (!state.requestId) return;
-
-    let cancelled = false;
-
-    const reconcile = async () => {
-      const { data, error } = await supabase
-        .from('ride_requests')
-        .select('id,status,completed_at,cancelled_at,accepted_offer_id,accepted_captain_id,final_fare,accepted_at,arrived_at,started_at,pickup_eta_minutes,estimated_duration_minutes,created_at,cancel_requested_by,cancel_request_time')
-        .eq('id', state.requestId!)
-        .maybeSingle();
-
-      if (error && process.env.NODE_ENV !== 'production') {
-        console.warn('[Rider status sync] reconcile error:', error);
-      }
-
-      if (cancelled || error || !data) return;
-
-      const row = data as Record<string, unknown>;
-      const status = String(row.status || '').toUpperCase();
-
-      if (
-        status === 'ACCEPTED'
-        || status === 'EN_ROUTE'
-        || status === 'ARRIVED'
-        || status === 'STARTED'
-        || status === 'TRIP_ACTIVE'
-        || status === 'ACTIVE'
-        || status === 'IN_PROGRESS'
-      ) {
-        const liveActiveTrip = activeTripRef.current;
-        const liveScreen = screenRef.current;
-        const currentActiveStatus = liveActiveTrip?.status?.toUpperCase();
-        const hasStatusChanged = currentActiveStatus !== status;
-        const hasArrivalChanged = Boolean(row.arrived_at) && !liveActiveTrip?.arrivedAtMs;
-        const hasStartChanged = Boolean(row.started_at) && !liveActiveTrip?.startedAtMs;
-        const hasCancelRequestChanged =
-          normalizeCancelRole(row.cancel_requested_by) !== normalizeCancelRole(liveActiveTrip?.cancel_requested_by);
-
-        if (liveScreen !== 'TRIP_ACTIVE' || hasStatusChanged || hasArrivalChanged || hasStartChanged || hasCancelRequestChanged) {
-          dispatch({
-            type: 'SERVER_STATUS_ACCEPTED',
-            row: {
-              ...row,
-              accepted_offer_id: row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
-              selected_offer_id: row.selected_offer_id || row.accepted_offer_id || pendingAcceptedOfferIdRef.current,
-            },
-          });
-          if (status === 'ARRIVED' && announcedArrivalForRef.current !== state.requestId) {
-            announcedArrivalForRef.current = state.requestId;
-            const arrivalToast = toast({
-              title: t('trip.driverArrivedTitle'),
-              description: t('trip.driverArrivedNote'),
-              variant: 'success',
-              duration: 15000,
-            });
-            arrivalToastDismissRef.current = arrivalToast?.dismiss || null;
-            try {
-              navigator.vibrate?.([120, 60, 120]);
-            } catch {}
-          }
-        }
-      } else if (status === 'COMPLETED') {
-        arrivalToastDismissRef.current?.();
-        arrivalToastDismissRef.current = null;
-        dispatch({ type: 'SERVER_STATUS_COMPLETED', row });
-      } else if (status === 'CANCELLED') {
-        arrivalToastDismissRef.current?.();
-        arrivalToastDismissRef.current = null;
-        dispatch({ type: 'REQUEST_CANCELLED' });
-      }
-    };
-
-    // Once straight away: if the event was missed while the tab was hidden, the rider should
-    // not have to wait a whole interval after coming back.
-    void reconcile();
-    const pollIntervalMs = (state.screen === 'TRIP_ACTIVE' || state.screen === 'RECEIVING_OFFERS') ? 3_000 : 10_000;
-    const interval = window.setInterval(() => void reconcile(), pollIntervalMs);
-    const onVisible = () => { if (document.visibilityState === 'visible') void reconcile(); };
-    const onFocus = () => void reconcile();
-    const onOnline = () => void reconcile();
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('online', onOnline);
-
-    return () => {
-      cancelled = true;
-      arrivalToastDismissRef.current?.();
-      arrivalToastDismissRef.current = null;
-      window.clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('online', onOnline);
-    };
-  }, [dispatch, state.pendingAcceptedOfferId, state.requestId, state.screen]);
-
-  // Hydrate accepted captain's phone lazily via counterpart-gated RPC once TRIP_ACTIVE is reached
-  React.useEffect(() => {
-    const captainId = state.activeTrip?.captainId;
-    if (state.screen !== 'TRIP_ACTIVE' || !captainId || state.activeTrip?.captainPhone) {
-      return;
-    }
-
-    let active = true;
-    (async () => {
-      try {
-        const { data, error } = await supabase.rpc('get_safe_counterpart_profiles', {
-          p_user_ids: [captainId],
-        });
-        if (!active || error || !Array.isArray(data) || data.length === 0) return;
-        const row = data[0] as Record<string, unknown>;
-        const phone = typeof row.phone === 'string' ? row.phone.trim() : '';
-        if (phone) {
-          dispatch({ type: 'HYDRATE_CAPTAIN_PHONE', captainId, phone });
-        }
-      } catch {
-        // Non-blocking fallback
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [dispatch, state.screen, state.activeTrip?.captainId, state.activeTrip?.captainPhone]);
+  useRequestCaptainPhone({
+    screen: state.screen,
+    captainId: state.activeTrip?.captainId,
+    captainPhone: state.activeTrip?.captainPhone,
+    dispatch,
+  });
 
   return {
     countdown,

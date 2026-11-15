@@ -1,0 +1,76 @@
+export const styles = {
+  container: 'mt-4 space-y-3',
+  biddingGrid: 'grid grid-cols-1 sm:grid-cols-3 gap-2.5',
+
+  // Card 1: App price / input / paste
+  card: 'flex flex-col justify-between rounded-2xl border border-teal-500/25 bg-[#071318]/90 p-3 shadow-md',
+  cardHeader: 'flex items-center justify-between gap-1 mb-2',
+  cardTitle: 'text-[11px] font-black text-teal-300 truncate',
+  pasteBtn: 'inline-flex items-center gap-1 rounded-lg border border-teal-500/30 bg-teal-500/20 px-2 py-1 text-[10px] font-black text-teal-200 transition hover:bg-teal-500/30 active:scale-95',
+  pasteIcon: 'h-3 w-3 text-teal-300',
+  inputWrapper: 'relative',
+  cardInput: 'w-full rounded-xl border border-teal-500/30 bg-black/60 px-3 py-2 text-center text-lg font-black font-mono text-white outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 dir-ltr',
+  currencyBadge: 'absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none',
+  cardHint: 'mt-1.5 text-center text-[10px] font-medium text-slate-400 truncate',
+
+  // Stepper for Free Mode in Card 1
+  stepperRow: 'flex items-center justify-center gap-1.5',
+  stepperBtn: 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-800 text-slate-200 transition hover:bg-slate-700 active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
+  stepperIcon: 'h-3.5 w-3.5',
+  stepperInput: 'h-9 w-full min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 text-center text-base font-black font-mono text-white outline-none focus:border-teal-400 dir-ltr',
+
+  // Card 2: Final Offer Price
+  finalCard: 'flex flex-col justify-between rounded-2xl border border-emerald-500/25 bg-[#071714]/90 p-3 text-center shadow-md',
+  finalTitle: 'text-[11px] font-black text-emerald-300 mb-1',
+  finalPriceRow: 'my-auto py-1 flex items-baseline justify-center gap-1',
+  finalPriceValue: 'text-2xl font-black font-mono text-white tracking-tight dir-ltr',
+  finalPriceCurrency: 'text-xs font-black text-emerald-400',
+  finalSubtitle: 'text-[10px] font-medium text-slate-400 truncate',
+
+  // Card 3: Offer Duration
+  durationCard: 'flex flex-col justify-between rounded-2xl border border-cyan-500/25 bg-[#0b1424]/90 p-3 text-center shadow-md',
+  durationTitle: 'text-[11px] font-black text-cyan-300 mb-1',
+  durationStepperRow: 'my-auto flex items-center justify-center gap-2 py-0.5',
+  durationBtn: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/15 active:scale-95 disabled:opacity-40 disabled:pointer-events-none',
+  durationBtnIcon: 'h-3.5 w-3.5',
+  durationValue: 'w-10 text-center text-xl font-black font-mono text-white dir-ltr',
+  durationInput: 'w-12 bg-transparent text-center text-xl font-black font-mono text-white outline-none focus:ring-1 focus:ring-cyan-400 rounded dir-ltr',
+  durationSubtitle: 'text-[10px] font-medium text-slate-400',
+
+  // Warnings
+  amberWarningBox: 'flex items-center justify-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs font-semibold text-amber-300',
+  warningIcon: 'h-4 w-4 shrink-0',
+  dumpingAmberBox: 'overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-amber-950/15 to-black/40 p-3 text-xs font-bold text-amber-200 shadow-lg',
+  dumpingAmberInner: 'flex items-start gap-2.5',
+  dumpingAmberIcon: 'mt-0.5 h-4 w-4 shrink-0 text-amber-400',
+  dumpingAmberText: 'min-w-0 flex-1 leading-relaxed',
+  dumpingBlockBox: 'overflow-hidden rounded-2xl border border-rose-500/40 bg-gradient-to-br from-rose-950/40 via-red-950/20 to-black/60 p-3.5 text-rose-200 shadow-xl shadow-rose-950/30',
+  dumpingBlockHeader: 'flex items-start gap-3',
+  dumpingBlockIconWrap: 'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/20 text-rose-300',
+  dumpingBlockIcon: 'h-5 w-5',
+  dumpingBlockContent: 'min-w-0 flex-1',
+  dumpingBlockTitle: 'text-xs font-black text-rose-300',
+  dumpingBlockDesc: 'mt-0.5 text-[11px] leading-relaxed text-rose-200/85',
+  dumpingStatsGrid: 'mt-2.5 grid grid-cols-3 gap-2',
+  dumpingStatItemMarket: 'rounded-xl border border-amber-500/30 bg-amber-500/10 p-2',
+  dumpingStatLabelMarket: 'block text-[10px] font-bold text-amber-300/90',
+  dumpingStatValueMarket: 'mt-0.5 block font-mono text-xs font-black text-amber-300 dir-ltr',
+  dumpingStatItemFloor: 'rounded-xl border border-rose-500/30 bg-rose-500/10 p-2',
+  dumpingStatLabelFloor: 'block text-[10px] font-bold text-rose-300/90',
+  dumpingStatValueFloor: 'mt-0.5 block font-mono text-xs font-black text-rose-200 dir-ltr',
+  dumpingStatItemCurrent: 'rounded-xl border border-white/10 bg-black/40 p-2',
+  dumpingStatLabelCurrent: 'block text-[10px] font-bold text-slate-400',
+  dumpingStatValueCurrent: 'mt-0.5 block font-mono text-xs font-black text-rose-400 line-through decoration-rose-500 dir-ltr',
+  applyFloorBtn: 'mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/20 py-2 px-3 text-xs font-black text-rose-200 transition hover:bg-rose-500/30 active:scale-[0.99]',
+  sparklesIcon: 'h-3.5 w-3.5 text-amber-300',
+
+  // Actions row
+  actionsRow: 'flex items-center gap-2.5 pt-1',
+  submitWrap: 'flex-1',
+  submitBtn: 'w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#14F5D5] via-[#14B8A6] to-[#0d9488] py-3.5 px-4 font-black text-[#031518] shadow-lg shadow-[#14B8A6]/20 transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed text-sm',
+  submitIcon: 'h-4 w-4',
+  submitSpinner: 'h-4 w-4 animate-spin',
+  ignoreBtn: 'rounded-2xl border border-white/10 bg-black/40 px-5 py-3.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition shrink-0',
+  professionalAdCard: 'mt-3 w-full shadow-md rounded-2xl border border-white/5 overflow-hidden',
+  inputLocked: 'opacity-40 pointer-events-none',
+} as const;

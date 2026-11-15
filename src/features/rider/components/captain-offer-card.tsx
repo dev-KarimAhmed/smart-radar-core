@@ -9,13 +9,11 @@ import {
   MapPin,
   Navigation,
   Star,
-  Timer,
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 import { preferRoutedMinutes } from '@/shared/services/trip-duration';
-import { formatCountdown } from '@/shared/services/trip-countdown';
 
 import { 
   styles, 
@@ -26,6 +24,8 @@ import {
   formatMinutes
 } from './offer-card/offer-card-shared';
 import { OfferCardCaptain } from './offer-card/offer-card-captain';
+import { OfferCardCountdownBar } from './offer-card/offer-card-countdown-bar';
+import { resolveOfferAffiliationAndPricing } from './offer-card/offer-card-pricing-label';
 
 interface CaptainOfferCardProps {
   offer: CaptainOffer;
@@ -64,54 +64,7 @@ function CaptainOfferCardBase({
   const { finalFare } = getCaptainOfferPricing(offer);
   
   const captainName = captain.name?.trim() || t('captain');
-  const pricingMode = (offer.pricing_mode || (offer as any).pricingMode || '').toUpperCase();
-  const rawAffiliation = (
-    captain.affiliation_type ||
-    (offer as any).affiliation_type ||
-    (offer as any).driverAffiliation?.type ||
-    ''
-  ).toLowerCase();
-
-  const rawCompany = (
-    captain.company_name ||
-    (captain as any).employment_type ||
-    (offer as any).driverAffiliation?.company_name ||
-    (offer as any).driverAffiliation?.name ||
-    ''
-  ).trim();
-
-  const isTaxiVehicle = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
-  const isIndependentCaptain = rawAffiliation === 'independent' || (!isTaxiVehicle && (rawAffiliation === '' && !rawCompany)) || (!isTaxiVehicle && rawCompany === 'مستقل') || (captain.company_name === 'مستقل');
-  const isSmartAppCaptain = !isTaxiVehicle && !isIndependentCaptain && (rawAffiliation === 'smart-app' || rawAffiliation.includes('app') || Boolean(rawCompany));
-
-  // If captain is independent, their fare is always a free direct fare ("سعر حر")
-  const isFreeOffer = isIndependentCaptain || pricingMode === 'FREE';
-  const isTaxiOffer = !isFreeOffer && (pricingMode === 'TAXI' || isTaxiVehicle);
-  const isAppOffer = !isFreeOffer && !isTaxiOffer && (pricingMode === 'APP' || isSmartAppCaptain);
-
-  const cleanCompany = isIndependentCaptain || rawCompany === t('independentCaptain') || rawCompany.toLowerCase() === 'independent' || rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل'
-    ? ''
-    : rawCompany;
-
-  const displayCompany = cleanCompany
-    ? (cleanCompany.toLowerCase() === 'uber' ? (isArabic ? 'اوبر' : 'Uber') : cleanCompany.toLowerCase() === 'careem' ? (isArabic ? 'كريم' : 'Careem') : cleanCompany)
-    : '';
-
-  let pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
-  if (isFreeOffer) {
-    pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
-  } else if (isTaxiOffer) {
-    pricingLabel = displayCompany
-      ? (isArabic ? `سعر تكسي / ${displayCompany}` : `Taxi Fare / ${displayCompany}`)
-      : (isArabic ? 'سعر تكسي' : 'Taxi Fare');
-  } else if (isAppOffer) {
-    pricingLabel = displayCompany
-      ? (isArabic ? `سعر تطبيق / ${displayCompany}` : `App Fare / ${displayCompany}`)
-      : (isArabic ? 'سعر تطبيق' : 'App Fare');
-  } else {
-    pricingLabel = isArabic ? 'سعر حر' : 'Direct Fare';
-  }
-
+  const { pricingLabel } = resolveOfferAffiliationAndPricing(offer, t, isArabic);
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
 
   const rankBadgeStyle = (() => {
@@ -134,13 +87,6 @@ function CaptainOfferCardBase({
     language,
   );
   const tripDistance = offer.trip_distance_km ?? offer.distance_km;
-
-  const isCountdownUrgent = Boolean(
-    countdown?.hasCountdown
-    && (countdown.percentRemaining <= 20 || countdown.remainingSeconds <= 10),
-  );
-
-  const captainSerial = captain.serial_number || captain.id?.slice(0, 8).toUpperCase() || '---';
 
   return (
     <article
@@ -212,78 +158,10 @@ function CaptainOfferCardBase({
       ) : null}
 
       {/* 3. مؤشر مدة قبول العرض: مقسم على مراحل بالكامل */}
-      {countdown?.hasCountdown ? (
-        <div className="mx-4 mt-3 rounded-xl border border-[#14B8A6]/25 bg-[#081220]/80 p-2.5 sm:mx-5">
-          <div className="flex items-center justify-between text-xs mb-2">
-            <span className="inline-flex items-center gap-1.5 font-bold text-slate-300">
-              <Timer className="h-3.5 w-3.5 text-[#14F5D5]" />
-              <span>{isArabic ? 'مدة قبول العرض' : 'Offer Acceptance Time'}</span>
-            </span>
-            <span
-              className={cn(
-                "font-mono font-black text-xs sm:text-sm",
-                isCountdownUrgent ? "text-rose-400 animate-pulse" : "text-[#14F5D5]"
-              )}
-              dir="ltr"
-            >
-              {formatCountdown(countdown.remainingSeconds)}
-            </span>
-          </div>
-
-          {/* مؤشر مقسم إلى 4 مراحل مع مسار تفاعلي */}
-          <div className="grid grid-cols-4 gap-1.5" dir="ltr">
-            {[1, 2, 3, 4].map((stage) => {
-              const stageStart = (stage - 1) * 25;
-              const percent = countdown.percentRemaining;
-              const fill = Math.max(0, Math.min(100, ((percent - stageStart) / 25) * 100));
-              return (
-                <div
-                  key={stage}
-                  className="h-2 w-full overflow-hidden rounded-full bg-slate-800/90 border border-white/5"
-                >
-                  <div
-                    className={cn(
-                      "h-full rounded-full bg-gradient-to-r from-[#14B8A6] to-[#14F5D5] transition-all duration-200 ease-linear shadow-[0_0_8px_rgba(20,245,213,0.5)]",
-                      isCountdownUrgent && "from-rose-500 to-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
-                    )}
-                    style={{ width: `${fill}%` }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          {/* مقياس المراحل بالأسفل: صفر، 1، 2، 3، 4 مع علامات التحديد */}
-          <div className="relative mt-1.5 h-6 text-[10px] font-bold text-slate-400 font-mono select-none" dir="ltr">
-            <div className="absolute left-0 flex flex-col items-start">
-              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5 ml-0.5" />
-              <span className={cn(countdown.percentRemaining <= 5 ? "text-rose-400 font-black" : "")}>
-                {isArabic ? 'صفر' : '0'}
-              </span>
-            </div>
-            <div className="absolute left-1/4 -translate-x-1/2 flex flex-col items-center">
-              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
-              <span className={cn(countdown.percentRemaining > 0 && countdown.percentRemaining <= 25 ? "text-[#14F5D5] font-black" : "")}>1</span>
-            </div>
-            <div className="absolute left-2/4 -translate-x-1/2 flex flex-col items-center">
-              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
-              <span className={cn(countdown.percentRemaining > 25 && countdown.percentRemaining <= 50 ? "text-[#14F5D5] font-black" : "")}>2</span>
-            </div>
-            <div className="absolute left-3/4 -translate-x-1/2 flex flex-col items-center">
-              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5" />
-              <span className={cn(countdown.percentRemaining > 50 && countdown.percentRemaining <= 75 ? "text-[#14F5D5] font-black" : "")}>3</span>
-            </div>
-            <div className="absolute right-0 flex flex-col items-end">
-              <div className="h-1 w-0.5 bg-slate-600 rounded-full mb-0.5 mr-0.5" />
-              <span className={cn(countdown.percentRemaining > 75 ? "text-[#14F5D5] font-black" : "")}>4</span>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <OfferCardCountdownBar countdown={countdown} isArabic={isArabic} />
 
       {/* 4. كارد السعر ونوع التسعير فوق تفاصيل الوصول والمسافة */}
       <div className="mx-4 mt-3 flex items-center justify-between rounded-xl border border-[#14B8A6]/35 bg-gradient-to-r from-[#14B8A6]/15 via-[#081324] to-[#040812] px-4 py-3 shadow-md sm:mx-5">
-        {/* السعر على اليمين في RTL */}
         <div className="flex items-baseline gap-1.5" dir="ltr">
           <strong className="text-2xl sm:text-3xl font-black leading-none text-[#14F5D5] font-mono drop-shadow-[0_0_10px_rgba(20,245,213,0.35)]">
             {finalFare.toFixed(2)}
@@ -291,7 +169,6 @@ function CaptainOfferCardBase({
           <span className="text-xs sm:text-sm font-black text-[#14F5D5]">{currencyCode}</span>
         </div>
 
-        {/* نوع التسعير والرتبة على اليسار في RTL (Page 9: تكسي عام ماسي / سعر حر برونز ...) */}
         <div className="shrink-0 flex items-center gap-2">
           <span className="text-xs sm:text-sm font-black text-[#14F5D5] tracking-wide">
             {pricingLabel}
@@ -362,4 +239,3 @@ function CaptainOfferCardBase({
 }
 
 export const CaptainOfferCard = React.memo(CaptainOfferCardBase);
-

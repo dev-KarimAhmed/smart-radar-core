@@ -1,40 +1,19 @@
 'use client';
 
 import React from 'react';
-import { useTranslations } from 'next-intl';
-import { Check, Eye, EyeOff, Lock, Mail, MapPin, Phone, UserRound } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { AppSelect } from '@/shared/components/ui/app-select';
-import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import {
-  useSupabaseCountries,
-  useSupabaseGovernorates,
-  useSupabaseDistricts,
-  useDetectedCountryCode,
-  getCountryLabel,
-  getCountryIsoCode,
-  getGovernorateOrDistrictLabel,
-} from '@/features/auth/contract';
-import { getCaptainPersonalSchema } from '../../lib/captain-registration-schema';
-import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../lib/validate-field';
-import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
+  styles,
+  type CaptainPersonalStepProps,
+  type CaptainPersonalValues,
+} from './personal-step/personal-step-types';
+import { useCaptainPersonalStep } from './personal-step/use-captain-personal-step';
+import { PersonalIdentityFields } from './personal-step/personal-identity-fields';
+import { PersonalContactFields } from './personal-step/personal-contact-fields';
+import { PersonalLocationFields } from './personal-step/personal-location-fields';
+import { PersonalSecurityFields } from './personal-step/personal-security-fields';
 
-export interface CaptainPersonalValues {
-  name: string;
-  nickname: string;
-  phone: string;
-  email: string;
-  password: string;
-  country: string;
-  // Derived from `country` (the selected Supabase row id) whenever it changes;
-  // kept alongside it so the phone validator always has an ISO code to test against.
-  countryIso: string;
-  governorate: string;
-  district: string;
-}
-
-
+export type { CaptainPersonalValues } from './personal-step/personal-step-types';
+export { styles as captainPersonalStepStyles } from './personal-step/personal-step-types';
 
 export function CaptainPersonalStep({
   values,
@@ -42,455 +21,68 @@ export function CaptainPersonalStep({
   rememberMe,
   onRememberMeChange,
   onNext,
-}: {
-  values: CaptainPersonalValues;
-  onChange: (values: CaptainPersonalValues) => void;
-  rememberMe: boolean;
-  onRememberMeChange: (remember: boolean) => void;
-  onNext: () => void;
-}) {
-  const t = useTranslations('captainOnboarding.personal');
-  const tv = useTranslations('captainOnboarding.validation');
-  const { isArabic, language } = useDashboardLanguage();
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [showPassword, setShowPassword] = React.useState(false);
-  const schema = React.useMemo(() => getCaptainPersonalSchema(tv), [tv]);
-
-  const { countryRows, loading: countriesLoading } = useSupabaseCountries();
-  const countryIdNum = Number(values.country) || null;
-  const governorateIdNum = Number(values.governorate) || null;
-  const { governorateRows, loading: governoratesLoading } = useSupabaseGovernorates(countryIdNum);
-  const { districtRows, loading: districtsLoading } = useSupabaseDistricts(governorateIdNum);
-  const detectedCountryCode = useDetectedCountryCode();
-
-  const countryOptions = React.useMemo(
-    () => countryRows.map((row) => ({ value: String(row.id), label: getCountryLabel(row, language) })),
-    [countryRows, language],
-  );
-  const governorateOptions = React.useMemo(
-    () => governorateRows.map((row) => ({ value: String(row.id), label: getGovernorateOrDistrictLabel(row, language) })),
-    [governorateRows, language],
-  );
-  const districtOptions = React.useMemo(
-    () => districtRows.map((row) => ({ value: String(row.id), label: getGovernorateOrDistrictLabel(row, language) })),
-    [districtRows, language],
-  );
-
-  const runFieldValidation = React.useCallback(
-    async (field: string, nextValues: CaptainPersonalValues) => {
-      const message = await validateYupField(schema, nextValues, field);
-      setErrors((current) => ({ ...current, [field]: message }));
-    },
-    [schema],
-  );
-
-  const handleFieldChange = (field: keyof CaptainPersonalValues, value: string) => {
-    const nextValues = { ...values, [field]: value };
-    if (field === 'governorate') nextValues.district = '';
-    onChange(nextValues);
-    void runFieldValidation(field, nextValues);
-    if (field === 'governorate') setErrors((current) => ({ ...current, district: '' }));
-  };
-
-  const handleCountryChange = (id: string) => {
-    const row = countryRows.find((candidate) => String(candidate.id) === id);
-    const nextValues = { ...values, country: id, countryIso: getCountryIsoCode(row), governorate: '', district: '' };
-    onChange(nextValues);
-    void runFieldValidation('country', nextValues);
-    // Re-run phone validation too: the same digits can be valid for one country and not another.
-    if (values.phone.trim()) void runFieldValidation('phone', nextValues);
-  };
-
-  // Default the country to wherever the visitor appears to be, but only once and
-  // only if it's actually offered by Supabase — otherwise leave the placeholder.
-  React.useEffect(() => {
-    if (values.country || !detectedCountryCode || countryRows.length === 0) return;
-    const detected = countryRows.find((row) => getCountryIsoCode(row) === detectedCountryCode);
-    if (!detected) return;
-    onChange({ ...values, country: String(detected.id), countryIso: getCountryIsoCode(detected) });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detectedCountryCode, countryRows]);
-
-  const isValid = isYupSchemaValid(schema, values);
-  const [isCheckingAvailability, setIsCheckingAvailability] = React.useState(false);
-
-  const phoneValidation = React.useMemo(() => {
-    const cleanPhone = values.phone?.trim();
-    if (!cleanPhone) return { ok: false, message: t('phoneHint') };
-    if (!cleanPhone.startsWith('+')) {
-      return { ok: false, message: tv('phoneMissingCountryCode') || t('phoneHint') };
-    }
-    const res = normalizePhoneForCountry(cleanPhone, values.countryIso);
-    if (!res.ok) {
-      return { ok: false, message: res.message || tv('phoneInvalid') };
-    }
-    if (errors.phone && errors.phone !== tv('phoneRequired') && errors.phone !== tv('phoneMissingCountryCode') && errors.phone !== tv('phoneInvalid')) {
-      return { ok: false, message: errors.phone };
-    }
-    return { ok: true, message: '' };
-  }, [values.phone, values.countryIso, errors.phone, t, tv]);
-
-  const isPhoneValid = phoneValidation.ok;
-
-  const checkEmailUniqueness = React.useCallback(
-    async (emailToTest: string) => {
-      const cleanEmail = emailToTest.trim().toLowerCase();
-      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return true;
-      try {
-        const { supabase } = await import('@/lib/supabase-client');
-        const { data: availability, error } = await supabase.rpc('check_captain_identity_available', {
-          p_email: cleanEmail,
-        });
-        if (!error && availability?.email_taken) {
-          setErrors((current) => ({
-            ...current,
-            email: tv('emailDuplicate') || 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر.',
-          }));
-          return false;
-        }
-      } catch (err) {
-        console.warn('Email uniqueness check error:', err);
-      }
-      return true;
-    },
-    [tv],
-  );
-
-  const checkPhoneUniqueness = React.useCallback(
-    async (phoneToTest: string) => {
-      const cleanPhone = phoneToTest.trim();
-      const digitsOnly = cleanPhone.replace(/\D/g, '');
-      if (!cleanPhone || digitsOnly.length < 8) return true;
-      try {
-        const { supabase } = await import('@/lib/supabase-client');
-        const { data: availability, error } = await supabase.rpc('check_captain_identity_available', {
-          p_phone: cleanPhone,
-        });
-        if (!error && availability?.phone_taken) {
-          setErrors((current) => ({
-            ...current,
-            phone: tv('phoneDuplicate') || 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر.',
-          }));
-          return false;
-        }
-      } catch (err) {
-        console.warn('Phone uniqueness check error:', err);
-      }
-      return true;
-    },
-    [tv],
-  );
-
-  // Realtime debounce check for phone
-  React.useEffect(() => {
-    const cleanPhone = values.phone.trim();
-    const digitsOnly = cleanPhone.replace(/\D/g, '');
-    if (!cleanPhone || digitsOnly.length < 8) return;
-
-    const timer = setTimeout(() => {
-      void checkPhoneUniqueness(cleanPhone);
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [values.phone, checkPhoneUniqueness]);
-
-  // Realtime debounce check for email
-  React.useEffect(() => {
-    const cleanEmail = values.email.trim().toLowerCase();
-    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return;
-
-    const timer = setTimeout(() => {
-      void checkEmailUniqueness(cleanEmail);
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [values.email, checkEmailUniqueness]);
-
-  const handleContinueClick = async () => {
-    if (!isValid) {
-      // Surface every unfilled/invalid field at once, not just the ones the
-      // user has already interacted with, so it's obvious why "Continue" won't advance.
-      setErrors(collectYupSchemaErrors(schema, values));
-      return;
-    }
-
-    const cleanEmail = values.email?.trim().toLowerCase();
-    if (!cleanEmail) {
-      setErrors((current) => ({ ...current, email: tv('emailRequired') }));
-      return;
-    }
-
-    const cleanPhone = values.phone?.trim();
-    if (!cleanPhone) {
-      setErrors((current) => ({ ...current, phone: tv('phoneRequired') }));
-      return;
-    }
-
-    setIsCheckingAvailability(true);
-    const [isEmailAvailable, isPhoneAvailable] = await Promise.all([
-      checkEmailUniqueness(cleanEmail),
-      checkPhoneUniqueness(cleanPhone),
-    ]);
-    setIsCheckingAvailability(false);
-
-    if (!isEmailAvailable || !isPhoneAvailable) {
-      return;
-    }
-
-    onNext();
-  };
-
-  const styles = {
-  root: 'space-y-4  animate-fade-in',
-  field: 'space-y-1.5',
-  fieldRow: 'grid grid-cols-2 gap-3',
-  label: 'flex items-center gap-1.5 text-[11px] font-bold text-[#94A3B8]',
-  icon: 'h-3.5 w-3.5 text-[#14B8A6]',
-  input:
-    'w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300 ',
-  passwordWrap: 'relative',
-  eyeButton: `absolute top-1/2 ${isArabic? 'left-2':"right-2"} -translate-y-1/2 h-7 w-7 flex items-center justify-center text-[#94A3B8] hover:text-[#14B8A6] transition-colors`,
-  eyeIcon: 'h-4 w-4',
-  error: 'text-[10px] font-bold text-rose-400 mt-1',
-  hint: 'text-[10px] font-medium text-[#94A3B8] mt-1',
-  rememberRow:
-    'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0B0F19]/45 p-3',
-  rememberText: '',
-  rememberLabel: 'block text-sm font-black text-[#F8FAFC]',
-  rememberHint: 'mt-0.5 block text-xs font-semibold text-[#94A3B8]',
-  checkbox: 'h-5 w-5 shrink-0 accent-[#14B8A6]',
-  continueButton:
-    'w-full h-12 rounded-2xl bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-sm transition disabled:opacity-40 disabled:cursor-not-allowed',
-} as const;
+}: CaptainPersonalStepProps) {
+  const {
+    isArabic,
+    errors,
+    setErrors,
+    showPassword,
+    setShowPassword,
+    isCheckingAvailability,
+    countryOptions,
+    countriesLoading,
+    governorateOptions,
+    governoratesLoading,
+    districtOptions,
+    districtsLoading,
+    phoneValidation,
+    handleFieldChange,
+    handleCountryChange,
+    checkEmailUniqueness,
+    checkPhoneUniqueness,
+    handleContinueClick,
+  } = useCaptainPersonalStep(values, onChange, onNext);
 
   return (
     <div className={styles.root} dir={isArabic ? 'rtl' : 'ltr'}>
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <UserRound className={styles.icon} />
-          {t('name')}
-        </label>
-        <Input
-          placeholder={t('namePlaceholder')}
-          value={values.name}
-          onChange={(e) => handleFieldChange('name', e.target.value)}
-          className={styles.input}
-          required
-        />
-        {errors.name ? <p className={styles.error}>{errors.name}</p> : null}
-      </div>
+      <PersonalIdentityFields values={values} errors={errors} onFieldChange={handleFieldChange} />
 
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <UserRound className={styles.icon} />
-          {t('nickname')}
-        </label>
-        <Input
-          placeholder={t('nicknamePlaceholder')}
-          value={values.nickname}
-          onChange={(e) => handleFieldChange('nickname', e.target.value)}
-          className={styles.input}
-        />
-        {errors.nickname ? <p className={styles.error}>{errors.nickname}</p> : null}
-      </div>
+      <PersonalContactFields
+        values={values}
+        errors={errors}
+        setErrors={setErrors}
+        isArabic={isArabic}
+        countryOptions={countryOptions}
+        countriesLoading={countriesLoading}
+        phoneValidation={phoneValidation}
+        onCountryChange={handleCountryChange}
+        onFieldChange={handleFieldChange}
+        checkPhoneUniqueness={checkPhoneUniqueness}
+        checkEmailUniqueness={checkEmailUniqueness}
+      />
 
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <label className={styles.label}>
-            <MapPin className={styles.icon} />
-            {t('country')}
-          </label>
-          <AppSelect
-            value={values.country}
-            onValueChange={handleCountryChange}
-            options={countryOptions}
-            placeholder={countriesLoading && !countryOptions.length ? t('loading') : t('countryPlaceholder')}
-            disabled={countriesLoading && !countryOptions.length}
-          />
-          {errors.country ? <p className={styles.error}>{errors.country}</p> : null}
-        </div>
+      <PersonalLocationFields
+        values={values}
+        errors={errors}
+        governorateOptions={governorateOptions}
+        governoratesLoading={governoratesLoading}
+        districtOptions={districtOptions}
+        districtsLoading={districtsLoading}
+        onFieldChange={handleFieldChange}
+      />
 
-        <div className={styles.field}>
-          <label className={styles.label}>
-            <Phone className={styles.icon} />
-            {t('phone')}
-          </label>
-          <div className="relative">
-            <Input
-              type="tel"
-              dir="ltr"
-              placeholder={t('phonePlaceholder')}
-              value={values.phone}
-              onChange={(e) => handleFieldChange('phone', e.target.value)}
-              onBlur={() => {
-                if (values.phone?.trim()) {
-                  void checkPhoneUniqueness(values.phone);
-                }
-              }}
-              className={cn(
-                styles.input,
-                isPhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
-                !isPhoneValid && values.phone?.trim() && '!border-amber-500/60 focus:!border-amber-500'
-              )}
-              required
-            />
-            {isPhoneValid ? (
-              <span className="absolute end-3 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
-                <Check className="h-4 w-4 stroke-[2.5]" />
-              </span>
-            ) : null}
-          </div>
-          {!isPhoneValid ? (
-            <p className={cn(styles.hint, values.phone?.trim() && 'text-amber-400/90 font-medium')}>
-              {phoneValidation.message || errors.phone || t('phoneHint')}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <Mail className={styles.icon} />
-          {t('email')}
-        </label>
-        <Input
-          type="email"
-          dir="ltr"
-          inputMode="email"
-          placeholder={t('emailPlaceholder')}
-          value={values.email}
-          onChange={(e) => {
-            const val = e.target.value;
-            handleFieldChange('email', val);
-            const clean = val.trim();
-            if (!clean) {
-              setErrors((curr) => ({ ...curr, email: isArabic ? 'البريد الإلكتروني مطلوب لتفعيل الحساب' : 'Email is required' }));
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
-              setErrors((curr) => ({ ...curr, email: isArabic ? 'يرجى إدخال بريد إلكتروني صحيح (مثل: name@example.com)' : 'Please enter a valid email address' }));
-            } else {
-              setErrors((curr) => {
-                const next = { ...curr };
-                delete next.email;
-                return next;
-              });
-            }
-          }}
-          onBlur={() => {
-            if (values.email?.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
-              void checkEmailUniqueness(values.email);
-            }
-          }}
-          className={cn(
-            styles.input,
-            errors.email
-              ? '!border-rose-500/70 focus:!border-rose-500'
-              : values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())
-                ? '!border-emerald-500/70 focus:!border-emerald-500'
-                : ''
-          )}
-          required
-        />
-        {errors.email ? (
-          <p className={styles.error}>{errors.email}</p>
-        ) : values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()) ? (
-          <p className="text-emerald-400 mt-1 font-bold text-[10px] animate-in fade-in duration-150 flex items-center gap-1">
-            <Check className="h-3 w-3 inline stroke-[2.5]" />
-            <span>{isArabic ? 'صيغة البريد الإلكتروني صحيحة' : 'Valid email format'}</span>
-          </p>
-        ) : null}
-      </div>
-
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <label className={styles.label}>
-            <MapPin className={styles.icon} />
-            {t('governorate')}
-          </label>
-          <AppSelect
-            value={values.governorate}
-            onValueChange={(value) => handleFieldChange('governorate', value)}
-            options={governorateOptions}
-            placeholder={
-              !values.country
-                ? t('countryPlaceholder')
-                : governoratesLoading && !governorateOptions.length
-                  ? t('loading')
-                  : t('governoratePlaceholder')
-            }
-            disabled={!values.country || (governoratesLoading && !governorateOptions.length)}
-          />
-          {errors.governorate ? <p className={styles.error}>{errors.governorate}</p> : null}
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label}>
-            <MapPin className={styles.icon} />
-            {t('district')}
-          </label>
-          <AppSelect
-            value={values.district}
-            onValueChange={(value) => handleFieldChange('district', value)}
-            options={districtOptions}
-            placeholder={
-              !values.governorate
-                ? t('districtPlaceholderDisabled')
-                : districtsLoading && !districtOptions.length
-                  ? t('loading')
-                  : t('districtPlaceholder')
-            }
-            disabled={!values.governorate || (districtsLoading && !districtOptions.length)}
-          />
-          {errors.district ? <p className={styles.error}>{errors.district}</p> : null}
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <label className={styles.label}>
-          <Lock className={styles.icon} />
-          {t('password')}
-        </label>
-        <div className={styles.passwordWrap}>
-          <Input
-            type={showPassword ? 'text' : 'password'}
-            placeholder={t('passwordPlaceholder')}
-            value={values.password}
-            onChange={(e) => handleFieldChange('password', e.target.value)}
-            className={styles.input}
-            required
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((current) => !current)}
-            className={styles.eyeButton}
-            aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-          >
-            {showPassword ? <EyeOff className={styles.eyeIcon} /> : <Eye className={styles.eyeIcon} />}
-          </button>
-        </div>
-        {errors.password ? <p className={styles.error}>{errors.password}</p> : null}
-      </div>
-
-      <label className={styles.rememberRow}>
-        <span className={styles.rememberText}>
-          <span className={styles.rememberLabel}>{t('rememberMe')}</span>
-          <span className={styles.rememberHint}>{t('rememberHint')}</span>
-        </span>
-        <input
-          type="checkbox"
-          checked={rememberMe}
-          onChange={(e) => onRememberMeChange(e.target.checked)}
-          className={styles.checkbox}
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={handleContinueClick}
-        disabled={isCheckingAvailability}
-        className={styles.continueButton}
-      >
-        {isCheckingAvailability ? '...' : t('continue')}
-      </button>
+      <PersonalSecurityFields
+        values={values}
+        errors={errors}
+        isArabic={isArabic}
+        showPassword={showPassword}
+        setShowPassword={setShowPassword}
+        rememberMe={rememberMe}
+        onRememberMeChange={onRememberMeChange}
+        isCheckingAvailability={isCheckingAvailability}
+        onFieldChange={handleFieldChange}
+        onContinue={handleContinueClick}
+      />
     </div>
   );
 }

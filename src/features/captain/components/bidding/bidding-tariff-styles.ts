@@ -1,0 +1,72 @@
+export interface BiddingTariffComparisonProps {
+  language: 'ar' | 'en';
+  currency: string;
+  tierLabel: string;
+  rankIncreaseFactor: number;
+  premiumFactor: number;
+  bandHeadroom: number;
+  isGoldOrPlatinum: boolean;
+  isSilver: boolean;
+  isWithinBaseFare: boolean;
+  marketBaseFare: number;
+  marketPerKm: number;
+  marketPerMin: number;
+  currentBaseFare: number;
+  currentPerKm: number;
+  currentPerMin: number;
+  offerBaseFare: number;
+  offerPerKm: number;
+  offerPerMin: number;
+  isDumpingAmber: boolean;
+  dumpingDeviationRatio: number;
+  riderPreference: 'FREE' | 'APP' | 'TAXI' | null | undefined;
+  pricingMode: 'FREE' | 'APP' | 'TAXI' | null;
+  setPricingMode: (mode: 'FREE' | 'APP' | 'TAXI') => void;
+  onEditTariff?: () => void;
+}
+
+export const styles = {
+  container: "mt-5 rounded-2xl border border-[#14B8A6]/20 bg-[#0B2A2A]/25 p-4",
+  header: "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+  tierPremiumTitle: "inline-flex items-center gap-2 text-sm font-black text-[#14B8A6]",
+  tierPremiumIcon: "h-4 w-4",
+  tierPremiumDesc: "mt-2 text-sm leading-6 text-slate-300",
+  maxIncreaseContainer: "flex items-center justify-between rounded-xl border border-[#14B8A6]/30 bg-black/40 px-4 py-3 sm:flex-col sm:items-end sm:justify-center sm:border-none sm:bg-transparent sm:p-0",
+  maxIncreaseLabel: "text-xs font-bold text-slate-400 sm:mb-1",
+  maxIncreaseValue: "font-mono text-lg font-black text-white sm:text-base",
+  
+  goldBanner: "mt-3 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-2.5 text-center text-xs sm:text-sm font-black text-[#5eead4] shadow-md",
+  withinBaseBanner: "mt-3 rounded-xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-3 text-center text-xs font-bold text-[#5eead4]",
+  silverWarning: "mt-3 rounded-xl border border-rose-500/25 bg-rose-950/20 p-3 text-xs font-bold leading-relaxed text-rose-200",
+  
+  pricingModeContainer: "mt-5 border-t border-white/5 pt-5",
+  riderPrefBadge: "mb-3 flex items-center justify-center gap-2 rounded-lg bg-emerald-500/20 px-3 py-2 text-xs font-bold text-emerald-300",
+  riderPrefIcon: "h-3.5 w-3.5",
+  noPrefBadge: "mb-3 flex items-center justify-center gap-2 rounded-lg bg-teal-500/10 px-3 py-2 text-xs font-bold text-teal-300",
+  noPrefIcon: "h-3.5 w-3.5 opacity-70",
+  pricingButtonsGrid: "grid grid-cols-2 gap-2 sm:grid-cols-4",
+  pricingBtnBase: "rounded-xl border px-3 py-2 text-xs font-black transition-all",
+  pricingBtnActive: "border-teal-500 bg-teal-500/20 text-teal-300",
+  pricingBtnInactive: "border-white/10 bg-white/5 text-slate-400 hover:bg-white/10",
+  pricingBtnDisabled: "opacity-50 grayscale cursor-not-allowed",
+
+  tariffGrid: "mt-3 grid grid-cols-3 gap-2 text-center dir-rtl",
+  tariffColMarket: "rounded-xl border border-slate-800 bg-slate-900/50 p-2 sm:p-3",
+  tariffTitleMarket: "text-[11px] sm:text-xs font-black text-slate-400 mb-2 truncate",
+  tariffListMarket: "space-y-1.5 text-xs font-black text-slate-200",
+  tariffRow: "flex justify-between items-center px-1 text-[11px] sm:text-xs",
+  tariffRowLabel: "text-slate-400",
+  tariffValueMarket: "font-mono text-teal-400",
+  
+  tariffColCurrent: "rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-2 sm:p-3 relative group",
+  tariffHeaderCurrent: "flex items-center justify-between mb-2 gap-1",
+  tariffTitleCurrent: "text-[11px] sm:text-xs font-black text-[#5eead4] truncate",
+  tariffEditBtn: "inline-flex items-center gap-1 text-[10px] font-bold text-[#14B8A6] hover:text-[#5eead4] hover:underline transition-colors shrink-0",
+  tariffEditIcon: "h-3.5 w-3.5",
+  tariffListWhite: "space-y-1.5 text-xs font-black text-white",
+  tariffValueCurrent: "font-mono text-[#5eead4]",
+
+  tariffColOffer: "rounded-xl border border-teal-500/20 bg-teal-950/20 p-2 sm:p-3",
+  tariffTitleOffer: "text-[11px] sm:text-xs font-black text-emerald-300 mb-2 truncate",
+  tariffValueOffer: "font-mono text-emerald-300",
+} as const;

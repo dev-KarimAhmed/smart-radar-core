@@ -5,7 +5,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   timeout: 30_000,
   use: {
-    baseURL: 'http://127.0.0.1:3101',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3101',
     trace: 'retain-on-failure',
   },
   projects: [

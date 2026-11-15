@@ -2,15 +2,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, Globe, Loader2, MessageCircle, Phone, Save, Trash2, User } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2, Save, User } from 'lucide-react';
 import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
-import { labelFor } from './profile-shared';
 import { RecoveryEmailField } from '@/features/auth/components/recovery-email-field';
 import type { CountryRow, GovernorateRow, DistrictRow } from './profile-shared';
+import { ProfileLocationSelects } from './parts/profile-location-selects';
+import { ProfilePhoneInputs } from './parts/profile-phone-inputs';
 
-interface ProfileFormSectionProps {
+export * from './parts/profile-location-selects';
+export * from './parts/profile-phone-inputs';
+
+export interface ProfileFormSectionProps {
   t: any;
   language: string;
   isArabic: boolean;
@@ -130,154 +132,44 @@ export function ProfileFormSection({
               />
             </div>
 
-            {/* 2. Phone Number */}
-            <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                <Phone className="h-3.5 w-3.5 text-[#14F5D5]" />
-                <span>{t('phone')}</span>
-              </label>
-              <div className="relative">
-                <Input
-                  value={phone}
-                  dir="ltr"
-                  onChange={(event) => setPhone(event.target.value)}
-                  className={cn(
-                    "h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]",
-                    isPhoneValid && "!border-emerald-500/70 focus-visible:!border-emerald-500 ring-1 ring-emerald-500/20",
-                    !isPhoneValid && phone.trim() && "!border-amber-500/60 focus-visible:!border-amber-500"
-                  )}
-                  placeholder="+962790000000"
-                  required
-                />
-                {isPhoneValid ? (
-                  <span className="absolute end-3.5 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
-                    <Check className="h-4 w-4 stroke-[2.5]" />
-                  </span>
-                ) : null}
-              </div>
-              {!isPhoneValid ? (
-                <p className="text-[11px] text-amber-400/90 font-medium pt-0.5">
-                  {phone.trim() ? (phoneValidation.message || t('phoneInvalid')) : (isArabic ? 'اكتب رقم هاتفك بالنسق المحلي أو الدولي' : 'Enter your phone number')}
-                </p>
-              ) : null}
-            </div>
-
-            {/* 3. Emergency WhatsApp Contact */}
-            <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                <MessageCircle className="h-3.5 w-3.5 text-[#14F5D5]" />
-                <span>{t('emergencyWhatsappContact')}</span>
-              </label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Input
-                    value={emergencyWhatsappContact}
-                    dir="ltr"
-                    onChange={(event) => setEmergencyWhatsappContact(event.target.value)}
-                    className={cn(
-                      "h-11 rounded-2xl border-[#14B8A6]/25 bg-black/40 text-white text-sm font-mono focus-visible:border-[#14B8A6] focus-visible:ring-1 focus-visible:ring-[#14B8A6]",
-                      emergencyWhatsappContact.trim() && isEmergencyValid && "!border-emerald-500/70 focus-visible:!border-emerald-500 ring-1 ring-emerald-500/20",
-                      emergencyWhatsappContact.trim() && !isEmergencyValid && "!border-amber-500/60 focus-visible:!border-amber-500"
-                    )}
-                    placeholder={t('emergencyWhatsappPlaceholder')}
-                  />
-                  {emergencyWhatsappContact.trim() && isEmergencyValid ? (
-                    <span className="absolute end-3.5 top-1/2 -translate-y-1/2 text-emerald-400 flex items-center pointer-events-none">
-                      <Check className="h-4 w-4 stroke-[2.5]" />
-                    </span>
-                  ) : null}
-                </div>
-                {emergencyWhatsappContact ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEmergencyWhatsappContact('')}
-                    className="h-11 shrink-0 rounded-2xl border-rose-500/20 bg-rose-950/20 px-3 text-rose-300 hover:bg-rose-500 hover:text-white transition-all cursor-pointer"
-                    aria-label={t('deleteEmergencyContact')}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                ) : null}
-              </div>
-              {emergencyWhatsappContact.trim() && !isEmergencyValid ? (
-                <p className="text-[11px] text-amber-400/90 font-medium pt-0.5">
-                  {emergencyValidation.message || (isArabic ? 'رقم الواتساب غير صالح' : 'Invalid WhatsApp phone number')}
-                </p>
-              ) : null}
-            </div>
+            {/* 2 & 3. Phone and Emergency WhatsApp */}
+            <ProfilePhoneInputs
+              t={t}
+              isArabic={isArabic}
+              phone={phone}
+              setPhone={setPhone}
+              isPhoneValid={isPhoneValid}
+              phoneValidation={phoneValidation}
+              emergencyWhatsappContact={emergencyWhatsappContact}
+              setEmergencyWhatsappContact={setEmergencyWhatsappContact}
+              isEmergencyValid={isEmergencyValid}
+              emergencyValidation={emergencyValidation}
+            />
 
             {/* 4. Location Dropdowns */}
-            <div className="space-y-2 pt-1">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-                <Globe className="h-3.5 w-3.5 text-[#14F5D5]" />
-                <span>{t('location')}</span>
-              </label>
-              
-              <div className="grid gap-3 sm:grid-cols-3">
-                {/* Country */}
-                <div className="space-y-1">
-                  <span className="block text-[11px] font-semibold text-slate-400">{t('country')}</span>
-                  <Select value={countryId} onValueChange={handleCountryChange} required>
-                    <SelectTrigger className="h-11 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]" dir={isArabic ? 'rtl' : 'ltr'}>
-                      <SelectValue placeholder={isLoadingCountries ? t('loading') : t('chooseCountry')} />
-                    </SelectTrigger>
-                    <SelectContent className="border-[#14B8A6]/30 bg-[#0B0F19] text-white shadow-2xl">
-                      {countries.map((country) => (
-                        <SelectItem key={country.id} value={String(country.id)} className="justify-end text-start cursor-pointer hover:bg-white/10">
-                          {labelFor(country, language as 'en' | 'ar')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Governorate */}
-                <div className="space-y-1">
-                  <span className="block text-[11px] font-semibold text-slate-400">{t('governorate')}</span>
-                  <Select value={governorateId} onValueChange={handleGovernorateChange} disabled={!countryId || isLoadingGovernorates} required>
-                    <SelectTrigger className="h-11 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]" dir={isArabic ? 'rtl' : 'ltr'}>
-                      <SelectValue placeholder={isLoadingGovernorates ? t('loading') : t('chooseGovernorate')} />
-                    </SelectTrigger>
-                    <SelectContent className="border-[#14B8A6]/30 bg-[#0B0F19] text-white shadow-2xl">
-                      {governorates.map((governorate) => (
-                        <SelectItem key={governorate.id} value={String(governorate.id)} className="justify-end text-start cursor-pointer hover:bg-white/10">
-                          {labelFor(governorate, language as 'en' | 'ar')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* District */}
-                <div className="space-y-1">
-                  <span className="block text-[11px] font-semibold text-slate-400">{t('district')}</span>
-                  <Select value={districtId} onValueChange={setDistrictId} disabled={!governorateId || isLoadingDistricts} required>
-                    <SelectTrigger className="h-11 rounded-xl border-[#14B8A6]/25 bg-black/40 text-white focus:border-[#14B8A6] focus:ring-1 focus:ring-[#14B8A6]" dir={isArabic ? 'rtl' : 'ltr'}>
-                      <SelectValue placeholder={isLoadingDistricts ? t('loading') : t('chooseDistrict')} />
-                    </SelectTrigger>
-                    <SelectContent className="border-[#14B8A6]/30 bg-[#0B0F19] text-white shadow-2xl">
-                      {districts.map((district) => (
-                        <SelectItem key={district.id} value={String(district.id)} className="justify-end text-start cursor-pointer hover:bg-white/10">
-                          {labelFor(district, language as 'en' | 'ar')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
+            <ProfileLocationSelects
+              t={t}
+              language={language}
+              isArabic={isArabic}
+              countryId={countryId}
+              handleCountryChange={handleCountryChange}
+              countries={countries}
+              isLoadingCountries={isLoadingCountries}
+              governorateId={governorateId}
+              handleGovernorateChange={handleGovernorateChange}
+              governorates={governorates}
+              isLoadingGovernorates={isLoadingGovernorates}
+              districtId={districtId}
+              setDistrictId={setDistrictId}
+              districts={districts}
+              isLoadingDistricts={isLoadingDistricts}
+              isLocationLoading={isLocationLoading}
+            />
 
             {/* 5. Recovery Email Slot */}
             <div className="pt-2">
               <RecoveryEmailField />
             </div>
-
-            {isLocationLoading ? (
-              <p className="flex items-center gap-2 text-xs text-[#14F5D5]">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>{t('updatingLists')}</span>
-              </p>
-            ) : null}
 
             {/* Submit Button */}
             <Button

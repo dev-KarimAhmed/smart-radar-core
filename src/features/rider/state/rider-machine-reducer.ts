@@ -1,0 +1,244 @@
+import {
+  RiderMachineState,
+  RiderMachineAction,
+  RIDER_STATE_STORAGE_KEY,
+} from './rider-machine-types';
+import {
+  firstNumber,
+  extractRowStartTime,
+  buildDestinationFromRow,
+  buildActiveTrip,
+} from './rider-machine-mappers';
+
+export const initialRiderMachineState: RiderMachineState = {
+  screen: 'IDLE_MAP',
+  destination: null,
+  offers: [],
+  activeTrip: null,
+  completedTrip: null,
+  requestStartedAt: null,
+  requestId: null,
+  requestCancelledAt: null,
+  pendingAcceptedOfferId: null,
+};
+
+export function riderDashboardReducer(state: RiderMachineState, action: RiderMachineAction): RiderMachineState {
+  switch (action.type) {
+    case 'OPEN_DESTINATION':
+      if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') {
+        return state;
+      }
+      return { ...state, screen: 'DESTINATION_SELECTION' };
+
+    case 'CONFIRM_DESTINATION':
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
+      return { ...state, destination: action.destination };
+
+    case 'SEND_REQUEST':
+      if ((state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') || !state.destination) return state;
+      return {
+        ...state,
+        offers: [],
+        activeTrip: null,
+        completedTrip: null,
+        requestStartedAt: Date.now(),
+        requestId: null,
+        requestCancelledAt: null,
+        pendingAcceptedOfferId: null,
+      };
+
+    case 'SERVER_REQUEST_CREATED':
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
+      return { ...state, requestId: action.requestId, requestStartedAt: state.requestStartedAt ?? Date.now() };
+
+    case 'SERVER_STATUS_RECEIVING_OFFERS':
+      if (state.screen !== 'DESTINATION_SELECTION' && state.screen !== 'RECEIVING_OFFERS') return state;
+      if (!state.requestStartedAt && state.screen !== 'RECEIVING_OFFERS') return state;
+      return { ...state, screen: 'RECEIVING_OFFERS' };
+
+    case 'SERVER_STATUS_ACCEPTED': {
+      if (state.screen !== 'RECEIVING_OFFERS' && state.screen !== 'TRIP_ACTIVE') return state;
+      const activeTrip = buildActiveTrip(state, action.row);
+      if (!activeTrip) return state;
+      return {
+        ...state,
+        screen: 'TRIP_ACTIVE',
+        activeTrip,
+        requestCancelledAt: null,
+      };
+    }
+
+    case 'SERVER_STATUS_COMPLETED':
+      if (state.screen === 'RATING_MODAL') return state;
+      if (state.screen !== 'TRIP_ACTIVE' || !state.activeTrip) {
+        if (state.requestId) {
+          if (typeof window !== 'undefined') {
+            try {
+              window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+            } catch {}
+          }
+          return initialRiderMachineState;
+        }
+        return state;
+      }
+      return {
+        ...state,
+        screen: 'RATING_MODAL',
+        completedTrip: {
+          ...state.activeTrip,
+          status: String(action.row?.status || 'COMPLETED').toUpperCase(),
+          finalPrice: firstNumber(action.row?.final_fare, action.row?.final_price) ?? state.activeTrip.finalPrice,
+        },
+        activeTrip: null,
+      };
+
+    case 'REQUEST_FAILED':
+      if (state.screen !== 'DESTINATION_SELECTION') return state;
+      return { ...state, requestStartedAt: null, requestId: null };
+
+    case 'REQUEST_CANCELLED':
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      if (state.screen === 'TRIP_ACTIVE') {
+        const destination = state.destination || (state.activeTrip?.destinationLabel ? {
+          id: state.activeTrip.tripId,
+          label: state.activeTrip.destinationLabel,
+          governorate: '',
+          district: '',
+          coords: {
+            lat: (state.activeTrip as any).destinationLat ?? 0,
+            lng: (state.activeTrip as any).destinationLng ?? 0,
+          },
+          originCell: state.activeTrip.originCell,
+          destinationCell: state.activeTrip.destinationCell,
+        } : null);
+
+        return {
+          ...initialRiderMachineState,
+          destination,
+          screen: 'DESTINATION_SELECTION',
+          requestCancelledAt: Date.now(),
+          autoRetryRequested: true,
+        };
+      }
+      if (state.screen !== 'RECEIVING_OFFERS') {
+        return state;
+      }
+      return {
+        ...initialRiderMachineState,
+        destination: state.destination,
+        screen: 'RECEIVING_OFFERS',
+        offers: [],
+        requestCancelledAt: Date.now(),
+        pendingAcceptedOfferId: null,
+      };
+
+    case 'REHYDRATE_SEARCHING': {
+      if (state.screen !== 'IDLE_MAP') return state;
+      return {
+        ...state,
+        screen: 'RECEIVING_OFFERS',
+        requestId: action.requestId,
+        destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
+        requestStartedAt: state.requestStartedAt ?? extractRowStartTime(action.row),
+      };
+    }
+
+    case 'REHYDRATE_ACTIVE_TRIP': {
+      if (state.screen !== 'IDLE_MAP') return state;
+      const stateWithOffers = {
+        ...state,
+        offers: action.offers,
+        requestId: action.requestId,
+        destination: state.destination ?? buildDestinationFromRow(action.requestId, action.row),
+      };
+      const activeTrip = buildActiveTrip(stateWithOffers, action.row);
+      if (!activeTrip) {
+        return {
+          ...stateWithOffers,
+          screen: 'RECEIVING_OFFERS',
+          requestStartedAt: state.requestStartedAt ?? extractRowStartTime(action.row),
+        };
+      }
+      return { ...stateWithOffers, screen: 'TRIP_ACTIVE', activeTrip };
+    }
+
+    case 'RECEIVE_OFFERS':
+      if (state.screen !== 'RECEIVING_OFFERS') return state;
+      return { ...state, offers: action.offers };
+
+    case 'SELECT_OFFER': {
+      if (state.screen !== 'RECEIVING_OFFERS') return state;
+      const selectedOffer = state.offers.find((offer) => offer.id === action.offerId || offer.driverId === action.offerId);
+      if (!selectedOffer) return state;
+      return {
+        ...state,
+        pendingAcceptedOfferId: selectedOffer.id || selectedOffer.driverId,
+      };
+    }
+
+    case 'COMPLETE_TRIP':
+      if (state.screen !== 'TRIP_ACTIVE' || !state.activeTrip) return state;
+      return {
+        ...state,
+        screen: 'RATING_MODAL',
+        completedTrip: state.activeTrip,
+        activeTrip: null,
+      };
+
+    case 'SUBMIT_RATING':
+      if (state.screen !== 'RATING_MODAL') return state;
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      return initialRiderMachineState;
+
+    case 'OPEN_PURGE_LEDGER':
+      if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
+      return { ...state, screen: 'PURGE_LEDGER' };
+
+    case 'OPEN_FAVORITE_CAPTAINS':
+      if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
+      return { ...state, screen: 'FAVORITE_CAPTAINS' };
+
+    case 'RETURN_TO_MAP':
+      if (state.screen === 'TRIP_ACTIVE' || state.screen === 'RATING_MODAL' || state.screen === 'RECEIVING_OFFERS') return state;
+      return { ...state, screen: 'IDLE_MAP' };
+
+    case 'CLEAR_AUTO_RETRY':
+      return { ...state, autoRetryRequested: false };
+
+    case 'HYDRATE_CAPTAIN_PHONE': {
+      if (!state.activeTrip || !action.phone) return state;
+      if (state.activeTrip.captainId && action.captainId && state.activeTrip.captainId !== action.captainId) {
+        return state;
+      }
+      return {
+        ...state,
+        activeTrip: {
+          ...state.activeTrip,
+          captainPhone: action.phone,
+          captain: state.activeTrip.captain
+            ? { ...state.activeTrip.captain, phone: action.phone }
+            : { phone: action.phone },
+        },
+      };
+    }
+
+    case 'RESET_TO_IDLE':
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(RIDER_STATE_STORAGE_KEY);
+        } catch {}
+      }
+      return initialRiderMachineState;
+
+    default:
+      return state;
+  }
+}

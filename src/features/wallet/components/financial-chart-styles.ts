@@ -1,0 +1,18 @@
+export const styles = {
+  style196_1: "mb-6 overflow-hidden rounded-2xl border border-emerald-900/30 bg-[#030903]/95 shadow-xl",
+  style197_2: "flex flex-row items-center justify-between border-b border-emerald-900/20 p-4 pb-2",
+  style198_3: "text-right",
+  style198_4: "text-left",
+  style199_5: "flex items-center gap-1.5 text-xs font-black text-white",
+  style199_6: "justify-end",
+  style199_7: "justify-start",
+  style201_8: "h-3.5 w-3.5 text-emerald-400",
+  style203_9: "mt-0.5 text-[9px] text-gray-500",
+  style207_10: "flex items-center gap-1 rounded-lg border border-emerald-500/20 bg-emerald-950/40 px-2 py-1 font-mono text-[10px] text-emerald-400",
+  style208_11: "h-3 w-3 text-emerald-400",
+  style212_12: "flex flex-col items-center p-4 pt-3",
+  style213_13: "relative flex h-[160px] w-full items-center justify-center",
+  style215_14: "overflow-visible",
+  style218_15: "hidden",
+  style219_16: "rounded-2xl border border-emerald-900/30 bg-black/30 px-5 py-4 text-center text-xs text-gray-400",
+} as const;

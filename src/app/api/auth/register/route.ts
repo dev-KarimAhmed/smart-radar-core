@@ -1,137 +1,42 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { sendAccountConfirmationEmail, sendCaptainContractEmail, resolveEmailLanguage } from '@/server/services/email-service';
-import { saveCaptainContract } from '@/server/services/contract-pdf-service';
+import { sendAccountConfirmationEmail, resolveEmailLanguage } from '@/server/services/email-service';
 import { getAppOrigin } from '@/lib/utils';
-import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
-import { isSaudiPhoneNumber, isSaudiCountryCode, SAUDI_RESTRICTION_MESSAGES } from '@/core/logic/saudi-restriction';
-
-const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function normalizePhone(phone: string) {
-  return phone.trim().replace(/[\s()-]/g, '');
-}
+import { validateRegistrationInput } from './register-validation';
+import { checkRegistrationUniqueness } from './register-uniqueness';
+import { handleCaptainPostRegistration } from './captain-onboarding';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const rawPhone = String(body.phone || '');
-    const normalizedPhone = normalizePhone(rawPhone);
-    const password = String(body.password || '');
-    const fullName = String(body.fullName || body.name || '').trim();
-    const rawEmail = String(body.email || '').trim().toLowerCase();
-    const role = String(body.role || 'RIDER').toUpperCase();
-    const countryId = Number(body.countryId || 1);
-    const governorateId = Number(body.governorateId || 1);
-    const districtId = Number(body.districtId || 1);
-    const captainProfile = body.captainProfile || null;
-
-    // 1. Validations
-    if (isSaudiPhoneNumber(normalizedPhone) || isSaudiPhoneNumber(rawPhone) || isSaudiCountryCode(body.countryCode || body.isoCode)) {
-      return NextResponse.json(
-        { success: false, error: SAUDI_RESTRICTION_MESSAGES.ar.phoneRejected },
-        { status: 400 }
-      );
+    const { error: valError, input } = validateRegistrationInput(body);
+    if (valError || !input) {
+      return NextResponse.json({ success: false, error: valError }, { status: 400 });
     }
 
-    if (!PHONE_REGEX.test(normalizedPhone)) {
-      return NextResponse.json(
-        { success: false, error: 'يرجى كتابة رقم الهاتف بصيغة دولية، مثل +962790000000 أو +201000000000.' },
-        { status: 400 }
-      );
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        { success: false, error: 'كلمة المرور ضعيفة. يجب ألا تقل عن 6 أحرف.' },
-        { status: 400 }
-      );
-    }
-
-    if (!fullName) {
-      return NextResponse.json(
-        { success: false, error: 'يرجى كتابة الاسم الكامل.' },
-        { status: 400 }
-      );
-    }
-
-    if (role === 'CAPTAIN' || role === 'DRIVER') {
-      const parts = fullName.split(/\s+/).filter(Boolean);
-      if (parts.length < 4 || !parts.every((p) => p.length >= 2 && /^[؀-ۿa-zA-Z]+$/.test(p))) {
-        return NextResponse.json(
-          { success: false, error: 'يرجى كتابة الاسم الرباعي كاملاً (الاسم، الأب، الجد، العائلة) بحروف صحيحة دون أرقام أو رموز.' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Email is strictly required for all new account confirmations
-    if (!rawEmail || !EMAIL_REGEX.test(rawEmail)) {
-      return NextResponse.json(
-        { success: false, error: 'البريد الإلكتروني مطلوب وصحيح لتأكيد وتفعيل الحساب.' },
-        { status: 400 }
-      );
-    }
+    const {
+      normalizedPhone,
+      password,
+      fullName,
+      rawEmail,
+      role,
+      countryId,
+      governorateId,
+      districtId,
+      captainProfile,
+    } = input;
 
     // 2. Uniqueness checks
-    // A. Check phone in profiles & auth.users
-    const { data: existingProfileByPhone } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('phone', normalizedPhone)
-      .maybeSingle();
-
-    if (existingProfileByPhone) {
-      return NextResponse.json(
-        { success: false, error: 'رقم الهاتف مسجل بالفعل مسبقاً.' },
-        { status: 409 }
-      );
-    }
-
-    // B. Check email in profiles
-    const { data: existingProfileByEmail } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .ilike('email', rawEmail)
-      .maybeSingle();
-
-    if (existingProfileByEmail) {
-      return NextResponse.json(
-        { success: false, error: 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر.' },
-        { status: 409 }
-      );
-    }
-
-    // C. Check Captain credentials uniqueness if applicable
-    if ((role === 'CAPTAIN' || role === 'DRIVER') && captainProfile) {
-      const trimmedNatId = captainProfile.national_id_number?.trim() || null;
-      const trimmedLic = captainProfile.license_number?.trim() || null;
-      const trimmedPlate = captainProfile.plate_number?.trim().toUpperCase() || null;
-
-      const { data: availability } = await supabaseAdmin.rpc('check_captain_identity_available', {
-        p_national_id: trimmedNatId,
-        p_license_number: trimmedLic,
-        p_plate_number: trimmedPlate,
-        p_email: rawEmail,
-      });
-
-      if (availability) {
-        if (availability.email_taken) {
-          return NextResponse.json({ success: false, error: 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر.' }, { status: 409 });
-        }
-        if (availability.national_id_taken) {
-          return NextResponse.json({ success: false, error: 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.' }, { status: 409 });
-        }
-        if (availability.license_taken) {
-          return NextResponse.json({ success: false, error: 'رقم رخصة القيادة مسجل بالفعل مسبقاً.' }, { status: 409 });
-        }
-        if (availability.plate_taken) {
-          return NextResponse.json({ success: false, error: 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.' }, { status: 409 });
-        }
-      }
+    const { error: uniqueError } = await checkRegistrationUniqueness(
+      normalizedPhone,
+      rawEmail,
+      role,
+      captainProfile
+    );
+    if (uniqueError) {
+      return NextResponse.json({ success: false, error: uniqueError }, { status: 409 });
     }
 
     // 3. Generate 6-digit OTP code (valid for 15 minutes)
@@ -169,8 +74,7 @@ export async function POST(req: Request) {
       userMetadata.captain_profile = captainProfile;
     }
 
-    // 4. Create user in Supabase Auth via Admin API
-    // email_confirm: false ensures email_confirmed_at is NULL until user confirms!
+    // 5. Create user in Supabase Auth via Admin API
     const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: rawEmail,
       phone: normalizedPhone,
@@ -237,49 +141,21 @@ export async function POST(req: Request) {
       console.warn('[Registration API] Failed to update preferred_language in profile:', profileSyncErr);
     }
 
-    // Automatically grant sovereign welcome hours if captain
+    // Automatically handle captain onboarding if captain
     if (userRole === 'CAPTAIN') {
-      try {
-        await grantNewCaptainWelcomeCredit(userId);
-      } catch (creditErr) {
-        console.warn('[Registration API] Welcome credit error:', creditErr);
-      }
-
-      // Generate official PDF contract & email it to the captain asynchronously (Article 5 Section 4)
       const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
-      void (async () => {
-        try {
-          const contractRes = await saveCaptainContract({
-            captainId: userId,
-            fullName,
-            phone: normalizedPhone,
-            email: rawEmail,
-            nationalIdNumber: captainProfile?.national_id_number,
-            licenseNumber: captainProfile?.license_number,
-            plateNumber: captainProfile?.plate_number,
-            vehicleMake: captainProfile?.make || captainProfile?.vehicle_brand,
-            vehicleModel: captainProfile?.model || captainProfile?.vehicle_model,
-            vehicleYear: captainProfile?.year || captainProfile?.vehicle_year,
-            governorate: captainProfile?.governorate,
-            district: captainProfile?.district,
-            ipAddress: clientIp,
-          });
-
-          await sendCaptainContractEmail({
-            to: rawEmail,
-            captainName: fullName,
-            pdfBuffer: contractRes.pdfBuffer,
-            contractHash: contractRes.contractHash,
-            acceptedAt: contractRes.acceptedAt,
-            lang,
-          });
-        } catch (contractErr) {
-          console.warn('[Registration API] Async captain contract email error:', contractErr);
-        }
-      })();
+      handleCaptainPostRegistration({
+        userId,
+        fullName,
+        normalizedPhone,
+        rawEmail,
+        captainProfile,
+        clientIp,
+        lang,
+      });
     }
 
-    // 5. Generate official confirmation link from Supabase Auth
+    // 6. Generate official confirmation link from Supabase Auth
     const reqOrigin = req.headers.get('origin') || req.headers.get('x-forwarded-host')
       ? `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`
       : getAppOrigin();
@@ -299,11 +175,10 @@ export async function POST(req: Request) {
     if (!linkErr && linkData?.properties?.action_link) {
       confirmUrl = linkData.properties.action_link;
     } else {
-      // Direct verification link fallback
       confirmUrl = `${redirectTo}&email=${encodeURIComponent(rawEmail)}&uid=${encodeURIComponent(userId)}`;
     }
 
-    // 6. Send confirmation email via Resend
+    // 7. Send confirmation email via Resend
     let emailSent = false;
     try {
       const emailRes = await sendAccountConfirmationEmail({
@@ -340,4 +215,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

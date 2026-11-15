@@ -1,17 +1,27 @@
-import type { Session } from '@supabase/supabase-js';
 import {
   buildRiderSignUpMetadata,
   buildUserFromSupabaseAuth,
   validatePhoneAndPassword,
-  type CaptainProfileMetadata,
   type RiderSupabaseSignInInput,
   type RiderSupabaseSignUpInput,
 } from './supabase-auth-logic';
 import {
-  clearSupabaseAuthStorage,
   setSupabaseRememberSession,
   shouldRememberSupabaseSession,
 } from './supabase-auth-storage';
+import {
+  cacheSupabaseSession,
+  clearSupabaseSessionCache,
+  checkAccountInUse,
+  checkAccountInUseByPhone,
+  verifyEmailOtpCode,
+  AUTH_TOKEN_STORAGE_KEY,
+} from './supabase-auth-session';
+import {
+  syncCaptainProfileFromAuthUser,
+  uploadCaptainDocument,
+  type CaptainSignUpInput,
+} from './supabase-captain-sync';
 
 export {
   buildRiderSignUpMetadata,
@@ -26,7 +36,20 @@ export {
   type CaptainProfileMetadata,
 } from './supabase-auth-logic';
 
-const AUTH_TOKEN_STORAGE_KEY = 'radar_supabase_access_token';
+export {
+  cacheSupabaseSession,
+  clearSupabaseSessionCache,
+  checkAccountInUse,
+  checkAccountInUseByPhone,
+  verifyEmailOtpCode,
+  AUTH_TOKEN_STORAGE_KEY,
+} from './supabase-auth-session';
+
+export {
+  syncCaptainProfileFromAuthUser,
+  uploadCaptainDocument,
+  type CaptainSignUpInput,
+} from './supabase-captain-sync';
 
 export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
   const validation = validatePhoneAndPassword(input.phone, input.password);
@@ -78,12 +101,6 @@ export async function signUpRiderWithPhone(input: RiderSupabaseSignUpInput) {
   };
 }
 
-export interface CaptainSignUpInput extends Omit<RiderSupabaseSignUpInput, 'role' | 'captainProfile'> {
-  captainProfile: CaptainProfileMetadata;
-  identityFile?: File | null;
-  drivingLicenseFile?: File | null;
-}
-
 export async function signUpCaptainWithPhone(input: CaptainSignUpInput) {
   const data = await signUpRiderWithPhone({
     ...input,
@@ -99,119 +116,6 @@ export async function signUpCaptainWithPhone(input: CaptainSignUpInput) {
     });
   }
   return data;
-}
-
-async function uploadCaptainDocument(userId: string, file: File, kind: 'identity' | 'driving-license') {
-  const { supabase } = await import('@/lib/supabase-client');
-  const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-  const token = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `${Date.now()}`;
-  const path = `${userId}/${kind}-${token}.${extension}`;
-  const { error } = await supabase.storage.from('captain-documents').upload(path, file, {
-    upsert: true,
-    contentType: file.type || undefined,
-  });
-
-  if (error) throw error;
-  return path;
-}
-
-async function syncCaptainProfileFromAuthUser(
-  authUser: { id: string; user_metadata?: Record<string, unknown> } | null,
-  explicitProfile?: CaptainProfileMetadata,
-  documents?: { identityFile?: File | null; drivingLicenseFile?: File | null },
-) {
-  if (!authUser?.id) return;
-
-  const metadata = authUser.user_metadata || {};
-  const role = String(metadata.role || '').toUpperCase();
-  const metadataProfile = metadata.captain_profile;
-  const captainProfile = explicitProfile || (
-    metadataProfile && typeof metadataProfile === 'object'
-      ? metadataProfile as CaptainProfileMetadata
-      : undefined
-  );
-
-  if (role !== 'CAPTAIN' || !captainProfile) return;
-
-  const { supabase } = await import('@/lib/supabase-client');
-  const identityPath = documents?.identityFile
-    ? await uploadCaptainDocument(authUser.id, documents.identityFile, 'identity')
-    : captainProfile.identity_url || null;
-  const drivingLicensePath = documents?.drivingLicenseFile
-    ? await uploadCaptainDocument(authUser.id, documents.drivingLicenseFile, 'driving-license')
-    : captainProfile.driving_license_url || null;
-  const documentFields = documents
-    ? { identity_url: identityPath, driving_license_url: drivingLicensePath }
-    : {};
-  const { verification_status: _ignoredVerificationStatus, ...safeCaptainProfile } =
-    captainProfile as CaptainProfileMetadata & { verification_status?: unknown };
-  const { error } = await supabase.from('captain_profiles').upsert(
-    {
-      id: authUser.id,
-      ...safeCaptainProfile,
-      ...documentFields,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'id' },
-  );
-
-  if (error) throw error;
-}
-
-export async function checkAccountInUse(supabase: any, identifier: string, currentDeviceId: string): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
-  const isEmail = identifier.includes('@');
-  const cleanId = isEmail
-    ? identifier.trim().toLowerCase()
-    : identifier.trim().replace(/\D/g, '');
-
-  if (!cleanId) return false;
-
-  const channelName = (isEmail ? 'user-session-email-' : 'user-session-phone-') + cleanId;
-
-  return new Promise((resolve) => {
-    let resolved = false;
-
-    const channel = supabase.channel(channelName);
-
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        try {
-          void supabase.removeChannel(channel);
-        } catch {}
-        resolve(false);
-      }
-    }, 650);
-
-    channel.on('broadcast', { event: 'session_active' }, (payload: any) => {
-      const foreignDeviceId = payload.payload?.deviceId;
-      if (foreignDeviceId && foreignDeviceId !== currentDeviceId && !resolved) {
-        resolved = true;
-        clearTimeout(timer);
-        try {
-          void supabase.removeChannel(channel);
-        } catch {}
-        resolve(true);
-      }
-    });
-
-    channel.subscribe((status: string) => {
-      if (status === 'SUBSCRIBED') {
-        channel.send({
-          type: 'broadcast',
-          event: 'check_active_session',
-          payload: { deviceId: currentDeviceId },
-        });
-      }
-    });
-  });
-}
-
-export async function checkAccountInUseByPhone(supabase: any, phone: string, currentDeviceId: string): Promise<boolean> {
-  return checkAccountInUse(supabase, phone, currentDeviceId);
 }
 
 export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
@@ -289,52 +193,4 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
     user: authenticatedUser,
     session: data.session,
   };
-}
-
-export function cacheSupabaseSession(session: Session | null) {
-  if (typeof window === 'undefined') return;
-
-  if (session?.access_token) {
-    const targetStorage = shouldRememberSupabaseSession() ? localStorage : sessionStorage;
-    const otherStorage = shouldRememberSupabaseSession() ? sessionStorage : localStorage;
-    targetStorage.setItem(AUTH_TOKEN_STORAGE_KEY, session.access_token);
-    otherStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  } else {
-    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-    sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  }
-}
-
-export function clearSupabaseSessionCache() {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  clearSupabaseAuthStorage();
-}
-
-
-export async function verifyEmailOtpCode(params: {
-  code: string;
-  email?: string;
-  phone?: string;
-  userId?: string;
-}): Promise<{ success: boolean; alreadyConfirmed?: boolean; userId?: string; email?: string; phone?: string; error?: string; message?: string }> {
-  const response = await fetch('/api/auth/verify-code', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-
-  let resData: any = null;
-  try {
-    resData = await response.json();
-  } catch {
-    throw new Error('حدث خطأ في استجابة الخادم أثناء التحقق من الكود.');
-  }
-
-  if (!response.ok || !resData?.success) {
-    throw new Error(resData?.error || 'كود التفعيل غير صحيح أو انتهت صلاحيته.');
-  }
-
-  return resData;
 }

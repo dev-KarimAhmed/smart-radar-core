@@ -2,6 +2,20 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Award, Star, Heart, TrendingUp, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
+import type { CaptainRankName } from '@/features/captain/services/captain-rank';
+import {
+  historyRanksStyles as styles,
+  RANK_DETAILS,
+  RANK_HIERARCHY,
+  type HistoryRanksPointsProps,
+} from './ranks/history-ranks-types';
+import { HistoryRanksLadder } from './ranks/history-ranks-ladder';
+
+export * from './ranks/history-ranks-types';
+export * from './ranks/history-ranks-ladder';
 import { Badge } from '@/components/ui/badge';
 import {
   Award,
@@ -32,11 +46,12 @@ export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps)
   const rawRank = (user?.rank || (user as any)?.tier || 'BRONZE').toUpperCase() as CaptainRankName;
   const currentRank: CaptainRankName = RANK_HIERARCHY.includes(rawRank) ? rawRank : 'BRONZE';
   const rankMeta = RANK_DETAILS[currentRank] || RANK_DETAILS.BRONZE;
-  const rankRules = CAPTAIN_RANK_RULES[currentRank] || { minRating: 4.0, minHearts: 0 };
 
   const rating = Number(user?.rating || (user as any)?.average_rating || 5.0).toFixed(1);
   const hearts = Number((user as any)?.heart_count || (user as any)?.hearts || 12);
   const completedRides = Number((user as any)?.completed_trips_count || (user as any)?.total_rides || 8);
+
+  const currentRankIndex = RANK_HIERARCHY.indexOf(currentRank);
 
   return (
     <Card className={styles.card} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -157,6 +172,11 @@ export function HistoryRanksPoints({ isArabic = true }: HistoryRanksPointsProps)
             </div>
           </div>
 
+          <HistoryRanksLadder
+            isArabic={isArabic}
+            currentRank={currentRank}
+            currentRankIndex={currentRankIndex}
+          />
           {/* 2. Rank Tiers Ladder */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between text-xs font-bold text-slate-300">

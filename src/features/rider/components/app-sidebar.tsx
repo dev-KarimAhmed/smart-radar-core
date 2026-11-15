@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Archive, Bell, Clock, Download, Heart, History, Languages, LogOut, ShieldCheck, User, UserCircle, X } from 'lucide-react';
+import { Clock, Download, Heart, Languages, LogOut, UserCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,111 +12,21 @@ import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
 import { calculateRiderRank } from '@/core/utils';
-import { cn, formatTelUri } from '@/lib/utils';
+import { formatTelUri } from '@/lib/utils';
 import { getLandingPageUrl } from '@/lib/constants';
 import { useNotifications } from '@/shared/hooks/use-notifications';
-import { useRiderSidebarRadar } from '../hooks/use-rider-sidebar-radar';
 import { useTranslations } from "next-intl";
-
-const styles = {
-  root: 'flex h-full flex-col bg-[#0A0F1D]',
-  header: 'flex shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#060B18] p-5',
-  role: 'border-[#14B8A6]/30 bg-[#14B8A6]/10 px-3 py-1 font-bold text-[#14B8A6] shadow-sm',
-  brand: 'flex items-center gap-2',
-  brandLogo: 'h-8 w-auto object-contain drop-shadow-[0_0_12px_rgba(20,184,166,0.35)]',
-  brandTitle: 'text-2xl font-black tracking-widest text-white drop-shadow-md',
-  brandIcon: 'h-7 w-7 text-[#14B8A6]',
-  close: 'h-10 w-10 rounded-full text-gray-400 hover:bg-white/10 hover:text-white',
-  closeIcon: 'h-6 w-6',
-  scroll: 'w-full flex-1',
-  profile: 'mb-6 flex flex-col items-center pt-6',
-  avatar: 'mb-3 flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#14B8A6]/30 bg-[#060B18] shadow-lg shadow-[#14B8A6]/10',
-  avatarIcon: 'h-12 w-12 text-[#14B8A6]',
-  name: 'text-xl font-black tracking-wide text-white',
-  phone: 'mt-1 font-mono text-sm text-[#14B8A6]/80',
-  content: 'mx-auto w-full max-w-sm space-y-6',
-  rating: 'border-y border-[#14B8A6]/15 bg-[#14B8A6]/10 px-4 py-2',
-  ratingRow: 'flex items-center justify-between',
-  ratingLabel: 'text-[10px] font-black uppercase tracking-tighter text-[#14B8A6]',
-  ratingBadge: 'border-[#14B8A6]/40 text-[10px] text-[#14B8A6]',
-  ratingBody: 'mt-1 text-xs text-white/70',
-  buffer: 'mx-4 animate-pulse rounded-lg border border-amber-500/30 bg-amber-950/40 p-3',
-  bufferTitle: 'mb-2 flex items-center gap-2 text-amber-400',
-  bufferIcon: 'h-4 w-4',
-  bufferHeading: 'text-xs font-bold',
-  bufferBody: 'mb-2 text-[10px] text-white/60',
-  bufferCall: 'h-7 w-full border-amber-500/50 text-[10px] text-amber-400',
-  operations: 'space-y-3 px-5',
-  sectionTitle: 'mb-2 flex items-center justify-end gap-2 px-1 text-white',
-  sectionText: 'text-sm font-bold tracking-wider',
-  operationLink: 'block w-full',
-  operationButton: 'h-14 w-full justify-end gap-3 rounded-xl border border-transparent text-white shadow-sm transition-all hover:border-[#14B8A6]/15 hover:bg-[#14B8A6]/10 hover:text-[#14B8A6]',
-  operationText: 'text-base font-bold',
-  operationIcon: 'h-5 w-5 text-[#14B8A6]/70',
-  favorites: 'mt-6 px-5',
-  favoritesLabel: 'flex items-center justify-end gap-2 text-xs font-bold text-muted-foreground',
-  heart: 'h-4 w-4 text-red-500',
-  favoriteList: 'mt-2 space-y-2',
-  favoriteItem: 'flex items-center justify-between rounded-lg border border-white/10 bg-muted/30 px-3 py-2 text-sm text-white/80',
-  favoriteName: 'font-bold',
-  favoriteStatus: 'flex items-center gap-2',
-  favoriteStatusText: 'text-xs capitalize',
-  favoriteStatusDot: 'h-2 w-2 rounded-full',
-  empty: 'py-4 text-center text-xs text-muted-foreground',
-  skeleton: 'h-8 animate-pulse rounded-lg bg-muted/30',
-  footer: 'mt-auto w-full shrink-0 space-y-3 border-t border-white/[0.06] bg-[#060B18] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-center',
-  footerText: 'text-center text-xs tracking-wide text-[#94A3B8]',
-  logout: 'flex h-14 w-full cursor-pointer items-center justify-center gap-3 rounded-xl bg-red-600/90 text-lg font-black tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all hover:bg-red-500',
-  logoutIcon: 'h-5 w-5',
-} as const;
-
-function statusClass(status?: string) {
-  if (status === 'active') return 'bg-green-500';
-  if (status === 'busy' || status === 'rating') return 'bg-yellow-500';
-  return 'bg-gray-500';
-}
-
-function RiderFavoriteDrivers() {
-  const tAuto = useTranslations('auto');
-  const t = useTranslations('auto');
-  const { nearbyFavorites, isLoading } = useRiderSidebarRadar();
-
-  if (isLoading) {
-    return (
-      <div className={styles.favoriteList}>
-        {[0, 1].map((item) => <div className={styles.skeleton} key={item} />)}
-      </div>
-    );
-  }
-
-  if (nearbyFavorites.length === 0) {
-    return <p className={styles.empty}>{tAuto('key_0ea45449')}</p>;
-  }
-
-  return (
-    <div className={styles.favoriteList}>
-      {nearbyFavorites.map((driver) => (
-        <div className={styles.favoriteItem} key={driver.uid}>
-          <span className={styles.favoriteName}>{driver.name}</span>
-          <div className={styles.favoriteStatus}>
-            <span className={styles.favoriteStatusText}>{driver.status || tAuto('key_eaec5eff')}</span>
-            <span className={cn(styles.favoriteStatusDot, statusClass(driver.status))} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+import { styles } from './sidebar/app-sidebar-styles';
+import { RiderFavoriteDrivers } from './sidebar/rider-favorite-drivers';
+import { RiderSidebarOperations } from './sidebar/rider-sidebar-operations';
 
 export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}) {
   const tAuto = useTranslations('auto');
-  const t = useTranslations('auto');
   const { logout, user } = useAuth();
-  const { notifications, unreadCount, hasUnread, markAllAsRead } = useNotifications();
+  const { hasUnread } = useNotifications();
   const { isArabic, toggleLanguage } = useDashboardLanguage();
   const { canShowInstallButton, canPromptNative, triggerNativeInstall } = usePwaInstall('rider');
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
-
 
   if (!user || user.role !== 'rider') return null;
 
@@ -163,8 +73,6 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
           <h3 className={styles.name}>{user.name || (isArabic ? 'مستخدم' : 'Rider')}</h3>
           <p className={styles.phone}>{user.phone}</p>
 
-
-          {/* Controls inside Sidebar: Language Switch & Install App */}
           <div className="mt-4 flex items-center justify-center gap-2 flex-wrap px-4">
             <Button
               type="button"
@@ -221,65 +129,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
             </div>
           ) : null}
 
-          <div className={styles.operations}>
-            <div className={styles.sectionTitle}><span className={styles.sectionText}>{tAuto('key_2133ac1c')}</span></div>
-
-            {/* Notification Trigger with Pulsing Badge */}
-            <Button
-              className={styles.operationButton}
-              variant="ghost"
-              onClick={() => { window.location.hash = '#notifications'; document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); }}
-            >
-              <span className={styles.operationText}>{isArabic ? 'التنبيهات' : 'Notifications'}</span>
-              <div className="relative flex items-center gap-2">
-                <Bell className={styles.operationIcon} />
-                {hasUnread && (
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
-                  </span>
-                )}
-              </div>
-            </Button>
-
-
-
-            <SheetClose asChild>
-              <a
-                className={styles.operationLink}
-                href="#history"
-              >
-                <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>{isArabic ? 'سجلي مع معلن' : 'My Log with Advertiser'}</span>
-                  <History className={styles.operationIcon} />
-                </Button>
-              </a>
-            </SheetClose>
-
-            <SheetClose asChild>
-              <a
-                className={styles.operationLink}
-                href="#vault"
-              >
-                <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>{isArabic ? 'الخزنة' : 'Vault'}</span>
-                  <Archive className={styles.operationIcon} />
-                </Button>
-              </a>
-            </SheetClose>
-
-            <SheetClose asChild>
-              <a
-                className={styles.operationLink}
-                href="#profile"
-              >
-                <Button className={styles.operationButton} variant="ghost">
-                  <span className={styles.operationText}>{tAuto('key_f38edfd8')}</span>
-                  <User className={styles.operationIcon} />
-                </Button>
-              </a>
-            </SheetClose>
-          </div>
+          <RiderSidebarOperations isArabic={isArabic} hasUnread={hasUnread} />
 
           <div className={styles.favorites}>
             <span className={styles.favoritesLabel}>

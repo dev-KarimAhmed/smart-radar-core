@@ -1,50 +1,20 @@
 'use client';
 
 import React from 'react';
-import { Clock, MapPin, Radio, Users, X } from 'lucide-react';
+import { Clock, MapPin, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { getServerTime } from '@/lib/server-time';
-import type { AppLanguage } from '@/lib/i18n/simple-copy';
-import type { Offer } from '@/core/types';
 import { cn } from '@/lib/utils';
-import type { RiderMachineState } from '../state/rider-state-machine';
-import type { CaptainPresencePoint } from '../services/rider-server-marketplace';
-import { buildCaptainOfferFromOffer } from '../services/rider-offer-presentation';
-import { getOfferCountdown } from '../services/offer-countdown';
-import type { RiderLocation } from './rider-map';
-import { CaptainOfferCard } from './captain-offer-card';
 import { useWakeLock } from '@/hooks/use-wake-lock';
+import {
+  styles,
+  type ReceivingOffersScreenProps,
+} from './receiving-offers/receiving-offers-types';
+import { useReceivingOffersTimer } from './receiving-offers/use-receiving-offers-timer';
+import { ReceivingOffersCancelledView } from './receiving-offers/receiving-offers-cancelled-view';
+import { ReceivingOffersScanningView } from './receiving-offers/receiving-offers-scanning-view';
+import { ReceivingOffersListView } from './receiving-offers/receiving-offers-list-view';
 
-const TOTAL_SEARCH_SECONDS = 240; // 4 minutes
-const STAGE_DURATION_SECONDS = 48; // 240 / 5 = 48s for each of the 5 scan perimeters (0.5km -> 1km -> 1.5km -> 2km -> 2.5km)
-
-const styles = {
-  cancelledWrapper: "space-y-4 pointer-events-auto",
-  rtl: "text-right",
-  ltr: "text-left",
-  wrapper: "space-y-3.5",
-  offerList: "space-y-3",
-} as const;
-
-export interface ReceivingOffersScreenProps {
-  isArabic: boolean;
-  language: AppLanguage;
-  state: RiderMachineState;
-  currencyLabel: string;
-  riderLocation: RiderLocation;
-  captainLocations: CaptainPresencePoint[];
-  preferredCaptainIds: string[];
-  acceptingOfferId: string | null;
-  expandedOfferId: string | null;
-  onToggleExpandOffer: (offerId: string) => void;
-  captainSearchRadiusKm: number;
-  isExpandingCaptainSearch: boolean;
-  isCancellingRideRequest: boolean;
-  onCancelRideRequest: () => void;
-  onAcceptOffer: (offer: Offer) => void;
-  onRetry: () => void;
-  firstSeenAtRef: React.RefObject<Map<string, number>>;
-}
+export { type ReceivingOffersScreenProps } from './receiving-offers/receiving-offers-types';
 
 export function ReceivingOffersScreen({
   isArabic,
@@ -68,193 +38,36 @@ export function ReceivingOffersScreen({
   const t = useTranslations('riderView');
   const isCancelled = !!state.requestCancelledAt;
 
-  // [ACT-PWA-02] Keep screen awake during active offer scanning
   useWakeLock(!isCancelled);
 
-  const fallbackStartedAtRef = React.useRef<number | null>(null);
-  if (fallbackStartedAtRef.current === null) {
-    fallbackStartedAtRef.current = getServerTime();
-  }
+  const {
+    now,
+    elapsedSeconds,
+    formattedCountdown,
+    activeOffers,
+    setIsOffersListRevealed,
+    showOffersList,
+    isSearchTimedOutWithoutOffers,
+    stages,
+    currentStage,
+    labels,
+  } = useReceivingOffersTimer({
+    state,
+    firstSeenAtRef,
+    isArabic,
+    isExpandingCaptainSearch,
+    t,
+  });
 
-  // Ticks smoothly for the search countdown & offer wait-seconds progress bar
-  const [now, setNow] = React.useState(() => getServerTime());
-  React.useEffect(() => {
-    const interval = setInterval(() => setNow(getServerTime()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const startedAt = state.requestStartedAt ?? fallbackStartedAtRef.current;
-  const elapsedMs = Math.max(0, now - startedAt);
-  const elapsedSeconds = Math.floor(elapsedMs / 1000);
-  const remainingSeconds = Math.max(0, TOTAL_SEARCH_SECONDS - elapsedSeconds);
-
-  const minutes = Math.floor(remainingSeconds / 60);
-  const seconds = remainingSeconds % 60;
-  const formattedCountdown = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-  // Filter active offers whose validity countdown hasn't expired
-  const activeOffers = React.useMemo(() => {
-    return state.offers.filter((offer) => {
-      const offerId = offer.id || offer.driverId;
-      const firstSeen = firstSeenAtRef.current?.get(offerId);
-      const countdown = getOfferCountdown(offer, firstSeen, now);
-      return !countdown.isExpired;
-    });
-  }, [firstSeenAtRef, now, state.offers]);
-
-  // Step 5: Page 6 - User can click [معاينة العروض] to reveal offers early, or system auto-reveals after 4 mins
-  const [isOffersListRevealed, setIsOffersListRevealed] = React.useState(false);
-
-  // Auto-reveal if 4 minutes finish and active offers exist
-  React.useEffect(() => {
-    if (remainingSeconds === 0 && activeOffers.length > 0) {
-      setIsOffersListRevealed(true);
-    }
-  }, [remainingSeconds, activeOffers.length]);
-
-  // If user opened offers list (or it was auto-opened) but all offers expired while search time remains:
-  // smoothly collapse back to the radar scanning screen
-  React.useEffect(() => {
-    if (isOffersListRevealed && activeOffers.length === 0) {
-      setIsOffersListRevealed(false);
-    }
-  }, [isOffersListRevealed, activeOffers.length]);
-
-  const showOffersList = (isOffersListRevealed && activeOffers.length > 0) || (remainingSeconds === 0 && activeOffers.length > 0);
-  const isSearchTimedOutWithoutOffers = remainingSeconds === 0 && activeOffers.length === 0;
-
-  const stages = React.useMemo(() => {
-    return isArabic
-      ? [
-          {
-            index: 0,
-            radiusKm: 0.5,
-            title: 'رصد النطاق الأولي',
-            description: isExpandingCaptainSearch
-              ? 'جاري توسيع النطاق للبحث عن المزيد من الكباتن المتاحين...'
-              : 'جاري مسح ومطابقة أقرب الكباتن المتواجدين في محيطك المباشر',
-            badge: '0.5 كم',
-          },
-          {
-            index: 1,
-            radiusKm: 1.0,
-            title: 'توسيع نطاق البحث',
-            description: 'تم توسيع نطاق الرادار للبحث عن الكباتن المتاحين في المحيط المجاور',
-            badge: '1 كم',
-          },
-          {
-            index: 2,
-            radiusKm: 1.5,
-            title: 'توسيع نطاق التغطية',
-            description: 'تم توسيع دائرة المسح لتأكيد توفر كابتن مناسب لرحلتك',
-            badge: '1.5 كم',
-          },
-          {
-            index: 3,
-            radiusKm: 2.0,
-            title: 'مسح محيط المنطقة',
-            description: 'بث الطلب لكافة الكباتن المتاحين في المنطقة لتلقي العروض',
-            badge: '2 كم',
-          },
-          {
-            index: 4,
-            radiusKm: 2.5,
-            title: 'أقصى نطاق مسح جغرافي',
-            description: 'المسح النهائي الشامل لضمان وصول عروض لك قبل انتهاء الوقت',
-            badge: '2.5 كم',
-          },
-        ]
-      : [
-          {
-            index: 0,
-            radiusKm: 0.5,
-            title: 'Scanning Initial Range',
-            description: isExpandingCaptainSearch
-              ? 'Expanding coverage to find more nearby available captains...'
-              : 'Scanning and matching the nearest available captains in your immediate area',
-            badge: '0.5 km',
-          },
-          {
-            index: 1,
-            radiusKm: 1.0,
-            title: 'Expanding Search Range',
-            description: 'Radar coverage expanded to include captains across the nearby area',
-            badge: '1 km',
-          },
-          {
-            index: 2,
-            radiusKm: 1.5,
-            title: 'Expanding Coverage Area',
-            description: 'Extending search radius to secure an available captain for your ride',
-            badge: '1.5 km',
-          },
-          {
-            index: 3,
-            radiusKm: 2.0,
-            title: 'Broad Sector Sweep',
-            description: 'Broadcasting request to active captains across the sector',
-            badge: '2 km',
-          },
-          {
-            index: 4,
-            radiusKm: 2.5,
-            title: 'Maximum Radar Range',
-            description: 'Final maximum radar sweep to ensure receiving bids before search closes',
-            badge: '2.5 km',
-          },
-        ];
-  }, [isArabic, isExpandingCaptainSearch]);
-
-  const currentStageIndex = Math.min(4, Math.floor(elapsedSeconds / STAGE_DURATION_SECONDS));
-  const currentStage = stages[currentStageIndex];
-
-  const labels = React.useMemo(() => ({
-    fallbackCaptainName: t('offerPresentation.fallbackCaptainName'),
-    notAvailable: t('offerPresentation.notAvailable'),
-    affiliationUber: t('offerPresentation.affiliationUber'),
-    affiliationIndrive: t('offerPresentation.affiliationIndrive'),
-    affiliationCareem: t('offerPresentation.affiliationCareem'),
-    affiliationCompany: t('offerPresentation.affiliationCompany'),
-    affiliationSelfEmployed: t('offerPresentation.affiliationSelfEmployed'),
-    affiliationAppDriver: t('offerPresentation.affiliationAppDriver'),
-  }), [t]);
-
-  // Step 5: Page 7 - Fallback screen when cancelled or when 4 minutes expire without any offers
   if (isCancelled || isSearchTimedOutWithoutOffers) {
     return (
-      <div className={cn(styles.cancelledWrapper, isArabic ? styles.rtl : styles.ltr)} dir={isArabic ? 'rtl' : 'ltr'}>
-        <div className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-5 sm:p-6 shadow-2xl space-y-3 text-start">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300">
-            <span>{isArabic ? 'لم تصل عروض' : t('offers.noOffersEyebrow')}</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-            {isArabic ? 'نعتذر جميع السائقين مشغولون حالياً' : t('offers.noOffersTitle')}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-bold">
-            {isArabic ? 'يمكنك إعادة المحاولة .' : t('offers.noOffersDescription')}
-          </p>
-        </div>
-
-        <div className="space-y-2 pt-2">
-          <button
-            type="button"
-            onClick={onRetry}
-            className="h-12 w-full rounded-2xl bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] text-sm font-black text-slate-950 shadow-[0_0_20px_rgba(20,245,213,0.35)] transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
-          >
-            {isArabic ? 'إعادة المحاولة' : t('offers.retry')}
-          </button>
-
-          <button
-            type="button"
-            onClick={onCancelRideRequest}
-            disabled={isCancellingRideRequest}
-            className="h-11 w-full rounded-2xl border border-rose-500/40 bg-rose-500/15 text-xs font-black text-rose-200 shadow-sm transition-all hover:bg-rose-500/25 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <X className="h-4 w-4 text-rose-400" />
-            <span>{isCancellingRideRequest ? (isArabic ? 'جاري الإلغاء...' : t('request.cancelling')) : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}</span>
-          </button>
-        </div>
-      </div>
+      <ReceivingOffersCancelledView
+        isArabic={isArabic}
+        onRetry={onRetry}
+        onCancelRideRequest={onCancelRideRequest}
+        isCancellingRideRequest={isCancellingRideRequest}
+        t={t}
+      />
     );
   }
 
@@ -344,286 +157,39 @@ export function ReceivingOffersScreen({
       </div>
 
       {!showOffersList ? (
-        <>
-          <div className="relative overflow-hidden rounded-3xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#0C1527] via-[#080E1C] to-[#040812] p-4 sm:p-5 shadow-2xl shadow-black/50">
-            <div className="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 h-36 w-64 rounded-full bg-[#14F5D5]/10 blur-3xl" />
-
-          {/* Center Graphic - Compact & Sleek */}
-          <div className="relative z-10 my-3 flex flex-col items-center justify-center">
-            {/* Compact Radar Graphic */}
-            <div className="relative flex h-14 w-14 items-center justify-center">
-              <div className="absolute inset-0 rounded-full border border-[#14F5D5]/25 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
-              <div className="absolute -inset-1 rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 animate-pulse" />
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#14B8A6]/40 bg-gradient-to-br from-[#14B8A6]/25 to-[#060D17] text-[#14F5D5] shadow-[0_0_16px_rgba(20,245,213,0.2)]">
-                <Radio className="h-4 w-4 text-[#14F5D5] animate-pulse" />
-              </div>
-            </div>
-
-            {/* Compact Live Countdown & Stage Pill (No distance repetition) */}
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#14F5D5]/30 bg-[#060D19]/80 px-3 py-0.5 shadow-sm">
-              <Clock className="h-3 w-3 text-[#14F5D5] animate-pulse shrink-0" />
-              <span className="font-mono text-xs font-black text-white tracking-wider">
-                {formattedCountdown}
-              </span>
-              <span className="h-2.5 w-[1px] bg-white/20" />
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#14F5D5]">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#14F5D5]" />
-                </span>
-                <span>
-                  {isArabic
-                    ? `المرحلة ${currentStage.index + 1} من 5`
-                    : `Stage ${currentStage.index + 1} of 5`}
-                </span>
-              </div>
-            </div>
-
-            {/* Stage Title */}
-            <h3 className="mt-1.5 text-xs sm:text-sm font-black text-white text-center tracking-tight">
-              {currentStage.title}
-            </h3>
-            {/* Stage Description */}
-            <p className="mt-0.5 text-[10px] sm:text-[11px] text-slate-400 text-center leading-normal max-w-xs">
-              {currentStage.description}
-            </p>
-          </div>
-
-          {/* 5-Stage Progress Bar - The single clear reference for distances */}
-          <div className="relative z-10 mt-2 space-y-1">
-            <div className="grid grid-cols-5 gap-1.5">
-              {stages.map((stg) => {
-                const start = stg.index * STAGE_DURATION_SECONDS;
-                const end = (stg.index + 1) * STAGE_DURATION_SECONDS;
-                const isCompleted = elapsedSeconds >= end;
-                const isCurrent = elapsedSeconds >= start && elapsedSeconds < end;
-                const fillPct = isCompleted
-                  ? 100
-                  : isCurrent
-                  ? Math.min(100, Math.max(0, ((elapsedSeconds - start) / STAGE_DURATION_SECONDS) * 100))
-                  : 0;
-
-                return (
-                  <div key={stg.index} className="space-y-1">
-                    <div className="h-1.5 w-full rounded-full bg-[#060D19] overflow-hidden relative border border-[#14B8A6]/20">
-                      <div
-                        className={cn(
-                          "h-full rounded-full bg-gradient-to-r from-[#14B8A6] to-[#14F5D5] transition-all duration-300 ease-out",
-                          isCurrent && "shadow-[0_0_8px_rgba(20,245,213,0.7)]"
-                        )}
-                        style={{ width: `${fillPct}%` }}
-                      />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span
-                        className={cn(
-                          "text-[9px] sm:text-[10px] font-bold truncate max-w-full transition-colors",
-                          isCurrent
-                            ? "text-[#14F5D5] font-black drop-shadow-[0_0_6px_rgba(20,245,213,0.6)]"
-                            : isCompleted
-                            ? "text-[#14B8A6]"
-                            : "text-slate-500"
-                        )}
-                      >
-                        {stg.badge}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Timeline status footer */}
-            <div className="flex items-center justify-between pt-0.5 px-0.5 text-[9px] sm:text-[10px] font-mono text-slate-400">
-              <span className="flex items-center gap-1 text-[#14F5D5]">
-                <Clock className="h-2.5 w-2.5" />
-                <span>{formattedCountdown}</span>
-              </span>
-              <span>
-                {isArabic ? 'الحد الأقصى: 4:00 د' : 'Max Search: 4:00m'}
-              </span>
-            </div>
-          </div>
-
-          {/* Step 5: Page 6 - Bottom Offer Count & [معاينة العروض] Radar-Themed Action Card */}
-          <div className="relative z-10 mt-5 rounded-2xl border border-[#14B8A6]/30 bg-gradient-to-b from-[#091527] via-[#060D19] to-[#040814] p-3.5 sm:p-4 shadow-xl shadow-black/60 space-y-3">
-            {/* Top Stat Row: Clean label & Live glowing pill badge */}
-            <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/15 text-[#14F5D5]">
-                  <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[#14F5D5]" />
-                </div>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-200 truncate">
-                  {isArabic ? 'عدد العروض القادمة من المعلنين' : 'Offers from advertisers'}
-                </span>
-              </div>
-
-              {/* High-Tech Glowing Pill Badge - Never wraps */}
-              <div
-                className={cn(
-                  "inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-2.5 sm:px-3 py-0.5 sm:py-1 font-mono text-[11px] sm:text-xs font-black shrink-0 transition-all duration-300 select-none",
-                  activeOffers.length > 0
-                    ? "border border-[#14F5D5]/50 bg-[#14F5D5]/15 text-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.3)]"
-                    : "border-white/10 bg-white/5 text-slate-400"
-                )}
-              >
-                <span className="relative flex h-2 w-2 shrink-0">
-                  {activeOffers.length > 0 ? (
-                    <>
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#14F5D5] opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#14F5D5]" />
-                    </>
-                  ) : (
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-slate-500" />
-                  )}
-                </span>
-                <span className="whitespace-nowrap">
-                  {activeOffers.length}{' '}
-                  {isArabic
-                    ? activeOffers.length === 1
-                      ? 'كابتن'
-                      : 'كباتن'
-                    : activeOffers.length === 1
-                    ? 'Captain'
-                    : 'Captains'}
-                </span>
-              </div>
-            </div>
-
-            {/* Radar Pulsing Button - Full width, comfortable tap target, beautifully centered */}
-            <button
-              type="button"
-              onClick={() => {
-                if (activeOffers.length > 0) {
-                  setIsOffersListRevealed(true);
-                }
-              }}
-              disabled={activeOffers.length === 0}
-              className={cn(
-                "relative group overflow-hidden w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-black text-xs sm:text-sm transition-all duration-300 select-none",
-                activeOffers.length > 0
-                  ? "border border-[#14F5D5] bg-gradient-to-r from-[#0E2238] via-[#0A1A2E] to-[#05101E] text-white shadow-[0_0_24px_rgba(20,245,213,0.4)] hover:shadow-[0_0_32px_rgba(20,245,213,0.65)] hover:border-[#14F5D5] hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
-                  : "border border-white/10 bg-[#060D19]/80 text-slate-400 opacity-60 cursor-not-allowed shadow-none"
-              )}
-            >
-              {/* Animated Radar Pulse Rings (when offers available) */}
-              {activeOffers.length > 0 && (
-                <>
-                  <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#14F5D5]/15 via-[#14B8A6]/10 to-transparent" />
-                  <span className="pointer-events-none absolute -inset-1 rounded-xl border border-[#14F5D5]/40 animate-pulse" />
-                </>
-              )}
-
-              {/* Radar Icon squircle with concentric ripple rings matching image 2 */}
-              <div className="relative flex h-7 w-7 items-center justify-center shrink-0">
-                {activeOffers.length > 0 ? (
-                  <>
-                    <span className="absolute inset-0 rounded-full border border-[#14F5D5]/40 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
-                    <span className="absolute -inset-1 rounded-full border border-[#14F5D5]/20 animate-pulse" />
-                  </>
-                ) : null}
-                <div
-                  className={cn(
-                    "relative flex h-6 w-6 items-center justify-center rounded-lg border transition-colors",
-                    activeOffers.length > 0
-                      ? "border-[#14F5D5]/60 bg-[#14B8A6]/20 text-[#14F5D5] shadow-[0_0_10px_rgba(20,245,213,0.4)]"
-                      : "border-white/10 bg-white/5 text-slate-500"
-                  )}
-                >
-                  <Radio
-                    className={cn(
-                      "h-3.5 w-3.5",
-                      activeOffers.length > 0 && "animate-pulse text-[#14F5D5]"
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Button Text */}
-              <span
-                className={cn(
-                  "relative z-10 font-black tracking-wide whitespace-nowrap",
-                  activeOffers.length > 0
-                    ? "text-white drop-shadow-[0_0_8px_rgba(20,245,213,0.4)]"
-                    : "text-slate-400"
-                )}
-              >
-                {isArabic ? 'معاينة العروض' : 'Preview Offers'}
-              </span>
-
-              {/* Offer Count Badge inside button */}
-              {activeOffers.length > 0 && (
-                <span className="relative z-10 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#14F5D5] px-1.5 text-[11px] font-black text-[#040C17] font-mono shadow-[0_0_10px_rgba(20,245,213,0.5)]">
-                  {activeOffers.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Step 5: Page 6 - Cancel Ride Request Button at bottom */}
-        <button
-          type="button"
-          onClick={onCancelRideRequest}
-          disabled={isCancellingRideRequest}
-          className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/15 text-sm font-black text-rose-200 shadow-lg shadow-rose-950/40 transition-all duration-200 hover:border-rose-500/70 hover:bg-rose-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-        >
-          <X className="h-4 w-4 text-rose-400 transition-transform group-hover:rotate-90" />
-          <span>
-            {isCancellingRideRequest
-              ? (isArabic ? 'جاري إلغاء الطلب...' : t('request.cancelling'))
-              : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}
-          </span>
-        </button>
-      </>
-    ) : (
-        <div className="space-y-4">
-          <div className={styles.offerList}>
-            {activeOffers.map((offer) => {
-              const { offer: captainOffer, isPreferred } = buildCaptainOfferFromOffer(
-                offer,
-                {
-                  captainLocations,
-                  riderLocation,
-                  destination: state.destination,
-                  preferredCaptainIds,
-                  language,
-                  serverEstimatedFare: state.destination?.serverEstimatedFare,
-                },
-                labels,
-              );
-
-              return (
-                <CaptainOfferCard
-                  key={offer.id || offer.driverId}
-                  offer={captainOffer}
-                  currencyCode={currencyLabel || 'EGP'}
-                  isAccepting={acceptingOfferId === (offer.id || offer.driverId)}
-                  isPreferred={isPreferred}
-                  isExpanded={expandedOfferId === captainOffer.id}
-                  countdown={getOfferCountdown(offer, firstSeenAtRef.current.get(offer.id || offer.driverId), now)}
-                  onToggleExpand={() => onToggleExpandOffer(captainOffer.id)}
-                  onAccept={() => onAcceptOffer(offer)}
-                />
-              );
-            })}
-          </div>
-
-          {/* Step 6: Page 8 - Cancel Ride Request Button at bottom */}
-          <button
-            type="button"
-            onClick={onCancelRideRequest}
-            disabled={isCancellingRideRequest}
-            className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/15 text-sm font-black text-rose-200 shadow-lg shadow-rose-950/40 transition-all duration-200 hover:border-rose-500/70 hover:bg-rose-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-          >
-            <X className="h-4 w-4 text-rose-400 transition-transform group-hover:rotate-90" />
-            <span>
-              {isCancellingRideRequest
-                ? (isArabic ? 'جاري إلغاء الطلب...' : t('request.cancelling'))
-                : (isArabic ? 'إلغاء الطلب' : t('request.cancel'))}
-            </span>
-          </button>
-        </div>
+        <ReceivingOffersScanningView
+          isArabic={isArabic}
+          formattedCountdown={formattedCountdown}
+          currentStage={currentStage}
+          stages={stages}
+          elapsedSeconds={elapsedSeconds}
+          activeOffers={activeOffers}
+          onRevealOffers={() => setIsOffersListRevealed(true)}
+          onCancelRideRequest={onCancelRideRequest}
+          isCancellingRideRequest={isCancellingRideRequest}
+          t={t}
+        />
+      ) : (
+        <ReceivingOffersListView
+          activeOffers={activeOffers}
+          state={state}
+          captainLocations={captainLocations}
+          riderLocation={riderLocation}
+          preferredCaptainIds={preferredCaptainIds}
+          language={language}
+          labels={labels}
+          currencyLabel={currencyLabel}
+          acceptingOfferId={acceptingOfferId}
+          expandedOfferId={expandedOfferId}
+          onToggleExpandOffer={onToggleExpandOffer}
+          onAcceptOffer={onAcceptOffer}
+          onCancelRideRequest={onCancelRideRequest}
+          isCancellingRideRequest={isCancellingRideRequest}
+          firstSeenAtRef={firstSeenAtRef}
+          now={now}
+          isArabic={isArabic}
+          t={t}
+        />
       )}
     </div>
   );

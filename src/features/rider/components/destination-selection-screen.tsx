@@ -1,9 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Lock, MapPinOff, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { cn } from '@/lib/utils';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 import type { RiderDestination } from '../state/rider-state-machine';
 import type { useDestinationGeographyData } from '../hooks/use-destination-geography-data';
@@ -15,6 +13,9 @@ import type { RiderLocation, RiderLocationStatus } from './rider-map';
 import { formatMoney } from '../services/rider-view-format';
 import { DestinationSearchPanel } from './destination-search-panel';
 import { DestinationTripSummary } from './destination-trip-summary';
+import { useDestinationSelectionLocation } from './destination-selection/use-destination-selection-location';
+import { DestinationWelcomeModal } from './destination-selection/destination-welcome-modal';
+import { DestinationLocationNotice } from './destination-selection/destination-location-notice';
 
 const SAME_LOCATION_THRESHOLD_KM = 0.1;
 
@@ -24,8 +25,6 @@ const styles = {
   header: "flex items-start justify-between gap-3",
   headerText: "min-w-0",
   eyebrow: "text-[11px] font-black text-[#14F5D5]",
-  title: "mt-1 text-2xl font-black leading-tight text-white",
-  subtitle: "mt-1 text-xs leading-relaxed text-slate-400",
   countryBadge: "shrink-0 rounded-full border border-[#14B8A6]/25 bg-[#14B8A6]/10 px-3 py-1.5 text-[10px] font-black text-[#14F5D5]",
 } as const;
 
@@ -61,7 +60,6 @@ export interface DestinationSelectionScreenProps {
 
 export function DestinationSelectionScreen({
   isArabic,
-  language,
   locationStatus,
   geography,
   search,
@@ -81,111 +79,13 @@ export function DestinationSelectionScreen({
   isSendingRideRequest,
   isCaptainScanPreviewActive,
   nearbyCaptainCount,
-  onGovernorateChange,
-  onDistrictChange,
   onSendRequest,
   onResetDraft,
   onCancelPreview,
 }: DestinationSelectionScreenProps) {
-  const locationCopy = useTranslations('location');
   const t = useTranslations('riderView');
-
   const [hasDismissedWelcome, setHasDismissedWelcome] = React.useState(false);
-  const [isLocationDisabled, setIsLocationDisabled] = React.useState(
-    locationStatus === 'denied'
-  );
-
-  React.useEffect(() => {
-    if (locationStatus === 'denied') {
-      setIsLocationDisabled(true);
-    } else if (locationStatus === 'live' || locationStatus === 'locating') {
-      setIsLocationDisabled(false);
-    }
-  }, [locationStatus]);
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
-      navigator.permissions.query({ name: 'geolocation' }).then((res) => {
-        if (res.state === 'denied') {
-          setIsLocationDisabled(true);
-        } else if (res.state === 'granted') {
-          setIsLocationDisabled(false);
-        }
-        res.onchange = () => {
-          if (res.state === 'denied') {
-            setIsLocationDisabled(true);
-          } else if (res.state === 'granted') {
-            setIsLocationDisabled(false);
-          }
-        };
-      }).catch(() => undefined);
-    }
-
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        () => setIsLocationDisabled(false),
-        (err) => {
-          if (err.code === err.PERMISSION_DENIED) {
-            setIsLocationDisabled(true);
-            window.dispatchEvent(new CustomEvent('system-location-denied'));
-          }
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-      );
-    }
-
-    const handleDenied = () => setIsLocationDisabled(true);
-    const handleGranted = () => setIsLocationDisabled(false);
-
-    window.addEventListener('system-location-denied', handleDenied);
-    window.addEventListener('system-location-granted', handleGranted);
-
-    return () => {
-      window.removeEventListener('system-location-denied', handleDenied);
-      window.removeEventListener('system-location-granted', handleGranted);
-    };
-  }, []);
-
-  const handleRequestLocation = () => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('request-live-location'));
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          () => {
-            setIsLocationDisabled(false);
-            window.dispatchEvent(new CustomEvent('system-location-granted'));
-            window.dispatchEvent(new CustomEvent('request-live-location'));
-          },
-          (err) => {
-            if (err.code === err.PERMISSION_DENIED) {
-              setIsLocationDisabled(true);
-              window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
-              window.dispatchEvent(new CustomEvent('system-location-denied'));
-            } else {
-              navigator.geolocation.getCurrentPosition(
-                () => {
-                  setIsLocationDisabled(false);
-                  window.dispatchEvent(new CustomEvent('system-location-granted'));
-                  window.dispatchEvent(new CustomEvent('request-live-location'));
-                },
-                (err2) => {
-                  if (err2.code === err2.PERMISSION_DENIED) {
-                    setIsLocationDisabled(true);
-                    window.dispatchEvent(new CustomEvent('open-system-permissions-modal'));
-                    window.dispatchEvent(new CustomEvent('system-location-denied'));
-                  }
-                },
-                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-              );
-            }
-          },
-          { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-        );
-      }
-    }
-  };
+  const { isLocationDisabled, handleRequestLocation } = useDestinationSelectionLocation(locationStatus);
 
   const hasDestinationOptions = geography.destinationGovernorates.length > 0 && geography.destinationDistricts.length > 0;
   const selectedDestinationHasCoords = !!selectedDestinationCoords;
@@ -198,16 +98,10 @@ export function DestinationSelectionScreen({
         ? formatMoney(selectedDraftDestination.serverEstimatedFare, currencyLabel)
         : t('destination.notAvailable');
 
-  // Real straight-line distance, not H3-cell equality — resolution-9 cells are
-  // ~350m wide, so comparing cell IDs falsely flagged destinations several
-  // hundred meters from the rider (e.g. right after a trip ends nearby) as
-  // "same location". SAME_LOCATION_THRESHOLD_KM only catches genuinely
-  // unmoved selections, not district-anchor/GPS coincidences.
   const straightDistanceKm = selectedDraftDestination?.fareQuote?.straightDistanceKm;
   const isSameLocation = straightDistanceKm !== undefined && straightDistanceKm < SAME_LOCATION_THRESHOLD_KM;
   const estimatedDistanceKm = currentRouteEstimate?.distanceKm ?? null;
   const estimatedDurationMinutes = currentRouteEstimate?.durationMinutes ?? null;
-  const hasImportedLocation = clipboard.externalLocationUrl.length > 0;
   const destinationReady =
     selectedDestinationHasCoords &&
     selectedDraftDestination?.serverEstimatedFare !== undefined &&
@@ -216,6 +110,7 @@ export function DestinationSelectionScreen({
     !isRouteEstimateLoading &&
     !isDestinationPinMoving &&
     !isSameLocation;
+
   const districtLabel = geography.externalLocationContext
     ? [geography.externalLocationContext.district, geography.externalLocationContext.governorate].filter(Boolean).join(' - ')
     : geography.selectedDistrict
@@ -224,47 +119,20 @@ export function DestinationSelectionScreen({
         : [geography.selectedDistrict.districtEn || geography.selectedDistrict.districtAr, geography.selectedDistrict.governorateEn || geography.selectedDistrict.governorateAr].filter(Boolean).join(' - ')
       : t('destination.notAvailable');
 
-  // The pin wins when it has one: it is what the trip is actually priced and driven to.
   const destinationLabel = pinnedPlaceLabel || districtLabel;
 
   return (
     <div className={styles.wrapper} dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* Step 3: Sovereign Welcome Modal */}
-      {!hasDismissedWelcome && (
-        <div
-          className="fixed inset-0 z-[600] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-in fade-in duration-200"
-          dir={isArabic ? 'rtl' : 'ltr'}
-        >
-          <div className="relative w-full max-w-sm rounded-3xl border-2 border-[#14B8A6]/40 bg-[#0A0F1D] p-5 sm:p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/15 text-[#14F5D5] shadow-[0_0_20px_rgba(20,245,213,0.3)]">
-              <ShieldAlert className="h-7 w-7 text-[#14F5D5]" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-black text-white leading-snug">
-                {isArabic ? 'هذا القطاع مخصص للكباتن المعلنين عن خدماتهم' : 'This sector is dedicated to advertising captains'}
-              </h3>
-              <p className="text-xs sm:text-sm font-bold text-slate-300 leading-relaxed">
-                {isArabic ? 'المعلنون يطلبون تعبئة بيانات طلبك' : 'Advertisers require you to fill in your trip details'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setHasDismissedWelcome(true)}
-              className="h-12 w-full rounded-2xl bg-gradient-to-r from-[#14B8A6] via-[#14F5D5] to-[#14B8A6] text-sm font-black text-slate-950 shadow-[0_0_20px_rgba(20,245,213,0.35)] transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              {isArabic ? 'أفهم' : 'I Understand'}
-            </button>
-          </div>
-        </div>
-      )}
+      <DestinationWelcomeModal
+        isArabic={isArabic}
+        isOpen={!hasDismissedWelcome}
+        onDismiss={() => setHasDismissedWelcome(true)}
+      />
 
       <div className={styles.inner}>
         <div className={styles.header}>
           <div className={styles.headerText}>
             <p className={styles.eyebrow}>{t('destination.eyebrow')}</p>
-            {/* Redundant whereTo title removed per Step 3 */}
           </div>
           {countryConfig?.name_ar || countryConfig?.name_en ? (
             <span className={styles.countryBadge}>
@@ -274,28 +142,11 @@ export function DestinationSelectionScreen({
         </div>
       </div>
 
-      {/* Location Disabled Critical Notice */}
-      {isLocationDisabled && (
-        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-3.5 space-y-2 text-start shadow-lg shadow-rose-950/30 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2 text-rose-300 font-black text-xs sm:text-sm">
-            <MapPinOff className="h-4 w-4 shrink-0 text-rose-400" />
-            <span>{isArabic ? 'إذن الموقع الجغرافي (GPS) مغلق' : 'Location Permission Disabled'}</span>
-          </div>
-          <p className="text-[11px] sm:text-xs leading-relaxed text-slate-200 font-medium">
-            {isArabic
-              ? 'لن تتمكن من تحديد نقطة انطلاقك أو إرسال طلب رحلة للكباتن دون تفعيل الموقع. يجب تفعيل إذن الموقع للمتابعة.'
-              : 'You cannot determine your pickup location or request a ride without location access. Please enable location to continue.'}
-          </p>
-          <button
-            type="button"
-            onClick={handleRequestLocation}
-            className="min-h-[44px] w-full bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-black text-xs sm:text-sm py-2.5 rounded-xl transition-transform active:scale-[0.98] shadow-md shadow-rose-950/50 flex items-center justify-center gap-2 cursor-pointer border border-rose-400/30"
-          >
-            <Lock className="h-4 w-4" />
-            <span>{isArabic ? 'تفعيل إذن الموقع لبدء الطلب' : 'Enable Location to Request'}</span>
-          </button>
-        </div>
-      )}
+      <DestinationLocationNotice
+        isArabic={isArabic}
+        isVisible={isLocationDisabled}
+        onRequestLocation={handleRequestLocation}
+      />
 
       <DestinationSearchPanel
         search={search}
