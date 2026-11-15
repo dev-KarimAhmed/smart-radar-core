@@ -62,7 +62,7 @@ export interface Offer {
   price: number;
   driverName: string;
   driverRating: number;
-  driverRank: 'Platinum' | 'Gold' | 'Silver' | 'Bronze';
+  driverRank: 'Diamond' | 'Platinum' | 'Gold' | 'Silver' | 'Bronze';
   driverVehicle: any;
   silencePreference?: 'silent' | 'chatty' | 'neutral';
   driverAvatar?: string;

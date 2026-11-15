@@ -25,7 +25,7 @@ export interface User {
   ratingCount?: number;
   heartCount?: number;
   penaltyCount?: number;
-  rank?: 'Platinum' | 'Gold' | 'Bronze' | 'Silver';
+  rank?: 'Diamond' | 'Platinum' | 'Gold' | 'Bronze' | 'Silver';
   adminRank?: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
   allowedSectors?: string[];
   avatar?: string;

@@ -3,7 +3,7 @@ export interface HistoricalTrip {
   captainId?: string;
   serialId?: string;
   captainName: string;
-  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+  captainRank: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;
@@ -23,6 +23,7 @@ export const UNAVAILABLE_FALLBACK = '';
 
 export function normalizeCaptainRank(value: unknown): HistoricalTrip['captainRank'] {
   const normalized = `${value || ''}`.toUpperCase();
+  if (normalized.includes('DIAMOND') || normalized.includes('ماس')) return 'DIAMOND';
   if (normalized.includes('PLATINUM')) return 'PLATINUM';
   if (normalized.includes('GOLD')) return 'GOLD';
   if (normalized.includes('SILVER')) return 'SILVER';

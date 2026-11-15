@@ -158,8 +158,8 @@ export async function setFavoriteCaptain(
       if (!existing) {
         let captainName = captainMeta?.name || 'كابتن معتمد';
         let captainPhone = captainMeta?.phone || '';
-        let captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER' =
-          captainMeta?.rank === 'GOLD' || captainMeta?.rank === 'BRONZE' || captainMeta?.rank === 'SILVER'
+        let captainRank: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER' =
+          captainMeta?.rank === 'DIAMOND' || captainMeta?.rank === 'GOLD' || captainMeta?.rank === 'BRONZE' || captainMeta?.rank === 'SILVER'
             ? captainMeta.rank
             : 'PLATINUM';
         let serialId = captainMeta?.serialId || ('C-' + captainId.slice(0, 4).toUpperCase());

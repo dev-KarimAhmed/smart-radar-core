@@ -13,7 +13,7 @@ interface NearbyDriver {
   name: string;
   phone: string;
   rating: number;
-  rank: 'Platinum' | 'Gold' | 'Bronze' | 'Silver';
+  rank: 'Diamond' | 'Platinum' | 'Gold' | 'Bronze' | 'Silver';
   vehicle: any;
   location: { lat: number; lng: number };
   distanceKm: number;

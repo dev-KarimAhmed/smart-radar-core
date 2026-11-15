@@ -69,6 +69,8 @@ function CaptainOfferCardBase({
 
   const rankBadgeStyle = (() => {
     switch (captain.rank) {
+      case 'DIAMOND':
+        return 'border-cyan-300/60 bg-gradient-to-r from-cyan-500/25 to-blue-600/25 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]';
       case 'PLATINUM':
         return 'border-cyan-400/50 bg-cyan-500/15 text-cyan-200';
       case 'GOLD':

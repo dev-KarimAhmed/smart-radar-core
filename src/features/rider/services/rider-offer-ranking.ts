@@ -37,6 +37,7 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(
   requestedMode?: 'APP' | 'TAXI' | 'FREE' | null,
 ) {
   const rankWeight: Record<CaptainRank, number> = {
+    DIAMOND: 5,
     PLATINUM: 4,
     GOLD: 3,
     BRONZE: 2,
@@ -69,7 +70,7 @@ export function prioritizeRiderOffers<T extends Record<string, any>>(
         return aFare - bFare;
       }
 
-      // 4. Captain Rank: Platinum > Gold > Bronze > Silver (tie-breaker when fares are equal)
+      // 4. Captain Rank: Diamond > Platinum > Gold > Bronze > Silver (tie-breaker when fares are equal)
       const aRankWeight = rankWeight[toCaptainOfferRank(a?.captain?.rank || a?.captain?.tier || a?.driverRank || a?.tier)] ?? rankWeight.SILVER;
       const bRankWeight = rankWeight[toCaptainOfferRank(b?.captain?.rank || b?.captain?.tier || b?.driverRank || b?.tier)] ?? rankWeight.SILVER;
       if (aRankWeight !== bRankWeight) return bRankWeight - aRankWeight;

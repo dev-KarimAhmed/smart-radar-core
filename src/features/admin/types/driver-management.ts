@@ -6,7 +6,7 @@ export interface CaptainUser {
   email: string;
   role: string;
   status: 'ACTIVE' | 'IDLE' | 'BUSY' | 'SUSPENDED' | 'BANNED';
-  tier: 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
+  tier: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
   rating: number;
   rating_count: number;
   heart_count: number;

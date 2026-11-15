@@ -2,6 +2,7 @@ import type { Offer } from '@/core/types';
 
 export function parseDriverRank(value: string | null): Offer['driverRank'] {
   const normalized = `${value || ''}`.toLowerCase();
+  if (normalized.includes('diamond') || normalized.includes('ماس')) return 'Diamond';
   if (normalized.includes('platinum')) return 'Platinum';
   if (normalized.includes('gold')) return 'Gold';
   if (normalized.includes('silver')) return 'Silver';

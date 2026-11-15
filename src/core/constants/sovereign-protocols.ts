@@ -43,10 +43,11 @@ export const SOVEREIGN_CONSTANTS = {
 
   // 6. ثوابت الرتب والتصنيفات (Ranking)
   RANKING_RULES: {
+    DIAMOND: { minRating: 4.9, minHearts: 100, name: 'Diamond' },
     PLATINUM: { minRating: 4.8, minHearts: 50, name: 'Platinum' },
     GOLD: { minRating: 4.5, minHearts: 20, name: 'Gold' },
-    BRONZE: { minRating: 4.0, minHearts: 0, name: 'Bronze' },
-    SILVER: { minRating: 0, minHearts: 0, name: 'Silver' }
+    SILVER: { minRating: 4.0, minHearts: 0, name: 'Silver' },
+    BRONZE: { minRating: 0, minHearts: 0, name: 'Bronze' }
   },
 } as const;
 export type SovereignConstantsType = typeof SOVEREIGN_CONSTANTS;

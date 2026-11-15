@@ -91,8 +91,8 @@ export function DriverSecurityModal({
           {/* Change Sovereign Rank Tier */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-300 block">{t('sovereignTier')}</label>
-            <div className="grid grid-cols-4 gap-1.5 text-xs font-mono">
-              {['PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].map((tier) => (
+            <div className="grid grid-cols-5 gap-1.5 text-xs font-mono">
+              {['DIAMOND', 'PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].map((tier) => (
                 <button
                   key={tier}
                   type="button"

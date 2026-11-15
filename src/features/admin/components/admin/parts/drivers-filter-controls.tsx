@@ -136,6 +136,7 @@ export function DriversFilterControls({
             <span className="text-slate-400 px-2 font-bold">{t('filterRank')}</span>
             {[
               { key: 'ALL', label: t('statusAll') },
+              { key: 'DIAMOND', label: t('rankDiamond') },
               { key: 'PLATINUM', label: t('rankPlatinum') },
               { key: 'GOLD', label: t('rankGold') },
               { key: 'BRONZE', label: t('rankBronze') },

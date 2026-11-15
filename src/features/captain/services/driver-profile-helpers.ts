@@ -64,6 +64,7 @@ export function getVehicleYear(profile: ProfileRow | null): string {
 export function normalizeTier(value: string): string {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return '';
+  if (normalized.includes('diamond') || normalized.includes('ماس')) return 'diamond';
   if (normalized.includes('platinum') || normalized.includes('بلات')) return 'platinum';
   if (normalized.includes('gold') || normalized.includes('ذهب')) return 'gold';
   if (normalized.includes('silver') || normalized.includes('فض')) return 'silver';
@@ -73,7 +74,7 @@ export function normalizeTier(value: string): string {
 
 export function tierLabel(value: string, t: TFunction): string {
   const key = normalizeTier(value);
-  if (key === 'platinum' || key === 'gold' || key === 'silver' || key === 'bronze') {
+  if (key === 'diamond' || key === 'platinum' || key === 'gold' || key === 'silver' || key === 'bronze') {
     return t(`tierLabels.${key}`);
   }
   return value;
@@ -100,10 +101,11 @@ export function getCaptainTier(profile: ProfileRow | null, rating: number, t: TF
     return { key: normalizedTier, label: tierLabel(normalizedTier, t) };
   }
 
-  if (rating >= 4.9) return { key: 'platinum', label: tierLabel('platinum', t) };
-  if (rating >= 4.7) return { key: 'gold', label: tierLabel('gold', t) };
-  if (rating >= 4.4) return { key: 'bronze', label: tierLabel('bronze', t) };
-  return { key: 'silver', label: tierLabel('silver', t) };
+  if (rating >= 4.95) return { key: 'diamond', label: tierLabel('diamond', t) };
+  if (rating >= 4.8) return { key: 'platinum', label: tierLabel('platinum', t) };
+  if (rating >= 4.5) return { key: 'gold', label: tierLabel('gold', t) };
+  if (rating >= 4.0) return { key: 'silver', label: tierLabel('silver', t) };
+  return { key: 'bronze', label: tierLabel('bronze', t) };
 }
 
 export function buildVehicleColumnPayload(

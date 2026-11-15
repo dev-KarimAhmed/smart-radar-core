@@ -35,7 +35,10 @@ FROM public.profiles WHERE id = (SELECT id FROM probe);
 SELECT
   '1. thresholds' AS check_name,
   CASE WHEN
-       public.calculate_sovereign_rank(4.9, 60) = 'PLATINUM'
+       public.calculate_sovereign_rank(4.95, 120) = 'DIAMOND'
+   AND public.calculate_sovereign_rank(4.9, 100) = 'DIAMOND'  -- boundary, inclusive
+   AND public.calculate_sovereign_rank(4.9, 99) = 'PLATINUM'  -- rating is there, hearts are not
+   AND public.calculate_sovereign_rank(4.9, 60) = 'PLATINUM'
    AND public.calculate_sovereign_rank(4.9, 49) = 'GOLD'      -- rating is there, hearts are not
    AND public.calculate_sovereign_rank(4.9, 19) = 'SILVER'    -- neither hearts gate cleared
    AND public.calculate_sovereign_rank(4.6, 25) = 'GOLD'

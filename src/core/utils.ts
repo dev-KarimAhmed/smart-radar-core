@@ -7,10 +7,19 @@ export function calculateRiderRank(ratingSum?: number, ratingCount?: number): st
   return 'Silver';
 }
 
-export function getRankTheme(rank?: 'Platinum' | 'Gold' | 'Bronze' | 'Silver' | string) {
+export function getRankTheme(rank?: 'Diamond' | 'Platinum' | 'Gold' | 'Bronze' | 'Silver' | string) {
   const normalized = String(rank || 'Silver').toLowerCase();
 
   switch (normalized) {
+    case 'diamond':
+      return {
+        bg: 'bg-cyan-500/20',
+        color: 'text-cyan-300',
+        border: 'border-cyan-400/40',
+        glow: 'shadow-[0_0_12px_rgba(6,182,212,0.3)]',
+        icon: 'Crown',
+        label: 'ماسي',
+      };
     case 'platinum':
       return {
         bg: 'bg-teal-500/15',

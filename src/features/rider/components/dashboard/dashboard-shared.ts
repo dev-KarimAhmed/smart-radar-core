@@ -114,7 +114,7 @@ export interface HistoricalTrip {
   tripId: string;
   captainId?: string;
   captainName: string;
-  captainRank: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+  captainRank: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   captainPhone: string;
   vehicleInfo: string;
   finalPrice: number;

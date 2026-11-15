@@ -1538,6 +1538,7 @@
     "submit": "Submit offer",
     "ignore": "Ignore",
     "tierLabels": {
+      "DIAMOND": "Diamond",
       "PLATINUM": "Platinum",
       "GOLD": "Gold",
       "SILVER": "Silver",
@@ -1655,6 +1656,7 @@
     "edit": "Edit profile",
     "cancel": "Cancel",
     "tierLabels": {
+      "diamond": "Diamond",
       "platinum": "Platinum",
       "gold": "Gold",
       "silver": "Silver",

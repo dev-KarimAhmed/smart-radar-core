@@ -32,7 +32,7 @@ export function computeTariffBreakdown(params: {
   const offerPerKm = currentPerKm * offerRatio;
   const offerPerMin = currentPerMin * offerRatio;
 
-  const isGoldOrPlatinum = (tier === 'GOLD' || tier === 'PLATINUM') && rankIncreaseFactor > 0;
+  const isGoldOrPlatinum = (tier === 'DIAMOND' || tier === 'GOLD' || tier === 'PLATINUM') && rankIncreaseFactor > 0;
   const isSilver = tier === 'SILVER';
 
   return {

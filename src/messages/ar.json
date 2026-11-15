@@ -1538,6 +1538,7 @@
     "submit": "تقديم العرض",
     "ignore": "تجاهل",
     "tierLabels": {
+      "DIAMOND": "ماسي",
       "PLATINUM": "بلاتيني",
       "GOLD": "ذهبي",
       "SILVER": "فضي",
@@ -1655,6 +1656,7 @@
     "edit": "تعديل البيانات",
     "cancel": "إلغاء",
     "tierLabels": {
+      "diamond": "ماسي",
       "platinum": "بلاتيني",
       "gold": "ذهبي",
       "silver": "فضي",

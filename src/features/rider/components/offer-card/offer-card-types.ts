@@ -1,4 +1,4 @@
-export type CaptainRank = 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
+export type CaptainRank = 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
 
 export interface CaptainProfile {
   id: string;
@@ -70,6 +70,7 @@ export interface CaptainOfferCardCountdown {
 }
 
 export const premiumFactors: Record<CaptainRank, number> = {
+  DIAMOND: 0.25,
   PLATINUM: 0.2,
   GOLD: 0.15,
   BRONZE: 0.15,
@@ -78,12 +79,14 @@ export const premiumFactors: Record<CaptainRank, number> = {
 
 export const rankLabels: Record<'ar' | 'en', Record<CaptainRank, string>> = {
   ar: {
+    DIAMOND: 'ماسي',
     PLATINUM: 'بلاتيني',
     GOLD: 'ذهبي',
     BRONZE: 'برونزي',
     SILVER: 'فضي',
   },
   en: {
+    DIAMOND: 'Diamond',
     PLATINUM: 'Platinum',
     GOLD: 'Gold',
     BRONZE: 'Bronze',

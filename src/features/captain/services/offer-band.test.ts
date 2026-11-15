@@ -18,6 +18,7 @@ import {
  */
 const EXPECTED: Array<[CaptainTier, number, number]> = [
   // rank,      granted, warns above
+  ['DIAMOND', 0.25, 0.25],
   ['PLATINUM', 0.2, 0.2],
   ['GOLD', 0.1, 0.15],
   ['BRONZE', 0.05, 0.15],
@@ -36,9 +37,9 @@ test('the warning line is the greater of the rank allowance and the 15% general 
   }
 });
 
-test('PLATINUM is the only rank whose own allowance clears the general line', () => {
+test('DIAMOND and PLATINUM are the ranks whose own allowance clears the general line', () => {
   const clearsLine = EXPECTED.filter(([, granted]) => granted > 0.15).map(([tier]) => tier);
-  assert.deepEqual(clearsLine, ['PLATINUM']);
+  assert.deepEqual(clearsLine, ['DIAMOND', 'PLATINUM']);
 });
 
 test('SILVER is granted less than BRONZE — deliberate, not a typo', () => {
@@ -51,8 +52,8 @@ test('SILVER is granted less than BRONZE — deliberate, not a typo', () => {
 });
 
 test('an unrecognised rank grants nothing rather than guessing', () => {
-  assert.equal(rankIncreaseFactorForTier('DIAMOND' as CaptainTier), 0);
-  assert.equal(warnFactorForTier('DIAMOND' as CaptainTier), 0.15);
+  assert.equal(rankIncreaseFactorForTier('UNKNOWN' as CaptainTier), 0);
+  assert.equal(warnFactorForTier('UNKNOWN' as CaptainTier), 0.15);
 });
 
 test('the floor is the same hard 15% for every rank', () => {

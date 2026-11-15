@@ -1,4 +1,4 @@
-export type CaptainTier = 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
+export type CaptainTier = 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
 
 /**
  * The offer band, as two separate numbers per rank.
@@ -13,15 +13,16 @@ export type CaptainTier = 'PLATINUM' | 'GOLD' | 'BRONZE' | 'SILVER';
  * hard rule is the floor, which submit_ride_offer still refuses below.
  *
  * Mirror of public.offer_band_for_rank
- * (supabase/migrations/20260902090000_rank_increase_bands_warn_above.sql). The server is the
+ * (supabase/migrations/20261115233000_add_diamond_tier_to_rank_engine.sql). The server is the
  * authority — these values are the fallback used before the quote arrives, so drift here can
  * only mis-draw the panel, never mis-price an offer. offer-band.test.ts pins them anyway.
  */
 export const RANK_INCREASE_FACTOR: Record<CaptainTier, number> = {
-  PLATINUM: 0.2,  // 1 - 20%
-  GOLD: 0.1,      // 1 - 10%
-  BRONZE: 0.05,   // 1 - 5%
-  SILVER: 0,      // 0% (Fourth & base tier)
+  DIAMOND: 0.25, // 1 - 25% (سقف الرتبة الماسية)
+  PLATINUM: 0.2, // 1 - 20%
+  GOLD: 0.1,     // 1 - 10%
+  BRONZE: 0.05,  // 1 - 5%
+  SILVER: 0,     // 0% (Fourth & base tier)
 };
 
 /** The general no-warning line every rank gets, whatever their own allowance. */
@@ -35,8 +36,8 @@ export function rankIncreaseFactorForTier(tier: CaptainTier) {
 }
 
 /**
- * Where the amber warning starts. PLATINUM is the only rank whose own allowance clears the
- * 15% line, so it is the only one that reaches 20% un-warned.
+ * Where the amber warning starts. DIAMOND (25%) and PLATINUM (20%) own allowances clear
+ * the 15% line, so they reach their granted ceiling un-warned.
  */
 export function warnFactorForTier(tier: CaptainTier) {
   return Math.max(STANDARD_PREMIUM_FACTOR, rankIncreaseFactorForTier(tier));

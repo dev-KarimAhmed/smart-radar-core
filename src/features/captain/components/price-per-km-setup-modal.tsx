@@ -58,7 +58,7 @@ export function PricePerKmSetupModal({
   const t = useTranslations('captainDashboard');
   const { user } = useAuth();
   const rank = user?.rank || 'Bronze';
-  const isGoldOrPlatinum = rank === 'Gold' || rank === 'Platinum';
+  const isGoldOrPlatinum = rank === 'Diamond' || rank === 'Gold' || rank === 'Platinum';
   const isSilver = rank === 'Silver';
   const isArabic = direction === 'rtl';
 

@@ -14,6 +14,12 @@ interface HistoryFavoriteCaptainsProps {
 
 function getRankBadge(rank: string = 'GOLD') {
   const normalized = (rank || 'GOLD').toUpperCase();
+  if (normalized.includes('DIAMOND') || normalized.includes('ماس')) {
+    return {
+      label: 'DIAMOND',
+      classes: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40',
+    };
+  }
   if (normalized.includes('PLATINUM')) {
     return {
       label: 'PLATINUM',

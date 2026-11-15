@@ -6,7 +6,7 @@ export interface CaptainGeoWallet {
   homeDistrict: string;     // وتد اللواء الحاكم للشحن (مثل: ناعور، عمان، اربد)
   paidMinutesRemaining: number;
   bonusMinutesRemaining: number;
-  captainRank: 'PLATINUM' | 'GOLD' | 'BRONZE';
+  captainRank: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
 }
 
 export interface GeoPaymentGateway {
@@ -18,8 +18,10 @@ export const RadarGeoRefillKernel = {
   
   // مصفوفة مكافآت الرتب الحاكمة المقفلة تقنياً لمنع الاجتهاد
   RANK_BONUS_FACTORS: Object.freeze({
+    DIAMOND: 1.35,  // بونص +35% للرتبة الماسية
     PLATINUM: 1.25, // بونص +25% ساعات حرة
     GOLD: 1.15,     // بونص +15% ساعات حرة
+    SILVER: 1.05,
     BRONZE: 1.00    // صفر بونص لحارقي الأسعار
   }),
 

@@ -59,8 +59,10 @@ export const styles = {
   style316_58: "ml-2",
 } as const;
 
-export const getRankBadge = (rank: 'Platinum' | 'Gold' | 'Silver' | 'Bronze', t: any) => {
+export const getRankBadge = (rank: 'Diamond' | 'Platinum' | 'Gold' | 'Silver' | 'Bronze', t: any) => {
   switch (rank) {
+    case 'Diamond':
+      return { label: t('rankDiamond'), className: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40' };
     case 'Platinum':
       return { label: t('rankPlatinum'), className: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' };
     case 'Gold':

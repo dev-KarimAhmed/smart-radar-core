@@ -72,7 +72,7 @@ export async function handleUpdateLanguage(body: any, userId: string) {
 
 export async function handleUpdateTier(body: any, userId: string) {
   const tier = String(body.tier).toUpperCase();
-  if (!['PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].includes(tier)) {
+  if (!['DIAMOND', 'PLATINUM', 'GOLD', 'BRONZE', 'SILVER'].includes(tier)) {
     return NextResponse.json({ success: false, error: 'الرتبة غير صحيحة' }, { status: 400 });
   }
 

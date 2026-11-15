@@ -48,13 +48,15 @@ export function toFiniteNumberOrNull(value: unknown) {
 
 export function normalizeCaptainTier(value: unknown, rating = 5): CaptainTier {
   const normalized = String(value || '').trim().toUpperCase();
+  if (normalized.includes('DIAMOND') || normalized.includes('ماس')) return 'DIAMOND';
   if (normalized.includes('PLATINUM') || normalized.includes('بلات')) return 'PLATINUM';
   if (normalized.includes('GOLD') || normalized.includes('ذهب')) return 'GOLD';
   if (normalized.includes('BRONZE') || normalized.includes('برون')) return 'BRONZE';
   if (normalized.includes('SILVER') || normalized.includes('فض')) return 'SILVER';
-  if (rating >= 4.9) return 'PLATINUM';
-  if (rating >= 4.7) return 'GOLD';
-  if (rating >= 4.4) return 'BRONZE';
-  return 'SILVER';
+  if (rating >= 4.95) return 'DIAMOND';
+  if (rating >= 4.8) return 'PLATINUM';
+  if (rating >= 4.5) return 'GOLD';
+  if (rating >= 4.0) return 'SILVER';
+  return 'BRONZE';
 }
 

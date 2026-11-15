@@ -71,6 +71,7 @@ export function getOfferAffiliationLabel(offer: any, labels: OfferPresentationLa
 
 export function toCaptainOfferRank(value: unknown): CaptainRank {
   const normalized = String(value || '').trim().toUpperCase();
+  if (normalized.includes('DIAMOND') || normalized.includes('ماس')) return 'DIAMOND';
   if (normalized.includes('PLATINUM') || normalized.includes('بلات')) return 'PLATINUM';
   if (normalized.includes('GOLD') || normalized.includes('ذهب')) return 'GOLD';
   if (normalized.includes('BRONZE') || normalized.includes('برون')) return 'BRONZE';

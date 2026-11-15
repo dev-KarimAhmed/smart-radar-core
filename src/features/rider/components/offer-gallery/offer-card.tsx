@@ -113,6 +113,8 @@ export function OfferCard({
               {(() => {
                 const tier = (offer.tier || 'SILVER').toUpperCase();
                 switch (tier) {
+                  case 'DIAMOND':
+                    return <span className={styles.style132_13}>{t('rankDiamond')}</span>;
                   case 'BRONZE':
                     return <span className={styles.style120_11}>{t('rankBronze')}</span>;
                   case 'GOLD':

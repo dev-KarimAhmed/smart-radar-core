@@ -167,7 +167,7 @@ export async function mergeLocalDexieTrips(
           id: entry.captainId,
           full_name: entry.captainName,
           phone: entry.captainPhone,
-          rating: entry.captainRank === 'PLATINUM' ? 5.0 : entry.captainRank === 'GOLD' ? 4.5 : 4.0,
+          rating: entry.captainRank === 'DIAMOND' ? 5.0 : entry.captainRank === 'PLATINUM' ? 4.8 : entry.captainRank === 'GOLD' ? 4.5 : 4.0,
           rank: entry.captainRank,
         },
         destination_address_ar: entry.destinationAddressAr || '',

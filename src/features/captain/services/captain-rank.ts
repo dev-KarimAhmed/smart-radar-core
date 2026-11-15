@@ -14,8 +14,8 @@ export const CAPTAIN_RANK_RULES: Record<CaptainRankName, { minRating: number; mi
   DIAMOND: { minRating: 4.9, minHearts: 100 },
   PLATINUM: { minRating: 4.8, minHearts: 50 },
   GOLD: { minRating: 4.5, minHearts: 20 },
-  BRONZE: { minRating: 4.0, minHearts: 0 },
-  SILVER: { minRating: 0, minHearts: 0 },
+  SILVER: { minRating: 4.0, minHearts: 0 },
+  BRONZE: { minRating: 0, minHearts: 0 },
 };
 
 export type WeeklyReportResult =

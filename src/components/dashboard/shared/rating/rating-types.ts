@@ -10,7 +10,7 @@ export interface RatingModalProps {
   onSuccess: () => void;
   captainName?: string;
   captainPhone?: string;
-  captainRank?: 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
+  captainRank?: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   vehicleInfo?: string;
   finalPrice?: number;
 }
