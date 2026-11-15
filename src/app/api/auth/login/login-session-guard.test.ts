@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { verifySingleSession } from './login-session-guard';
+import { verifySingleSession, claimActiveSession, clearActiveSession } from './login-session-guard';
 
 async function runTests() {
   const mockAdminClient = {
@@ -20,12 +20,24 @@ async function runTests() {
           }
           return { data: { user: { user_metadata: {} } } };
         },
+        updateUserById: async () => ({ data: { user: {} }, error: null }),
       },
+    },
+    rpc: async (func: string) => {
+      // Mock RPC not found to test fallback CAS
+      return { data: null, error: { message: 'function not found' } };
     },
     from: () => ({
       select: () => ({
         eq: () => ({
           maybeSingle: async () => ({ data: null }),
+        }),
+      }),
+      update: () => ({
+        eq: () => ({
+          or: () => ({
+            select: async () => [{ id: 'mock' }],
+          }),
         }),
       }),
     }),
@@ -82,7 +94,47 @@ async function runTests() {
   assert.equal(res5.allowed, false);
   assert.equal(res5.code, 'account_in_use');
 
-  console.log('All single session guard unit tests passed successfully!');
+  // Test 6: Same-second concurrent claim race condition (Atomic CAS)
+  // Device 1 (Laptop) claims first
+  const claimLaptop = await claimActiveSession({
+    adminClient: mockAdminClient,
+    userId: 'user-race-condition',
+    deviceId: 'device-laptop-winner',
+  });
+  assert.equal(claimLaptop.success, true);
+
+  // Device 2 (Mobile) attempts to claim at the exact same second
+  const claimMobile = await claimActiveSession({
+    adminClient: mockAdminClient,
+    userId: 'user-race-condition',
+    deviceId: 'device-mobile-loser',
+  });
+  assert.equal(claimMobile.success, false);
+  assert.equal(claimMobile.conflict, true);
+
+  // Verification immediately rejects Device 2
+  const verifyMobile = await verifySingleSession({
+    adminClient: mockAdminClient,
+    userId: 'user-race-condition',
+    incomingDeviceId: 'device-mobile-loser',
+  });
+  assert.equal(verifyMobile.allowed, false);
+
+  // Test 7: Clear session on logout releases lock
+  await clearActiveSession({
+    adminClient: mockAdminClient,
+    userId: 'user-race-condition',
+    deviceId: 'device-laptop-winner',
+  });
+
+  const claimAfterLogout = await claimActiveSession({
+    adminClient: mockAdminClient,
+    userId: 'user-race-condition',
+    deviceId: 'device-mobile-now-allowed',
+  });
+  assert.equal(claimAfterLogout.success, true);
+
+  console.log('All single session guard & atomic CAS unit tests passed successfully!');
 }
 
 void runTests();

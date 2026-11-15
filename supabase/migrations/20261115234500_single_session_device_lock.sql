@@ -19,3 +19,26 @@ COMMENT ON COLUMN public.profiles.last_seen_at IS
 CREATE INDEX IF NOT EXISTS idx_profiles_active_device_id
   ON public.profiles(active_device_id)
   WHERE active_device_id IS NOT NULL;
+
+-- Atomic CAS Function: Prevents concurrent race conditions when two devices log in at the exact same millisecond
+CREATE OR REPLACE FUNCTION public.claim_single_device_session(
+  p_user_id uuid,
+  p_device_id text
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_claimed boolean;
+BEGIN
+  UPDATE public.profiles
+  SET active_device_id = p_device_id,
+      last_seen_at = now()
+  WHERE id = p_user_id
+    AND (active_device_id IS NULL OR active_device_id = p_device_id);
+
+  v_claimed := FOUND;
+  RETURN v_claimed;
+END;
+$$;

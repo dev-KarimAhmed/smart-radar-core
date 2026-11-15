@@ -162,13 +162,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Claim active session for this device in the database
+    // 2. Atomically claim active session (CAS prevents concurrent same-second race)
     if (incomingDeviceId) {
-      await claimActiveSession({
+      const claimResult = await claimActiveSession({
         adminClient,
         userId: user.id,
         deviceId: incomingDeviceId,
       });
+
+      if (!claimResult.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: 'account_in_use',
+            error: 'هذا الحساب أصبح مسجلاً للتو على جهاز آخر. لا يمكنك تسجيل الدخول في نفس الوقت حتى يتم تسجيل الخروج.',
+          },
+          { status: 409 },
+        );
+      }
     }
 
     return NextResponse.json({
