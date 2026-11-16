@@ -16,6 +16,7 @@ interface PersonalContactFieldsProps {
   countryOptions: { value: string; label: string }[];
   countriesLoading: boolean;
   phoneValidation: { ok: boolean; message: string };
+  phonePlaceholder?: string;
   onCountryChange: (id: string) => void;
   onFieldChange: (field: keyof CaptainPersonalValues, value: string) => void;
   checkPhoneUniqueness: (phone: string) => Promise<boolean>;
@@ -30,6 +31,7 @@ export function PersonalContactFields({
   countryOptions,
   countriesLoading,
   phoneValidation,
+  phonePlaceholder,
   onCountryChange,
   onFieldChange,
   checkPhoneUniqueness,
@@ -65,7 +67,7 @@ export function PersonalContactFields({
             <Input
               type="tel"
               dir="ltr"
-              placeholder={t('phonePlaceholder')}
+              placeholder={phonePlaceholder || t('phonePlaceholder')}
               value={values.phone}
               onChange={(e) => onFieldChange('phone', e.target.value)}
               onBlur={() => {

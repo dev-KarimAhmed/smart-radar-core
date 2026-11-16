@@ -14,7 +14,8 @@ import {
 } from '@/features/auth/contract';
 import { getCaptainPersonalSchema } from '../../../lib/captain-registration-schema';
 import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../../lib/validate-field';
-import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
+import { normalizePhoneForCountry, getDemoPhoneForCountry } from '@/features/auth/utils/registration-helpers';
+import { useCaptainPersonalUniqueness } from './use-captain-personal-uniqueness';
 import type { CaptainPersonalValues } from './personal-step-types';
 
 export function useCaptainPersonalStep(
@@ -37,6 +38,21 @@ export function useCaptainPersonalStep(
   const { governorateRows, loading: governoratesLoading } = useSupabaseGovernorates(countryIdNum);
   const { districtRows, loading: districtsLoading } = useSupabaseDistricts(governorateIdNum);
   const detectedCountryCode = useDetectedCountryCode();
+
+  const selectedCountry = React.useMemo(() => {
+    if (values.country) {
+      return countryRows.find((candidate) => String(candidate.id) === String(values.country)) || null;
+    }
+    if (detectedCountryCode && countryRows.length > 0) {
+      return countryRows.find((row) => getCountryIsoCode(row) === detectedCountryCode) || null;
+    }
+    return null;
+  }, [countryRows, values.country, detectedCountryCode]);
+
+  const phonePlaceholder = React.useMemo(() => {
+    const demoPhone = getDemoPhoneForCountry(selectedCountry);
+    return isArabic ? `مثال: ${demoPhone}` : `Example: ${demoPhone}`;
+  }, [selectedCountry, isArabic]);
 
   const countryOptions = React.useMemo(
     () => countryRows.map((row) => ({ value: String(row.id), label: getCountryLabel(row, language) })),
@@ -84,9 +100,19 @@ export function useCaptainPersonalStep(
 
   const phoneValidation = React.useMemo(() => {
     const cleanPhone = values.phone?.trim();
-    if (!cleanPhone) return { ok: false, message: t('phoneHint') };
+    const demoPhone = getDemoPhoneForCountry(selectedCountry);
+    const countrySpecificHint = isArabic
+      ? `يجب أن يبدأ برمز الدولة، مثل ${demoPhone}.`
+      : `Must start with the country code, e.g. ${demoPhone}.`;
+
+    if (!cleanPhone) return { ok: false, message: countrySpecificHint };
     if (!cleanPhone.startsWith('+')) {
-      return { ok: false, message: tv('phoneMissingCountryCode') || t('phoneHint') };
+      return {
+        ok: false,
+        message: isArabic
+          ? `اكتب رقم الهاتف بصيغة دولية تبدأ برمز الدولة، مثل ${demoPhone}.`
+          : `Write the phone number in international format starting with the country code, like ${demoPhone}.`,
+      };
     }
     const res = normalizePhoneForCountry(cleanPhone, values.countryIso);
     if (!res.ok) {
@@ -101,79 +127,14 @@ export function useCaptainPersonalStep(
       return { ok: false, message: errors.phone };
     }
     return { ok: true, message: '' };
-  }, [values.phone, values.countryIso, errors.phone, t, tv]);
+  }, [values.phone, values.countryIso, selectedCountry, isArabic, errors.phone, tv]);
 
-  const checkEmailUniqueness = React.useCallback(
-    async (emailToTest: string) => {
-      const cleanEmail = emailToTest.trim().toLowerCase();
-      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return true;
-      try {
-        const { supabase } = await import('@/lib/supabase-client');
-        const { data: availability, error } = await supabase.rpc('check_captain_identity_available', {
-          p_email: cleanEmail,
-        });
-        if (!error && availability?.email_taken) {
-          setErrors((current) => ({
-            ...current,
-            email: tv('emailDuplicate') || 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر.',
-          }));
-          return false;
-        }
-      } catch (err) {
-        console.warn('Email uniqueness check error:', err);
-      }
-      return true;
-    },
-    [tv]
-  );
-
-  const checkPhoneUniqueness = React.useCallback(
-    async (phoneToTest: string) => {
-      const cleanPhone = phoneToTest.trim();
-      const digitsOnly = cleanPhone.replace(/\D/g, '');
-      if (!cleanPhone || digitsOnly.length < 8) return true;
-      try {
-        const { supabase } = await import('@/lib/supabase-client');
-        const { data: availability, error } = await supabase.rpc('check_captain_identity_available', {
-          p_phone: cleanPhone,
-        });
-        if (!error && availability?.phone_taken) {
-          setErrors((current) => ({
-            ...current,
-            phone: tv('phoneDuplicate') || 'رقم الهاتف مسجل بالفعل مسبقاً لحساب آخر.',
-          }));
-          return false;
-        }
-      } catch (err) {
-        console.warn('Phone uniqueness check error:', err);
-      }
-      return true;
-    },
-    [tv]
-  );
-
-  React.useEffect(() => {
-    const cleanPhone = values.phone.trim();
-    const digitsOnly = cleanPhone.replace(/\D/g, '');
-    if (!cleanPhone || digitsOnly.length < 8) return;
-
-    const timer = setTimeout(() => {
-      void checkPhoneUniqueness(cleanPhone);
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [values.phone, checkPhoneUniqueness]);
-
-  React.useEffect(() => {
-    const cleanEmail = values.email.trim().toLowerCase();
-    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return;
-
-    const timer = setTimeout(() => {
-      void checkEmailUniqueness(cleanEmail);
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [values.email, checkEmailUniqueness]);
+  const { checkEmailUniqueness, checkPhoneUniqueness } = useCaptainPersonalUniqueness({
+    phone: values.phone,
+    email: values.email,
+    tv,
+    setErrors,
+  });
 
   const isValid = isYupSchemaValid(schema, values);
 
@@ -224,6 +185,8 @@ export function useCaptainPersonalStep(
     districtOptions,
     districtsLoading,
     phoneValidation,
+    phonePlaceholder,
+    selectedCountry,
     handleFieldChange,
     handleCountryChange,
     checkEmailUniqueness,

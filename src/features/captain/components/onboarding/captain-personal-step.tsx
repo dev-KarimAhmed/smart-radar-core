@@ -36,6 +36,7 @@ export function CaptainPersonalStep({
     districtOptions,
     districtsLoading,
     phoneValidation,
+    phonePlaceholder,
     handleFieldChange,
     handleCountryChange,
     checkEmailUniqueness,
@@ -55,6 +56,7 @@ export function CaptainPersonalStep({
         countryOptions={countryOptions}
         countriesLoading={countriesLoading}
         phoneValidation={phoneValidation}
+        phonePlaceholder={phonePlaceholder}
         onCountryChange={handleCountryChange}
         onFieldChange={handleFieldChange}
         checkPhoneUniqueness={checkPhoneUniqueness}
