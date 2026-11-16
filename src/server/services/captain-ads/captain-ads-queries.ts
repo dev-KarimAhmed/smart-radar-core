@@ -11,11 +11,16 @@ import { resolveAdImageUrl } from './captain-ads-media';
 export async function handleGetCaptainAds(req: Request, searchParams: URLSearchParams): Promise<NextResponse> {
   const captainId = (searchParams.get('captainId') || '').trim();
 
-  if (!captainId || !isUuid(captainId)) {
+  if (!captainId) {
     return NextResponse.json(
-      { success: false, error: 'valid_captain_id_is_required' },
+      { success: false, error: 'captain_id_is_required' },
       { status: 400 }
     );
+  }
+
+  // إذا لم يكن المعرف UUID صالحاً (مثل معرفات الاختبار التجريبية)، يتم إرجاع مصفوفة فارغة بنجاح
+  if (!isUuid(captainId)) {
+    return NextResponse.json({ success: true, ads: [] });
   }
 
   const caller = await getVerifiedUser(req, { allowSuspended: true });

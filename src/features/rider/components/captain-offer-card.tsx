@@ -21,11 +21,13 @@ import {
   CaptainOfferCardCountdown,
   rankLabels,
   getCaptainOfferPricing,
-  formatMinutes
+  formatMinutes,
+  getRankBadgeStyle,
 } from './offer-card/offer-card-shared';
 import { OfferCardCaptain } from './offer-card/offer-card-captain';
 import { OfferCardCountdownBar } from './offer-card/offer-card-countdown-bar';
 import { resolveOfferAffiliationAndPricing } from './offer-card/offer-card-pricing-label';
+import { CaptainTripAdsViewer } from './captain-trip-ads-viewer';
 
 interface CaptainOfferCardProps {
   offer: CaptainOffer;
@@ -66,23 +68,7 @@ function CaptainOfferCardBase({
   const captainName = captain.name?.trim() || t('captain');
   const { pricingLabel } = resolveOfferAffiliationAndPricing(offer, t, isArabic);
   const completedTrips = Math.max(0, Number(captain.completed_trips) || 0);
-
-  const rankBadgeStyle = (() => {
-    switch (captain.rank) {
-      case 'DIAMOND':
-        return 'border-cyan-300/60 bg-gradient-to-r from-cyan-500/25 to-blue-600/25 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.3)]';
-      case 'PLATINUM':
-        return 'border-cyan-400/50 bg-cyan-500/15 text-cyan-200';
-      case 'GOLD':
-        return 'border-amber-400/60 bg-amber-500/20 text-amber-200';
-      case 'BRONZE':
-        return 'border-amber-700/50 bg-amber-800/20 text-amber-300';
-      case 'SILVER':
-        return 'border-slate-400/50 bg-slate-500/20 text-slate-200';
-      default:
-        return 'border-[#14B8A6]/40 bg-[#14B8A6]/15 text-[#14F5D5]';
-    }
-  })();
+  const rankBadgeStyle = getRankBadgeStyle(captain.rank);
 
   const durationLabel = formatMinutes(
     preferRoutedMinutes(offer.estimated_duration_minutes, offer.trip_distance_km || offer.distance_km),
@@ -220,7 +206,7 @@ function CaptainOfferCardBase({
         </button>
       </div>
 
-      {/* 7. التفاصيل الموسعة: فقط بيانات الكابتن والمركبة */}
+      {/* 7. التفاصيل الموسعة: بيانات الكابتن والمركبة وإعلاناته الترويجية */}
       <div
         className={cn(styles.style192_26, isExpanded ? styles.style193_27 : styles.style193_28)}
       >
@@ -232,6 +218,16 @@ function CaptainOfferCardBase({
               <p className={styles.additionalInfo}>
                 {offer.additional_info}
               </p>
+            ) : null}
+
+            {captain.id ? (
+              <div className="mt-3 border-t border-white/10 pt-3">
+                <CaptainTripAdsViewer
+                  captainId={captain.id}
+                  isArabic={isArabic}
+                  isFavoriteCaptain={isPreferred}
+                />
+              </div>
             ) : null}
           </div>
         </div>

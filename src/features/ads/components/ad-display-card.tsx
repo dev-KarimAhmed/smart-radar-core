@@ -80,23 +80,24 @@ export function AdDisplayCard({
   const actionText = ctaText || getAdCta(ad, copy.fallbackCta, language);
   const resolvedBadgeText = badgeText || (language === 'en' && ad?.badgeTextEn ? ad.badgeTextEn : copy.defaultBadge);
   const isPlaceholder = Boolean(ad?.isPlaceholder);
+  const isSectorAd = Boolean(ad?.isCaptainSectorAd || ad?.isRiderSectorAd);
 
   return (
     <article
       dir={direction}
       onClick={onOpen ? (event) => onOpen(event, ad) : undefined}
-      style={ad?.isCaptainSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
+      style={isSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
       className={cn(
         styles.style87_1,
-        ad?.isCaptainSectorAd && '!p-0 overflow-hidden border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)]',
+        isSectorAd && '!p-0 overflow-hidden border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)]',
         isPlaceholder && styles.style88_2,
         !onOpen && styles.staticCursor,
         className,
         'box-border flex-shrink-0 flex-grow-0'
       )}
     >
-      {/* For captain sector ads: full bleed poster filling 100% of the frame exactly like 2.jpeg */}
-      {ad?.isCaptainSectorAd ? (
+      {/* For sector ads: full bleed poster filling 100% of the frame */}
+      {isSectorAd ? (
         <img
           src={image}
           alt={title}
@@ -142,7 +143,7 @@ export function AdDisplayCard({
         </>
       )}
 
-      {!ad?.isCaptainSectorAd && showHeart && (
+      {!isSectorAd && showHeart && (
         <button
           type="button"
           aria-label={isHearted ? copy.removeAd : copy.saveAd}
@@ -163,14 +164,14 @@ export function AdDisplayCard({
         </button>
       )}
 
-      {!ad?.isCaptainSectorAd && (
+      {!isSectorAd && (
         <div className={styles.style137_16}>
           <Zap className={styles.style138_17} />
           <span>{resolvedBadgeText}</span>
         </div>
       )}
 
-      {!ad?.isCaptainSectorAd && (
+      {!isSectorAd && (
         <div className={styles.style142_18}>
           <div className={styles.style143_19}>
             <h3 className={styles.style144_20}>

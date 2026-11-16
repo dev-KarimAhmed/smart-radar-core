@@ -6,6 +6,7 @@ import {
   getAdTitle,
 } from './ad-card-helpers';
 import { CAPTAIN_SECTOR_ADS } from '../config/captain-sector-ads';
+import { RIDER_SECTOR_ADS } from '../config/rider-sector-ads';
 
 test('getAdTitle returns language-appropriate title', () => {
   const ad = {
@@ -53,4 +54,22 @@ test('CAPTAIN_SECTOR_ADS contains complete bilingual copy for all 5 ads', () => 
     assert.ok(ad.badgeTextEn && ad.badgeTextEn.length > 0, `Ad ${ad.id} missing English badgeText`);
   }
 });
+
+test('RIDER_SECTOR_ADS contains complete bilingual copy for all 3 rider ads', () => {
+  assert.equal(RIDER_SECTOR_ADS.length, 3);
+
+  for (const ad of RIDER_SECTOR_ADS) {
+    assert.ok(ad.title && ad.title.length > 0, `Ad ${ad.id} missing Arabic title`);
+    assert.ok(ad.titleEn && ad.titleEn.length > 0, `Ad ${ad.id} missing English title`);
+    assert.ok(ad.description && ad.description.length > 0, `Ad ${ad.id} missing Arabic description`);
+    assert.ok(ad.descriptionEn && ad.descriptionEn.length > 0, `Ad ${ad.id} missing English description`);
+    assert.ok(ad.buttonText && ad.buttonText.length > 0, `Ad ${ad.id} missing Arabic buttonText`);
+    assert.ok(ad.buttonTextEn && ad.buttonTextEn.length > 0, `Ad ${ad.id} missing English buttonText`);
+    assert.ok(ad.badgeText && ad.badgeText.length > 0, `Ad ${ad.id} missing Arabic badgeText`);
+    assert.ok(ad.badgeTextEn && ad.badgeTextEn.length > 0, `Ad ${ad.id} missing English badgeText`);
+    assert.equal(ad.adType, 'RIDER_BENEFIT');
+    assert.equal(ad.isRiderSectorAd, true);
+  }
+});
+
 
