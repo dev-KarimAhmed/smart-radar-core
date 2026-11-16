@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ExternalLink, MapPin } from 'lucide-react';
+import { ChevronDown, MapPin } from 'lucide-react';
 import type { Trip } from '@/core/types';
 import { cn } from '@/lib/utils';
 import type { RadarCopyType } from './radar-copy';
@@ -14,7 +14,7 @@ interface RadarCoordsAccordionProps {
   onToggle: () => void;
   driverLocation: { lat: number; lng: number } | null;
   passengersCount: number;
-  routeGoogleMapsUrl: string | null;
+  routeGoogleMapsUrl?: string | null;
 }
 
 export function RadarCoordsAccordion({
@@ -26,7 +26,6 @@ export function RadarCoordsAccordion({
   onToggle,
   driverLocation,
   passengersCount,
-  routeGoogleMapsUrl,
 }: RadarCoordsAccordionProps) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-[#070c18]/90 overflow-hidden transition-all">
@@ -58,20 +57,8 @@ export function RadarCoordsAccordion({
             driverLocation={driverLocation}
             passengersCount={passengersCount}
           />
-          {routeGoogleMapsUrl && (
-            <a
-              href={routeGoogleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-3.5 py-2.5 text-xs font-black text-cyan-300 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
-            >
-              <ExternalLink className="h-4 w-4" />
-              <span>{copy.verifyCoordinatesBtn || 'تحقق من الإحداثيات إذا رغبت'}</span>
-            </a>
-          )}
         </div>
       )}
     </div>
   );
 }
-
