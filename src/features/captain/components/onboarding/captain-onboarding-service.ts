@@ -1,4 +1,5 @@
 import { signUpCaptainWithPhone, type CaptainProfileMetadata } from '@/features/auth/contract';
+import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
 import type { AffiliationType } from '@/core/types';
 import type { CaptainPersonalValues } from './captain-personal-step';
 import type { CaptainVehicleValues } from './captain-vehicle-step';
@@ -99,7 +100,12 @@ export function buildCaptainProfile(
       ? 'مستقل'
       : vehicle.companyName.trim() || null,
     affiliation_type: affiliation,
-    office_phone: isTaxi ? vehicle.officePhone.trim() || null : null,
+    office_phone: isTaxi
+      ? (() => {
+          const res = normalizePhoneForCountry(vehicle.officePhone.trim(), personal.countryIso);
+          return (res.ok ? res.phone : vehicle.officePhone.trim()) || null;
+        })()
+      : null,
     side_id: isTaxi ? vehicle.sideId.trim() || null : null,
     company_code: isTaxi || isIndependent ? null : vehicle.companyCode.trim() || null,
     identity_url: null,

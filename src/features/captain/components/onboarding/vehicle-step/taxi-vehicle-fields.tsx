@@ -37,6 +37,8 @@ export function TaxiVehicleFields({
       <div>
         <label className={styles.label}>{t('officeName')}</label>
         <Input
+          name="officeName"
+          data-field="officeName"
           placeholder={t('officeName')}
           value={vehicle.officeName}
           onChange={(event) => onFieldChange('officeName', event.target.value)}
@@ -50,6 +52,8 @@ export function TaxiVehicleFields({
         <label className={styles.label}>{t('officePhone')}</label>
         <div className="relative">
           <Input
+            name="officePhone"
+            data-field="officePhone"
             type="tel"
             dir="ltr"
             placeholder={t('officePhone')}
@@ -81,6 +85,8 @@ export function TaxiVehicleFields({
         <div>
           <label className={styles.label}>{t('sideId')}</label>
           <Input
+            name="sideId"
+            data-field="sideId"
             placeholder={t('sideId')}
             value={vehicle.sideId}
             onChange={(event) => onFieldChange('sideId', event.target.value)}
@@ -92,6 +98,8 @@ export function TaxiVehicleFields({
         <div>
           <label className={styles.label}>{t('plate')}</label>
           <Input
+            name="plate"
+            data-field="plate"
             placeholder={t('platePlaceholder')}
             value={vehicle.plate}
             onChange={(event) => onFieldChange('plate', event.target.value)}

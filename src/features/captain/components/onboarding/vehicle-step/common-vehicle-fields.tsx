@@ -13,9 +13,10 @@ interface FieldProps {
   errors: Record<string, string>;
   onFieldChange: (field: keyof CaptainVehicleValues, value: string) => void;
   isArabic: boolean;
+  country?: string;
 }
 
-export function VehicleIdentityFields({ vehicle, errors, onFieldChange }: Omit<FieldProps, 'isArabic'>) {
+export function VehicleIdentityFields({ vehicle, errors, onFieldChange }: Omit<FieldProps, 'isArabic' | 'country'>) {
   const t = useTranslations('captainOnboarding.vehicle');
 
   return (
@@ -23,6 +24,8 @@ export function VehicleIdentityFields({ vehicle, errors, onFieldChange }: Omit<F
       <div>
         <label className={styles.label}>{t('make')}</label>
         <Input
+          name="make"
+          data-field="make"
           placeholder={t('makePlaceholder')}
           value={vehicle.make}
           onChange={(event) => onFieldChange('make', event.target.value)}
@@ -34,6 +37,8 @@ export function VehicleIdentityFields({ vehicle, errors, onFieldChange }: Omit<F
       <div>
         <label className={styles.label}>{t('model')}</label>
         <Input
+          name="model"
+          data-field="model"
           placeholder={t('modelPlaceholder')}
           value={vehicle.model}
           onChange={(event) => onFieldChange('model', event.target.value)}
@@ -46,14 +51,18 @@ export function VehicleIdentityFields({ vehicle, errors, onFieldChange }: Omit<F
   );
 }
 
-export function ColorAndPlateFields({ vehicle, errors, onFieldChange, isArabic }: FieldProps) {
+export function ColorAndPlateFields({ vehicle, errors, onFieldChange, isArabic }: Omit<FieldProps, 'country'>) {
   const t = useTranslations('captainOnboarding.vehicle');
   const [colorSwatch, setColorSwatch] = React.useState('#14b8a6');
 
   React.useEffect(() => {
-    const hex = colorNameToHex(vehicle.color);
-    if (hex) setColorSwatch(hex);
-  }, [vehicle.color]);
+    if (!vehicle.color || vehicle.color.startsWith('#')) {
+      onFieldChange('color', hexToColorName(colorSwatch, isArabic ? 'ar' : 'en'));
+    } else {
+      const hex = colorNameToHex(vehicle.color);
+      if (hex) setColorSwatch(hex);
+    }
+  }, [vehicle.color, isArabic]);
 
   return (
     <div className={styles.fieldRow}>
@@ -71,6 +80,8 @@ export function ColorAndPlateFields({ vehicle, errors, onFieldChange, isArabic }
           />
           <input
             type="text"
+            name="color"
+            data-field="color"
             value={vehicle.color || ''}
             readOnly
             className={styles.input}
@@ -83,6 +94,8 @@ export function ColorAndPlateFields({ vehicle, errors, onFieldChange, isArabic }
       <div>
         <label className={styles.label}>{t('plate')}</label>
         <Input
+          name="plate"
+          data-field="plate"
           placeholder={t('platePlaceholder')}
           value={vehicle.plate}
           onChange={(event) => onFieldChange('plate', event.target.value)}
@@ -95,8 +108,9 @@ export function ColorAndPlateFields({ vehicle, errors, onFieldChange, isArabic }
   );
 }
 
-export function SharedVehicleFields({ vehicle, errors, onFieldChange }: Omit<FieldProps, 'isArabic'>) {
+export function SharedVehicleFields({ vehicle, errors, onFieldChange, country }: Omit<FieldProps, 'isArabic'>) {
   const t = useTranslations('captainOnboarding.vehicle');
+  const isJordan = !country || country.toUpperCase() === 'JO' || country === '1' || country.toUpperCase() === 'JORDAN';
 
   const yearOptions = React.useMemo(
     () =>
@@ -109,7 +123,7 @@ export function SharedVehicleFields({ vehicle, errors, onFieldChange }: Omit<Fie
 
   return (
     <>
-      <div>
+      <div data-field="year">
         <label className={styles.label}>{t('year')}</label>
         <AppSelect
           value={vehicle.year}
@@ -125,12 +139,19 @@ export function SharedVehicleFields({ vehicle, errors, onFieldChange }: Omit<Fie
         <div>
           <label className={styles.label}>{t('nationalIdNumberLabel')}</label>
           <Input
+            name="nationalIdNumber"
+            data-field="nationalIdNumber"
             dir="ltr"
-            inputMode="numeric"
-            maxLength={10}
+            inputMode={isJordan ? 'numeric' : 'text'}
+            maxLength={isJordan ? 10 : 20}
             placeholder={t('nationalIdNumberPlaceholder')}
             value={vehicle.nationalIdNumber}
-            onChange={(event) => onFieldChange('nationalIdNumber', event.target.value.replace(/[^0-9]/g, ''))}
+            onChange={(event) =>
+              onFieldChange(
+                'nationalIdNumber',
+                isJordan ? event.target.value.replace(/[^0-9]/g, '') : event.target.value.replace(/[^A-Za-z0-9؀-ۿ]/g, '')
+              )
+            }
             className={styles.input}
             required
           />
@@ -139,6 +160,8 @@ export function SharedVehicleFields({ vehicle, errors, onFieldChange }: Omit<Fie
         <div>
           <label className={styles.label}>{t('licenseNumberLabel')}</label>
           <Input
+            name="licenseNumber"
+            data-field="licenseNumber"
             dir="ltr"
             placeholder={t('licenseNumberPlaceholder')}
             value={vehicle.licenseNumber}
@@ -153,6 +176,8 @@ export function SharedVehicleFields({ vehicle, errors, onFieldChange }: Omit<Fie
       <div>
         <label className={styles.label}>{t('facebookLabel')}</label>
         <Input
+          name="facebookUrl"
+          data-field="facebookUrl"
           type="url"
           dir="ltr"
           placeholder={t('facebookPlaceholder')}
@@ -166,6 +191,8 @@ export function SharedVehicleFields({ vehicle, errors, onFieldChange }: Omit<Fie
       <div>
         <label className={styles.label}>{t('instagramLabel')}</label>
         <Input
+          name="instagramUrl"
+          data-field="instagramUrl"
           type="url"
           dir="ltr"
           placeholder={t('instagramPlaceholder')}

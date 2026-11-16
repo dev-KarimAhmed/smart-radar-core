@@ -28,7 +28,7 @@ export const SIDE_ID_REGEX = /^[A-Za-z0-9؀-ۿ-]{2,15}$/;
 // spaces), so this only rejects garbage/empty input rather than enforcing one
 // specific layout like "77-12345".
 export const PLATE_REGEX = /^[A-Za-z0-9؀-ۿ\s-]{3,15}$/;
-export const VEHICLE_COLOR_REGEX = /^[؀-ۿa-zA-Z\s]{2,30}$/;
+export const VEHICLE_COLOR_REGEX = /^([؀-ۿa-zA-Z\s]{2,30}|#[0-9a-fA-F]{3,8})$/;
 export const JORDAN_NATIONAL_ID_REGEX = /^[0-9]{10}$/;
 export const GENERAL_NATIONAL_ID_REGEX = /^[A-Za-z0-9؀-ۿ]{5,20}$/;
 export const NATIONAL_ID_NUMBER_REGEX = GENERAL_NATIONAL_ID_REGEX;
@@ -36,6 +36,15 @@ export const LICENSE_NUMBER_REGEX = /^[A-Za-z0-9؀-ۿ]{3,20}$/;
 export const SOCIAL_URL_REGEX = /^https?:\/\/[^\s]+$/i;
 export const VEHICLE_YEAR_MIN = 1990;
 export const VEHICLE_YEAR_MAX = 2027;
+
+function toCountryIsoCode(country?: string): CountryCode {
+  if (!country) return 'JO';
+  const upper = country.trim().toUpperCase();
+  if (upper === '1' || upper === 'JORDAN') return 'JO';
+  if (upper === '2' || upper === 'EGYPT') return 'EG';
+  if (upper.length === 2) return upper as CountryCode;
+  return 'JO';
+}
 
 function isJordanCountry(country?: string) {
   if (!country) return true; // Sovereign default is Jordan
@@ -50,7 +59,7 @@ function isJordanCountry(country?: string) {
 function isValidInternationalPhone(value: string | undefined, country?: string) {
   if (!value) return false;
   try {
-    return isValidPhoneNumber(value, country as CountryCode | undefined);
+    return isValidPhoneNumber(value, toCountryIsoCode(country));
   } catch {
     return false;
   }
@@ -115,9 +124,7 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
       .trim()
       .required(t('officePhoneRequired'))
       .test('is-valid-phone', t('phoneInvalid'), function testOfficePhone(value) {
-        if (!hasCountryCodePrefix(value)) {
-          return this.createError({ message: t('phoneMissingCountryCode') });
-        }
+        if (!value) return false;
         return isValidInternationalPhone(value, country);
       }),
     sideId: yup.string().trim().matches(SIDE_ID_REGEX, t('sideIdInvalid')).required(t('sideIdRequired')),

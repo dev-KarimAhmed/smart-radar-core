@@ -57,7 +57,30 @@ export function useCaptainOnboarding(isArabic: boolean) {
   };
 
   const handleOpenAccuracyAfterValidation = async () => {
-    if (!personal.country || !personal.governorate || !personal.district || !affiliation || isSubmitting) return;
+    if (isSubmitting) return;
+
+    if (!personal.country || !personal.governorate || !personal.district) {
+      toast({
+        variant: 'destructive',
+        title: t('errorTitle'),
+        description: isArabic
+          ? 'يرجى استكمال بيانات الموقع (الدولة والمحافظة واللواء) في الخطوة الأولى أولاً.'
+          : 'Please complete your location details (Country, Governorate, District) in Step 1 first.',
+      });
+      setStep(1);
+      return;
+    }
+
+    if (!affiliation) {
+      toast({
+        variant: 'destructive',
+        title: t('errorTitle'),
+        description: isArabic ? 'يرجى اختيار صفة العمل أولاً.' : 'Please select your work affiliation first.',
+      });
+      setStep(2);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const check = await checkCaptainIdentityAvailable(personal, vehicle);
@@ -72,13 +95,29 @@ export function useCaptainOnboarding(isArabic: boolean) {
         return;
       }
       setShowAccuracyModal(true);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('errorTitle'),
+        description: mapSupabaseAuthError(error),
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const submitCaptainRegistration = async () => {
-    if (!personal.country || !personal.governorate || !personal.district || !affiliation) return;
+    if (isSubmitting) return;
+
+    if (!personal.country || !personal.governorate || !personal.district || !affiliation) {
+      toast({
+        variant: 'destructive',
+        title: t('errorTitle'),
+        description: isArabic ? 'بيانات التسجيل غير مكتملة.' : 'Registration data is incomplete.',
+      });
+      return;
+    }
+
     setVehicleErrors({});
     setIsSubmitting(true);
 
@@ -86,6 +125,11 @@ export function useCaptainOnboarding(isArabic: boolean) {
       const check = await checkCaptainIdentityAvailable(personal, vehicle);
       if (!check.isAvailable) {
         setVehicleErrors(check.fieldErrors);
+        toast({
+          variant: 'destructive',
+          title: t('errorTitle'),
+          description: check.errorMessage,
+        });
         if (check.stepToReset) setStep(check.stepToReset as OnboardingStep);
         return;
       }

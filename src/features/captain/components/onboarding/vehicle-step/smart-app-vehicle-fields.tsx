@@ -27,6 +27,8 @@ export function SmartAppVehicleFields({
       <div>
         <label className={styles.label}>{t('companyName')}</label>
         <Input
+          name="companyName"
+          data-field="companyName"
           placeholder={t('companyName')}
           value={vehicle.companyName}
           onChange={(event) => onFieldChange('companyName', event.target.value)}
@@ -39,6 +41,8 @@ export function SmartAppVehicleFields({
       <div>
         <label className={styles.label}>{t('companyCode')}</label>
         <Input
+          name="companyCode"
+          data-field="companyCode"
           placeholder={t('companyCodePlaceholder')}
           value={vehicle.companyCode}
           onChange={(event) => onFieldChange('companyCode', event.target.value)}

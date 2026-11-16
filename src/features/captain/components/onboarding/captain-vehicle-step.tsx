@@ -3,12 +3,13 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
+import { useToast } from '@/hooks/use-toast';
 import {
   getCaptainIndependentVehicleSchema,
   getCaptainSmartAppVehicleSchema,
   getCaptainTaxiVehicleSchema,
 } from '../../lib/captain-registration-schema';
-import { validateYupField, isYupSchemaValid, collectYupSchemaErrors } from '../../lib/validate-field';
+import { validateYupField, collectYupSchemaErrors } from '../../lib/validate-field';
 import {
   styles,
   type CaptainVehicleStepProps,
@@ -44,6 +45,7 @@ export function CaptainVehicleStep({
   const t = useTranslations('captainOnboarding.vehicle');
   const tv = useTranslations('captainOnboarding.validation');
   const { isArabic } = useDashboardLanguage();
+  const { toast } = useToast();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
@@ -84,15 +86,41 @@ export function CaptainVehicleStep({
     void runFieldValidation(field, nextValues);
   };
 
-  const isValid = isYupSchemaValid(schema, vehicle);
-
   const handleSubmitClick = () => {
     if (isSubmitting) return;
-    if (isValid) {
+    const schemaErrors = collectYupSchemaErrors(schema, vehicle);
+    const errorKeys = Object.keys(schemaErrors);
+
+    if (errorKeys.length === 0) {
+      setErrors({});
       onSubmit();
       return;
     }
-    setErrors(collectYupSchemaErrors(schema, vehicle));
+
+    setErrors(schemaErrors);
+
+    const firstKey = errorKeys[0];
+    const firstErrorMessage = schemaErrors[firstKey];
+    toast({
+      variant: 'destructive',
+      title: isArabic ? 'يرجى إكمال بيانات المركبة' : 'Please complete vehicle details',
+      description:
+        firstErrorMessage ||
+        (isArabic ? 'يرجى مراجعة الحقول المطلوبة والتأكد من صحتها.' : 'Please verify all required fields.'),
+    });
+
+    if (typeof document !== 'undefined' && firstKey) {
+      const target =
+        document.querySelector(`[name="${firstKey}"]`) ||
+        document.querySelector(`[data-field="${firstKey}"]`) ||
+        document.querySelector(`.${styles.error}`);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if ('focus' in target && typeof (target as HTMLElement).focus === 'function') {
+          (target as HTMLElement).focus();
+        }
+      }
+    }
   };
 
   const renderVehicleIdentityFields = () => (
@@ -133,7 +161,12 @@ export function CaptainVehicleStep({
         />
       )}
 
-      <SharedVehicleFields vehicle={vehicle} errors={errors} onFieldChange={handleFieldChange} />
+      <SharedVehicleFields
+        vehicle={vehicle}
+        errors={errors}
+        onFieldChange={handleFieldChange}
+        country={country}
+      />
 
       <div className={styles.submitWrap}>
         <button
