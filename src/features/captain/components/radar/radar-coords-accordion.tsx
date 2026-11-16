@@ -14,7 +14,6 @@ interface RadarCoordsAccordionProps {
   onToggle: () => void;
   driverLocation: { lat: number; lng: number } | null;
   passengersCount: number;
-  routeGoogleMapsUrl?: string | null;
 }
 
 export function RadarCoordsAccordion({

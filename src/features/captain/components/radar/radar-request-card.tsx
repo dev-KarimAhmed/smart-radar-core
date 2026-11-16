@@ -138,7 +138,6 @@ export function RadarRequestCard({
             onToggle={() => setIsCoordsOpen((prev) => !prev)}
             driverLocation={driverLocation}
             passengersCount={passengersCount}
-            routeGoogleMapsUrl={routeGoogleMapsUrl}
           />
 
           {/* Accordion 2: تعديل وقت الانتشار */}
