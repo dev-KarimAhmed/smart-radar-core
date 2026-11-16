@@ -116,9 +116,11 @@ export function RegisterRoute({
               <h1 className={styles.style194_13}>
                 {authType === 'register' ? t.registerTitle : t.loginTitle}
               </h1>
-              <p className={styles.style197_14}>
-                {authType === 'register' ? t.registerSubtitle : t.loginSubtitle}
-              </p>
+              {authType === 'register' && t.registerSubtitle ? (
+                <p className={styles.style197_14}>
+                  {t.registerSubtitle}
+                </p>
+              ) : null}
             </div>
           </header>
 

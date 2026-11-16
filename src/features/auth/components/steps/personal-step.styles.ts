@@ -6,7 +6,7 @@ export const styles = {
   style338_5: "",
   style341_6: "h-3.5 w-3.5 text-[#14B8A6]",
   style345_7: "relative z-10 flex min-h-screen w-full items-center justify-center px-0 py-0 sm:px-6 sm:py-10",
-  style346_8: "flex min-h-screen w-full max-w-md flex-col justify-start sm:justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 pt-5 shadow-2xl backdrop-blur-xl sm:my-12 sm:min-h-0 sm:rounded-3xl sm:p-8",
+  style346_8: "flex min-h-screen w-full max-w-md flex-col justify-start sm:justify-center rounded-none border border-white/5 bg-[#161F30]/70 p-6 pt-7 shadow-2xl backdrop-blur-xl sm:my-12 sm:min-h-0 sm:rounded-3xl sm:p-8",
   style347_9: "mb-7 text-center",
   style348_10: "mx-auto mb-4 flex items-center justify-center",
   brandLogoImg: "h-14 sm:h-16 w-auto object-contain drop-shadow-[0_4px_20px_rgba(20,184,166,0.35)] select-none",

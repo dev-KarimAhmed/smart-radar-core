@@ -21,7 +21,7 @@ export function PersonalLanguageToggle({
   onToggle: () => void;
 }) {
   return (
-    <header className="absolute top-4 sm:top-6 start-4 sm:start-6 z-20">
+    <div className="flex w-full items-center justify-start mb-3 pt-1 sm:pt-0 z-20">
       <button
         type="button"
         onClick={onToggle}
@@ -31,7 +31,7 @@ export function PersonalLanguageToggle({
         <Languages className={styles.style341_6} />
         <span>{languageButton}</span>
       </button>
-    </header>
+    </div>
   );
 }
 
@@ -84,9 +84,11 @@ export function PersonalBrandHeader({
           <h1 className={styles.style362_13}>
             {mode === 'register' ? registerTitle : loginTitle}
           </h1>
-          <p className={styles.style365_14}>
-            {mode === 'register' ? registerSubtitle : loginSubtitle}
-          </p>
+          {mode === 'register' && registerSubtitle ? (
+            <p className={styles.style365_14}>
+              {registerSubtitle}
+            </p>
+          ) : null}
         </motion.div>
       </AnimatePresence>
     </header>

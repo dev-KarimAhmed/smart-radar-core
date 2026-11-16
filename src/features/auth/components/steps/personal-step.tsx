@@ -81,15 +81,15 @@ export function PersonalStep() {
     <main dir={state.isArabic ? 'rtl' : 'ltr'} className={styles.style329_1}>
       <div className={styles.style331_2} />
 
-      <PersonalLanguageToggle
-        isArabic={state.isArabic}
-        languageAria={state.t.languageAria}
-        languageButton={state.t.languageButton}
-        onToggle={() => state.setLang(state.isArabic ? 'en' : 'ar')}
-      />
-
       <section className={styles.style345_7}>
         <div className={styles.style346_8}>
+          <PersonalLanguageToggle
+            isArabic={state.isArabic}
+            languageAria={state.t.languageAria}
+            languageButton={state.t.languageButton}
+            onToggle={() => state.setLang(state.isArabic ? 'en' : 'ar')}
+          />
+
           <PersonalBrandHeader
             currentLang={state.currentLang}
             isArabic={state.isArabic}
