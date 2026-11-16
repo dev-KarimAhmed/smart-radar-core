@@ -129,7 +129,7 @@ export async function POST(req: Request) {
     // Authoritative profile role, status, and active session check
     const { data: profile } = await adminClient
       .from('profiles')
-      .select('id, role, status, rank_audit_log, active_device_id, last_seen_at')
+      .select('id, role, status, rank_audit_log')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -138,8 +138,8 @@ export async function POST(req: Request) {
       adminClient,
       userId: user.id,
       incomingDeviceId,
-      profileActiveDeviceId: profile?.active_device_id,
-      profileLastSeenAt: profile?.last_seen_at,
+      profileActiveDeviceId: (profile as any)?.active_device_id,
+      profileLastSeenAt: (profile as any)?.last_seen_at,
     });
 
     if (!sessionCheck.allowed) {

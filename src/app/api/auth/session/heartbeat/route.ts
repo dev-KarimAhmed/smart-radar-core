@@ -14,28 +14,28 @@ export async function POST(req: Request) {
     const adminClient = getServerSupabaseAdmin();
     const nowIso = new Date().toISOString();
 
-    // 1. Fetch profile and user metadata
+    // 1. Fetch user metadata and profile
     let currentActiveDevice: string | null = null;
+    let existingMeta: Record<string, any> = {};
 
     try {
-      const { data: profile } = await adminClient
-        .from('profiles')
-        .select('id, active_device_id, last_seen_at')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profile?.active_device_id) {
-        currentActiveDevice = String(profile.active_device_id).trim();
+      const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
+      existingMeta = authUser?.user?.user_metadata || {};
+      if (existingMeta.active_device_id) {
+        currentActiveDevice = String(existingMeta.active_device_id).trim();
       }
     } catch {}
 
-    let existingMeta: Record<string, any> = {};
     if (!currentActiveDevice) {
       try {
-        const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
-        existingMeta = authUser?.user?.user_metadata || {};
-        if (existingMeta.active_device_id) {
-          currentActiveDevice = String(existingMeta.active_device_id).trim();
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select('id, active_device_id, last_seen_at')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profile?.active_device_id) {
+          currentActiveDevice = String(profile.active_device_id).trim();
         }
       } catch {}
     }
