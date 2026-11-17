@@ -2,13 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Copy, Check, Users, Sparkles, Link2, ArrowLeft } from 'lucide-react';
+import { Copy, Check, Users, Link2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { buildCaptainReferralLink, getCaptainReferredRiders, type ReferredRiderInfo } from '../services/captain-referral';
 import { ReferredRidersModal } from './referred-riders-modal';
 import type { User } from '@/core/types';
 import { useAuth } from '@/hooks/use-auth';
-import { cn } from '@/lib/utils';
 
 function WhatsAppIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -29,7 +28,7 @@ interface DriverReferralCardProps {
   onOpenHistory?: () => void;
 }
 
-export function DriverReferralCard({ user, isArabic = true, onOpenHistory }: DriverReferralCardProps) {
+export function DriverReferralCard({ user, isArabic = true }: DriverReferralCardProps) {
   const t = useTranslations('referral.driverCard');
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -109,122 +108,76 @@ export function DriverReferralCard({ user, isArabic = true, onOpenHistory }: Dri
     }
   };
 
-  const handleGoToHistory = () => {
-    if (onOpenHistory) {
-      onOpenHistory();
-    } else if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('radar_open_history'));
-    }
-  };
-
   return (
     <>
-      <div className="relative overflow-hidden rounded-3xl border border-teal-500/25 bg-[#0B0F19]/90 p-4 sm:p-5 text-white shadow-xl backdrop-blur-xl transition-all duration-300">
+      <div className="relative overflow-hidden rounded-3xl border border-[#14F5D5]/30 bg-[#0B0F19]/95 p-4 sm:p-5 text-white shadow-xl backdrop-blur-xl">
         {/* Top glowing ambient accent */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/50 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#14F5D5]/60 to-transparent" />
 
-        {/* Header Row: Title & Linked Count */}
-        <div className="flex items-center justify-between gap-3 mb-2">
+        {/* Header Row: Clear Title & Linked Count */}
+        <div className="flex items-center justify-between gap-3 mb-3.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 text-[#14F5D5]">
-              <Sparkles className="h-4 w-4" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#14F5D5]/30 bg-[#14F5D5]/10 text-[#14F5D5]">
+              <Link2 className="h-4.5 w-4.5" />
             </div>
-            <h4 className="text-sm font-black text-white truncate">
-              {t('title')}
+            <h4 className="text-base sm:text-lg font-black text-white">
+              {isArabic ? 'رابط المعلن' : t('title')}
             </h4>
           </div>
 
-          {/* Interactive Badge that opens Riders Modal */}
           <button
             type="button"
             onClick={() => setRidersModalOpen(true)}
-            className="flex items-center gap-1.5 shrink-0 rounded-full border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/25 hover:border-teal-400 active:scale-95 px-2.5 py-1 text-xs font-bold text-[#14F5D5] transition-all cursor-pointer shadow-sm group/badge"
+            className="flex items-center gap-1.5 shrink-0 rounded-full border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/25 hover:border-teal-400 active:scale-95 px-3 py-1.5 text-xs font-bold text-[#14F5D5] transition-all cursor-pointer shadow-sm"
             title={isArabic ? 'عرض قائمة الركاب' : 'View riders list'}
           >
-            <Users className="h-3.5 w-3.5 group-hover/badge:scale-110 transition-transform" />
-            <span>
-              {t('ridersCount', { count: referredCount })}
-            </span>
+            <Users className="h-3.5 w-3.5" />
+            <span>{t('ridersCount', { count: referredCount })}</span>
           </button>
         </div>
 
-        <p className="text-xs text-slate-400 mb-3 leading-relaxed text-start">
-          {isArabic
-            ? 'أرسل الرابط لعملائك... حافظ عليهم، واجعل طلباتهم تبدأ منك أنت قبل أي سائق آخر، وامنح نفسك فرص دخل إضافي من الإعلانات.'
-            : t('description')}
-        </p>
-
-        {/* Link, Copy, and WhatsApp Action Box */}
+        {/* Standalone Full Link Box (Dedicated Row, No Truncation) */}
         <div
           dir="ltr"
-          className="flex items-center justify-between gap-2.5 sm:gap-4 rounded-2xl sm:rounded-full border border-white/10 bg-[#060B13]/95 px-2.5 sm:px-4 py-2 sm:py-2.5 shadow-[inset_0_1px_4px_rgba(0,0,0,0.6)] backdrop-blur-md"
+          className="rounded-2xl border border-[#14F5D5]/25 bg-[#060B13] px-4 py-3.5 shadow-[inset_0_1px_6px_rgba(0,0,0,0.65)] text-center"
         >
-          {/* Action buttons on the left */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* WhatsApp Direct Share Button */}
-            <button
-              type="button"
-              onClick={handleWhatsAppShare}
-              title={t('whatsAppTooltip')}
-              aria-label="WhatsApp"
-              className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-[#10B981]/70 bg-[#061E16]/80 text-[#25D366] hover:bg-[#10B981]/20 hover:border-[#10B981] active:scale-95 transition-all cursor-pointer shadow-sm"
-            >
-              <WhatsAppIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 fill-current text-[#25D366]" />
-            </button>
-
-            {/* Copy Button */}
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex h-9 sm:h-10 shrink-0 items-center justify-center gap-2 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-[#14F5D5]/80 bg-[#061F22]/80 text-[#14F5D5] hover:bg-[#14F5D5]/20 hover:border-[#14F5D5] active:scale-95 transition-all cursor-pointer shadow-sm group"
-            >
-              {copied ? (
-                <>
-                  <span className="text-xs sm:text-sm font-black text-emerald-400 select-none">
-                    {t('copiedButton')}
-                  </span>
-                  <Check className="h-4 w-4 text-emerald-400" />
-                </>
-              ) : (
-                <>
-                  <span className="text-xs sm:text-sm font-black text-[#14F5D5] select-none">
-                    {t('copyButton')}
-                  </span>
-                  <Copy className="h-4 w-4 text-[#14F5D5] group-hover:scale-110 transition-transform" />
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* URL and Link Icon on the right */}
-          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 justify-end overflow-hidden ps-2">
-            <span
-              className="text-xs sm:text-sm font-mono font-bold text-slate-100 truncate select-all text-right tracking-tight sm:tracking-normal"
-              title={referralLink}
-            >
-              {referralLink}
-            </span>
-            <Link2 className="h-4.5 w-4.5 text-[#14F5D5] shrink-0" />
-          </div>
+          <span
+            className="block w-full font-mono text-xs sm:text-sm font-bold text-[#14F5D5] break-all select-all leading-relaxed"
+            title={referralLink}
+          >
+            {referralLink}
+          </span>
         </div>
 
-        {/* Navigation to Favorites in "سجلاتي" (per Page 3 & Page 5) */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5">
-          <p className="text-[11px] text-slate-400">
-            {isArabic
-              ? 'متابعة وإدارة عملائك المفضلين المسجلين معك:'
-              : 'Track and manage your favorite referred riders:'}
-          </p>
+        {/* Dedicated Clean Action Buttons */}
+        <div className="mt-3 grid grid-cols-2 gap-2.5">
           <button
             type="button"
-            onClick={handleGoToHistory}
-            className="flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-[#14F5D5] transition-all cursor-pointer shadow-sm group active:scale-95"
+            onClick={handleCopy}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#14F5D5]/70 bg-[#14F5D5]/15 hover:bg-[#14F5D5]/25 text-[#14F5D5] active:scale-[0.98] transition-all cursor-pointer font-black text-xs sm:text-sm shadow-sm"
           >
-            <span className="px-1.5 py-0.5 rounded-md bg-teal-500/20 text-[10px] font-black text-[#14F5D5]">
-              {isArabic ? 'متابعة السجل ⬅' : 'Track Log ⬅'}
-            </span>
-            <span>{isArabic ? 'الانتقال إلى سجل المفضلين في شاشة سجلاتي' : 'View Favorite Riders in My Records'}</span>
-            <ArrowLeft className={cn("h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform", !isArabic && "rotate-180 group-hover:translate-x-0.5")} />
+            {copied ? (
+              <>
+                <Check className="h-4 w-4 text-emerald-400" />
+                <span className="text-emerald-400 select-none">{t('copiedButton')}</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                <span className="select-none">{t('copyButton')}</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleWhatsAppShare}
+            title={t('whatsAppTooltip')}
+            aria-label="WhatsApp"
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#10B981]/70 bg-[#10B981]/15 hover:bg-[#10B981]/25 text-[#25D366] active:scale-[0.98] transition-all cursor-pointer font-black text-xs sm:text-sm shadow-sm"
+          >
+            <WhatsAppIcon className="h-4.5 w-4.5 fill-current text-[#25D366]" />
+            <span className="select-none">{t('whatsAppTooltip')}</span>
           </button>
         </div>
       </div>
