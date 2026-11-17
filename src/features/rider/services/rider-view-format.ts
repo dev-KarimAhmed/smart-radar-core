@@ -60,7 +60,7 @@ export function toHistoricalTrip(trip: RiderActiveTrip): HistoricalTrip {
     captainName: trip.captainName || trip.captainSerial,
     captainRank: toCaptainOfferRank(trip.captain?.tier || trip.captain?.rank || trip.captain?.captain_rank),
     captainPhone: trip.captainPhone,
-    vehicleInfo: `${trip.vehicleType} - ${trip.vehiclePlate}`,
+    vehicleInfo: [trip.vehicleType, trip.vehiclePlate].filter((v) => Boolean(v && v !== 'غير متاح')).join(' - '),
     finalPrice: trip.finalPrice,
     timestamp: Date.now(),
     destinationAddress: trip.destinationLabel,

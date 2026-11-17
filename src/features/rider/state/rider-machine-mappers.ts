@@ -112,7 +112,14 @@ export function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<st
       'السائق',
     captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || existing?.captainPhone || '',
     vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim() || existing?.vehicleType || 'سيارة',
-    vehiclePlate: vehicle.plate || firstString(acceptedRow.vehicle_plate, acceptedRow.plate) || existing?.vehiclePlate || 'غير متاح',
+    vehiclePlate: firstString(
+      selectedOffer?.captain?.plate_number,
+      rowCaptain?.plate_number,
+      vehicle.plate,
+      acceptedRow.plate_number,
+      acceptedRow.vehicle_plate,
+      acceptedRow.plate,
+    ) || (existing?.vehiclePlate && existing.vehiclePlate !== 'غير متاح' ? existing.vehiclePlate : ''),
     finalPrice:
       firstNumber(
         acceptedRow.final_fare,

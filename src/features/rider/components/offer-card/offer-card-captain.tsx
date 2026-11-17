@@ -2,6 +2,7 @@ import React from 'react';
 import { Car, Building2, Trophy, Facebook, Instagram, Link2 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
+import { sanitizeVehicleField } from '../../services/rider-offer-fields';
 import { CaptainOffer, styles, SectionHeader, InfoRow } from './offer-card-shared';
 
 function formatExternalLink(url: string) {
@@ -24,7 +25,8 @@ export function OfferCardCaptain({
 
   const captain = offer.captain;
   const vehicleModelLabel = captain.vehicle_model?.trim() || t('vehicle');
-  const vehicleColorLabel = resolveColorDisplayName(captain.vehicle_color, language) || t('notSpecified');
+  const vehicleColorLabel = sanitizeVehicleField(resolveColorDisplayName(captain.vehicle_color, language));
+  const plateLabel = sanitizeVehicleField(captain.plate_number);
   const rawAffiliation = (
     captain.affiliation_type ||
     (offer as any).affiliation_type ||
@@ -89,9 +91,10 @@ export function OfferCardCaptain({
   const instagramUrl = captain.instagram_url || (offer as any).instagram_url || (offer as any).captain_instagram_url;
 
   const hasContactLinks = Boolean(facebookUrl || instagramUrl);
+  const hasPlate = Boolean(plateLabel);
   const hasVehicleYear = Boolean(captain.vehicle_year);
   const hasVehicleCategory = Boolean(captain.vehicle_category);
-  const vehicleDetailFieldCount = 1 + Number(hasVehicleYear) + Number(hasVehicleCategory);
+  const vehicleDetailFieldCount = Number(hasPlate) + Number(hasVehicleYear) + Number(hasVehicleCategory);
   const lastVehicleDetailField = hasVehicleCategory ? 'category' : hasVehicleYear ? 'year' : 'plate';
   const vehicleDetailTrailingSpansFull = vehicleDetailFieldCount % 2 !== 0;
 
@@ -119,30 +122,39 @@ export function OfferCardCaptain({
           </div>
 
           <div className={styles.vehicleGrid}>
-            <InfoRow icon={<Car className={styles.vehicleRowIcon} />} label={t('vehicle')} value={vehicleModelLabel} />
-            <InfoRow label={t('color')} value={vehicleColorLabel} />
-          </div>
-          <div className={styles.vehicleDetailGrid}>
             <InfoRow
-              label={t('plate')}
-              value={captain.plate_number?.trim() || t('notAvailable')}
-              fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'plate'}
+              icon={<Car className={styles.vehicleRowIcon} />}
+              label={t('vehicle')}
+              value={vehicleModelLabel}
+              fullWidth={!vehicleColorLabel}
             />
-            {hasVehicleYear ? (
-              <InfoRow
-                label={t('year')}
-                value={String(captain.vehicle_year)}
-                fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'year'}
-              />
-            ) : null}
-            {hasVehicleCategory ? (
-              <InfoRow
-                label={t('category')}
-                value={captain.vehicle_category}
-                fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'category'}
-              />
-            ) : null}
+            {vehicleColorLabel ? <InfoRow label={t('color')} value={vehicleColorLabel} /> : null}
           </div>
+          {vehicleDetailFieldCount > 0 ? (
+            <div className={styles.vehicleDetailGrid}>
+              {hasPlate ? (
+                <InfoRow
+                  label={t('plate')}
+                  value={plateLabel}
+                  fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'plate'}
+                />
+              ) : null}
+              {hasVehicleYear ? (
+                <InfoRow
+                  label={t('year')}
+                  value={String(captain.vehicle_year)}
+                  fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'year'}
+                />
+              ) : null}
+              {hasVehicleCategory ? (
+                <InfoRow
+                  label={t('category')}
+                  value={captain.vehicle_category}
+                  fullWidth={vehicleDetailTrailingSpansFull && lastVehicleDetailField === 'category'}
+                />
+              ) : null}
+            </div>
+          ) : null}
 
           <div className={styles.captainMetaGrid}>
             <InfoRow

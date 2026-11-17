@@ -81,22 +81,50 @@ export function toCaptainOfferRank(value: unknown): CaptainRank {
   return 'SILVER';
 }
 
+const PLACEHOLDER_VEHICLE_VALUES = new Set([
+  'غير متاح',
+  'غير محدد',
+  'غير معروف',
+  'not available',
+  'not specified',
+  'unspecified',
+  'unavailable',
+  'n/a',
+  'na',
+  'none',
+  'null',
+  'undefined',
+  '-',
+  '--',
+  '---',
+  '—',
+]);
+
+export function sanitizeVehicleField(value?: string | null): string {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (PLACEHOLDER_VEHICLE_VALUES.has(trimmed.toLowerCase())) return '';
+  return trimmed;
+}
+
 export function getOfferVehicleSummary(offer: any, labels: Pick<OfferPresentationLabels, 'notAvailable'>) {
   const parts = [
-    firstDisplayString(offer?.captain?.vehicle_color, offer?.driverVehicle?.color),
-    firstDisplayString(offer?.captain?.vehicle_brand, offer?.driverVehicle?.brand),
-    firstDisplayString(offer?.captain?.vehicle_model, offer?.driverVehicle?.model, offer?.driverVehicle?.make),
-    firstDisplayString(offer?.captain?.vehicle_type, offer?.driverVehicle?.type),
+    sanitizeVehicleField(firstDisplayString(offer?.captain?.vehicle_color, offer?.driverVehicle?.color)),
+    sanitizeVehicleField(firstDisplayString(offer?.captain?.vehicle_brand, offer?.driverVehicle?.brand)),
+    sanitizeVehicleField(firstDisplayString(offer?.captain?.vehicle_model, offer?.driverVehicle?.model, offer?.driverVehicle?.make)),
+    sanitizeVehicleField(firstDisplayString(offer?.captain?.vehicle_type, offer?.driverVehicle?.type)),
   ].filter(Boolean);
 
   return parts.length ? parts.join(' ') : labels.notAvailable;
 }
 
-export function getOfferPlate(offer: any, labels: Pick<OfferPresentationLabels, 'notAvailable'>) {
-  return firstDisplayString(
-    offer?.captain?.plate_number,
-    offer?.captain?.license_plate,
-    offer?.driverVehicle?.plate,
-    labels.notAvailable,
+export function getOfferPlate(offer: any, _labels?: Pick<OfferPresentationLabels, 'notAvailable'>) {
+  return sanitizeVehicleField(
+    firstDisplayString(
+      offer?.captain?.plate_number,
+      offer?.captain?.license_plate,
+      offer?.driverVehicle?.plate,
+    ),
   );
 }

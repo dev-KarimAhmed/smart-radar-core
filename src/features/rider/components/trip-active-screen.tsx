@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { formatMoney, isTripStartedStatus } from '../services/rider-view-format';
+import { sanitizeVehicleField } from '../services/rider-offer-fields';
 import { resolveColorDisplayName } from '@/shared/services/color-name';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 import { useTripMutualCancellation } from '@/shared/hooks/use-trip-mutual-cancellation';
@@ -74,16 +75,19 @@ export function TripActiveScreen({
     || activeTrip.captainName
     || t('trip.captainFallbackName');
 
-  const plateNumber = activeTrip.captain?.plate_number
+  const plateNumber = sanitizeVehicleField(
+    activeTrip.captain?.plate_number
     || activeTrip.captain?.license_plate
-    || activeTrip.vehiclePlate
-    || t('trip.plateFallback');
+    || activeTrip.vehiclePlate,
+  );
 
   const vehicleModel = activeTrip.captain?.vehicle_model
     || activeTrip.vehicleType
     || t('trip.vehicleFallback');
 
-  const vehicleColor = resolveColorDisplayName(activeTrip.captain?.vehicle_color, isArabic ? 'ar' : 'en');
+  const vehicleColor = sanitizeVehicleField(
+    resolveColorDisplayName(activeTrip.captain?.vehicle_color, isArabic ? 'ar' : 'en'),
+  );
 
   const captainTargetId = activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId || '';
   const [isFavorite, setIsFavorite] = React.useState<boolean>(() => {
