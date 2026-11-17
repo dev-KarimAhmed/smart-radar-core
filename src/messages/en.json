@@ -2060,6 +2060,11 @@
     "systemAction": "System Action",
     "boundaryCross": "Boundary Crossed",
     "detailedFeedback": "Your detailed feedback for captain:",
+    "captainCriteria": {
+      "ad_compliance": "Ad & Service Compliance",
+      "politeness": "Politeness & Communication",
+      "favorited": "Favorite Captain"
+    },
     "before": "",
     "ago": "ago",
     "logsClearedTitle": "Local Logs Cleared",

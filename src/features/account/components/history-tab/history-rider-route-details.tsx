@@ -1,18 +1,17 @@
 import React from 'react';
-import { Navigation, ExternalLink } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 import type { HistoricalTrip } from './history-shared';
 
 interface HistoryRiderRouteDetailsProps {
   trip: HistoricalTrip;
   isArabic: boolean;
-  routeMapUrl: string | null;
+  routeMapUrl?: string | null;
   t: any;
 }
 
 export function HistoryRiderRouteDetails({
   trip,
   isArabic,
-  routeMapUrl,
   t,
 }: HistoryRiderRouteDetailsProps) {
   return (
@@ -58,20 +57,6 @@ export function HistoryRiderRouteDetails({
           </div>
         </div>
       </div>
-
-      {routeMapUrl && (
-        <div className="pt-2 border-t border-white/5 flex justify-end">
-          <a
-            href={routeMapUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#14F5D5] hover:underline"
-          >
-            <ExternalLink className="h-3 w-3" />
-            <span>{t('viewOnMap') || (isArabic ? 'عرض على الخريطة' : 'View on Map')}</span>
-          </a>
-        </div>
-      )}
     </div>
   );
 }

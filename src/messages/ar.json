@@ -2060,6 +2060,11 @@
     "systemAction": "إجراء النظام",
     "boundaryCross": "تخطي الحدود",
     "detailedFeedback": "تقييمك المفصّل للكابتن المعلن:",
+    "captainCriteria": {
+      "ad_compliance": "مطابقة الإعلان والخدمة",
+      "politeness": "اللباقة وحسن التعامل",
+      "favorited": "كابتن مفضل"
+    },
     "before": "قبل",
     "ago": "",
     "logsClearedTitle": "تم تفريغ السجل المحلي بنجاح",

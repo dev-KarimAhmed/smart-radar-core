@@ -5,6 +5,32 @@ interface HistoryRiderTripReviewProps {
   t: (key: string) => string;
 }
 
+const CRITERIA_FALLBACKS: Record<string, string> = {
+  ad_compliance: 'مطابقة الإعلان والخدمة',
+  politeness: 'اللباقة وحسن التعامل',
+  favorited: 'كابتن مفضل',
+  polite: 'سائق مهذب',
+  clean: 'سيارة نظيفة ومرتبة',
+  safe: 'قيادة آمنة',
+  punctual: 'وصل في الموعد',
+  ac: 'التكييف كان ممتاز',
+  music: 'الموسيقى هادئة',
+  behavior: 'الاحترام والأسلوب',
+  driving: 'القيادة الآمنة والالتزام بالسرعة',
+  routing: 'اختيار مسار ذكي بدون زحام',
+  communication: 'التجاوب والتواصل الاحترافي',
+};
+
+function resolveCriterionLabel(k: string, t: (key: string) => string): string {
+  try {
+    const translated = t(`captainCriteria.${k}`);
+    if (translated && !translated.includes('captainCriteria')) {
+      return translated;
+    }
+  } catch {}
+  return CRITERIA_FALLBACKS[k] || k;
+}
+
 export function HistoryRiderTripReview({ review, t }: HistoryRiderTripReviewProps) {
   if (!review) return null;
 
@@ -26,7 +52,7 @@ export function HistoryRiderTripReview({ review, t }: HistoryRiderTripReviewProp
         <div className="flex flex-wrap gap-1.5 pt-1">
           {activeCaptain.map(k => (
             <span key={k} className="inline-flex items-center gap-1 rounded-md bg-[#14B8A6]/10 border border-[#14B8A6]/20 px-2 py-0.5 text-[10px] font-bold text-[#14F5D5]">
-              👤 {t(`captainCriteria.${k}`)}
+              👤 {resolveCriterionLabel(k, t)}
             </span>
           ))}
         </div>
