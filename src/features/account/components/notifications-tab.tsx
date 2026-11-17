@@ -72,7 +72,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
     <div className={styles.root}>
       <div className={styles.header}>
         <div className="flex items-center gap-2.5">
-          {onClose && (
+          {onClose && !isCaptain && (
             <Button
               variant="outline"
               size="sm"
@@ -80,7 +80,7 @@ export function NotificationsTab({ onClose, filterCategory }: NotificationsTabPr
               className="border-2 border-orange-500/80 bg-gradient-to-r from-orange-500/25 via-amber-500/20 to-orange-600/25 text-orange-300 hover:text-white shadow-[0_0_15px_rgba(249,115,22,0.35)] text-xs sm:text-sm font-bold cursor-pointer transition-all active:scale-95"
             >
               <ArrowRight className="h-4 w-4 rtl:ml-1 ltr:mr-1 ltr:rotate-180" />
-              <span>{isCaptain ? tNotifs('backToRadar') : tNotifs('backToHome')}</span>
+              <span>{tNotifs('backToHome')}</span>
             </Button>
           )}
           <h1 className={styles.title}>

@@ -176,7 +176,7 @@ export function CaptainMainContent({
 
       {screen === 'NOTIFICATIONS' ? (
         <div className={styles.notificationsWrap}>
-          <NotificationsScreen onClose={onOpenRadar} filterCategory="admin" />
+          <NotificationsScreen filterCategory="admin" />
         </div>
       ) : null}
 
