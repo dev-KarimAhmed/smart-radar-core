@@ -164,7 +164,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const fileName = 'bynkcom_contract_v1.0-unified.pdf';
+    const fileName = 'bynkcom_contract_v1.0-unified_r2.pdf';
     const storagePath = `${captainId}/${fileName}`;
     if (!isValidStorageRelativePath(storagePath)) {
       return NextResponse.json({ success: false, error: 'invalid_contract_path' }, { status: 400 });

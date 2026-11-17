@@ -74,13 +74,17 @@ export function AdStage({
     return filteredAds.length > 0 ? [...filteredAds, ...RIDER_SECTOR_ADS] : RIDER_SECTOR_ADS;
   }, [audience, liveDistrict, liveGovernorate, serverAds]);
 
+  const repeatCount = useMemo(() => {
+    if (adsToUse.length <= 1) return 1;
+    if (adsToUse.length === 2) return 4;
+    if (adsToUse.length < 5) return 3;
+    return 2;
+  }, [adsToUse.length]);
+
   const displayAds = useMemo(() => {
-    if (adsToUse.length <= 1) return adsToUse;
-    if (adsToUse.length < 4) {
-      return [...adsToUse, ...adsToUse, ...adsToUse];
-    }
-    return [...adsToUse, ...adsToUse];
-  }, [adsToUse]);
+    if (repeatCount <= 1) return adsToUse;
+    return Array.from({ length: repeatCount }, () => adsToUse).flat();
+  }, [adsToUse, repeatCount]);
 
   useEffect(() => {
     adsToUse.forEach((ad: any) => {
@@ -199,6 +203,7 @@ export function AdStage({
       <AdRiverCarousel
         adsToUse={adsToUse}
         displayAds={displayAds}
+        repeatCount={repeatCount}
         cardClassName={cardClassName}
         heartedAdIds={heartedAdIds}
         toggleHeart={toggleHeart}

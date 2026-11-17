@@ -10,7 +10,7 @@ import { isValidPdfBuffer } from './contract-pdf-validator';
 export async function saveCaptainContract(data: CaptainContractData): Promise<ContractResult> {
   const { pdfBuffer, contractHash, contractId, acceptedAt } = await generateCaptainContractPdf(data);
   const version = data.contractVersion || 'V1.0-Unified';
-  const fileName = `bynkcom_contract_${version.toLowerCase()}.pdf`;
+  const fileName = `bynkcom_contract_${version.toLowerCase()}_r2.pdf`;
   const storagePath = `${data.captainId}/${fileName}`;
 
   // 1. Upload to Supabase Storage: captain-documents bucket (only if genuine PDF)
