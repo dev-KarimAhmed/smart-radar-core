@@ -29,7 +29,7 @@ export type {
 export function usePricePerKmSetup(
   user: User | null,
   isInDifferentCountry = false,
-  activationNonce = 0,
+  _activationNonce = 0,
 ) {
   const [tariff, setTariff] = React.useState<TariffContext>({
     baseFare: null,
@@ -42,7 +42,7 @@ export function usePricePerKmSetup(
     marketAverage: null,
   });
   const [isLoaded, setIsLoaded] = React.useState(false);
-  const [confirmedNonce, setConfirmedNonce] = React.useState(activationNonce);
+  const [isDismissed, setIsDismissed] = React.useState(false);
 
   React.useEffect(() => {
     if (!user?.uid) {
@@ -96,7 +96,7 @@ export function usePricePerKmSetup(
     return () => {
       active = false;
     };
-  }, [user?.uid, activationNonce]);
+  }, [user?.uid]);
 
   const saveTariff = React.useCallback(async (value: CaptainTariff): Promise<CaptainTariffSaveResult> => {
     if (!user?.uid) return { saved: false, reason: 'unknown' };
@@ -114,29 +114,20 @@ export function usePricePerKmSetup(
       ...value,
       pricingMode: mode,
     }));
-    setConfirmedNonce(activationNonce);
+    setIsDismissed(true);
     return { saved: true };
-  }, [activationNonce, user]);
-
-  const [isDismissed, setIsDismissed] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsDismissed(false);
-  }, [activationNonce]);
+  }, [user]);
 
   const dismissPriceSetup = React.useCallback(() => {
-    setConfirmedNonce(activationNonce);
     setIsDismissed(true);
-  }, [activationNonce]);
+  }, []);
 
   const isTariffIncomplete =
     tariff.baseFare === null || tariff.pricePerKm === null || tariff.pricePerMin === null;
 
-  const needsActivationConfirm = activationNonce > confirmedNonce;
-
   return {
-    needsPriceSetup: !isDismissed && isLoaded && (isTariffIncomplete || isInDifferentCountry || needsActivationConfirm),
-    isActivationConfirm: needsActivationConfirm && !isTariffIncomplete && !isInDifferentCountry,
+    needsPriceSetup: !isDismissed && isLoaded && (isTariffIncomplete || isInDifferentCountry),
+    isActivationConfirm: false,
     currentTariff: tariff,
     saveTariff,
     dismissPriceSetup,
