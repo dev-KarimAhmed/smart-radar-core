@@ -127,7 +127,7 @@ export function MarketStatusIndicator({ indicator, size = 'full' }: MarketStatus
       >
         <Gauge value={resolvedIndicator.activeCaptainCount} threshold={resolvedIndicator.pendingRequestCount} status={resolvedIndicator.status} className={styles.compactGauge} />
         <span className={cn(styles.compactLabel, isHigh ? styles.compactLabelHigh : styles.compactLabelLow)}>
-          {isHigh ? t('marketIndicatorHighShort') : t('marketIndicatorLowShort')}
+          {t('marketIndicatorTitle')}
         </span>
       </div>
     );
