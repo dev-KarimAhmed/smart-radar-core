@@ -102,8 +102,10 @@ export function useDriverProfileState(user: User | null, toast: any) {
 
   const validateBeforeSave = (): { valid: true; tariffTouched: boolean } | { valid: false } => {
     if (!user?.uid) return { valid: false };
-    if (!f.fullName.trim() || !f.phone.trim()) {
-      toast({ variant: 'destructive', title: t('saveErrorTitle'), description: t('saveErrorDescription') });
+    if (!f.fullName.trim() || !f.phone.trim() || !f.vehiclePlate.trim() || (!f.isTaxi && !f.vehicleColor.trim())) {
+      const isEn = typeof document !== 'undefined' && document.documentElement.lang === 'en';
+      const desc = !f.vehiclePlate.trim() ? (isEn ? 'Vehicle plate number is required.' : 'رقم لوحة المركبة مطلوب ولا يمكن تركه فارغاً.') : (!f.isTaxi && !f.vehicleColor.trim()) ? (isEn ? 'Vehicle color is required.' : 'لون المركبة مطلوب ولا يمكن تركه فارغاً.') : t('saveErrorDescription');
+      toast({ variant: 'destructive', title: t('saveErrorTitle'), description: desc });
       return { valid: false };
     }
     const tariffTouched = [

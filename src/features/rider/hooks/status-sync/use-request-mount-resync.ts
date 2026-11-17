@@ -73,14 +73,32 @@ export function useRequestMountResync(params: {
       }
 
       let offers: Offer[] = [];
+      let hydratedCaptain: Record<string, unknown> | null = null;
       try {
-        offers = await fetchRideOffers(supabase, requestId);
+        const authHeaders = await getSupabaseAuthHeaders();
+        const [fetchedOffers, captainCardRes] = await Promise.all([
+          fetchRideOffers(supabase, requestId).catch(() => [] as Offer[]),
+          authHeaders.Authorization
+            ? fetch(`/api/trip/captain-card?requestId=${encodeURIComponent(requestId)}`, {
+                method: 'GET',
+                headers: authHeaders,
+                cache: 'no-store',
+              })
+                .then((res) => (res.ok ? res.json() : null))
+                .catch(() => null)
+            : Promise.resolve(null),
+        ]);
+        offers = fetchedOffers;
+        if (captainCardRes?.success && captainCardRes.captain) {
+          hydratedCaptain = captainCardRes.captain as Record<string, unknown>;
+        }
       } catch (offersError) {
         if (process.env.NODE_ENV !== 'production') console.warn('[Rider status sync] resync offers fetch failed:', offersError);
       }
 
       if (isCancelled) return;
-      dispatch({ type: 'REHYDRATE_ACTIVE_TRIP', requestId, row, offers });
+      const hydratedRow = hydratedCaptain ? { ...row, captain: hydratedCaptain } : row;
+      dispatch({ type: 'REHYDRATE_ACTIVE_TRIP', requestId, row: hydratedRow, offers });
     })();
 
     return () => {

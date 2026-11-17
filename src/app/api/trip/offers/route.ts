@@ -10,6 +10,7 @@ import {
   cancelAndDeleteOtherCaptainOffers,
   findBusyCaptainTripMap,
 } from '@/shared/server/captain-offer-cleanup';
+import { fetchCaptainCardsMapAdmin } from '@/shared/server/captain-vehicle-card';
 
 export async function GET(req: Request) {
   try {
@@ -84,7 +85,40 @@ export async function GET(req: Request) {
       return !capId || !busyMap.has(capId);
     });
 
-    return NextResponse.json({ success: true, offers: cleanRows });
+    const cleanCaptainIds = Array.from(
+      new Set(
+        cleanRows
+          .map((row) => String(row.captain_id || row.driver_id || '').trim())
+          .filter(Boolean),
+      ),
+    );
+
+    const cardsMap = await fetchCaptainCardsMapAdmin(adminClient, cleanCaptainIds, true);
+
+    const enrichedRows = cleanRows.map((row) => {
+      const capId = String(row.captain_id || row.driver_id || '').trim();
+      const card = capId ? cardsMap.get(capId) : undefined;
+      if (!card) return row;
+
+      const { phone: _hiddenPhone, ...safeCard } = card;
+      return {
+        ...row,
+        captain: {
+          id: safeCard.id,
+          full_name: safeCard.full_name,
+          serial_id: safeCard.serial_id,
+          rating: safeCard.rating,
+          behavior_rating: safeCard.behavior_rating,
+          vehicle_rating: safeCard.vehicle_rating,
+          rating_count: safeCard.rating_count,
+          tier: safeCard.tier,
+          heart_count: safeCard.heart_count,
+        },
+        captain_profile: safeCard,
+      };
+    });
+
+    return NextResponse.json({ success: true, offers: enrichedRows });
   } catch (err) {
     console.error('[trip/offers] unexpected error:', err);
     return NextResponse.json({ success: false, error: 'internal_server_error' }, { status: 500 });

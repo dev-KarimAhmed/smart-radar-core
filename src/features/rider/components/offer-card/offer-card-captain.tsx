@@ -25,8 +25,6 @@ export function OfferCardCaptain({
 
   const captain = offer.captain;
   const vehicleModelLabel = captain.vehicle_model?.trim() || t('vehicle');
-  const vehicleColorLabel = sanitizeVehicleField(resolveColorDisplayName(captain.vehicle_color, language));
-  const plateLabel = sanitizeVehicleField(captain.plate_number);
   const rawAffiliation = (
     captain.affiliation_type ||
     (offer as any).affiliation_type ||
@@ -43,6 +41,10 @@ export function OfferCardCaptain({
   ).trim();
 
   const isOfficeTaxi = rawAffiliation === 'office-taxi' || rawAffiliation.includes('taxi') || (captain.vehicle_category || '').toLowerCase().includes('taxi');
+  const vehicleColorLabel = sanitizeVehicleField(
+    resolveColorDisplayName(captain.vehicle_color || (isOfficeTaxi ? 'أصفر' : ''), language),
+  );
+  const plateLabel = sanitizeVehicleField(captain.plate_number);
   const isIndependent = rawAffiliation === 'independent' || (!isOfficeTaxi && (rawAffiliation === '' && !rawCompany)) || (!isOfficeTaxi && (rawCompany === 'مستقل' || rawCompany === 'كابتن مستقل' || rawCompany === 'كابتن معلن مستقل' || rawCompany.toLowerCase() === 'independent')) || (captain.company_name === 'مستقل');
   const isSmartApp = !isOfficeTaxi && !isIndependent && (rawAffiliation === 'smart-app' || rawAffiliation.includes('app') || Boolean(rawCompany));
 

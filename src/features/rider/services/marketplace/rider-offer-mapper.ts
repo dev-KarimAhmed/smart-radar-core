@@ -25,9 +25,9 @@ export function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
   const vehicleBrand = firstString(vehicle.brand, vehicle.vehicle_brand, vehicle.make, vehicle.vehicle_make, row.vehicle_brand, row.vehicle_make);
   const vehicleModel = firstString(vehicle.model, vehicle.vehicle_model, row.vehicle_model);
   const vehicleType = firstString(vehicle.type, vehicle.vehicle_type, row.vehicle_type, vehicle.make, row.vehicle_make);
-  const vehicleColor = firstString(vehicle.color, vehicle.vehicle_color, row.vehicle_color);
-  const vehicleYear = firstNumber(vehicle.year, vehicle.vehicle_year, row.vehicle_year);
-  const plate = firstString(vehicle.plate, vehicle.plate_number, vehicle.vehicle_plate, row.plate_number, row.vehicle_plate);
+  const vehicleColor = firstString(vehicle.color, vehicle.vehicle_color, captainProfile.vehicle_color, profile.vehicle_color, profile.car_color, row.vehicle_color) || ((vehicleType === 'TAXI' || captainProfile.vehicle_type === 'TAXI') ? 'أصفر' : undefined);
+  const vehicleYear = firstNumber(vehicle.year, vehicle.vehicle_year, captainProfile.vehicle_year, row.vehicle_year);
+  const plate = firstString(vehicle.plate, vehicle.plate_number, vehicle.vehicle_plate, captainProfile.plate_number, profile.vehicle_plate, profile.plate_number, profile.car_plate, row.plate_number, row.vehicle_plate);
   const rawAffiliationType = firstString(
     captainProfile.affiliation_type,
     row.affiliation_type,
@@ -75,7 +75,7 @@ export function mapRideOfferRow(row: Record<string, unknown>): Offer | null {
       model: vehicleModel || '',
       color: vehicleColor || '',
       year: vehicleYear ?? undefined,
-      plate: plate || 'غير متاح',
+      plate: plate || '',
       type: vehicleType || 'سيارة',
     },
     driverAffiliation: {

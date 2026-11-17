@@ -78,15 +78,30 @@ export function TripActiveScreen({
   const plateNumber = sanitizeVehicleField(
     activeTrip.captain?.plate_number
     || activeTrip.captain?.license_plate
+    || (activeTrip.captain as any)?.vehicle_plate
     || activeTrip.vehiclePlate,
   );
 
-  const vehicleModel = activeTrip.captain?.vehicle_model
+  const combinedModel = [
+    sanitizeVehicleField(typeof activeTrip.captain?.vehicle_brand === 'string' ? activeTrip.captain.vehicle_brand : ''),
+    sanitizeVehicleField(activeTrip.captain?.vehicle_model),
+  ].filter(Boolean).join(' ');
+
+  const vehicleModel = combinedModel
     || activeTrip.vehicleType
     || t('trip.vehicleFallback');
 
+  const isTaxiCaptain =
+    String(activeTrip.captain?.vehicle_type || '').toUpperCase() === 'TAXI'
+    || String(activeTrip.captain?.affiliation_type || '').toLowerCase() === 'office-taxi';
+
+  const rawVehicleColor =
+    activeTrip.captain?.vehicle_color
+    || (activeTrip.captain as any)?.color
+    || (isTaxiCaptain ? 'أصفر' : '');
+
   const vehicleColor = sanitizeVehicleField(
-    resolveColorDisplayName(activeTrip.captain?.vehicle_color, isArabic ? 'ar' : 'en'),
+    resolveColorDisplayName(rawVehicleColor, isArabic ? 'ar' : 'en'),
   );
 
   const captainTargetId = activeTrip.captainId || (activeTrip.captain as any)?.id || (activeTrip as any)?.driverId || '';

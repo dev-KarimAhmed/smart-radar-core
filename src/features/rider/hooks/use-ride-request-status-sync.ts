@@ -97,6 +97,8 @@ export function useRideRequestStatusSync(params: {
 
   useRequestCaptainPhone({
     screen: state.screen,
+    requestId: state.requestId,
+    activeTrip: state.activeTrip,
     captainId: state.activeTrip?.captainId,
     captainPhone: state.activeTrip?.captainPhone,
     dispatch,

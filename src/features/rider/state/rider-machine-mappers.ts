@@ -110,8 +110,21 @@ export function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<st
       acceptedCaptainId ||
       existing?.captainSerial ||
       'السائق',
-    captainPhone: selectedOffer?.driverAffiliation?.phone || firstString(acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) || existing?.captainPhone || '',
-    vehicleType: vehicle.type || `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim() || existing?.vehicleType || 'سيارة',
+    captainPhone:
+      selectedOffer?.driverAffiliation?.phone ||
+      firstString(rowCaptain?.phone, acceptedRow.driver_phone, acceptedRow.captain_phone, acceptedRow.phone) ||
+      existing?.captainPhone ||
+      '',
+    vehicleType:
+      [
+        firstString(selectedOffer?.captain?.vehicle_brand, rowCaptain?.vehicle_brand, vehicle.brand),
+        firstString(selectedOffer?.captain?.vehicle_model, rowCaptain?.vehicle_model, vehicle.model),
+      ].filter(Boolean).join(' ') ||
+      vehicle.type ||
+      firstString(rowCaptain?.vehicle_type) ||
+      `${vehicle.make || 'سيارة'} ${vehicle.color || ''}`.trim() ||
+      existing?.vehicleType ||
+      'سيارة',
     vehiclePlate: firstString(
       selectedOffer?.captain?.plate_number,
       rowCaptain?.plate_number,
@@ -151,5 +164,35 @@ export function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<st
     cancel_requested_by: Object.prototype.hasOwnProperty.call(acceptedRow, 'cancel_requested_by')
       ? normalizeCancelRole(acceptedRow.cancel_requested_by)
       : (existing?.cancel_requested_by ?? null),
+  };
+}
+
+export function mergeCaptainCardIntoActiveTrip(
+  activeTrip: RiderActiveTrip,
+  captainId: string,
+  card: Record<string, unknown>,
+): RiderActiveTrip {
+  if (activeTrip.captainId && captainId && activeTrip.captainId !== captainId) {
+    return activeTrip;
+  }
+
+  const mergedCaptain = { ...(activeTrip.captain || {}), ...card };
+  const plate = firstString(mergedCaptain.plate_number, mergedCaptain.license_plate, activeTrip.vehiclePlate);
+  const modelDisplay = [
+    firstString(mergedCaptain.vehicle_brand),
+    firstString(mergedCaptain.vehicle_model),
+  ].filter(Boolean).join(' ');
+  const phone = firstString(mergedCaptain.phone, activeTrip.captainPhone);
+  const name = firstString(mergedCaptain.nickname, mergedCaptain.full_name, mergedCaptain.name, activeTrip.captainName);
+  const serial = firstString(mergedCaptain.serial_id, mergedCaptain.serial_number, activeTrip.captainSerial);
+
+  return {
+    ...activeTrip,
+    captain: mergedCaptain,
+    captainName: name || activeTrip.captainName,
+    captainSerial: serial || activeTrip.captainSerial,
+    captainPhone: phone || activeTrip.captainPhone,
+    vehiclePlate: plate || activeTrip.vehiclePlate,
+    vehicleType: modelDisplay || activeTrip.vehicleType,
   };
 }

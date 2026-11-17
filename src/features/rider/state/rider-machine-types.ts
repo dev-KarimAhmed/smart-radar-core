@@ -108,6 +108,7 @@ export type RiderMachineAction =
   | { type: 'RETURN_TO_MAP' }
   | { type: 'CLEAR_AUTO_RETRY' }
   | { type: 'HYDRATE_CAPTAIN_PHONE'; captainId: string; phone: string }
+  | { type: 'HYDRATE_CAPTAIN_CARD'; captainId: string; captain: Record<string, unknown> }
   | { type: 'RESET_TO_IDLE' };
 
 export const RIDER_STATE_STORAGE_KEY = 'radar_active_rider_machine_state';

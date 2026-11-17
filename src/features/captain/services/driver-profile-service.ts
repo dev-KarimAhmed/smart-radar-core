@@ -148,7 +148,7 @@ export async function executeProfileDatabaseSave(params: DriverProfileSaveParams
       ? 'مستقل'
       : (params.businessName.trim() || (isOfficeTaxi ? 'مكتب تاكسي' : 'تطبيق ذكي')),
     nickname: params.nickname.trim() || null,
-    vehicle_color: vehicle.color || null,
+    vehicle_color: isOfficeTaxi ? (vehicle.color || 'أصفر') : (vehicle.color || null),
     facebook_url: params.facebookUrl.trim() || null,
     instagram_url: params.instagramUrl.trim() || null,
   };

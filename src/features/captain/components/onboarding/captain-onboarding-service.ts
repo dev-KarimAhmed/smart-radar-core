@@ -89,9 +89,9 @@ export function buildCaptainProfile(
 
   return {
     vehicle_type: isTaxi ? 'TAXI' : 'PRIVATE',
-    vehicle_brand: isTaxi ? null : vehicle.make.trim() || null,
+    vehicle_brand: vehicle.make.trim() || null,
     vehicle_model: vehicle.model.trim() || null,
-    vehicle_color: isTaxi ? null : vehicle.color.trim() || null,
+    vehicle_color: isTaxi ? (vehicle.color.trim() || 'أصفر') : (vehicle.color.trim() || null),
     vehicle_year: Number(vehicle.year) || null,
     plate_number: vehicle.plate.trim() || null,
     employment_type: isTaxi

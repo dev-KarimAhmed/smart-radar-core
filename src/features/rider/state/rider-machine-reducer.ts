@@ -8,6 +8,7 @@ import {
   extractRowStartTime,
   buildDestinationFromRow,
   buildActiveTrip,
+  mergeCaptainCardIntoActiveTrip,
 } from './rider-machine-mappers';
 
 export const initialRiderMachineState: RiderMachineState = {
@@ -215,18 +216,17 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
 
     case 'HYDRATE_CAPTAIN_PHONE': {
       if (!state.activeTrip || !action.phone) return state;
-      if (state.activeTrip.captainId && action.captainId && state.activeTrip.captainId !== action.captainId) {
-        return state;
-      }
       return {
         ...state,
-        activeTrip: {
-          ...state.activeTrip,
-          captainPhone: action.phone,
-          captain: state.activeTrip.captain
-            ? { ...state.activeTrip.captain, phone: action.phone }
-            : { phone: action.phone },
-        },
+        activeTrip: mergeCaptainCardIntoActiveTrip(state.activeTrip, action.captainId, { phone: action.phone }),
+      };
+    }
+
+    case 'HYDRATE_CAPTAIN_CARD': {
+      if (!state.activeTrip || !action.captain) return state;
+      return {
+        ...state,
+        activeTrip: mergeCaptainCardIntoActiveTrip(state.activeTrip, action.captainId, action.captain),
       };
     }
 
