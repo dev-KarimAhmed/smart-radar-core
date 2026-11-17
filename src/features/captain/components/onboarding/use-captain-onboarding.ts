@@ -163,12 +163,13 @@ export function useCaptainOnboarding(isArabic: boolean) {
         description: t(result.session ? 'successDescription' : 'successNeedsLogin'),
       });
 
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+        } catch {}
+      }
+
       if (result.session) {
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
-          } catch {}
-        }
         if (personal.email?.trim().includes('@')) {
           const { supabase } = await import('@/lib/supabase-client');
           const { getAuthRedirectUrl } = await import('@/lib/utils');

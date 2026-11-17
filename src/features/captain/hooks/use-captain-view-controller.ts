@@ -36,7 +36,7 @@ export function useCaptainViewController({
 
   // Check pending PWA install prompt
   React.useEffect(() => {
-    if (typeof window === 'undefined' || !user) return;
+    if (typeof window === 'undefined') return;
     const pending = localStorage.getItem('radar_pending_pwa_install_prompt');
     if (pending === 'true') {
       localStorage.removeItem('radar_pending_pwa_install_prompt');
@@ -44,7 +44,7 @@ export function useCaptainViewController({
         setIsInstallModalOpen(true);
       }
     }
-  }, [isStandalone, user]);
+  }, [isStandalone]);
 
   // Security guard: If a captain has 'active' status in DB/state but tariff is incomplete, revert to 'idle'
   React.useEffect(() => {

@@ -187,12 +187,13 @@ export async function executeRegistrationSignUp({
     description: role === 'driver' ? tAuto('key_cd6703e6') : tAuto('key_7132f656'),
   });
 
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+    } catch {}
+  }
+
   if (signUpResult.session) {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
-      } catch {}
-    }
     router.replace('/');
   } else {
     setAuthMode('login');

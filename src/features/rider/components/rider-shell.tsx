@@ -18,6 +18,8 @@ import { useReferralListener } from '@/features/referral/hooks/use-referral-list
 import { ReferralConflictModal } from '@/features/referral/components/referral-conflict-modal';
 import { styles, CRITICAL_RIDER_STATES } from './rider-shell-styles';
 import { RiderSecurityScreen } from './rider-security-screens';
+import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-modal';
+import { detectPlatform } from '@/lib/pwaGuidance';
 
 const RiderView = dynamic(
   () => import('./rider-view').then((module) => module.RiderViewTab),
@@ -54,7 +56,20 @@ export function RiderShell() {
   const [hash, setHash] = useState('#');
   const [showRequestFlow, setShowRequestFlow] = useState(false);
   const [hasRequestedRideOnce, setHasRequestedRideOnce] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const tripStatus = riderOperations?.tripStatus || 'idle';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const pending = localStorage.getItem('radar_pending_pwa_install_prompt');
+    if (pending === 'true') {
+      localStorage.removeItem('radar_pending_pwa_install_prompt');
+      const env = detectPlatform();
+      if (!env.isStandalone) {
+        setIsInstallModalOpen(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const updateHash = () => setHash(window.location.hash || '#');
@@ -185,6 +200,13 @@ export function RiderShell() {
         existingCaptainName={conflictModalInfo.existingCaptainName}
         existingCaptainSerial={conflictModalInfo.existingCaptainSerial}
         isArabic={isArabic}
+      />
+
+      <SovereignPwaInstallModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        isArabic={isArabic}
+        role="rider"
       />
     </div>
   );

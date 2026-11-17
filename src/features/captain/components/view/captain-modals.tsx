@@ -54,7 +54,7 @@ export function CaptainModals({
 }: CaptainModalsProps) {
   return (
     <div className={styles.modalContainer}>
-      {needsPriceSetup || isManualPriceSetupOpen ? (
+      {!isInstallModalOpen && (needsPriceSetup || isManualPriceSetupOpen) ? (
         <PricePerKmSetupModal
           key={activationNonce}
           direction={direction}

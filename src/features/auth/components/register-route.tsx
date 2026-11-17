@@ -62,6 +62,11 @@ export function RegisterRoute({
   const tickerItems = useMemo(() => [...t.ticker, ...t.ticker, ...t.ticker], [t.ticker]);
 
   const submitMockAuth = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('radar_pending_pwa_install_prompt', 'true');
+      } catch {}
+    }
     router.push('/rider');
   };
 

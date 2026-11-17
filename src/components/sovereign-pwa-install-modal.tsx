@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { detectPlatform, PlatformEnvironment } from '@/lib/pwaGuidance';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 
 const styles = {
   content: 'max-w-[440px] rounded-2xl border border-[#14B8A6]/30 bg-[#0A0F1D] text-white p-5 sm:p-6 shadow-2xl backdrop-blur-xl',
@@ -58,8 +59,20 @@ export function SovereignPwaInstallModal({
 }: SovereignPwaInstallModalProps) {
   const t = useTranslations('pwaInstall');
   const isCaptain = role === 'captain';
+  const { canPromptNative, triggerNativeInstall } = usePwaInstall(role);
   const [platform, setPlatform] = useState<PlatformEnvironment>(() => detectPlatform());
   const [activeIosBrowser, setActiveIosBrowser] = useState<'safari' | 'chrome'>('safari');
+
+  const handleInstallClick = async () => {
+    if (canPromptNative) {
+      const installed = await triggerNativeInstall();
+      if (installed) {
+        onClose();
+        return;
+      }
+    }
+    onClose();
+  };
 
   useEffect(() => {
     const current = detectPlatform();
@@ -213,10 +226,12 @@ export function SovereignPwaInstallModal({
 
         <Button
           type="button"
-          onClick={onClose}
+          onClick={handleInstallClick}
           className={styles.closeButton}
         >
-          {t('confirmBtn')}
+          {canPromptNative
+            ? (isArabic ? 'تثبيت التطبيق الآن ⚡' : 'Install App Now ⚡')
+            : t('confirmBtn')}
         </Button>
       </DialogContent>
     </Dialog>
