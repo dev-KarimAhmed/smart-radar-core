@@ -93,6 +93,7 @@ export function AdRiverCarousel({
         style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
         className={cn(
           'no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-4 sm:gap-8 overflow-x-auto items-center h-full',
+          isFullScreen && 'py-2 sm:py-3',
           adsToUse.length === 1 ? 'justify-center px-4 sm:px-16' : 'justify-start px-4 sm:px-14',
         )}
       >

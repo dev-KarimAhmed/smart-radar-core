@@ -144,7 +144,7 @@ export function RiderShell() {
           : <RiderView onExitRequestFlow={exitRequestFlow} isStandbyDismissed={hasRequestedRideOnce} />;
 
   return (
-    <div className={styles.root}>
+    <div className={cn(styles.root, isStandby && styles.rootStandby)}>
       {user ? (
         <DesktopRiderSidebar
           hash={hash}
