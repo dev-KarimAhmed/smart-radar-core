@@ -14,12 +14,14 @@ export async function downloadPdfInWorker(options: {
 
   if (typeof window === 'undefined') return;
 
+  const resolvedUrl = new URL(url, window.location.origin).toString();
+
   // Check if Web Worker is supported
   const hasWorkerSupport = typeof window.Worker !== 'undefined';
 
   if (!hasWorkerSupport) {
     // Fallback: main-thread async fetch
-    await fallbackMainThreadDownload(url, filename, accessToken);
+    await fallbackMainThreadDownload(resolvedUrl, filename, accessToken);
     return;
   }
 
@@ -72,11 +74,11 @@ export async function downloadPdfInWorker(options: {
         fallbackMainThreadDownload(url, filename, accessToken).then(resolve).catch(reject);
       };
 
-      worker.postMessage({ url, filename, accessToken });
+      worker.postMessage({ url: resolvedUrl, filename, accessToken });
     } catch (workerInitErr) {
       console.warn('[PDF Worker] Worker init failed, using authenticated fallback:', workerInitErr);
       cleanup();
-      fallbackMainThreadDownload(url, filename, accessToken).then(resolve).catch(reject);
+      fallbackMainThreadDownload(resolvedUrl, filename, accessToken).then(resolve).catch(reject);
     }
 
     function cleanup() {
@@ -106,7 +108,7 @@ function triggerFileSave(buffer: ArrayBuffer, filename: string): void {
       document.body.removeChild(link);
     }
     window.URL.revokeObjectURL(downloadUrl);
-  }, 1000);
+  }, 15000);
 }
 
 async function fallbackMainThreadDownload(

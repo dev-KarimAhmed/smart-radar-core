@@ -144,7 +144,7 @@ function ContractContent() {
       <div className="min-h-screen flex items-center justify-center bg-[#070B14] text-slate-100 p-4" dir={isArabic ? 'rtl' : 'ltr'}>
         <div className="max-w-md w-full rounded-2xl border border-red-500/20 bg-slate-900/90 p-6 text-center space-y-4">
           <p className="text-base font-bold text-red-400">{errorMsg}</p>
-          <Button onClick={() => router.push('/driver')} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">
+          <Button onClick={() => router.push('/captain')} className="bg-teal-600 hover:bg-teal-700 text-white font-bold">
             {isArabic ? 'العودة للملف الشخصي' : 'Back to Profile'}
           </Button>
         </div>
@@ -160,7 +160,7 @@ function ContractContent() {
     <div className="min-h-screen bg-[#070B14] text-slate-100 selection:bg-teal-500/30 print:bg-white print:text-black" dir={isArabic ? 'rtl' : 'ltr'}>
       <ContractActionBar
         isArabic={isArabic}
-        onBack={() => router.push('/driver')}
+        onBack={() => router.push('/captain')}
         onDownloadPdf={() => void handleDownloadPdf()}
         downloading={downloading}
         onPrint={() => window.print()}
