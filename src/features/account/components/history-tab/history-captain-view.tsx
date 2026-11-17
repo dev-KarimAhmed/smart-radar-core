@@ -82,20 +82,11 @@ export function HistoryCaptainView({
         <div className={styles.style1158_112}>
           {/* Section 1: Financial Log */}
           {(activeCategory === 'all' || activeCategory === 'financial') && (
-            <HistoryFinancialReceipts
-              isArabic={isArabic}
-              defaultExpanded={activeCategory === 'financial'}
-            />
-          )}
-
-          {/* Section 2: Legal Log */}
-          {(activeCategory === 'all' || activeCategory === 'legal') && (
-            <HistoryLegalDeclarations isArabic={isArabic} />
-          )}
-
-          {/* Section 3: Activity Log */}
-          {(activeCategory === 'all' || activeCategory === 'activity') && (
             <div className="space-y-4">
+              <HistoryFinancialReceipts
+                isArabic={isArabic}
+                defaultExpanded={activeCategory === 'financial'}
+              />
               <HistoryCaptainTrips
                 captainHistoricalTrips={captainHistoricalTrips}
                 loading={loading}
@@ -105,10 +96,20 @@ export function HistoryCaptainView({
                 tripReviews={tripReviews}
                 currentUserId={user?.uid}
                 onRatingSuccess={refreshReviews}
+                defaultExpanded={activeCategory === 'financial'}
                 t={t}
               />
-              <HistoryTripNotifications isArabic={isArabic} t={t} />
             </div>
+          )}
+
+          {/* Section 2: Legal Log */}
+          {(activeCategory === 'all' || activeCategory === 'legal') && (
+            <HistoryLegalDeclarations isArabic={isArabic} />
+          )}
+
+          {/* Section 3: Activity Log */}
+          {(activeCategory === 'all' || activeCategory === 'activity') && (
+            <HistoryTripNotifications isArabic={isArabic} t={t} />
           )}
 
           {/* Section 4: Customers Log */}

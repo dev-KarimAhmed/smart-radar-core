@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, FileText, ChevronDown } from 'lucide-react';
@@ -19,6 +19,7 @@ interface HistoryCaptainTripsProps {
   tripReviews?: Record<string, any>;
   currentUserId?: string;
   onRatingSuccess?: (tripId: string) => void;
+  defaultExpanded?: boolean;
   t: any;
 }
 
@@ -31,9 +32,16 @@ export function HistoryCaptainTrips({
   tripReviews = {},
   currentUserId,
   onRatingSuccess,
+  defaultExpanded = false,
   t,
 }: HistoryCaptainTripsProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  useEffect(() => {
+    if (defaultExpanded) {
+      setIsExpanded(true);
+    }
+  }, [defaultExpanded]);
   const [ratingTargetTrip, setRatingTargetTrip] = useState<any | null>(null);
   const activeCurrency = currencyLabel || (isArabic ? 'د.أ' : 'JOD');
 
