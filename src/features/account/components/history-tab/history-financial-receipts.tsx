@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { ReceiptText, RefreshCw, ChevronDown } from 'lucide-react';
+import { ReceiptText, RefreshCw, ChevronDown, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase-client';
@@ -18,14 +18,24 @@ export type { FinancialReceiptRecord };
 
 interface HistoryFinancialReceiptsProps {
   isArabic?: boolean;
+  defaultExpanded?: boolean;
 }
 
-export function HistoryFinancialReceipts({ isArabic = true }: HistoryFinancialReceiptsProps) {
+export function HistoryFinancialReceipts({
+  isArabic = true,
+  defaultExpanded = false,
+}: HistoryFinancialReceiptsProps) {
   const { user } = useAuth();
   const [receipts, setReceipts] = useState<FinancialReceiptRecord[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
   const [previewReceipt, setPreviewReceipt] = useState<FinancialReceiptRecord | null>(null);
+
+  useEffect(() => {
+    if (defaultExpanded) {
+      setIsExpanded(true);
+    }
+  }, [defaultExpanded]);
 
   const captainId = user?.uid || (user as any)?.id || '';
 
@@ -103,12 +113,12 @@ export function HistoryFinancialReceipts({ isArabic = true }: HistoryFinancialRe
                 </div>
                 <div className="min-w-0 flex-1">
                   <CardTitle className={styles.title}>
-                    {isArabic ? 'سجل الإيصالات المالية' : 'Financial Receipts Log'}
+                    {isArabic ? 'سجل آخر 5 إيصالات شحن' : 'Last 5 Financial Receipts'}
                   </CardTitle>
                   <CardDescription className={styles.descDesktop}>
                     {isArabic
-                      ? 'سجل عمليات شحن الرصيد الرقمي والمحلي وحالتها'
-                      : 'Records of wallet recharges, invoices & statuses'}
+                      ? 'متابعة حالة الإيصالات المرفوعة وتفاصيل الاعتماد أو الرفض'
+                      : 'Track uploaded recharge receipts, approvals & rejections'}
                   </CardDescription>
                 </div>
               </div>
@@ -117,13 +127,19 @@ export function HistoryFinancialReceipts({ isArabic = true }: HistoryFinancialRe
               <div className={styles.actionsRow}>
                 <CardDescription className={styles.descMobile}>
                   {isArabic
-                    ? 'شحن الرصيد الرقمي والمحلي وحالتها'
-                    : 'Wallet recharges & invoice statuses'}
+                    ? 'متابعة حالة إيصالات الشحن'
+                    : 'Track recharge receipts'}
                 </CardDescription>
 
                 <div className={styles.actionsGroup}>
+                  {!isExpanded && receipts.some((r) => r.status === 'PENDING') && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300 animate-pulse">
+                      <Clock className="h-3 w-3" />
+                      <span>{isArabic ? 'قيد المراجعة' : 'Pending'}</span>
+                    </span>
+                  )}
                   <span className={styles.countBadge}>
-                    {receipts.length} {isArabic ? 'إيصال' : 'receipts'}
+                    {receipts.length}/5
                   </span>
 
                   <div className={styles.chevronBox}>

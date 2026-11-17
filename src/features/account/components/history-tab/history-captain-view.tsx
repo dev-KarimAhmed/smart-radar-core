@@ -82,7 +82,10 @@ export function HistoryCaptainView({
         <div className={styles.style1158_112}>
           {/* Section 1: Financial Log */}
           {(activeCategory === 'all' || activeCategory === 'financial') && (
-            <HistoryFinancialReceipts isArabic={isArabic} />
+            <HistoryFinancialReceipts
+              isArabic={isArabic}
+              defaultExpanded={activeCategory === 'financial'}
+            />
           )}
 
           {/* Section 2: Legal Log */}

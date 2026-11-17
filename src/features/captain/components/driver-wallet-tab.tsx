@@ -7,13 +7,10 @@ import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
 import { DriverReferralCard } from '@/features/referral/components/driver-referral-card';
 import type { CaptainReceiptItem } from '../types/driver-wallet-types';
 import { useDriverWalletDirectory } from '../hooks/use-driver-wallet-directory';
-import { useDriverWalletReceipts } from '../hooks/use-driver-wallet-receipts';
 import { DriverWalletBalanceCard } from './wallet/driver-wallet-balance-card';
 import { CaptainAdsSeatsManager } from './captain-ads-seats-manager';
 import { DriverWalletRechargeSection } from './wallet/driver-wallet-recharge-section';
-import { DriverWalletReceiptsList } from './wallet/driver-wallet-receipts-list';
 import { DriverWalletDelegateCard } from './wallet/driver-wallet-delegate-card';
-import { DriverWalletReceiptLightbox } from './wallet/driver-wallet-receipt-lightbox';
 
 export type { CaptainReceiptItem };
 
@@ -39,18 +36,12 @@ export function DriverWalletTab({
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
   const [copiedChannelId, setCopiedChannelId] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [previewReceipt, setPreviewReceipt] = useState<CaptainReceiptItem | null>(null);
-  const [isReceiptsOpen, setIsReceiptsOpen] = useState<boolean>(false);
   const [isBalanceOpen, setIsBalanceOpen] = useState<boolean>(false);
-
-  const captainId = user?.uid || (user as any)?.id || '';
 
   const { effectiveChannels, effectiveDelegate } = useDriverWalletDirectory(
     user,
     t('delegateHint')
   );
-
-  const { receiptsHistory, isLoadingReceipts, fetchReceipts } = useDriverWalletReceipts(captainId);
 
   const selectedChannel = effectiveChannels.find((c) => c.id === selectedChannelId) || null;
 
@@ -72,8 +63,9 @@ export function DriverWalletTab({
       setAmount('');
       setSelectedChannelId(null);
       setReceiptFile(null);
-      setIsReceiptsOpen(true);
-      void fetchReceipts(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('radar-wallet-refresh'));
+      }
     }
   };
 
@@ -122,28 +114,8 @@ export function DriverWalletTab({
         t={t}
       />
 
-      {/* 4. Receipts History Section */}
-      <DriverWalletReceiptsList
-        language={language}
-        receiptsHistory={receiptsHistory}
-        isLoadingReceipts={isLoadingReceipts}
-        isReceiptsOpen={isReceiptsOpen}
-        setIsReceiptsOpen={setIsReceiptsOpen}
-        fetchReceipts={fetchReceipts}
-        onPreviewReceipt={(r) => setPreviewReceipt(r)}
-        t={t}
-      />
-
       {/* 5. Financial Delegate Card */}
       <DriverWalletDelegateCard effectiveDelegate={effectiveDelegate} t={t} />
-
-      {/* 6. Receipt Image Lightbox Modal */}
-      <DriverWalletReceiptLightbox
-        previewReceipt={previewReceipt}
-        onClose={() => setPreviewReceipt(null)}
-        language={language}
-        t={t}
-      />
     </div>
   );
 }

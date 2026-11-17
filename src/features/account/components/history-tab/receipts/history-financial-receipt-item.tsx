@@ -93,10 +93,19 @@ export function HistoryFinancialReceiptItem({
             </p>
           )}
 
-          {isRejected && receipt.rejectReason && (
+          {isRejected && (receipt.rejectReason || receipt.descriptionAr) && (
             <p className="text-[11px] text-rose-300 mt-0.5 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3 shrink-0" />
-              <span>{receipt.rejectReason}</span>
+              <span>{receipt.rejectReason || receipt.descriptionAr}</span>
+            </p>
+          )}
+
+          {receipt.adminNote && (
+            <p className="text-[11px] text-slate-300 mt-1">
+              <span className="font-bold text-slate-200">
+                {isArabic ? 'ملاحظة الإدارة:' : 'Admin note:'}
+              </span>{' '}
+              {receipt.adminNote}
             </p>
           )}
         </div>
