@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { saveCaptainContract } from '@/server/services/contract-pdf-service';
+import { isValidPdfBuffer } from '@/server/services/contract-pdf/contract-pdf-validator';
 import { hasAdminSectorAccess } from '@/features/admin/lib/admin-permissions';
 import {
   getSafeAppOrigin,
@@ -178,7 +179,7 @@ export async function GET(req: Request) {
 
       if (!fileErr && fileData) {
         const candidateBuf = Buffer.from(await fileData.arrayBuffer());
-        if (candidateBuf.length >= 600000) {
+        if (isValidPdfBuffer(candidateBuf)) {
           fileBuffer = candidateBuf;
         }
       }

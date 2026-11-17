@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { CaptainContractData, ContractResult } from './contract-pdf-types';
 import { generateCaptainContractPdf } from './contract-renderer';
+import { isValidPdfBuffer } from './contract-pdf-validator';
 
 /**
  * Saves the generated contract PDF and metadata into Supabase Storage
@@ -12,16 +13,18 @@ export async function saveCaptainContract(data: CaptainContractData): Promise<Co
   const fileName = `bynkcom_contract_${version.toLowerCase()}.pdf`;
   const storagePath = `${data.captainId}/${fileName}`;
 
-  // 1. Upload to Supabase Storage: captain-documents bucket
-  const { error: uploadError } = await supabaseAdmin.storage
-    .from('captain-documents')
-    .upload(storagePath, pdfBuffer, {
-      contentType: 'application/pdf',
-      upsert: true,
-    });
+  // 1. Upload to Supabase Storage: captain-documents bucket (only if genuine PDF)
+  if (isValidPdfBuffer(pdfBuffer)) {
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('captain-documents')
+      .upload(storagePath, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
 
-  if (uploadError) {
-    console.warn('[Contract PDF Service] Storage upload warning:', uploadError.message);
+    if (uploadError) {
+      console.warn('[Contract PDF Service] Storage upload warning:', uploadError.message);
+    }
   }
 
   // 2. Upload metadata JSON in bucket

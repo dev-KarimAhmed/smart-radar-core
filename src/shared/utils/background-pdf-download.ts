@@ -94,7 +94,17 @@ export async function downloadPdfInWorker(options: {
   });
 }
 
+function isPdfArrayBuffer(buffer: ArrayBuffer): boolean {
+  if (!buffer || buffer.byteLength < 5) return false;
+  const header = new Uint8Array(buffer, 0, 5);
+  // "%PDF-"
+  return header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46 && header[4] === 0x2d;
+}
+
 function triggerFileSave(buffer: ArrayBuffer, filename: string): void {
+  if (!isPdfArrayBuffer(buffer)) {
+    throw new Error('Server did not return a valid PDF document');
+  }
   const blob = new Blob([buffer], { type: 'application/pdf' });
   const downloadUrl = window.URL.createObjectURL(blob);
   const link = document.createElement('a');

@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import type { CaptainContractData } from './contract-pdf-types';
 import { buildCaptainContractHtml } from './contract-html-template';
+import { isValidPdfBuffer } from './contract-pdf-validator';
+import { generateContractPdfWithPdfLib } from './contract-pdflib-generator';
 
 /**
  * Generates an official signed PDF document for the Advertiser Captain
@@ -60,19 +62,22 @@ export async function generateCaptainContractPdf(data: CaptainContractData): Pro
 
     await browser.close();
 
-    return {
-      pdfBuffer: Buffer.from(pdfBuffer),
-      contractHash,
-      contractId,
-      acceptedAt,
-    };
+    const chromiumPdf = Buffer.from(pdfBuffer);
+    if (isValidPdfBuffer(chromiumPdf)) {
+      return {
+        pdfBuffer: chromiumPdf,
+        contractHash,
+        contractId,
+        acceptedAt,
+      };
+    }
+    throw new Error('Chromium returned invalid PDF buffer');
   } catch (chromiumError) {
-    console.error('[Contract PDF Service] Chromium launch error:', chromiumError);
+    console.warn('[Contract PDF Service] Chromium unavailable, using pure pdf-lib generator:', (chromiumError as Error)?.message || chromiumError);
 
-    // Fallback: Return HTML content buffer with contract metadata
-    const htmlBuffer = Buffer.from(html, 'utf-8');
+    const purePdfBuffer = await generateContractPdfWithPdfLib(data, contractHash, contractId, acceptedAt);
     return {
-      pdfBuffer: htmlBuffer,
+      pdfBuffer: purePdfBuffer,
       contractHash,
       contractId,
       acceptedAt,
