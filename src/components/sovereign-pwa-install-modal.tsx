@@ -2,47 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Share,
-  PlusSquare,
+  Download,
+  Share2,
+  Sparkles,
+  X,
   Smartphone,
-  ShieldCheck,
-  Zap,
-  MoreHorizontal,
-  Apple,
-  CheckCircle2,
-  Compass,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { detectPlatform, PlatformEnvironment } from '@/lib/pwaGuidance';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
-
-const styles = {
-  content: 'max-w-[440px] rounded-2xl border border-[#14B8A6]/30 bg-[#0A0F1D] text-white p-5 sm:p-6 shadow-2xl backdrop-blur-xl',
-  headerRtl: 'text-right',
-  headerLtr: 'text-left',
-  title: 'text-lg sm:text-xl font-black text-white flex items-center gap-2',
-  titleIcon: 'h-5 w-5 text-[#14F5D5]',
-  description: 'text-xs leading-relaxed text-slate-300 mt-1',
-  iosBadge: 'inline-flex items-center gap-1.5 rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-1 text-[11px] font-bold text-sky-300 mb-2',
-  tabContainer: 'grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/10 my-3',
-  tabBtn: 'flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer',
-  tabActive: 'bg-[#14B8A6] text-[#0A0F1D] shadow-md font-black',
-  tabIdle: 'text-slate-400 hover:text-white hover:bg-white/[0.05]',
-  stepList: 'my-3 space-y-2.5',
-  stepCard: 'flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-3 transition-colors hover:bg-white/[0.06]',
-  stepBadge: 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#14B8A6]/20 font-mono text-xs font-black text-[#14F5D5]',
-  stepContent: 'space-y-0.5 min-w-0 flex-1',
-  stepHeader: 'flex items-center gap-1.5',
-  stepIcon: 'h-4 w-4 text-[#14F5D5] shrink-0',
-  stepTitle: 'text-xs font-bold text-slate-200',
-  stepDesc: 'text-[11px] text-slate-400 leading-normal',
-  tipBox: 'rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5 my-3 text-[11px] font-medium text-emerald-200 leading-relaxed flex items-start gap-2',
-  tipIcon: 'h-4 w-4 text-emerald-400 shrink-0 mt-0.5',
-  closeButton: 'h-11 w-full rounded-xl bg-[#14B8A6] font-bold text-[#0A0F1D] hover:bg-[#2DD4BF] transition-all active:scale-[0.98]',
-} as const;
+import { PwaInstallStepsList } from './pwa-install-steps-list';
 
 export interface SovereignPwaInstallModalProps {
   isOpen: boolean;
@@ -57,182 +33,140 @@ export function SovereignPwaInstallModal({
   isArabic = true,
   role = 'rider',
 }: SovereignPwaInstallModalProps) {
-  const t = useTranslations('pwaInstall');
-  const isCaptain = role === 'captain';
-  const { canPromptNative, triggerNativeInstall } = usePwaInstall(role);
-  const [platform, setPlatform] = useState<PlatformEnvironment>(() => detectPlatform());
-  const [activeIosBrowser, setActiveIosBrowser] = useState<'safari' | 'chrome'>('safari');
+  const {
+    canPromptNative,
+    guidance,
+    platformEnv,
+    triggerNativeInstall,
+    dismissBanner,
+  } = usePwaInstall(role);
 
-  const handleInstallClick = async () => {
-    if (canPromptNative) {
-      const installed = await triggerNativeInstall();
-      if (installed) {
-        onClose();
-        return;
-      }
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isIOS = platformEnv.isIOS;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isOpen) {
+      window.dispatchEvent(new CustomEvent('pwa-install-modal-open'));
+    } else {
+      window.dispatchEvent(new CustomEvent('pwa-install-modal-close'));
     }
+    return () => {
+      window.dispatchEvent(new CustomEvent('pwa-install-modal-close'));
+    };
+  }, [isOpen]);
+
+  const handleDismiss = () => {
+    dismissBanner(1);
     onClose();
   };
 
-  useEffect(() => {
-    const current = detectPlatform();
-    setPlatform(current);
-    if (current.isChrome) {
-      setActiveIosBrowser('chrome');
-    } else {
-      setActiveIosBrowser('safari');
+  const handleNativeInstall = async () => {
+    const installed = await triggerNativeInstall();
+    if (installed) {
+      onClose();
     }
-  }, []);
-
-  const isIOS = platform.isIOS;
-
-  const getSteps = () => {
-    if (isIOS) {
-      if (activeIosBrowser === 'chrome') {
-        return [
-          {
-            num: 1,
-            Icon: MoreHorizontal,
-            title: t('chromeStep1Title'),
-            desc: t('chromeStep1Desc'),
-          },
-          {
-            num: 2,
-            Icon: PlusSquare,
-            title: t('chromeStep2Title'),
-            desc: t('chromeStep2Desc'),
-          },
-          {
-            num: 3,
-            Icon: isCaptain ? Zap : Smartphone,
-            title: t('chromeStep3Title'),
-            desc: t('chromeStep3Desc'),
-          },
-        ];
-      }
-
-      // Safari on iOS
-      return [
-        {
-          num: 1,
-          Icon: Share,
-          title: t('safariStep1Title'),
-          desc: t('safariStep1Desc'),
-        },
-        {
-          num: 2,
-          Icon: PlusSquare,
-          title: t('safariStep2Title'),
-          desc: t('safariStep2Desc'),
-        },
-        {
-          num: 3,
-          Icon: isCaptain ? Zap : Smartphone,
-          title: t('safariStep3Title'),
-          desc: t('safariStep3Desc'),
-        },
-      ];
-    }
-
-    // Android / Desktop fallback
-    return [
-      {
-        num: 1,
-        Icon: MoreHorizontal,
-        title: t('otherStep1Title'),
-        desc: t('otherStep1Desc'),
-      },
-      {
-        num: 2,
-        Icon: PlusSquare,
-        title: t('otherStep2Title'),
-        desc: t('otherStep2Desc'),
-      },
-      {
-        num: 3,
-        Icon: isCaptain ? Zap : Smartphone,
-        title: t('otherStep3Title'),
-        desc: t('otherStep3Desc'),
-      },
-    ];
   };
 
-  const steps = getSteps();
+  const subtitle = role === 'captain'
+    ? (isArabic
+        ? 'تطبيق كابتن معلن مستقل وخفيف دون استهلاك للمتجر والذاكرة'
+        : 'Standalone lightweight Captain PWA with zero app store bloat')
+    : (isArabic
+        ? 'تطبيق خفيف ومستقل بدون استهلاك للمتجر أو الذاكرة'
+        : 'Lightweight standalone app with zero app store bloat');
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className={styles.content} dir={isArabic ? 'rtl' : 'ltr'}>
-        <DialogHeader className={cn(isArabic ? styles.headerRtl : styles.headerLtr)}>
-          {isIOS && (
-            <div className={styles.iosBadge}>
-              <Apple className="h-3.5 w-3.5" />
-              <span>{t('iosBadge')}</span>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleDismiss(); }}>
+      <DialogContent
+        dir={isArabic ? 'rtl' : 'ltr'}
+        className="max-w-[460px] w-[calc(100%-1.5rem)] rounded-2xl border border-[#14B8A6]/35 bg-[#0B0F19]/95 p-4 sm:p-5 text-white shadow-[0_25px_60px_rgba(0,0,0,0.85)] backdrop-blur-xl [&>button:last-child]:hidden"
+      >
+        {/* Top bar: Icon, Title + PWA badge, Subtitle, and Close button */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-10 w-10 shrink-0 rounded-xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 flex items-center justify-center text-[#14F5D5]">
+              <Smartphone className="h-5 w-5" />
             </div>
-          )}
-          <DialogTitle className={styles.title}>
-            <ShieldCheck className={styles.titleIcon} />
-            <span>{isCaptain ? t('titleCaptain') : t('titleRider')}</span>
-          </DialogTitle>
-          <DialogDescription className={styles.description}>
-            {isIOS ? t('descIos') : isCaptain ? t('descCaptain') : t('descRider')}
-          </DialogDescription>
-        </DialogHeader>
-
-        {isIOS && (
-          <div className={styles.tabContainer}>
-            <button
-              type="button"
-              onClick={() => setActiveIosBrowser('safari')}
-              className={cn(styles.tabBtn, activeIosBrowser === 'safari' ? styles.tabActive : styles.tabIdle)}
-            >
-              <Compass className="h-3.5 w-3.5" />
-              <span>{t('tabSafari')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveIosBrowser('chrome')}
-              className={cn(styles.tabBtn, activeIosBrowser === 'chrome' ? styles.tabActive : styles.tabIdle)}
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-              <span>{t('tabChrome')}</span>
-            </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <DialogTitle className="text-xs sm:text-sm font-black tracking-wide text-white">
+                  {isArabic ? guidance.titleAr : guidance.titleEn}
+                </DialogTitle>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#14B8A6]/20 px-1.5 py-0.5 text-[9px] font-bold text-[#14F5D5]">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  PWA
+                </span>
+              </div>
+              <DialogDescription className="text-[11px] font-semibold text-slate-300 leading-tight mt-0.5">
+                {subtitle}
+              </DialogDescription>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleDismiss}
+            aria-label={isArabic ? 'إغلاق الإشعار' : 'Dismiss notice'}
+            className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Primary Action Row */}
+        <div className="mt-3 flex items-center gap-2">
+          {canPromptNative ? (
+            <Button
+              type="button"
+              onClick={() => void handleNativeInstall()}
+              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#14B8A6] to-[#0D9488] hover:from-[#2DD4BF] hover:to-[#14B8A6] text-[#041215] font-black text-xs sm:text-sm shadow-lg shadow-[#14B8A6]/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <Download className="h-4 w-4" />
+              <span>{isArabic ? 'تثبيت التطبيق بنقرة واحدة' : '1-Click Install App'}</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              variant="outline"
+              className="flex-1 h-11 rounded-xl border-[#14B8A6]/40 bg-[#14B8A6]/15 hover:bg-[#14B8A6]/25 text-white font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              {isIOS ? <Share2 className="h-4 w-4 text-[#14F5D5]" /> : <Download className="h-4 w-4 text-[#14F5D5]" />}
+              <span>
+                {isArabic
+                  ? isExpanded ? 'إخفاء خطوات التثبيت' : 'عرض خطوات التثبيت السريع'
+                  : isExpanded ? 'Hide Steps' : 'View Install Steps'}
+              </span>
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          )}
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleDismiss}
+            className="h-11 px-3 rounded-xl text-[11px] sm:text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer"
+          >
+            {isArabic ? 'لاحقاً' : 'Later'}
+          </Button>
+        </div>
+
+        {/* Expandable Step-by-Step Instructions (iOS Safari / Manual Fallback) */}
+        {isExpanded && (
+          <PwaInstallStepsList guidance={guidance} isArabic={isArabic} isIOS={isIOS} scrollable />
         )}
 
-        <div className={styles.stepList}>
-          {steps.map((stg) => {
-            const StepIcon = stg.Icon;
-            return (
-              <div key={stg.num} className={styles.stepCard}>
-                <div className={styles.stepBadge}>
-                  {stg.num}
-                </div>
-                <div className={styles.stepContent}>
-                  <div className={styles.stepHeader}>
-                    <StepIcon className={styles.stepIcon} />
-                    <span className={styles.stepTitle}>{stg.title}</span>
-                  </div>
-                  <p className={styles.stepDesc}>{stg.desc}</p>
-                </div>
-              </div>
-            );
-          })}
+        {/* Sovereign Engine Footer */}
+        <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400 font-bold">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span>
+              {isArabic ? 'منظومة الـ PWA المستقلة' : 'Sovereign Standalone PWA'}
+            </span>
+          </span>
+          <span className="font-mono text-[#14B8A6]">V2.6-Secured</span>
         </div>
-
-        <div className={styles.tipBox}>
-          <CheckCircle2 className={styles.tipIcon} />
-          <span>{t('tip')}</span>
-        </div>
-
-        <Button
-          type="button"
-          onClick={handleInstallClick}
-          className={styles.closeButton}
-        >
-          {canPromptNative
-            ? (isArabic ? 'تثبيت التطبيق الآن ⚡' : 'Install App Now ⚡')
-            : t('confirmBtn')}
-        </Button>
       </DialogContent>
     </Dialog>
   );

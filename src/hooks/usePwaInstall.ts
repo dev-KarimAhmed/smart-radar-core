@@ -21,10 +21,12 @@ const STORAGE_DISMISS_KEY = 'sovereign_pwa_dismissed_until';
 const STORAGE_INSTALLED_KEY = 'sovereign_pwa_installed';
 const DEFAULT_DISMISS_DAYS = 1;
 
+let sharedDeferredPrompt: BeforeInstallPromptEvent | null = null;
+
 export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
   const [platformEnv, setPlatformEnv] = useState<PlatformEnvironment>(() => detectPlatform());
   const [guidance, setGuidance] = useState<PwaGuidanceDetails>(() => getPwaGuidance(undefined, role));
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => sharedDeferredPrompt);
   const [isDismissed, setIsDismissed] = useState<boolean>(true); // default true until client mounts
   const [isAppInstalled, setIsAppInstalled] = useState<boolean>(false);
 
@@ -91,12 +93,18 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    if (sharedDeferredPrompt) {
+      setDeferredPrompt(sharedDeferredPrompt);
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      sharedDeferredPrompt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(sharedDeferredPrompt);
     };
 
     const handleAppInstalled = () => {
+      sharedDeferredPrompt = null;
       setDeferredPrompt(null);
       setIsDismissed(true);
       setIsAppInstalled(true);
@@ -109,21 +117,27 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
       setPlatformEnv(prev => ({ ...prev, isStandalone: true }));
     };
 
+    const handleExternalDismiss = () => setIsDismissed(true);
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('sovereign-pwa-dismissed', handleExternalDismiss);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('sovereign-pwa-dismissed', handleExternalDismiss);
     };
   }, [roleInstalledKey]);
 
   const triggerNativeInstall = useCallback(async (): Promise<boolean> => {
-    if (!deferredPrompt) return false;
+    const promptEvent = deferredPrompt || sharedDeferredPrompt;
+    if (!promptEvent) return false;
     try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
       if (choice.outcome === 'accepted') {
+        sharedDeferredPrompt = null;
         setDeferredPrompt(null);
         setIsDismissed(true);
         setIsAppInstalled(true);
@@ -149,6 +163,9 @@ export function usePwaInstall(role: 'rider' | 'captain' = 'rider') {
       // silent
     }
     setIsDismissed(true);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sovereign-pwa-dismissed'));
+    }
   }, [roleDismissKey]);
 
   const resetDismissal = useCallback(() => {

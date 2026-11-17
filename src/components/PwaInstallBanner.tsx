@@ -5,12 +5,9 @@ import { usePathname } from 'next/navigation';
 import {
   Download,
   Share2,
-  PlusSquare,
   Sparkles,
   X,
   Smartphone,
-  BatteryCharging,
-  ShieldCheck,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -18,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
+import { PwaInstallStepsList } from './pwa-install-steps-list';
 
 export interface PwaInstallBannerProps {
   role?: 'rider' | 'captain';
@@ -41,6 +39,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRideFlowActive, setIsRideFlowActive] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   const isIOS = platformEnv.isIOS;
 
@@ -50,11 +49,15 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
 
     const handleActive = () => setIsRideFlowActive(true);
     const handleInactive = () => setIsRideFlowActive(false);
+    const handleModalOpen = () => setIsInstallModalOpen(true);
+    const handleModalClose = () => setIsInstallModalOpen(false);
 
     window.addEventListener('rider-flow-active', handleActive);
     window.addEventListener('rider-flow-inactive', handleInactive);
     window.addEventListener('rider-open-destination', handleActive);
     window.addEventListener('exit-request-flow', handleInactive);
+    window.addEventListener('pwa-install-modal-open', handleModalOpen);
+    window.addEventListener('pwa-install-modal-close', handleModalClose);
 
     const checkActive = () => {
       const isFlowActive =
@@ -71,6 +74,8 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
       window.removeEventListener('rider-flow-inactive', handleInactive);
       window.removeEventListener('rider-open-destination', handleActive);
       window.removeEventListener('exit-request-flow', handleInactive);
+      window.removeEventListener('pwa-install-modal-open', handleModalOpen);
+      window.removeEventListener('pwa-install-modal-close', handleModalClose);
     };
   }, []);
 
@@ -92,7 +97,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
   // If already installed or dismissed by user, do not render banner.
   // Also hide if we can't natively prompt and it's not iOS (meaning it's already installed on Android/PC or unsupported).
   // CRITICAL: NEVER render banner while rider is in active ride flow (destination selection, offers, active trip)
-  if (isInstalled || isDismissed || (!canPromptNative && !isIOS) || isRideFlowActive || pathname?.startsWith('/admin')) {
+  if (isInstalled || isDismissed || isInstallModalOpen || (!canPromptNative && !isIOS) || isRideFlowActive || pathname?.startsWith('/admin')) {
     return null;
   }
 
@@ -187,48 +192,7 @@ export function PwaInstallBanner({ role: propRole }: PwaInstallBannerProps = {})
 
       {/* Expanded Step-by-Step Instructions (Crucial for iOS Safari & Android fallback) */}
       {isExpanded && (
-        <div className="mt-3.5 space-y-2 border-t border-white/10 pt-3 animate-in fade-in duration-200">
-          <div className="space-y-2">
-            {guidance.steps.map((step) => (
-              <div
-                key={step.number}
-                className="flex items-start gap-2.5 rounded-xl bg-black/40 border border-white/5 p-2.5"
-              >
-                <div className="h-6 w-6 shrink-0 rounded-full bg-[#14B8A6]/20 text-[#14F5D5] flex items-center justify-center text-xs font-black">
-                  {step.number}
-                </div>
-                <div className="space-y-0.5 text-right">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-white">
-                    <span>{isArabic ? step.titleAr : step.titleEn}</span>
-                    {step.iconType === 'share' && <Share2 className="h-3 w-3 text-[#14F5D5]" />}
-                    {step.iconType === 'add' && <PlusSquare className="h-3 w-3 text-[#14F5D5]" />}
-                    {step.iconType === 'install' && <Download className="h-3 w-3 text-[#14F5D5]" />}
-                  </div>
-                  <p className="text-[11px] text-slate-300 font-semibold leading-relaxed">
-                    {isArabic ? step.instructionAr : step.instructionEn}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Battery Optimization / iOS Web Push Directives */}
-          <div className="mt-2 rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 flex items-start gap-2">
-            <BatteryCharging className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-amber-200/90 font-bold leading-relaxed">
-              {isArabic ? guidance.batteryNoticeAr : guidance.batteryNoticeEn}
-            </p>
-          </div>
-
-          {guidance.webPushNoticeAr && isIOS && (
-            <div className="rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20 p-2.5 flex items-start gap-2">
-              <ShieldCheck className="h-4 w-4 text-[#14F5D5] shrink-0 mt-0.5" />
-              <p className="text-[10px] text-emerald-200/90 font-bold leading-relaxed">
-                {isArabic ? guidance.webPushNoticeAr : guidance.webPushNoticeEn}
-              </p>
-            </div>
-          )}
-        </div>
+        <PwaInstallStepsList guidance={guidance} isArabic={isArabic} isIOS={isIOS} />
       )}
 
       {/* Sovereign Engine Badge */}
