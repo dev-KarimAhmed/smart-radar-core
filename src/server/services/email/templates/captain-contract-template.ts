@@ -24,7 +24,6 @@ export function buildCaptainContractEmail(params: {
     ? `Welcome Captain <strong style="color: #F8FAFC;">${params.captainName || "Advertiser"}</strong>,<br>We are pleased to inform you that your subscription and contractual capacity as an <strong style="color: #14F5D5;">"Independent Captain Advertiser"</strong> in Bynkcom Digital Ad Network have been officially certified, confirming your agreement to the Unified Terms and Privacy Policy.`
     : `مرحباً بك كابتن <strong style="color: #F8FAFC;">${params.captainName || "المعلن"}</strong>،<br>نحيطك علماً بأنه قد تم توثيق اشتراكك واعتماد صفتك التعاقدية كـ <strong style="color: #14F5D5;">«كابتن معلن مستقل»</strong> في شبكة بينكم للإعلان الرقمي بنجاح، وتأكيد موافقتك على وثيقة الشروط والخصوصية الموحدة.`;
 
-  const stampLabel = isEn ? 'Encrypted Document Digital Stamp (SHA-256):' : 'الختم الرقمي المشفر للوثيقة (SHA-256):';
   const dateLabel = isEn ? 'Effective & Certified Date:' : 'تاريخ الاعتماد والسريان:';
 
   const pdfNote = isEn
@@ -44,8 +43,8 @@ export function buildCaptainContractEmail(params: {
   const textAlign = isEn ? 'left' : 'right';
 
   const plainText = isEn
-    ? `Welcome Captain ${params.captainName || "Advertiser"}\n\nYour subscription as an "Independent Captain Advertiser" has been certified on Bynkcom Digital Ad Network.\nDigital Stamp (SHA-256): ${params.contractHash}\nEffective Date: ${formattedDate}\n\nYour certified PDF contract is attached.\n\nBynkcom Digital Ad Network © 2026`
-    : `مرحباً بك كابتن ${params.captainName || "المعلن"}\n\nتم اعتماد صفتك التعاقدية كـ «كابتن معلن مستقل» في شبكة بينكم للإعلان الرقمي بنجاح.\nالختم الرقمي (SHA-256): ${params.contractHash}\nتاريخ السريان: ${formattedDate}\n\nنسختك الرسمية المعتمدة بصيغة PDF مرفقة مع هذه الرسالة.\n\nشبكة بينكم للإعلان الرقمي © 2026`;
+    ? `Welcome Captain ${params.captainName || "Advertiser"}\n\nYour subscription as an "Independent Captain Advertiser" has been certified on Bynkcom Digital Ad Network.\nEffective Date: ${formattedDate}\n\nYour certified PDF contract is attached.\n\nBynkcom Digital Ad Network © 2026`
+    : `مرحباً بك كابتن ${params.captainName || "المعلن"}\n\nتم اعتماد صفتك التعاقدية كـ «كابتن معلن مستقل» في شبكة بينكم للإعلان الرقمي بنجاح.\nتاريخ السريان: ${formattedDate}\n\nنسختك الرسمية المعتمدة بصيغة PDF مرفقة مع هذه الرسالة.\n\nشبكة بينكم للإعلان الرقمي © 2026`;
 
   const html = `
 <!DOCTYPE html>
@@ -74,11 +73,7 @@ export function buildCaptainContractEmail(params: {
                 ${greeting}
               </p>
               
-              <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 18px 20px; margin: 20px 0;">
-                <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748B;">${stampLabel}</p>
-                <code style="display: block; font-size: 11px; color: #14F5D5; word-break: break-all; font-family: monospace;">${params.contractHash}</code>
-                <p style="margin: 10px 0 0 0; font-size: 12px; color: #94A3B8;">${dateLabel} ${formattedDate}</p>
-              </div>
+              <p style="margin: 0 0 20px 0; font-size: 13px; color: #94A3B8;">${dateLabel} <strong style="color: #14F5D5;">${formattedDate}</strong></p>
 
               <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.8; color: #CBD5E1;">
                 ${pdfNote}

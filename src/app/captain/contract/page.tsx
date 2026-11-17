@@ -11,7 +11,6 @@ import { formatContractDate, type ContractViewData } from './parts/contract-type
 import { ContractActionBar } from './parts/contract-action-bar';
 import { ContractIdentitySection } from './parts/contract-identity-section';
 import { ContractClausesSection } from './parts/contract-clauses-section';
-import { ContractSealSection } from './parts/contract-seal-section';
 
 export type { ContractViewData } from './parts/contract-types';
 export { formatContractDate } from './parts/contract-types';
@@ -203,11 +202,16 @@ function ContractContent() {
 
           <ContractIdentitySection data={data} isArabic={isArabic} fullNameDisplay={fullNameDisplay} />
           <ContractClausesSection isArabic={isArabic} />
-          <ContractSealSection
-            isArabic={isArabic}
-            formattedAcceptedAt={formattedAcceptedAt}
-            contractHash={data.contractHash}
-          />
+
+          <footer className="mt-8 pt-4 border-t border-teal-500/20 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 print:text-gray-600 gap-2">
+            <p className="flex items-center gap-1.5 text-emerald-400">
+              <span className="text-sm">✓</span>
+              {isArabic
+                ? 'تم توثيق وقبول الشروط إلكترونياً وحفظ السجل التعاقدي بموجب قانون المعاملات الإلكترونية.'
+                : 'Terms electronically certified and contractual record preserved under the Electronic Transactions Law.'}
+            </p>
+            <span className="text-[#14F5D5] font-bold print:text-black">bynkcom MEDIA SMART © 2026</span>
+          </footer>
         </article>
       </main>
     </div>

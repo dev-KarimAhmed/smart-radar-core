@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Minus, Plus, Sparkles } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import type { MarketAverageTariff } from '../../hooks/use-price-per-km-setup';
 import { tariffModalStyles as styles } from './tariff-modal-styles';
 
@@ -167,19 +167,6 @@ export function TariffComparisonGrid({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Pricing Freedom & Advisory Note */}
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-slate-300 space-y-1 font-sans text-start">
-        <p className="font-black text-[#14F5D5] flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>{isArabic ? 'حرية التسعير الكاملة (السائق حر):' : 'Full Pricing Freedom:'}</span>
-        </p>
-        <p className="leading-relaxed text-slate-400">
-          {isArabic
-            ? 'حرية التسعير لا تُقيّد السائق. الأسهم وقفزات الأرقام (+/- 0.10) تتيح لك تخصيص أسعارك بمرونة، والمؤشرات استرشادية فقط لتوضيح متوسط السوق.'
-            : 'Pricing freedom does not restrict you. Benchmark indicators are purely advisory to help you stay competitive in your market.'}
-        </p>
       </div>
     </>
   );

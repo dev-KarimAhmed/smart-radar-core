@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { highlightBrand } from '@/shared/components/brand-highlight';
 
 const styles = {
-  style87_1: "group relative isolate flex h-[360px] w-full cursor-pointer select-none flex-col justify-end overflow-hidden rounded-[28px] border border-cyan-400/10 bg-[#0B0F19] p-5 text-right shadow-[0_24px_70px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-[#14B8A6]/45 hover:shadow-[0_26px_80px_rgba(20,184,166,0.18)]",
+  style87_1: "group relative isolate flex h-[360px] w-full cursor-pointer select-none flex-col justify-end overflow-hidden rounded-[24px] sm:rounded-[28px] [transform:translateZ(0)] border border-cyan-400/10 bg-[#0B0F19] p-5 text-right shadow-[0_24px_70px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-[#14B8A6]/45 hover:shadow-[0_26px_80px_rgba(20,184,166,0.18)]",
   style88_2: "border-[#14B8A6]/20 shadow-[0_22px_65px_rgba(20,184,166,0.10)]",
   style99_3: "absolute inset-0 z-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]",
   style101_4: "opacity-100 brightness-110 saturate-110",
@@ -89,11 +89,11 @@ export function AdDisplayCard({
       style={isSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
       className={cn(
         styles.style87_1,
-        isSectorAd && '!p-0 overflow-hidden border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)]',
+        isSectorAd && '!p-0 overflow-hidden rounded-[24px] sm:rounded-[28px] border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)]',
         isPlaceholder && styles.style88_2,
         !onOpen && styles.staticCursor,
         className,
-        'box-border flex-shrink-0 flex-grow-0'
+        'box-border flex-shrink-0 flex-grow-0 overflow-hidden'
       )}
     >
       {/* For sector ads: full bleed poster filling 100% of the frame */}
@@ -108,7 +108,7 @@ export function AdDisplayCard({
               event.currentTarget.src = FALLBACK_IMAGE;
             }
           }}
-          className="relative z-[1] h-full w-full object-cover p-0 transition-transform duration-500 group-hover:scale-[1.02]"
+          className="relative z-[1] h-full w-full max-h-full max-w-full rounded-[inherit] overflow-hidden object-cover p-0 transition-transform duration-500 group-hover:scale-[1.02]"
           referrerPolicy="no-referrer"
         />
       ) : (
@@ -125,6 +125,7 @@ export function AdDisplayCard({
             }}
             className={cn(
               styles.style99_3,
+              'rounded-[inherit] overflow-hidden max-h-full max-w-full',
               isPlaceholder
                 ? styles.style101_4
                 : styles.style102_5

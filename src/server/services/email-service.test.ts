@@ -128,7 +128,7 @@ describe('email-service localization & template checks', () => {
     assert.ok(emailAr.subject.includes('وثيقة عقد اشتراك الكابتن'));
     assert.ok(emailAr.html.includes('dir="rtl"'));
     assert.ok(emailAr.html.includes('كابتن معلن مستقل'));
-    assert.ok(emailAr.html.includes('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'));
+    assert.ok(emailAr.html.includes('تاريخ الاعتماد والسريان'));
 
     const emailEn = buildCaptainContractEmail({
       captainName: 'Karim Ahmed',
@@ -140,6 +140,6 @@ describe('email-service localization & template checks', () => {
     assert.ok(emailEn.subject.includes('Certified Captain Advertiser Agreement'));
     assert.ok(emailEn.html.includes('dir="ltr"'));
     assert.ok(emailEn.html.includes('Independent Captain Advertiser'));
-    assert.ok(emailEn.html.includes('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'));
+    assert.ok(emailEn.html.includes('Effective & Certified Date'));
   });
 });

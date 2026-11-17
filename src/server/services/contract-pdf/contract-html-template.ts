@@ -5,7 +5,7 @@ import { CONTRACT_HTML_STYLES } from './contract-html-styles';
  * Builds the sovereign, high-fidelity Arabic contract HTML template
  * strictly complying with the Unified Captain Terms & Privacy Document.
  */
-export function buildCaptainContractHtml(data: CaptainContractData, contractHash: string): string {
+export function buildCaptainContractHtml(data: CaptainContractData, _contractHash?: string): string {
   const serial = 'BYNK-CAP-' + data.captainId.slice(0, 8).toUpperCase();
   const dateFormatted = formatContractDate(data.acceptedAt);
   const version = data.contractVersion || 'V1.0-Unified';
@@ -105,7 +105,7 @@ ${CONTRACT_HTML_STYLES}
         <tr>
           <td style="vertical-align: top;">
             <h2 class="brand-title" style="font-size: 22px;">شبكة بينكم للإعلان الرقمي</h2>
-            <div class="sub-title" style="font-size: 13.5px;">تابع: الضوابط التأسيسية والختم الرقمي المعتمد للعقد</div>
+            <div class="sub-title" style="font-size: 13.5px;">تابع: الضوابط التأسيسية والاشتراطات التشغيلية للعقد</div>
           </td>
           <td style="vertical-align: top; width: 230px; text-align: left;">
             <div style="font-size: 12.5px; color: #94A3B8;">رقم الوثيقة: <span style="color: #14F5D5; font-family: monospace; direction: ltr; display: inline-block; font-weight: 900;">${serial}</span></div>
@@ -139,24 +139,10 @@ ${CONTRACT_HTML_STYLES}
         </div>
       </div>
 
-      <!-- Section 3: Digital Seal & Signature -->
-      <div class="footer-box">
-        <div class="section-title" style="margin-bottom: 10px; border-bottom: none; padding-bottom: 0;">
-          ثالثاً: الختم والتوقيع الرقمي المعتمد (المادة 5 - قانون المعاملات الإلكترونية)
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-          <span style="color: #CBD5E1; font-size: 13px;"><b>حالة التوثيق:</b> معتمد وسجل رسمي نافذ بموجب القانون</span>
-          <span style="color: #94A3B8; font-size: 13px;"><b>تاريخ وساعة التوثيق:</b> <span style="color: #14F5D5; font-weight: 800;">${dateFormatted}</span></span>
-        </div>
-
-        <div style="color: #94A3B8; font-size: 12px; font-weight: 600; margin-bottom: 4px;">بصمة التشفير الرقمية السيادية للعقد (SHA-256):</div>
-        <span class="hash-code">${contractHash}</span>
-        
-        <div style="color: #10B981; font-size: 12.5px; margin-top: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 16px;">✓</span>
-          <span>تم توثيق وقبول الشروط إلكترونياً وحفظ السجل التعاقدي بموجب القوانين والأنظمة المرعية في المملكة.</span>
-        </div>
+      <!-- Acceptance verification note -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; background: rgba(255,255,255,0.025); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+        <span style="color: #10B981; font-size: 12.5px; font-weight: 800;">✓ تم توثيق وقبول الشروط إلكترونياً وسريان العقد</span>
+        <span style="color: #94A3B8; font-size: 12.5px;"><b>تاريخ وساعة التوثيق:</b> <span style="color: #14F5D5; font-weight: 800;">${dateFormatted}</span></span>
       </div>
     </div>
 

@@ -160,10 +160,10 @@ export function AdStage({
   };
 
   const heightClass = isFullScreen
-    ? 'h-full w-full flex-1 justify-center items-center min-h-[calc(100vh-7.5rem)]'
+    ? 'h-full w-full flex-1 justify-center items-center min-h-[360px] sm:min-h-[480px]'
     : 'h-[280px] w-full sm:h-[320px]';
   const cardClassName = isFullScreen
-    ? '!h-[min(540px,calc(100vh-9.5rem))] !min-h-[min(540px,calc(100vh-9.5rem))] !max-h-[min(540px,calc(100vh-9.5rem))] aspect-[904/1280] !w-auto !max-w-[min(382px,85vw)] !flex-shrink-0 !flex-grow-0'
+    ? '!h-[min(440px,calc(100dvh-15rem))] sm:!h-[min(540px,calc(100vh-9.5rem))] !max-h-[95%] aspect-[904/1280] !w-auto max-w-[min(310px,82vw)] sm:max-w-[min(382px,85vw)] !flex-shrink-0 !flex-grow-0'
     : 'h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]';
 
   if (isLoadingAds && serverAds.length === 0) {
