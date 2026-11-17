@@ -51,6 +51,9 @@ export function ActiveTripHeaderCard({
   tripDurationMinutes,
   t,
 }: ActiveTripHeaderCardProps) {
+  const riderPhone = rider?.phone || request.riderPhone || (request as any).riderPhoneNumber;
+  const hasRiderCallCard = step === 'ACCEPTED' && Boolean(riderPhone);
+
   return (
     <>
       <div className={styles.style33_2}>
@@ -68,7 +71,7 @@ export function ActiveTripHeaderCard({
         <span className={styles.style39_6}>{t(`steps.${step}`)}</span>
       </div>
 
-      <div className={styles.style44_7}>
+      <div className={cn(styles.style44_7, !hasRiderCallCard && 'md:grid-cols-1')}>
         <div className={styles.style45_8}>
           <div className="flex items-center justify-between gap-2">
             <p className={styles.style46_9}>{t('destination')}</p>
@@ -87,16 +90,15 @@ export function ActiveTripHeaderCard({
           <h2 className={styles.style47_10}>{request.dropoff || t('unknownDestination')}</h2>
         </div>
 
-        <div className={styles.style51_12}>
-          <p className={styles.style52_13}>{step === 'ACCEPTED' ? t('rider') : (language === 'ar' ? 'الراكب' : 'Rider')}</p>
-          <h2 className={styles.style53_14}>{rider?.name || request.riderName || t('riderFallback')}</h2>
-          {step === 'ACCEPTED' && (rider?.phone || request.riderPhone || (request as any).riderPhoneNumber) ? (
-            <a href={`tel:${rider?.phone || request.riderPhone || (request as any).riderPhoneNumber}`} className={styles.style55_15}>
+        {hasRiderCallCard ? (
+          <div className={styles.style51_12}>
+            <p className={styles.style52_13}>{language === 'ar' ? 'الاتصال بالراكب' : 'Call Rider'}</p>
+            <a href={`tel:${riderPhone}`} className={styles.style55_15}>
               <Phone className={styles.style56_16} />
               <span>{t('callRider')}</span>
             </a>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {riderTrackingActive && (
