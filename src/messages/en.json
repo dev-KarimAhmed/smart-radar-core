@@ -905,8 +905,8 @@
     "hasAccountPrompt": "Already have an account?",
     "goToLogin": "Sign in",
     "personal": {
-      "name": "Full name (as on your national ID)",
-      "namePlaceholder": "Enter the name exactly as on your national ID card",
+      "name": "Full name (as on your driver license)",
+      "namePlaceholder": "Enter the name exactly as on your driver license",
       "nickname": "Nickname (optional)",
       "nicknamePlaceholder": "The name shown to riders instead of your full name",
       "phone": "Phone number",

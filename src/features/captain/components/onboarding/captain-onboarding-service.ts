@@ -15,20 +15,19 @@ export async function checkCaptainIdentityAvailable(
   personal: CaptainPersonalValues,
   vehicle: CaptainVehicleValues,
 ): Promise<AvailabilityCheckResult> {
-  const trimmedNatId = vehicle.nationalIdNumber.trim();
   const trimmedLic = vehicle.licenseNumber.trim();
   const trimmedPlate = vehicle.plate.trim();
   const cleanEmail = personal.email?.trim().toLowerCase() || null;
   const cleanPhone = personal.phone?.trim() || null;
 
-  if (!trimmedNatId && !trimmedLic && !trimmedPlate && !cleanEmail && !cleanPhone) {
+  if (!trimmedLic && !trimmedPlate && !cleanEmail && !cleanPhone) {
     return { isAvailable: true, fieldErrors: {} };
   }
 
   try {
     const { supabase } = await import('@/lib/supabase-client');
     const { data: availability, error: rpcError } = await supabase.rpc('check_captain_identity_available', {
-      p_national_id: trimmedNatId || null,
+      p_national_id: null,
       p_license_number: trimmedLic || null,
       p_plate_number: trimmedPlate || null,
       p_email: cleanEmail,
@@ -55,9 +54,6 @@ export async function checkCaptainIdentityAvailable(
       }
 
       const newErrors: Record<string, string> = {};
-      if (availability.national_id_taken) {
-        newErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
-      }
       if (availability.license_taken) {
         newErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
       }
@@ -69,7 +65,7 @@ export async function checkCaptainIdentityAvailable(
         return {
           isAvailable: false,
           fieldErrors: newErrors,
-          errorMessage: newErrors.plate || newErrors.nationalIdNumber || newErrors.licenseNumber,
+          errorMessage: newErrors.plate || newErrors.licenseNumber,
         };
       }
     }
@@ -111,7 +107,6 @@ export function buildCaptainProfile(
     identity_url: null,
     contact_page_url: null,
     driving_license_url: null,
-    national_id_number: vehicle.nationalIdNumber.trim() || null,
     license_number: vehicle.licenseNumber.trim() || null,
     nickname: personal.nickname.trim() || null,
     facebook_url: vehicle.facebookUrl.trim() || null,

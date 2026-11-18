@@ -114,7 +114,6 @@ export async function GET(req: Request) {
       const fullName = profile.full_name || 'كابتن معلن';
       const phone = profile.phone || '-';
       const email = profile.email || '-';
-      const nationalIdNumber = capProfile?.national_id_number || '-';
       const licenseNumber = capProfile?.license_number || '-';
       const plateNumber = capProfile?.plate_number || profile.vehicle_plate || '-';
       const vehicleMake = profile.vehicle_make || capProfile?.vehicle_brand || '';
@@ -131,7 +130,6 @@ export async function GET(req: Request) {
               fullName,
               phone,
               email,
-              nationalId: nationalIdNumber,
               license: licenseNumber,
               plate: plateNumber,
               vehicle: `${vehicleMake} ${vehicleModel}`,
@@ -149,7 +147,6 @@ export async function GET(req: Request) {
           fullName,
           phone,
           email,
-          nationalIdNumber,
           licenseNumber,
           plateNumber,
           vehicleMake,
@@ -201,7 +198,6 @@ export async function GET(req: Request) {
         fullName: profile.full_name || 'كابتن معلن',
         phone: profile.phone || '',
         email: profile.email || '',
-        nationalIdNumber: capProfile?.national_id_number,
         licenseNumber: capProfile?.license_number,
         plateNumber: capProfile?.plate_number || profile.vehicle_plate,
         vehicleMake: profile.vehicle_make || capProfile?.vehicle_brand,

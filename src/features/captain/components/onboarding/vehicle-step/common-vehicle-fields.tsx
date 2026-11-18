@@ -108,9 +108,8 @@ export function ColorAndPlateFields({ vehicle, errors, onFieldChange, isArabic }
   );
 }
 
-export function SharedVehicleFields({ vehicle, errors, onFieldChange, country }: Omit<FieldProps, 'isArabic'>) {
+export function SharedVehicleFields({ vehicle, errors, onFieldChange }: Omit<FieldProps, 'isArabic'>) {
   const t = useTranslations('captainOnboarding.vehicle');
-  const isJordan = !country || country.toUpperCase() === 'JO' || country === '1' || country.toUpperCase() === 'JORDAN';
 
   const yearOptions = React.useMemo(
     () =>
@@ -123,39 +122,17 @@ export function SharedVehicleFields({ vehicle, errors, onFieldChange, country }:
 
   return (
     <>
-      <div data-field="year">
-        <label className={styles.label}>{t('year')}</label>
-        <AppSelect
-          value={vehicle.year}
-          onValueChange={(value) => onFieldChange('year', value)}
-          options={yearOptions}
-          placeholder={t('yearPlaceholder')}
-          className={styles.input}
-        />
-        {errors.year ? <p className={styles.error}>{errors.year}</p> : null}
-      </div>
-
       <div className={styles.fieldRow}>
-        <div>
-          <label className={styles.label}>{t('nationalIdNumberLabel')}</label>
-          <Input
-            name="nationalIdNumber"
-            data-field="nationalIdNumber"
-            dir="ltr"
-            inputMode={isJordan ? 'numeric' : 'text'}
-            maxLength={isJordan ? 10 : 20}
-            placeholder={t('nationalIdNumberPlaceholder')}
-            value={vehicle.nationalIdNumber}
-            onChange={(event) =>
-              onFieldChange(
-                'nationalIdNumber',
-                isJordan ? event.target.value.replace(/[^0-9]/g, '') : event.target.value.replace(/[^A-Za-z0-9؀-ۿ]/g, '')
-              )
-            }
+        <div data-field="year">
+          <label className={styles.label}>{t('year')}</label>
+          <AppSelect
+            value={vehicle.year}
+            onValueChange={(value) => onFieldChange('year', value)}
+            options={yearOptions}
+            placeholder={t('yearPlaceholder')}
             className={styles.input}
-            required
           />
-          {errors.nationalIdNumber ? <p className={styles.error}>{errors.nationalIdNumber}</p> : null}
+          {errors.year ? <p className={styles.error}>{errors.year}</p> : null}
         </div>
         <div>
           <label className={styles.label}>{t('licenseNumberLabel')}</label>

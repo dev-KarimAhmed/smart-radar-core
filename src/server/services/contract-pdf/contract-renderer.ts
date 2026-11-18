@@ -24,7 +24,6 @@ export async function generateCaptainContractPdf(data: CaptainContractData): Pro
     fullName: data.fullName,
     phone: data.phone,
     email: data.email,
-    nationalId: data.nationalIdNumber,
     license: data.licenseNumber,
     plate: data.plateNumber,
     vehicle: `${data.vehicleMake || ''} ${data.vehicleModel || ''}`,

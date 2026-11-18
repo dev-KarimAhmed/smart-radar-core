@@ -144,27 +144,6 @@ export function DriverInspectModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="border border-white/10 bg-[#0B0F19] p-3 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-white">{t('idCard')}</p>
-                  <p className="text-[10px] text-slate-500">
-                    {captain.documents.identity_url ? t('docUploaded') : t('docNotUploaded')}
-                  </p>
-                </div>
-                {captain.documents.identity_url ? (
-                  <a
-                    href={captain.documents.identity_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#14B8A6] hover:underline"
-                  >
-                    {t('docPreview')} <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  <span className="text-[10px] text-slate-600">{t('docUnavailable')}</span>
-                )}
-              </div>
-
-              <div className="border border-white/10 bg-[#0B0F19] p-3 rounded-xl flex items-center justify-between">
-                <div>
                   <p className="font-bold text-white">{t('driverLicense')}</p>
                   <p className="text-[10px] text-slate-500">
                     {captain.documents.driving_license_url ? t('docUploaded') : t('docNotUploaded')}

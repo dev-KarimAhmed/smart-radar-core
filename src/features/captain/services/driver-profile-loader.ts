@@ -17,7 +17,6 @@ export interface DriverProfileLoadedData {
     fullName: string;
     nickname: string;
     phone: string;
-    nationalIdNumber: string;
     licenseNumber: string;
     vehiclePlate: string;
     vehicleMake: string;
@@ -45,7 +44,6 @@ export async function fetchDriverProfileData(user: User): Promise<DriverProfileL
       fullName: firstString(user.name),
       nickname: '',
       phone: firstString(user.phone),
-      nationalIdNumber: '',
       licenseNumber: '',
       vehiclePlate: firstString(user.vehicle?.plate),
       vehicleMake: firstString(user.vehicle?.make),
@@ -111,7 +109,6 @@ export async function fetchDriverProfileData(user: User): Promise<DriverProfileL
     fullName: firstString(mergedProfile.full_name, user.name),
     nickname: firstString(captainProfile?.nickname),
     phone: firstString(mergedProfile.phone, user.phone),
-    nationalIdNumber: firstString(captainProfile?.national_id_number),
     licenseNumber: firstString(captainProfile?.license_number),
     vehiclePlate: firstString(getVehiclePlate(mergedProfile), user.vehicle?.plate),
     vehicleMake: firstString(getVehicleMake(mergedProfile), user.vehicle?.make),

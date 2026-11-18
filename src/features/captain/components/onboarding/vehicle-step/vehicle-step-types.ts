@@ -8,7 +8,6 @@ export interface CaptainTaxiVehicleValues {
   model: string;
   plate: string;
   year: string;
-  nationalIdNumber: string;
   licenseNumber: string;
   facebookUrl: string;
   instagramUrl: string;
@@ -22,7 +21,6 @@ export interface CaptainSmartAppVehicleValues {
   color: string;
   plate: string;
   year: string;
-  nationalIdNumber: string;
   licenseNumber: string;
   facebookUrl: string;
   instagramUrl: string;
@@ -34,7 +32,6 @@ export interface CaptainIndependentVehicleValues {
   color: string;
   plate: string;
   year: string;
-  nationalIdNumber: string;
   licenseNumber: string;
   facebookUrl: string;
   instagramUrl: string;

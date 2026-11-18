@@ -62,15 +62,6 @@ export function mapSupabaseAuthError(error: unknown) {
     return 'الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.';
   }
 
-  if (
-    fullText.includes('unique_national_id_number') ||
-    fullText.includes('national_id_number') ||
-    fullText.includes('national_id') ||
-    fullText.includes('nationalidnumber')
-  ) {
-    return 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
-  }
-
   if (fullText.includes('invalid_quad_name')) {
     return 'يرجى كتابة الاسم الرباعي كاملاً (الاسم، الأب، الجد، العائلة) بحروف صحيحة دون أرقام أو رموز.';
   }
@@ -191,16 +182,13 @@ export function mapSupabaseAuthError(error: unknown) {
       if (fullText.includes('email') || fullText.includes('unique_profiles_email')) {
         return 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر. يرجى استخدام بريد إلكتروني آخر.';
       }
-      if (fullText.includes('national_id') || fullText.includes('unique_national_id_number')) {
-        return 'رقم الهوية الوطنية مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
-      }
       if (fullText.includes('license') || fullText.includes('unique_license_number')) {
         return 'رقم رخصة القيادة مسجل بالفعل مسبقاً. يرجى التأكد من الرقم أو استخدام رقم آخر.';
       }
       if (fullText.includes('plate') || fullText.includes('unique_plate_number')) {
         return 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى في النظام. يرجى التأكد من الرقم أو استخدام لوحة أخرى.';
       }
-      return 'بعض البيانات المدخلة (الهوية أو الرخصة أو اللوحة أو البريد الإلكتروني أو الهاتف) مسجلة بالفعل مسبقاً.';
+      return 'بعض البيانات المدخلة (الرخصة أو اللوحة أو البريد الإلكتروني أو الهاتف) مسجلة بالفعل مسبقاً.';
     }
 
     return 'تعذر إنشاء الحساب من قاعدة البيانات. راجع البيانات وحاول مرة أخرى.';
