@@ -187,7 +187,6 @@ export function useCaptainOnboarding(isArabic: boolean) {
       const errText = `${errorMsg} ${JSON.stringify(error || '')}`.toLowerCase();
       const newVehicleErrors: Record<string, string> = {};
 
-      if (errText.includes('national_id') || errText.includes('هوية')) newVehicleErrors.nationalIdNumber = 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.';
       if (errText.includes('license') || errText.includes('رخصة')) newVehicleErrors.licenseNumber = 'رقم رخصة القيادة مسجل بالفعل مسبقاً.';
       if (errText.includes('plate') || errText.includes('لوحة')) newVehicleErrors.plate = 'رقم لوحة المركبة مسجل بالفعل مسبقاً لمركبة أخرى.';
 

@@ -3,7 +3,6 @@ export interface CaptainContractData {
   fullName: string;
   phone: string;
   email: string;
-  nationalIdNumber?: string;
   licenseNumber?: string;
   plateNumber?: string;
   vehicleMake?: string;

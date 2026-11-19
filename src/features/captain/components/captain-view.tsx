@@ -33,7 +33,9 @@ import { CaptainModals } from './view/captain-modals';
 
 const styles = {
   root: 'min-h-screen w-full max-w-full overflow-x-hidden bg-[#0B0F19] p-2.5 pb-24 text-white sm:p-3 sm:pb-12 md:p-5',
+  rootAdStandby: 'flex h-dvh w-full max-w-full flex-col overflow-hidden bg-[#0B0F19] p-2 pb-[4.5rem] text-white sm:p-3 sm:pb-3 md:p-5',
   inner: 'mx-auto flex w-full max-w-[1800px] min-w-0 flex-col gap-3 sm:gap-4',
+  innerAdStandby: 'mx-auto flex min-h-0 w-full max-w-[1800px] flex-1 flex-col gap-2 sm:gap-3',
   loading: 'flex min-h-[60vh] items-center justify-center text-slate-400',
   loadingIcon: 'mr-2 h-5 w-5 animate-spin',
 } as const;
@@ -109,14 +111,15 @@ export function DriverViewTab() {
   }
 
   const isActive = driverOps.driverStatus === 'active' || driverOps.driverStatus === 'busy';
+  const isAdStandby = screen === 'RADAR_MAP' && !driverOps.activeRequest && !isActive;
   const walletIsReady = wallet.walletLoadState === 'ready';
   const paidMinutes = walletIsReady ? wallet.paidMinutesRemaining : 0;
   const bonusMinutes = walletIsReady ? wallet.bonusMinutesRemaining : 0;
   const currency = liveCurrencyCode || getCurrencyLabel(countryConfig, user, language);
 
   return (
-    <div className={styles.root} dir={direction}>
-      <div className={styles.inner}>
+    <div className={isAdStandby ? styles.rootAdStandby : styles.root} dir={direction}>
+      <div className={isAdStandby ? styles.innerAdStandby : styles.inner}>
         <CaptainHeader
           screen={screen}
           direction={direction}

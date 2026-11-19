@@ -85,10 +85,23 @@ export function AdDisplayCard({
   return (
     <article
       dir={direction}
+      tabIndex={0}
+      role={onOpen ? 'button' : undefined}
       onClick={onOpen ? (event) => onOpen(event, ad) : undefined}
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onOpen(event as unknown as React.MouseEvent, ad);
+              }
+            }
+          : undefined
+      }
       style={isSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
       className={cn(
         styles.style87_1,
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/70',
         isSectorAd && '!p-0 overflow-hidden rounded-[24px] sm:rounded-[28px] border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)]',
         isPlaceholder && styles.style88_2,
         !onOpen && styles.staticCursor,

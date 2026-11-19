@@ -8,7 +8,7 @@ export function DriverAccountPanel({ state, user }: { state: any, user: any }) {
   const t = useTranslations('captainProfile');
   const {
     fullName, nickname, setNickname, phone, setPhone,
-    nationalIdNumber, licenseNumber, tier, profile,
+    licenseNumber, tier, profile,
     savedSnapshotRef, isFieldEditing, isSaving, startEditingField, stopEditingField, handleFieldSave
   } = state;
 
@@ -57,8 +57,7 @@ export function DriverAccountPanel({ state, user }: { state: any, user: any }) {
           <Field label={t('accountNumber')} value={firstString(profile?.serial_id, user?.serial_id, '-')} />
           <Field label={t('role')} value={t('captainRole')} />
           <Field label={t('tier')} value={tier.label} />
-          {/* Identity-verification data set at registration — read-only here too. */}
-          <Field label={t('nationalIdNumber')} value={firstString(nationalIdNumber, t('notProvided'))} />
+          {/* License data set at registration — read-only here. */}
           <Field label={t('licenseNumber')} value={firstString(licenseNumber, t('notProvided'))} />
         </Panel>
   );

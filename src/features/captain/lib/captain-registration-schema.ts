@@ -29,9 +29,6 @@ export const SIDE_ID_REGEX = /^[A-Za-z0-9؀-ۿ-]{2,15}$/;
 // specific layout like "77-12345".
 export const PLATE_REGEX = /^[A-Za-z0-9؀-ۿ\s-]{3,15}$/;
 export const VEHICLE_COLOR_REGEX = /^([؀-ۿa-zA-Z\s]{2,30}|#[0-9a-fA-F]{3,8})$/;
-export const JORDAN_NATIONAL_ID_REGEX = /^[0-9]{10}$/;
-export const GENERAL_NATIONAL_ID_REGEX = /^[A-Za-z0-9؀-ۿ]{5,20}$/;
-export const NATIONAL_ID_NUMBER_REGEX = GENERAL_NATIONAL_ID_REGEX;
 export const LICENSE_NUMBER_REGEX = /^[A-Za-z0-9؀-ۿ]{3,20}$/;
 export const SOCIAL_URL_REGEX = /^https?:\/\/[^\s]+$/i;
 export const VEHICLE_YEAR_MIN = 1990;
@@ -44,12 +41,6 @@ function toCountryIsoCode(country?: string): CountryCode {
   if (upper === '2' || upper === 'EGYPT') return 'EG';
   if (upper.length === 2) return upper as CountryCode;
   return 'JO';
-}
-
-function isJordanCountry(country?: string) {
-  if (!country) return true; // Sovereign default is Jordan
-  const normalized = country.trim().toUpperCase();
-  return normalized === 'JO' || normalized === '1' || normalized === 'JORDAN';
 }
 
 // A phone typed in local format (e.g. "01159133110") is only valid relative to a
@@ -113,10 +104,6 @@ export function getCaptainPersonalSchema(t: CaptainValidationT) {
 }
 
 export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: string) {
-  const isJordan = isJordanCountry(country);
-  const nationalIdRegex = isJordan ? JORDAN_NATIONAL_ID_REGEX : GENERAL_NATIONAL_ID_REGEX;
-  const nationalIdError = isJordan ? t('nationalIdNumberJordanInvalid') : t('nationalIdNumberInvalid');
-
   return yup.object({
     officeName: yup.string().trim().matches(ENTITY_NAME_REGEX, t('officeNameInvalid')).required(t('officeNameRequired')),
     officePhone: yup
@@ -137,18 +124,13 @@ export function getCaptainTaxiVehicleSchema(t: CaptainValidationT, country?: str
       .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
       .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
       .required(t('yearRequired')),
-    nationalIdNumber: yup.string().trim().matches(nationalIdRegex, nationalIdError).required(t('nationalIdNumberRequired')),
     licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
     facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
     instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
   });
 }
 
-export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT, country?: string) {
-  const isJordan = isJordanCountry(country);
-  const nationalIdRegex = isJordan ? JORDAN_NATIONAL_ID_REGEX : GENERAL_NATIONAL_ID_REGEX;
-  const nationalIdError = isJordan ? t('nationalIdNumberJordanInvalid') : t('nationalIdNumberInvalid');
-
+export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT, _country?: string) {
   return yup.object({
     companyName: yup.string().trim().matches(ENTITY_NAME_REGEX, t('companyNameInvalid')).required(t('companyNameRequired')),
     companyCode: yup.string().trim().required(t('companyCodeRequired')),
@@ -162,18 +144,13 @@ export function getCaptainSmartAppVehicleSchema(t: CaptainValidationT, country?:
       .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
       .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
       .required(t('yearRequired')),
-    nationalIdNumber: yup.string().trim().matches(nationalIdRegex, nationalIdError).required(t('nationalIdNumberRequired')),
     licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
     facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
     instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
   });
 }
 
-export function getCaptainIndependentVehicleSchema(t: CaptainValidationT, country?: string) {
-  const isJordan = isJordanCountry(country);
-  const nationalIdRegex = isJordan ? JORDAN_NATIONAL_ID_REGEX : GENERAL_NATIONAL_ID_REGEX;
-  const nationalIdError = isJordan ? t('nationalIdNumberJordanInvalid') : t('nationalIdNumberInvalid');
-
+export function getCaptainIndependentVehicleSchema(t: CaptainValidationT, _country?: string) {
   return yup.object({
     make: yup.string().trim().matches(VEHICLE_MAKE_REGEX, t('makeInvalid')).required(t('makeRequired')),
     model: yup.string().trim().matches(VEHICLE_MODEL_REGEX, t('modelInvalid')).required(t('modelRequired')),
@@ -185,7 +162,6 @@ export function getCaptainIndependentVehicleSchema(t: CaptainValidationT, countr
       .min(VEHICLE_YEAR_MIN, t('yearMin', { min: VEHICLE_YEAR_MIN }))
       .max(VEHICLE_YEAR_MAX, t('yearMax', { max: VEHICLE_YEAR_MAX }))
       .required(t('yearRequired')),
-    nationalIdNumber: yup.string().trim().matches(nationalIdRegex, nationalIdError).required(t('nationalIdNumberRequired')),
     licenseNumber: yup.string().trim().matches(LICENSE_NUMBER_REGEX, t('licenseNumberInvalid')).required(t('licenseNumberRequired')),
     facebookUrl: yup.string().trim().test('facebook-url', t('facebookInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),
     instagramUrl: yup.string().trim().test('instagram-url', t('instagramInvalid'), (value) => !value || SOCIAL_URL_REGEX.test(value)),

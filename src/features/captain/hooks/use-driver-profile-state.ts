@@ -47,7 +47,6 @@ export function useDriverProfileState(user: User | null, toast: any) {
         f.setFullName(fields.fullName);
         f.setNickname(fields.nickname);
         f.setPhone(fields.phone);
-        f.setNationalIdNumber(fields.nationalIdNumber);
         f.setLicenseNumber(fields.licenseNumber);
         f.setVehiclePlate(fields.vehiclePlate);
         f.setVehicleMake(fields.vehicleMake);

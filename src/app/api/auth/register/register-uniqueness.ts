@@ -30,12 +30,11 @@ export async function checkRegistrationUniqueness(
 
   // C. Check Captain credentials uniqueness if applicable
   if ((role === 'CAPTAIN' || role === 'DRIVER') && captainProfile) {
-    const trimmedNatId = captainProfile.national_id_number?.trim() || null;
     const trimmedLic = captainProfile.license_number?.trim() || null;
     const trimmedPlate = captainProfile.plate_number?.trim().toUpperCase() || null;
 
     const { data: availability } = await supabaseAdmin.rpc('check_captain_identity_available', {
-      p_national_id: trimmedNatId,
+      p_national_id: null,
       p_license_number: trimmedLic,
       p_plate_number: trimmedPlate,
       p_email: rawEmail,
@@ -44,9 +43,6 @@ export async function checkRegistrationUniqueness(
     if (availability) {
       if (availability.email_taken) {
         return { error: 'البريد الإلكتروني مسجل بالفعل مسبقاً لحساب آخر.' };
-      }
-      if (availability.national_id_taken) {
-        return { error: 'رقم الهوية الوطنية مسجل بالفعل مسبقاً.' };
       }
       if (availability.license_taken) {
         return { error: 'رقم رخصة القيادة مسجل بالفعل مسبقاً.' };

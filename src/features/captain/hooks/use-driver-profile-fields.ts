@@ -6,7 +6,6 @@ export function useDriverProfileFields(user: User | null) {
   const [fullName, setFullName] = React.useState(user?.name || '');
   const [nickname, setNickname] = React.useState('');
   const [phone, setPhone] = React.useState(user?.phone || '');
-  const [nationalIdNumber, setNationalIdNumber] = React.useState('');
   const [licenseNumber, setLicenseNumber] = React.useState('');
   const [vehiclePlate, setVehiclePlate] = React.useState('');
   const [vehicleMake, setVehicleMake] = React.useState('');
@@ -54,7 +53,6 @@ export function useDriverProfileFields(user: User | null) {
     fullName, setFullName,
     nickname, setNickname,
     phone, setPhone,
-    nationalIdNumber, setNationalIdNumber,
     licenseNumber, setLicenseNumber,
     vehiclePlate, setVehiclePlate,
     vehicleMake, setVehicleMake,

@@ -39,7 +39,6 @@ export function handleCaptainPostRegistration({
         fullName,
         phone: normalizedPhone,
         email: rawEmail,
-        nationalIdNumber: captainProfile?.national_id_number,
         licenseNumber: captainProfile?.license_number,
         plateNumber: captainProfile?.plate_number,
         vehicleMake: captainProfile?.make || captainProfile?.vehicle_brand,

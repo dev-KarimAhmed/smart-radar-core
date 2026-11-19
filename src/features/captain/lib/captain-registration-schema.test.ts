@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  JORDAN_NATIONAL_ID_REGEX,
-  GENERAL_NATIONAL_ID_REGEX,
+  LICENSE_NUMBER_REGEX,
   getCaptainSmartAppVehicleSchema,
   getCaptainTaxiVehicleSchema,
   getCaptainIndependentVehicleSchema,
@@ -12,46 +11,15 @@ import {
 
 const mockT = (key: string) => key;
 
-test('JORDAN_NATIONAL_ID_REGEX enforces strictly 10 digits', () => {
-  assert.equal(JORDAN_NATIONAL_ID_REGEX.test('1234567890'), true);
-  assert.equal(JORDAN_NATIONAL_ID_REGEX.test('9876543210'), true);
-  assert.equal(JORDAN_NATIONAL_ID_REGEX.test('123456789'), false, 'Rejects 9 digits');
-  assert.equal(JORDAN_NATIONAL_ID_REGEX.test('12345678901'), false, 'Rejects 11 digits');
-  assert.equal(JORDAN_NATIONAL_ID_REGEX.test('12345abcde'), false, 'Rejects alphabets');
-  assert.equal(JORDAN_NATIONAL_ID_REGEX.test('1234 56789'), false, 'Rejects spaces');
+test('LICENSE_NUMBER_REGEX accepts valid driver license numbers and rejects invalid ones', () => {
+  assert.equal(LICENSE_NUMBER_REGEX.test('98765432'), true);
+  assert.equal(LICENSE_NUMBER_REGEX.test('AB123456'), true);
+  assert.equal(LICENSE_NUMBER_REGEX.test('12'), false, 'Rejects too short');
+  assert.equal(LICENSE_NUMBER_REGEX.test('1234 5678'), false, 'Rejects spaces');
 });
 
-test('captain vehicle schemas enforce 10-digit national ID for Jordan', async () => {
-  const schemaJo = getCaptainSmartAppVehicleSchema(mockT, 'JO');
-  
-  // Valid 10-digit payload
-  const validPayload = {
-    companyName: 'Smart Ride Office',
-    companyCode: 'SR-101',
-    make: 'Toyota',
-    model: 'Camry',
-    color: 'White',
-    plate: '12-34567',
-    year: 2022,
-    nationalIdNumber: '2001123456',
-    licenseNumber: '98765432',
-    facebookUrl: '',
-    instagramUrl: '',
-  };
-
-  await assert.doesNotReject(schemaJo.validate(validPayload));
-
-  // Invalid payload with 8 digits
-  const invalidPayload = {
-    ...validPayload,
-    nationalIdNumber: '12345678',
-  };
-
-  await assert.rejects(schemaJo.validate(invalidPayload));
-});
-
-test('captain vehicle schema allows general national ID format for foreign countries', async () => {
-  const schemaForeign = getCaptainSmartAppVehicleSchema(mockT, 'EG');
+test('captain smart-app vehicle schema validates with licenseNumber and requires no national ID', async () => {
+  const schema = getCaptainSmartAppVehicleSchema(mockT, 'JO');
 
   const validPayload = {
     companyName: 'Smart Ride Office',
@@ -61,26 +29,45 @@ test('captain vehicle schema allows general national ID format for foreign count
     color: 'White',
     plate: '12-34567',
     year: 2022,
-    nationalIdNumber: '29812345678901', // 14-digit Egyptian national ID
     licenseNumber: '98765432',
     facebookUrl: '',
     instagramUrl: '',
   };
 
-  await assert.doesNotReject(schemaForeign.validate(validPayload));
+  await assert.doesNotReject(schema.validate(validPayload));
+
+  const missingLicense = { ...validPayload, licenseNumber: '' };
+  await assert.rejects(schema.validate(missingLicense));
 });
 
-test('captain independent vehicle schema validates without companyName and companyCode', async () => {
+test('captain taxi vehicle schema validates with licenseNumber and requires no national ID', async () => {
+  const schema = getCaptainTaxiVehicleSchema(mockT, 'JO');
+
+  const validPayload = {
+    officeName: 'Amman Central Taxi',
+    officePhone: '+962791234567',
+    sideId: 'TX-44',
+    make: 'Toyota',
+    model: 'Prius',
+    plate: '10-55443',
+    year: 2022,
+    licenseNumber: '55443322',
+    facebookUrl: '',
+    instagramUrl: '',
+  };
+
+  await assert.doesNotReject(schema.validate(validPayload));
+});
+
+test('captain independent vehicle schema validates without companyName, companyCode, or national ID', async () => {
   const schemaJo = getCaptainIndependentVehicleSchema(mockT, 'JO');
 
-  // Valid independent payload: no companyName or companyCode needed
   const validPayload = {
     make: 'Hyundai',
     model: 'Elantra',
     color: 'Silver',
     plate: '50-12345',
     year: 2021,
-    nationalIdNumber: '2001987654',
     licenseNumber: '11223344',
     facebookUrl: '',
     instagramUrl: '',
@@ -88,12 +75,7 @@ test('captain independent vehicle schema validates without companyName and compa
 
   await assert.doesNotReject(schemaJo.validate(validPayload));
 
-  // Invalid payload: missing required make
-  const invalidPayload = {
-    ...validPayload,
-    make: '',
-  };
-
+  const invalidPayload = { ...validPayload, make: '' };
   await assert.rejects(schemaJo.validate(invalidPayload));
 });
 
@@ -124,17 +106,8 @@ test('getCaptainPersonalSchema validates quad name', async () => {
   };
   await assert.doesNotReject(schema.validate(valid));
 
-  const invalid3Words = {
-    ...valid,
-    name: 'محمد أحمد محمود',
-  };
-  await assert.rejects(schema.validate(invalid3Words));
-
-  const invalid3Letters = {
-    ...valid,
-    name: 'Sss',
-  };
-  await assert.rejects(schema.validate(invalid3Letters));
+  await assert.rejects(schema.validate({ ...valid, name: 'محمد أحمد محمود' }));
+  await assert.rejects(schema.validate({ ...valid, name: 'Sss' }));
 });
 
 test('getCaptainPersonalSchema enforces mandatory email and rejects invalid format', async () => {
@@ -150,16 +123,9 @@ test('getCaptainPersonalSchema enforces mandatory email and rejects invalid form
     countryIso: 'JO',
   };
 
-  // Missing email
   await assert.rejects(schema.validate({ ...base, email: '' }));
   await assert.rejects(schema.validate({ ...base, email: undefined }));
-
-  // Invalid email format
   await assert.rejects(schema.validate({ ...base, email: 'not-an-email' }));
   await assert.rejects(schema.validate({ ...base, email: 'captain@' }));
-
-  // Valid email format
   await assert.doesNotReject(schema.validate({ ...base, email: 'captain@test.com' }));
 });
-
-

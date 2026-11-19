@@ -74,13 +74,17 @@ export function AdStage({
     return filteredAds.length > 0 ? [...filteredAds, ...RIDER_SECTOR_ADS] : RIDER_SECTOR_ADS;
   }, [audience, liveDistrict, liveGovernorate, serverAds]);
 
+  const repeatCount = useMemo(() => {
+    if (adsToUse.length <= 1) return 1;
+    if (adsToUse.length === 2) return 4;
+    if (adsToUse.length < 5) return 3;
+    return 2;
+  }, [adsToUse.length]);
+
   const displayAds = useMemo(() => {
-    if (adsToUse.length <= 1) return adsToUse;
-    if (adsToUse.length < 4) {
-      return [...adsToUse, ...adsToUse, ...adsToUse];
-    }
-    return [...adsToUse, ...adsToUse];
-  }, [adsToUse]);
+    if (repeatCount <= 1) return adsToUse;
+    return Array.from({ length: repeatCount }, () => adsToUse).flat();
+  }, [adsToUse, repeatCount]);
 
   useEffect(() => {
     adsToUse.forEach((ad: any) => {
@@ -160,10 +164,10 @@ export function AdStage({
   };
 
   const heightClass = isFullScreen
-    ? 'h-full w-full flex-1 justify-center items-center min-h-[360px] sm:min-h-[480px]'
+    ? 'h-full min-h-0 w-full flex-1 justify-center items-center'
     : 'h-[280px] w-full sm:h-[320px]';
   const cardClassName = isFullScreen
-    ? '!h-[min(440px,calc(100dvh-15rem))] sm:!h-[min(540px,calc(100vh-9.5rem))] !max-h-[95%] aspect-[904/1280] !w-auto max-w-[min(310px,82vw)] sm:max-w-[min(382px,85vw)] !flex-shrink-0 !flex-grow-0'
+    ? '!h-full !max-h-[700px] aspect-[904/1280] !w-auto max-w-[94vw] sm:max-w-[min(490px,88vw)] !flex-shrink-0 !flex-grow-0'
     : 'h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]';
 
   if (isLoadingAds && serverAds.length === 0) {
@@ -199,6 +203,7 @@ export function AdStage({
       <AdRiverCarousel
         adsToUse={adsToUse}
         displayAds={displayAds}
+        repeatCount={repeatCount}
         cardClassName={cardClassName}
         heartedAdIds={heartedAdIds}
         toggleHeart={toggleHeart}

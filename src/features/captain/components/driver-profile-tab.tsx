@@ -112,8 +112,6 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
               <FieldSkeleton hasAction={false} />
               {/* Tier */}
               <FieldSkeleton hasAction={false} />
-              {/* National ID */}
-              <FieldSkeleton hasAction={false} />
               {/* Driver License */}
               <FieldSkeleton hasAction={false} />
             </div>
