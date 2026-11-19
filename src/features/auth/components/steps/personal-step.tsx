@@ -16,7 +16,8 @@ import {
 import { AccountActivationScreen } from './account-activation-screen';
 import {
   PasswordResetDialog,
-  buildSupportWhatsappUrl,
+  SUPPORT_EMAIL,
+  buildSupportEmailUrl,
   buildSupportTelUrl,
   getSupportPhone,
 } from './password-reset-dialog';
@@ -38,7 +39,8 @@ export {
   roleLabels,
   authRoleLabels,
   maskEmail,
-  buildSupportWhatsappUrl,
+  SUPPORT_EMAIL,
+  buildSupportEmailUrl,
   buildSupportTelUrl,
   getSupportPhone,
   AccountActivationScreen,

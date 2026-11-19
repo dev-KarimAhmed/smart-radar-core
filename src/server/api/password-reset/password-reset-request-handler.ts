@@ -115,7 +115,7 @@ export async function handlePasswordResetRequest(req: Request, res: Response) {
     if (!registeredEmail) {
       return res.status(400).json({
         success: false,
-        error: 'هذا الحساب غير مرتبط ببريد إلكتروني. يرجى التواصل مع الدعم الفني لاستعادة كلمة المرور.',
+        error: 'هذا الحساب غير مرتبط ببريد إلكتروني. يرجى التواصل مع الدعم الفني عبر البريد (Bynkcominfo@gmail.com) لاستعادة كلمة المرور.',
       });
     }
 
@@ -161,8 +161,8 @@ export async function handlePasswordResetRequest(req: Request, res: Response) {
       return res.status(500).json({
         success: false,
         error: lang === 'en'
-          ? 'Failed to send password reset email at this time. Please try again later or contact support.'
-          : 'تعذّر إرسال بريد استعادة كلمة المرور في الوقت الحالي. يرجى المحاولة لاحقاً أو التواصل مع الدعم الفني.',
+          ? 'Failed to send password reset email at this time. Please try again later or contact support (Bynkcominfo@gmail.com).'
+          : 'تعذّر إرسال بريد استعادة كلمة المرور في الوقت الحالي. يرجى المحاولة لاحقاً أو التواصل مع الدعم الفني (Bynkcominfo@gmail.com).',
       });
     }
 

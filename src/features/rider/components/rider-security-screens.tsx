@@ -57,8 +57,8 @@ export function RiderSecurityScreen({
           </h1>
           <p className="text-xs leading-6 text-amber-100/80">
             {isArabic
-              ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات لمراجعة معايير النزاهة والمناعة السلوكية. يرجى مراجعة الإدارة أو التواصل مع الدعم لفك التعليق وتنشيط الحساب.'
-              : 'Your account is temporarily suspended by platform administration to review behavioral immunity standards. Please contact support.'}
+              ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات لمراجعة معايير النزاهة والمناعة السلوكية. يرجى مراجعة الإدارة أو التواصل مع الدعم عبر البريد الإلكتروني (Bynkcominfo@gmail.com) لفك التعليق وتنشيط الحساب.'
+              : 'Your account is temporarily suspended by platform administration to review behavioral immunity standards. Please contact support via email (Bynkcominfo@gmail.com).'}
           </p>
         </div>
         <div className="flex items-center justify-center gap-3 pt-2">

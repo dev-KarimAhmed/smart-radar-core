@@ -67,7 +67,7 @@ export async function reverseGeocodeCoordinates(
         {
           headers: {
             Accept: 'application/json',
-            'User-Agent': 'SmartRadar/1.0 (contact@smartradar.jo)',
+            'User-Agent': 'SmartRadar/1.0 (Bynkcominfo@gmail.com)',
           },
         },
       );

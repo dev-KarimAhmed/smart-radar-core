@@ -153,15 +153,10 @@ export function PasswordResetDialog({
   );
 }
 
-export function buildSupportWhatsappUrl(phone: string, fallbackLabel = 'غير محدد') {
-  const supportPhone = getSupportPhone();
-  const message = `طلب إعادة تعيين كلمة مرور المستخدم. رقم الحساب: ${phone || fallbackLabel}`;
+export const SUPPORT_EMAIL = 'Bynkcominfo@gmail.com';
 
-  if (!supportPhone) {
-    return `https://wa.me/?text=${encodeURIComponent(message)}`;
-  }
-
-  return `https://wa.me/${supportPhone}?text=${encodeURIComponent(message)}`;
+export function buildSupportEmailUrl(subject = 'طلب استعادة كلمة المرور - بينكم') {
+  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 }
 
 export function buildSupportTelUrl() {
@@ -170,9 +165,7 @@ export function buildSupportTelUrl() {
 }
 
 export function getSupportPhone() {
-  const rawPhone = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP
-    || process.env.NEXT_PUBLIC_SUPPORT_PHONE
-    || '';
+  const rawPhone = process.env.NEXT_PUBLIC_SUPPORT_PHONE || '';
   return rawPhone.replace(/\D/g, '');
 }
 

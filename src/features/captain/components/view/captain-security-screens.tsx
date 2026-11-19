@@ -97,8 +97,8 @@ export function CaptainSecurityScreens({
           </h1>
           <p className={styles.bodySuspended}>
             {direction === 'rtl'
-              ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات. يرجى مراجعة إدارة المنظومة أو التواصل مع الدعم لفك التعليق وتنشيط الحساب.'
-              : 'Your account is temporarily suspended by platform administration. Please contact support.'}
+              ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات. يرجى مراجعة إدارة المنظومة أو التواصل مع الدعم عبر البريد الإلكتروني (Bynkcominfo@gmail.com) لفك التعليق وتنشيط الحساب.'
+              : 'Your account is temporarily suspended by platform administration. Please contact support via email (Bynkcominfo@gmail.com).'}
           </p>
           <div className={styles.btnRowSuspended}>
             <button
