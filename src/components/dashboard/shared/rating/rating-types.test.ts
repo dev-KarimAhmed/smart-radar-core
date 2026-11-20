@@ -72,6 +72,17 @@ async function runTests() {
     interior: 1.0,
   });
 
+  // Test 4: Sovereign 72-Hour Rating Memory Window
+  const now = 1700000000000;
+  const recentTripTime = now - (24 * 60 * 60 * 1000); // 24 hours ago
+  const expiredTripTime = now - (73 * 60 * 60 * 1000); // 73 hours ago
+
+  const { isRatingWindowExpired, RATING_MEMORY_WINDOW_HOURS } = await import('./rating-types');
+  assert.equal(RATING_MEMORY_WINDOW_HOURS, 72);
+  assert.equal(isRatingWindowExpired(recentTripTime, now), false, '24h trip should be within active rating window');
+  assert.equal(isRatingWindowExpired(expiredTripTime, now), true, '73h trip should be flagged as expired window');
+  assert.equal(isRatingWindowExpired(null, now), false, 'Missing timestamp should not throw');
+
   console.log('All Dual-Entity Rating payload unit tests passed successfully!');
 }
 

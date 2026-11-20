@@ -1,3 +1,13 @@
+export const RATING_MEMORY_WINDOW_HOURS = 72;
+export const RATING_MEMORY_WINDOW_MS = RATING_MEMORY_WINDOW_HOURS * 60 * 60 * 1000;
+
+export function isRatingWindowExpired(completedAt: unknown, now = Date.now()): boolean {
+  if (!completedAt) return false;
+  const parsedMs = typeof completedAt === 'number' ? completedAt : new Date(String(completedAt)).getTime();
+  if (!Number.isFinite(parsedMs) || parsedMs <= 0) return false;
+  return now - parsedMs > RATING_MEMORY_WINDOW_MS;
+}
+
 export type CriterionVerdict = 'up' | 'down' | null;
 export type AdComplianceVerdict = 'compliant' | 'non_compliant' | null;
 
@@ -14,6 +24,7 @@ export interface RatingModalProps {
   captainRank?: 'DIAMOND' | 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE';
   vehicleInfo?: string;
   finalPrice?: number;
+  completedAt?: string | number | null;
 }
 
 export type VehicleCriterionKey = 'interior' | 'exterior' | 'comfort';

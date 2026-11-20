@@ -5,6 +5,7 @@ import { formatHistoryMoney, type HistoricalTrip } from './history-shared';
 import { getRouteMapUrl, getRankBadge } from './history-rider-trip-utils';
 import { HistoryRiderTripReview } from './history-rider-trip-review';
 import { HistoryRiderRouteDetails } from './history-rider-route-details';
+import { isRatingWindowExpired } from '@/components/dashboard/shared/rating/rating-types';
 
 export * from './history-rider-route-details';
 
@@ -140,14 +141,20 @@ export function HistoryRiderTripCard({
 
         <div className="flex items-center gap-2">
           {!hasReview && !isBlocked && (
-            <button
-              type="button"
-              onClick={onRateTrip}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
-            >
-              <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
-              <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن المعلن' : 'Rate Captain')}</span>
-            </button>
+            isRatingWindowExpired(trip.timestamp) ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-xl">
+                <span>{isArabic ? 'انتهت مهلة التقييم (72 ساعة)' : 'Rating expired (72h)'}</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={onRateTrip}
+                className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl border border-emerald-500/40 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white font-black text-xs active:scale-[0.98] transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+              >
+                <Star className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
+                <span>{t('rateCaptain') || (isArabic ? 'تقييم الكابتن المعلن' : 'Rate Captain')}</span>
+              </button>
+            )
           )}
 
           {hasReview && (

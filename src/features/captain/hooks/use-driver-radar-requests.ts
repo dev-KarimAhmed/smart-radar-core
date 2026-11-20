@@ -78,6 +78,8 @@ export function useDriverRadarRequests({
   tRef.current = t;
   const userUidRef = useRef(user?.uid);
   userUidRef.current = user?.uid;
+  const userRankRef = useRef(user?.rank || (user as any)?.tier || 'BRONZE');
+  userRankRef.current = user?.rank || (user as any)?.tier || 'BRONZE';
   const channelIdRef = useRef(`driver-radar-${user?.uid || 'anonymous'}-${Math.random().toString(36).slice(2)}`);
 
   const checkTimeBundle = useCallback(async () => {
@@ -161,6 +163,7 @@ export function useDriverRadarRequests({
       activePendingTripIds,
       loc,
       cells,
+      captainRank: userRankRef.current,
     });
 
     if (hasNewPendingRequests(rankedRequests, previousRequestIdsRef.current)) {
