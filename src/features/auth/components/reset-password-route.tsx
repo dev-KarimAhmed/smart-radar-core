@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { KeyRound, Loader2, ShieldCheck } from 'lucide-react';
+import { KeyRound, Loader2, Mail, ShieldCheck } from 'lucide-react';
 
 import { useDashboardLanguage } from '@/shared/hooks/use-dashboard-language';
 import {
@@ -100,6 +100,16 @@ export function ResetPasswordRoute() {
         ) : !canUseForm ? (
           <>
             <p className={styles.error}>{activeError || t.missing}</p>
+            <div className="mt-4 text-center">
+              <a
+                href="mailto:Bynkcominfo@gmail.com?subject=طلب مساعدة استرجاع كلمة المرور"
+                className="inline-flex items-center gap-1.5 text-xs text-[#14F5D5] hover:underline"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span>{language === 'ar' ? 'تواصل مع الدعم:' : 'Contact Support:'}</span>
+                <span className="font-mono text-white underline">Bynkcominfo@gmail.com</span>
+              </a>
+            </div>
             <button type="button" onClick={() => router.replace('/')} className={styles.link}>
               {t.backToLogin}
             </button>

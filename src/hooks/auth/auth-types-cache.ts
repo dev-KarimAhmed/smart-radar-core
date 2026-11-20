@@ -3,7 +3,7 @@ import {
   buildUserFromSupabaseAuth,
   clearSupabaseSessionCache,
 } from '@/lib/supabase-auth';
-import { SUPABASE_AUTH_STORAGE_KEY } from '@/features/auth/services/supabase-auth-storage';
+import { SUPABASE_AUTH_STORAGE_KEY, shouldRememberSupabaseSession } from '@/features/auth/services/supabase-auth-storage';
 import { DASHBOARD_LANGUAGE_KEY } from '../use-dashboard-language';
 
 export interface AuthContextType {
@@ -24,8 +24,8 @@ export function getInitialUserFromCache(): SovereignUser | null {
   if (typeof window === 'undefined') return null;
   try {
     const rawMock =
-      window.localStorage.getItem('radar_sovereign_mock_user') ||
-      window.sessionStorage.getItem('radar_sovereign_mock_user');
+      window.sessionStorage.getItem('radar_sovereign_mock_user') ||
+      (shouldRememberSupabaseSession() ? window.localStorage.getItem('radar_sovereign_mock_user') : null);
     if (process.env.NODE_ENV !== 'production' && rawMock) {
       const parsedMock = JSON.parse(rawMock);
       if (parsedMock && (parsedMock.role === 'admin' || parsedMock.adminRank === 'GENERAL_ADMIN')) {
@@ -33,8 +33,8 @@ export function getInitialUserFromCache(): SovereignUser | null {
       }
     }
     const raw =
-      window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
-      window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY);
+      window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) ||
+      (shouldRememberSupabaseSession() ? window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY) : null);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && parsed.user && typeof parsed.user === 'object') {

@@ -4,7 +4,15 @@ import { clearActiveSession } from '../login/login-session-guard';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
+    let body: any = {};
+    const text = await req.text().catch(() => '');
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = {};
+      }
+    }
     const userId = body.userId ? String(body.userId).trim() : undefined;
     const deviceId = body.deviceId ? String(body.deviceId).trim() : undefined;
 

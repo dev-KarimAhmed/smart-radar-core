@@ -68,8 +68,8 @@ export function PasswordResetDialog({
         <div className={styles.style832_141}>
           <div className={styles.style833_142}>
             {isArabic
-              ? 'أدخل رقم هاتفك والبريد الإلكتروني المربوط به للتحقق وإرسال رابط استرجاع كلمة المرور.'
-              : 'Enter your phone number and the email linked to it to verify and receive the password reset link.'}
+              ? 'أدخل رقم هاتفك والبريد الإلكتروني المربوط به للتحقق وإرسال رابط استرجاع كلمة المرور، أو تواصل مع الدعم عبر البريد الإلكتروني (Bynkcominfo@gmail.com).'
+              : 'Enter your phone number and the email linked to it to verify and receive the password reset link, or contact support at (Bynkcominfo@gmail.com).'}
           </div>
 
           <PersonalStepField
@@ -147,6 +147,27 @@ export function PasswordResetDialog({
               ? (isArabic ? 'جاري التحقق والإرسال…' : 'Verifying & Sending…')
               : (isArabic ? 'إرسال رابط الاسترجاع' : 'Send recovery link')}
           </button>
+
+          {/* Support Email Contact Section */}
+          <div className="mt-4 pt-3 border-t border-white/10 text-center">
+            <p className="text-xs text-slate-400 mb-2">
+              {isArabic
+                ? 'تواجه صعوبة أو حسابك غير مرتبط ببريد إلكتروني؟'
+                : 'Having trouble or no email linked?'}
+            </p>
+            <a
+              href={buildSupportEmailUrl(
+                isArabic
+                  ? `طلب مساعدة استرجاع كلمة المرور - الحساب: ${resetPhone || 'غير محدد'}`
+                  : `Password Recovery Request - Account: ${resetPhone || 'unspecified'}`
+              )}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#14B8A6]/40 bg-[#14B8A6]/10 px-4 py-2.5 text-xs font-bold text-[#14F5D5] transition hover:bg-[#14B8A6]/20 hover:border-[#14B8A6]"
+            >
+              <Mail className="h-4 w-4" />
+              <span>{isArabic ? 'تواصل مع الدعم:' : 'Contact Support:'}</span>
+              <span className="font-mono text-white underline underline-offset-4">{SUPPORT_EMAIL}</span>
+            </a>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

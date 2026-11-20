@@ -71,12 +71,13 @@ export async function verifySingleSession(params: {
     return { allowed: true };
   }
 
-  // Different device: check if session was abandoned for > 24 hours (safety timeout)
+  // Different device: check if session was abandoned (safety timeout)
   const lastSeenMs = lastSeenAt ? new Date(lastSeenAt).getTime() : 0;
-  const hoursSinceLastSeen = lastSeenMs > 0 ? (Date.now() - lastSeenMs) / (1000 * 60 * 60) : 0;
+  const secondsSinceLastSeen = lastSeenMs > 0 ? (Date.now() - lastSeenMs) / 1000 : 0;
 
-  // If active within the last 24 hours, strictly reject login
-  if (hoursSinceLastSeen < 24) {
+  // Active heartbeat is sent every 25s. If last seen was within 90s, the tab is still open and active!
+  // If last seen is older than 90s, the previous tab/device is considered inactive or closed.
+  if (lastSeenMs > 0 && secondsSinceLastSeen < 90) {
     return {
       allowed: false,
       code: 'account_in_use',

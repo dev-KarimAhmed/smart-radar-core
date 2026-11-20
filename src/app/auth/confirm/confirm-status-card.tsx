@@ -95,6 +95,15 @@ export function ConfirmStatusCard({
         >
           <span>{isArabic ? 'الانتقال لتسجيل الدخول' : 'Go to Login'}</span>
         </Link>
+        <div className="pt-2 text-center">
+          <a
+            href="mailto:Bynkcominfo@gmail.com?subject=مشكلة في تأكيد الحساب - بينكم"
+            className="inline-flex items-center gap-1.5 text-xs text-[#14F5D5] hover:underline"
+          >
+            <span>{isArabic ? 'تحتاج مساعدة؟ تواصل مع الدعم:' : 'Need help? Contact support:'}</span>
+            <span className="font-mono text-white underline">Bynkcominfo@gmail.com</span>
+          </a>
+        </div>
       </div>
     </div>
   );

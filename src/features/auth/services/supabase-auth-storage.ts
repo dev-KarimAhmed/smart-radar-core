@@ -2,8 +2,8 @@ const SUPABASE_AUTH_STORAGE_KEY = 'radar_supabase_auth_session';
 const SUPABASE_REMEMBER_SESSION_KEY = 'radar_supabase_remember_session';
 
 export function shouldRememberSupabaseSession() {
-  if (typeof window === 'undefined') return true;
-  return window.localStorage.getItem(SUPABASE_REMEMBER_SESSION_KEY) !== 'false';
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(SUPABASE_REMEMBER_SESSION_KEY) === 'true';
 }
 
 export function setSupabaseRememberSession(remember: boolean) {
@@ -27,10 +27,13 @@ export function clearSupabaseAuthStorage() {
 export function hasStoredSupabaseAuthSession() {
   if (typeof window === 'undefined') return false;
   try {
-    return Boolean(
-      window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY)
-      || window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY),
-    );
+    if (window.sessionStorage.getItem(SUPABASE_AUTH_STORAGE_KEY)) {
+      return true;
+    }
+    if (shouldRememberSupabaseSession() && window.localStorage.getItem(SUPABASE_AUTH_STORAGE_KEY)) {
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -41,31 +44,39 @@ export function createRememberAwareStorage() {
     getItem(key: string) {
       if (typeof window === 'undefined') return null;
       try {
-        const localVal = window.localStorage.getItem(key);
-        if (localVal) return localVal;
+        const sessionVal = window.sessionStorage.getItem(key);
+        if (sessionVal) return sessionVal;
       } catch {}
       try {
-        return window.sessionStorage.getItem(key);
+        if (shouldRememberSupabaseSession()) {
+          const localVal = window.localStorage.getItem(key);
+          if (localVal) return localVal;
+        }
       } catch {}
       return null;
     },
     setItem(key: string, value: string) {
       if (typeof window === 'undefined') return;
-      // Always store primarily in localStorage to prevent session destruction on mobile screen lock/sleep
-      try {
-        window.localStorage.setItem(key, value);
-      } catch {}
       try {
         window.sessionStorage.setItem(key, value);
       } catch {}
+      if (shouldRememberSupabaseSession()) {
+        try {
+          window.localStorage.setItem(key, value);
+        } catch {}
+      } else {
+        try {
+          window.localStorage.removeItem(key);
+        } catch {}
+      }
     },
     removeItem(key: string) {
       if (typeof window === 'undefined') return;
       try {
-        window.localStorage.removeItem(key);
+        window.sessionStorage.removeItem(key);
       } catch {}
       try {
-        window.sessionStorage.removeItem(key);
+        window.localStorage.removeItem(key);
       } catch {}
     },
   };

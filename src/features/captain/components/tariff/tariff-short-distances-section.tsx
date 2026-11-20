@@ -54,8 +54,13 @@ export function TariffShortDistancesSection({
         <span>{t('tariffModalShortDistancesToggle')}</span>
         <div className="flex items-center gap-2.5">
           {shortDistanceTotal > 0 ? (
-            <span className="flex items-center justify-center min-w-[2.75rem] px-3 py-1 rounded-xl border-2 border-emerald-400 bg-emerald-500/25 text-white font-mono font-black text-base shadow-[0_0_12px_rgba(52,211,153,0.3)] tracking-wide">
-              {shortDistanceTotal}
+            <span className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-xl border-2 border-emerald-400 bg-emerald-500/25 text-white shadow-[0_0_12px_rgba(52,211,153,0.3)] tracking-wide">
+              <span className="text-xs font-bold text-emerald-200">
+                {t('tariffModalYourPrice') || (isArabic ? 'سعرك' : 'Your price')}
+              </span>
+              <span className="font-mono font-black text-base">
+                {shortDistanceTotal}
+              </span>
             </span>
           ) : null}
           <ChevronDown

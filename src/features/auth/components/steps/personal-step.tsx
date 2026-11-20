@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Mail } from 'lucide-react';
 import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
 import { navigateAuth } from '@/lib/auth-routing';
 import { styles } from './personal-step.styles';
@@ -149,6 +150,17 @@ export function PersonalStep() {
           >
             {state.t.back}
           </button>
+
+          <div className="mt-4 pt-3 border-t border-white/5 text-center">
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(state.isArabic ? 'استفسار ودعم فني - بينكم' : 'Support Inquiry - Bynkcom')}`}
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-[#14F5D5] transition-colors"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              <span>{state.isArabic ? 'الدعم الفني:' : 'Support:'}</span>
+              <span className="font-mono text-slate-300 hover:underline">{SUPPORT_EMAIL}</span>
+            </a>
+          </div>
         </div>
       </section>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Mail } from 'lucide-react';
 
 interface RiderSecurityScreenProps {
   status: 'BANNED' | 'SUSPENDED';
@@ -27,15 +27,24 @@ export function RiderSecurityScreen({
             </h1>
             <p className="text-xs leading-6 text-rose-100/80">
               {isArabic
-                ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف طلب الرحلات وعزل الحساب عن الرادار.'
-                : 'Your account has been permanently banned by platform administration due to policy violations. Ride requests and radar access have been disabled.'}
+                ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. لتقديم طلب مراجعة أو استئناف، يرجى مراسلة الدعم عبر البريد الإلكتروني (Bynkcominfo@gmail.com).'
+                : 'Your account has been permanently banned by platform administration due to policy violations. For appeals or inquiries, contact support at (Bynkcominfo@gmail.com).'}
             </p>
           </div>
           <div className="pt-2">
+            <a
+              href="mailto:Bynkcominfo@gmail.com?subject=استئناف حظر حساب راكب"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500/20 border border-rose-500/50 px-5 py-2.5 text-xs font-bold text-rose-300 hover:bg-rose-500/30 transition"
+            >
+              <Mail className="h-4 w-4" />
+              <span>{isArabic ? 'مراسلة الدعم: Bynkcominfo@gmail.com' : 'Support: Bynkcominfo@gmail.com'}</span>
+            </a>
+          </div>
+          <div className="pt-1">
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex items-center justify-center rounded-2xl bg-rose-500/20 border border-rose-500/50 px-6 py-2.5 text-xs font-black text-rose-300 hover:bg-rose-500/30 transition shadow-lg cursor-pointer"
+              className="inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 px-6 py-2.5 text-xs font-black text-slate-300 hover:bg-white/10 transition shadow-lg cursor-pointer"
             >
               {isArabic ? 'تسجيل الخروج' : 'Log Out'}
             </button>
@@ -60,6 +69,15 @@ export function RiderSecurityScreen({
               ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات لمراجعة معايير النزاهة والمناعة السلوكية. يرجى مراجعة الإدارة أو التواصل مع الدعم عبر البريد الإلكتروني (Bynkcominfo@gmail.com) لفك التعليق وتنشيط الحساب.'
               : 'Your account is temporarily suspended by platform administration to review behavioral immunity standards. Please contact support via email (Bynkcominfo@gmail.com).'}
           </p>
+        </div>
+        <div className="pt-2">
+          <a
+            href="mailto:Bynkcominfo@gmail.com?subject=طلب مراجعة تعليق حساب راكب"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-500/20 border border-amber-500/50 px-5 py-2.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition"
+          >
+            <Mail className="h-4 w-4" />
+            <span>{isArabic ? 'مراسلة الدعم: Bynkcominfo@gmail.com' : 'Support: Bynkcominfo@gmail.com'}</span>
+          </a>
         </div>
         <div className="flex items-center justify-center gap-3 pt-2">
           {onRefresh && (

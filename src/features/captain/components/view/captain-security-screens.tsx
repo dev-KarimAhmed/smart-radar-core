@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Mail, ShieldAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 const styles = {
@@ -70,9 +70,18 @@ export function CaptainSecurityScreens({
           </h1>
           <p className={styles.bodyBanned}>
             {direction === 'rtl'
-              ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. تم إيقاف استقبال الرحلات والاتصال بالرادار.'
-              : 'Your account has been permanently banned by platform administration due to policy violations.'}
+              ? 'تم حظر حسابك نهائياً من قبل إدارة المنظومة لمخالفة المعايير التشغيلية والسيادية. للمراجعة أو تقديم استئناف، يرجى مراسلة الدعم الرسمي عبر البريد الإلكتروني (Bynkcominfo@gmail.com).'
+              : 'Your account has been permanently banned by platform administration due to policy violations. For inquiries or appeals, contact support at (Bynkcominfo@gmail.com).'}
           </p>
+          <div className="pt-2">
+            <a
+              href="mailto:Bynkcominfo@gmail.com?subject=استئناف حظر حساب كابتن"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500/20 border border-rose-500/50 px-5 py-2.5 text-xs font-bold text-rose-300 hover:bg-rose-500/30 transition"
+            >
+              <Mail className="h-4 w-4" />
+              <span>{direction === 'rtl' ? 'مراسلة الدعم: Bynkcominfo@gmail.com' : 'Support: Bynkcominfo@gmail.com'}</span>
+            </a>
+          </div>
           <div className={styles.btnWrap}>
             <button
               type="button"
@@ -100,6 +109,15 @@ export function CaptainSecurityScreens({
               ? 'تم تعليق حسابك مؤقتاً من قبل إدارة العمليات. يرجى مراجعة إدارة المنظومة أو التواصل مع الدعم عبر البريد الإلكتروني (Bynkcominfo@gmail.com) لفك التعليق وتنشيط الحساب.'
               : 'Your account is temporarily suspended by platform administration. Please contact support via email (Bynkcominfo@gmail.com).'}
           </p>
+          <div className="pt-2">
+            <a
+              href="mailto:Bynkcominfo@gmail.com?subject=طلب مراجعة تعليق حساب كابتن"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#14B8A6]/20 border border-[#14B8A6]/50 px-5 py-2.5 text-xs font-bold text-[#14F5D5] hover:bg-[#14B8A6]/30 transition"
+            >
+              <Mail className="h-4 w-4" />
+              <span>{direction === 'rtl' ? 'مراسلة الدعم: Bynkcominfo@gmail.com' : 'Support: Bynkcominfo@gmail.com'}</span>
+            </a>
+          </div>
           <div className={styles.btnRowSuspended}>
             <button
               type="button"

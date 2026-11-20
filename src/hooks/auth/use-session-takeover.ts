@@ -56,7 +56,7 @@ export function useSessionTakeover(
     };
 
     void sendHeartbeat();
-    const heartbeatInterval = setInterval(sendHeartbeat, 60000);
+    const heartbeatInterval = setInterval(sendHeartbeat, 25000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -65,6 +65,28 @@ export function useSessionTakeover(
     };
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    // Release single-device session lock as soon as this tab is closed
+    const handlePageExit = () => {
+      if (!user?.uid || !deviceId) return;
+      const payload = JSON.stringify({ userId: user.uid, deviceId });
+      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon('/api/auth/logout', blob);
+      } else {
+        void fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', handlePageExit);
+      window.addEventListener('beforeunload', handlePageExit);
     }
 
     // 2. Realtime broadcast channels for immediate zero-latency peer detection
@@ -131,6 +153,10 @@ export function useSessionTakeover(
       clearInterval(heartbeatInterval);
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('pagehide', handlePageExit);
+        window.removeEventListener('beforeunload', handlePageExit);
       }
       void import('@/lib/supabase-client').then(({ supabase }) => {
         try {
