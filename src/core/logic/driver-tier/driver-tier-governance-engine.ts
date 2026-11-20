@@ -11,6 +11,14 @@ import {
 
 export const RANK_ORDER: CaptainRankTier[] = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
 
+export function normalizeTierRank(rank: unknown): CaptainRankTier {
+  const normalized = String(rank || '').toUpperCase().trim();
+  if (normalized === 'DIAMOND' || normalized === 'PLATINUM' || normalized === 'GOLD' || normalized === 'SILVER') {
+    return normalized as CaptainRankTier;
+  }
+  return 'BRONZE';
+}
+
 export const TIER_CAPABILITIES: Record<CaptainRankTier, RankTierCapability> = {
   BRONZE: {
     rank: 'BRONZE',

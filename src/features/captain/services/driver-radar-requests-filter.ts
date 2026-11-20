@@ -9,8 +9,11 @@ import {
 } from './driver-radar-mapper';
 import {
   TIER_CAPABILITIES,
+  normalizeTierRank,
   type CaptainRankTier,
 } from '@/core/logic/driver-tier';
+
+export { normalizeTierRank };
 
 export function mergePendingRadarRows(allRows: any[], pendingRows?: any[] | null): any[] {
   if (!pendingRows || !Array.isArray(pendingRows)) return allRows;
@@ -26,14 +29,6 @@ export function mergePendingRadarRows(allRows: any[], pendingRows?: any[] | null
     }
   }
   return merged;
-}
-
-export function normalizeTierRank(rank: unknown): CaptainRankTier {
-  const normalized = String(rank || '').toUpperCase().trim();
-  if (normalized === 'DIAMOND' || normalized === 'PLATINUM' || normalized === 'GOLD' || normalized === 'SILVER') {
-    return normalized as CaptainRankTier;
-  }
-  return 'BRONZE';
 }
 
 /**

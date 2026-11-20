@@ -130,11 +130,28 @@ export function useHistoryFavorites({
       }
     }
 
-    return [...byCaptain.entries()].map(([captainId, trip]) => ({
-      ...trip,
-      id: captainId,
-      captainId,
-    }));
+    const rankWeight: Record<string, number> = {
+      DIAMOND: 5,
+      PLATINUM: 4,
+      GOLD: 3,
+      BRONZE: 2,
+      SILVER: 1,
+    };
+
+    return [...byCaptain.entries()]
+      .map(([captainId, trip]) => ({
+        ...trip,
+        id: captainId,
+        captainId,
+      }))
+      .sort((a, b) => {
+        const aRank = rankWeight[String(a.captainRank || '').toUpperCase()] ?? 1;
+        const bRank = rankWeight[String(b.captainRank || '').toUpperCase()] ?? 1;
+        if (aRank !== bRank) {
+          return bRank - aRank; // Higher rank first (Diamond > Platinum > Gold > Bronze > Silver)
+        }
+        return (a.timestamp || 0) - (b.timestamp || 0); // Seniority: earlier addition first
+      });
   }, [favoriteCaptainIds, dexieFavorites, riderHistoricalTrips, linkedCaptain, tRef, isArabic]);
 
   const toggleFavorite = async (trip: HistoricalTrip) => {

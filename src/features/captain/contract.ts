@@ -16,4 +16,11 @@ export {
   recordCaptainPenalty,
   resyncAllCaptainRanks,
 } from './services/captain-rank';
+export {
+  formatWeeklyDigestNotification,
+  partitionCaptainsForLoadBalancing,
+  type WeeklyCaptainStats,
+  type FormattedWeeklyDigest,
+  type GeographicBatchGroup,
+} from './services/weekly-report-digest';
 export type { CaptainRankName, PenaltyResult, WeeklyReportResult } from './services/captain-rank';

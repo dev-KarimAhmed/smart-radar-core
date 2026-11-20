@@ -9,6 +9,7 @@ import { styles } from './ads-seats/captain-ads-styles';
 import { CaptainAdsSeatsGrid } from './ads-seats/captain-ads-seats-grid';
 import { CaptainAdEditModal } from './ads-seats/captain-ad-edit-modal';
 import { CaptainAdDeleteModal } from './ads-seats/captain-ad-delete-modal';
+import { TIER_CAPABILITIES, normalizeTierRank } from '@/core/logic/driver-tier';
 
 export * from './ads-seats/captain-ads-styles';
 export * from '../hooks/use-captain-ads-manager';
@@ -31,11 +32,15 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
   const isArabic = language === 'ar';
   const fileInputId = useId();
 
+  const rankTier = normalizeTierRank(user?.rank || (user as any)?.tier);
+  const capability = TIER_CAPABILITIES[rankTier];
+  const maxCapStr = capability.isFlexibleCapacity ? (isArabic ? 'سعة مرنة' : 'Flexible') : `${capability.adCapacityMax}`;
+
   const state = useCaptainAdsManager({ user, t });
 
   return (
     <div className={styles.container} dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* الترويسة الرئيسية للنظام الإعلاني (في مكانها الأصلي وبدون حد أقصى) */}
+      {/* الترويسة الرئيسية للنظام الإعلاني (سعة المحفظة حسب الرتبة) */}
       <div className={styles.headerWrapper}>
         <div className={styles.titleRow}>
           <div className={styles.headerIconBox}>
@@ -47,8 +52,8 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
             </h2>
             <p className={styles.subtitleText}>
               {isArabic
-                ? 'تظهر إعلاناتك الترويجية على بطاقتك على شاشة تفاصيل الرحلة فور قبول عرضك، تلقائياً وبدون حد أقصى'
-                : t('subtitle')}
+                ? `سعة المحفظة لرتبة ${capability.nameAr}: (${capability.adCapacityMin}–${maxCapStr} مواد نشطة) · اشتراك موحد وثابت`
+                : `Ad vault capacity for ${capability.nameEn}: (${capability.adCapacityMin}–${maxCapStr} ads) · Unified Subscription`}
             </p>
           </div>
         </div>
@@ -57,7 +62,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
           <div className={styles.seatSummaryBadge}>
             <Sparkles className={styles.sparklesIcon} />
             <span>
-              {isArabic ? `${state.ads.length} إعلان نشط` : `${state.ads.length} Active Ads`}
+              {isArabic ? `${state.ads.length} / ${maxCapStr} (${capability.nameAr})` : `${state.ads.length} / ${maxCapStr} (${capability.nameEn})`}
             </span>
           </div>
 

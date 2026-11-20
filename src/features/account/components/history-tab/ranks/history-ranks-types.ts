@@ -34,6 +34,10 @@ export interface RankDetailItem {
   bg: string;
   icon: any;
   ceilingPercent: number;
+  adCapacityAr: string;
+  adCapacityEn: string;
+  featureAr: string;
+  featureEn: string;
 }
 
 export const RANK_DETAILS: Record<CaptainRankName, RankDetailItem> = {
@@ -45,6 +49,10 @@ export const RANK_DETAILS: Record<CaptainRankName, RankDetailItem> = {
     bg: 'bg-gradient-to-br from-cyan-500/20 via-cyan-900/10 to-blue-950/30',
     icon: Crown,
     ceilingPercent: 25,
+    adCapacityAr: 'سعة مرنة (حسب الحملات)',
+    adCapacityEn: 'Flexible Capacity',
+    featureAr: 'رادار 4 كم + أسبقية 3.5 ثانية + نواة مستقلة',
+    featureEn: '4km Radar + 3.5s Priority + Nationwide Nucleus',
   },
   PLATINUM: {
     nameAr: 'بلاتيني',
@@ -54,6 +62,10 @@ export const RANK_DETAILS: Record<CaptainRankName, RankDetailItem> = {
     bg: 'bg-gradient-to-br from-purple-500/20 via-purple-900/10 to-indigo-950/30',
     icon: Sparkles,
     ceilingPercent: 20,
+    adCapacityAr: '10–20 مادة نشطة',
+    adCapacityEn: '10–20 Active Ads',
+    featureAr: 'أسبقية 2.5 ثانية + نواة المحافظة',
+    featureEn: '2.5s Priority + Governorate Nucleus',
   },
   GOLD: {
     nameAr: 'ذهبي',
@@ -63,6 +75,10 @@ export const RANK_DETAILS: Record<CaptainRankName, RankDetailItem> = {
     bg: 'bg-gradient-to-br from-amber-500/20 via-amber-900/10 to-yellow-950/30',
     icon: Award,
     ceilingPercent: 15,
+    adCapacityAr: '10–15 مادة نشطة',
+    adCapacityEn: '10–15 Active Ads',
+    featureAr: 'شاشات الكابينة + ربط المجموعات',
+    featureEn: 'Cabin Screens + Group Linking',
   },
   SILVER: {
     nameAr: 'فضي',
@@ -72,6 +88,10 @@ export const RANK_DETAILS: Record<CaptainRankName, RankDetailItem> = {
     bg: 'bg-gradient-to-br from-slate-500/20 via-slate-800/10 to-slate-900/30',
     icon: Award,
     ceilingPercent: 10,
+    adCapacityAr: '10–15 إعلاناً',
+    adCapacityEn: '10–15 Ads',
+    featureAr: 'أسبقية 1 ثانية + نطاق اللواء',
+    featureEn: '1.0s Priority + District Scope',
   },
   BRONZE: {
     nameAr: 'برونزي',
@@ -81,6 +101,10 @@ export const RANK_DETAILS: Record<CaptainRankName, RankDetailItem> = {
     bg: 'bg-gradient-to-br from-amber-800/20 via-amber-950/10 to-orange-950/30',
     icon: Award,
     ceilingPercent: 5,
+    adCapacityAr: '5–10 إعلانات',
+    adCapacityEn: '5–10 Ads',
+    featureAr: 'تأسيس الثقة وبناء السجل',
+    featureEn: 'Foundational Stage & Trust',
   },
 };
 

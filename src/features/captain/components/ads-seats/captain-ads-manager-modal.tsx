@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { CaptainAdItem } from '../../services/captain-ads-service';
 import { styles } from './captain-ads-styles';
+import { TIER_CAPABILITIES, normalizeTierRank } from '@/core/logic/driver-tier';
 
 interface CaptainAdsManagerModalProps {
   mounted: boolean;
@@ -21,6 +22,7 @@ interface CaptainAdsManagerModalProps {
   isArabic: boolean;
   ads: CaptainAdItem[];
   nextSeatNumber: number;
+  captainRank?: string;
   t: (key: string) => string;
   onClose: () => void;
   onOpenEdit: (ad: CaptainAdItem) => void;
@@ -36,6 +38,7 @@ export function CaptainAdsManagerModal({
   isArabic,
   ads,
   nextSeatNumber,
+  captainRank,
   t,
   onClose,
   onOpenEdit,
@@ -45,6 +48,10 @@ export function CaptainAdsManagerModal({
   onImageError,
 }: CaptainAdsManagerModalProps) {
   if (!mounted || !isOpen) return null;
+
+  const rankTier = normalizeTierRank(captainRank);
+  const capability = TIER_CAPABILITIES[rankTier];
+  const maxCapStr = capability.isFlexibleCapacity ? (isArabic ? 'مرنة' : 'Flex') : `${capability.adCapacityMax}`;
 
   return createPortal(
     <div className={styles.modalOverlay} role="dialog" aria-modal="true" dir={isArabic ? 'rtl' : 'ltr'}>
@@ -61,8 +68,8 @@ export function CaptainAdsManagerModal({
               </h3>
               <p className="text-xs text-slate-400 font-sans mt-0.5 leading-relaxed">
                 {isArabic
-                  ? 'تظهر إعلاناتك الترويجية على بطاقتك على شاشة تفاصيل الرحلة فور قبول عرضك، تلقائياً'
-                  : 'Your promotional ads appear on your card on the trip details screen upon accepting your offer, automatically'}
+                  ? `سعة المحفظة الإعلانية لرتبة ${capability.nameAr} (${capability.adCapacityMin}–${capability.isFlexibleCapacity ? 'سعة مرنة' : capability.adCapacityMax} إعلانات نشطة)`
+                  : `Ad vault capacity for ${capability.nameEn} tier (${capability.adCapacityMin}–${capability.isFlexibleCapacity ? 'Flexible' : capability.adCapacityMax} ads)`}
               </p>
             </div>
           </div>
@@ -70,7 +77,7 @@ export function CaptainAdsManagerModal({
           <div className="flex items-center gap-2 shrink-0">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00ffcc]/30 bg-[#00ffcc]/10 px-3 py-1 text-xs font-bold text-[#00ffcc]">
               <Sparkles className="h-3.5 w-3.5" />
-              <span>{ads.length} / 3</span>
+              <span>{ads.length} / {maxCapStr}</span>
             </span>
             <button
               type="button"

@@ -59,17 +59,26 @@ export function HistoryRanksLadder({
                   </span>
                 </div>
 
-                <div className="text-[10px] font-mono text-slate-400">
-                  <span>★ {rules.minRating.toFixed(1)}</span>
-                  {rules.minHearts > 0 && <span> + {rules.minHearts}♥</span>}
+                <div className="text-[10px] font-bold text-amber-300/90 mt-1">
+                  <span>{isArabic ? meta.adCapacityAr : meta.adCapacityEn}</span>
                 </div>
 
-                <span className="text-[9px] text-slate-400 block mt-0.5">
-                  +{meta.ceilingPercent}% {isArabic ? 'سقف' : 'ceiling'}
+                <span className="text-[8.5px] text-slate-400 block mt-0.5 leading-tight line-clamp-2">
+                  {isArabic ? meta.featureAr : meta.featureEn}
                 </span>
               </div>
             );
           })}
+        </div>
+
+        {/* Sovereign Protocol Notice */}
+        <div className="flex items-start gap-2 rounded-xl border border-teal-500/20 bg-teal-950/20 p-2.5 mt-2 text-[10.5px] text-teal-300/90 leading-relaxed">
+          <ShieldCheck className="h-4 w-4 text-teal-400 shrink-0 mt-0.5" />
+          <span>
+            {isArabic
+              ? 'الاشتراك مالي موحد وثابت لجميع الرتب؛ لا يشتري الدفع رتبة أعلى، بل تتوسع الميزات تلقائياً وفق معادلة الصعود الهجينة (المفضلة 40%، النشاط 35%، التقييم 25%) مع درع أمان 7 أيام يمنع الهبوط الآلي الفوري.'
+              : 'Single unified subscription across all tiers. Payment never buys higher rank; capabilities expand automatically via the Sovereign Dual-Key formula with a 7-day safety shield against instant demotion.'}
+          </span>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ export const SOVEREIGN_CONSTANTS = {
   RADAR_RADIUS_STEPS_KM: [0.5, 1.0, 1.5, 2.0, 2.5] as const, // مراحل المسح الجغرافي الخماسية
   RADAR_RADIUS_KM: 1.5,             // النطاق المعياري للرحلات (1.5 كم)
   RADAR_MAX_EXPANDED_RADIUS_KM: 2.5, // التوسع الأقصى في حال عدم وجود سائقين (2.5 كم فقط ليس أكثر)
+  RADAR_DIAMOND_MAX_RADIUS_KM: 4.0,  // رادار الكابتن الماسي الموسع (4.0 كم) وفق الدستور السيادي V2.6
   RADAR_INITIAL_H3_RING: 1,         // حجم حلقة H3 للمسح الأولي (0.5 كم - دقة 9)
   RADAR_EXPANDED_H3_RING: 7,        // حجم حلقة H3 الأقصى للتوسع (2.5 كم - دقة 9)
   URBAN_DETOUR_INDEX: 1.35,         // معدل الاستدارة الميداني المحاكي لكثافة الشوارع
@@ -21,6 +22,8 @@ export const SOVEREIGN_CONSTANTS = {
   TRIP_ARCHIVE_PURGE_HOURS: 150,      // Purge archived trips older than this
   TRIP_FORGOTTEN_GRACE_MIN: 30,     // Grace period for auto-terminating forgotten trips
   TRIP_LIFESPAN_EXTENSION_MIN: 30,    // Minutes to add when extending a trip's lifespan
+  RATING_MEMORY_PURGE_HOURS: 72,    // ذاكرة التقييم والتطهير الآلي المؤقت (72 ساعة)
+  SAFETY_SHIELD_DAYS: 7,            // درع الأمان لمنع الهبوط الفوري للرتب (7 أيام)
 
   // 3. معايير الحصص والحدود (Quota)
   QUOTA_MAX_DRIVERS_VISIBLE: 9,       // حصة المستخدم: 9 كباتن معلنين كحد أقصى في المحيط والمزاد
