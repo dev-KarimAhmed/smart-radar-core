@@ -19,7 +19,7 @@ import {
 import { useAdminCreateForm } from './use-admin-create-form';
 
 export function useAdminsManagement() {
-  const t = useTranslations('admin.adminsManagement');
+  const t = useTranslations('adminAdmins');
   const { user } = useAuth();
   const { isArabic, direction } = useDashboardLanguage();
 
