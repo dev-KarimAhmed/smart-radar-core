@@ -76,7 +76,12 @@ export function validateRoleAndStatus(params: {
   }
 
   if (expectedRole) {
-    if (dbRole !== expectedRole && !(isPrimaryOwner && expectedRole === 'ADMIN')) {
+    const isAdminUser = dbRole === 'ADMIN' || isPrimaryOwner;
+    if (isAdminUser) {
+      return { ok: true, status: 200 };
+    }
+
+    if (dbRole !== expectedRole) {
       return {
         ok: false,
         status: 403,
