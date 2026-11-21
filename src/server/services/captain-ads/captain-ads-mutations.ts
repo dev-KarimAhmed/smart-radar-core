@@ -49,6 +49,20 @@ export async function handleCreateCaptainAd(caller: any, body: any): Promise<Nex
   const nowIso = new Date().toISOString();
   const nowMs = Date.now();
 
+  // التحقق من الحد الأقصى للإعلانات (4 إعلانات لكل كابتن)
+  const { data: existingAds } = await supabaseAdmin
+    .from('captain_ads')
+    .select('id, seat_number')
+    .eq('captain_id', captainId);
+
+  const isSeatAlreadyOccupied = existingAds?.some((a) => Number(a.seat_number) === Number(seatNumber));
+  if (!isSeatAlreadyOccupied && (existingAds?.length || 0) >= CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT) {
+    return NextResponse.json(
+      { success: false, error: 'ads_limit_reached_max_4' },
+      { status: 400 }
+    );
+  }
+
   const uploadedImageUrl = await uploadAdImageIfDataUrl(captainId, Number(seatNumber), imageValidation.value);
 
   // الإدخال في Supabase

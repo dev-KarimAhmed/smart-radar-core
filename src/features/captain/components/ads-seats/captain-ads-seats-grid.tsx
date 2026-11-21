@@ -10,11 +10,13 @@ import {
 } from 'lucide-react';
 import type { CaptainAdItem } from '../../services/captain-ads-service';
 import { styles } from './captain-ads-styles';
+import { CAPTAIN_ADS_CONFIG } from '../../config/captain-ads-config';
 
 export interface CaptainAdsSeatsGridProps {
   ads: CaptainAdItem[];
   nextSeatNumber: number;
   isArabic: boolean;
+  maxAds?: number;
   t: (key: string, values?: any) => string;
   onOpenAddForSeat: (seatNum: number) => void;
   onOpenEdit: (ad: CaptainAdItem) => void;
@@ -27,6 +29,7 @@ export function CaptainAdsSeatsGrid({
   ads,
   nextSeatNumber,
   isArabic,
+  maxAds = CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT,
   t,
   onOpenAddForSeat,
   onOpenEdit,
@@ -109,26 +112,30 @@ export function CaptainAdsSeatsGrid({
         </div>
       ))}
 
-      {/* كارت إضافة إعلان جديد (متاح دائماً وبدون حد أقصى) */}
-      <div className={styles.seatCardVacant}>
-        <div className={styles.vacantIconBox}>
-          <Plus className={styles.plusIconLarge} />
+      {/* كارت إضافة إعلان جديد (يظهر فقط إذا كان عدد الإعلانات أقل من الحد الأقصى 4) */}
+      {ads.length < maxAds ? (
+        <div className={styles.seatCardVacant}>
+          <div className={styles.vacantIconBox}>
+            <Plus className={styles.plusIconLarge} />
+          </div>
+          <h3 className={styles.vacantTitle}>
+            {t('newAd')} (#{nextSeatNumber})
+          </h3>
+          <p className={styles.vacantSubtitle}>
+            {isArabic
+              ? `مساحة متاحة لإعلان ترويجي جديد (${maxAds - ads.length} متبقية)`
+              : `${maxAds - ads.length} slots remaining`}
+          </p>
+          <button
+            type="button"
+            onClick={() => onOpenAddForSeat(nextSeatNumber)}
+            className={styles.vacantAddBtn}
+          >
+            <Plus className={styles.plusIcon} />
+            <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
+          </button>
         </div>
-        <h3 className={styles.vacantTitle}>
-          {t('newAd')} (#{ads.length + 1})
-        </h3>
-        <p className={styles.vacantSubtitle}>
-          {isArabic ? 'مساحة متاحة لإعلان ترويجي جديد' : t('availableSlot')}
-        </p>
-        <button
-          type="button"
-          onClick={() => onOpenAddForSeat(nextSeatNumber)}
-          className={styles.vacantAddBtn}
-        >
-          <Plus className={styles.plusIcon} />
-          <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
-        </button>
-      </div>
+      ) : null}
     </div>
   );
 }

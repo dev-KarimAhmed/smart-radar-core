@@ -68,8 +68,8 @@ export function CaptainAdsManagerModal({
               </h3>
               <p className="text-xs text-slate-400 font-sans mt-0.5 leading-relaxed">
                 {isArabic
-                  ? `سعة المحفظة الإعلانية لرتبة ${capability.nameAr} (${capability.adCapacityMin}–${capability.isFlexibleCapacity ? 'سعة مرنة' : capability.adCapacityMax} إعلانات نشطة)`
-                  : `Ad vault capacity for ${capability.nameEn} tier (${capability.adCapacityMin}–${capability.isFlexibleCapacity ? 'Flexible' : capability.adCapacityMax} ads)`}
+                  ? 'سعة المحفظة الإعلانية: 4 إعلانات نشطة'
+                  : 'Ad vault capacity: 4 active ads'}
               </p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export function CaptainAdsManagerModal({
           <div className="flex items-center gap-2 shrink-0">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00ffcc]/30 bg-[#00ffcc]/10 px-3 py-1 text-xs font-bold text-[#00ffcc]">
               <Sparkles className="h-3.5 w-3.5" />
-              <span>{ads.length} / {maxCapStr}</span>
+              <span>{ads.length} / 4</span>
             </span>
             <button
               type="button"

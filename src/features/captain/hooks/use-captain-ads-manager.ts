@@ -12,6 +12,7 @@ import {
   validateAdCaption,
   validateAdImageFile,
   convertImageFileToDataUrl,
+  normalizeCaptainAdImageUrl,
   getCaptainAdPackage,
   subscribeCaptainAdPackage,
   type CaptainAdItem,
@@ -49,21 +50,16 @@ export function useCaptainAdsManager({ user, t }: UseCaptainAdsManagerProps) {
     (user as any)?.ad_package_status === 'ACTIVE';
 
   const handleActivatePackage = () => {
-    const updated = subscribeCaptainAdPackage(captainId);
-    setAdPackage(updated);
+    setAdPackage(subscribeCaptainAdPackage(captainId));
     setIsPackageModalOpen(false);
   };
 
   const handleGoToPayment = () => {
     setIsPackageModalOpen(false);
-    if (typeof window !== 'undefined') {
-      const el = document.getElementById('captain-recharge-section');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else {
-        window.dispatchEvent(new CustomEvent('radar_select_wallet_payment'));
-      }
-    }
+    if (typeof window === 'undefined') return;
+    const el = document.getElementById('captain-recharge-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    else window.dispatchEvent(new CustomEvent('radar_select_wallet_payment'));
   };
 
   const refreshAds = useCallback(async () => {
@@ -76,9 +72,7 @@ export function useCaptainAdsManager({ user, t }: UseCaptainAdsManagerProps) {
     void refreshAds();
 
     const onUpdated = (e: any) => {
-      if (!e?.detail?.captainId || e.detail.captainId === captainId) {
-        void refreshAds();
-      }
+      if (!e?.detail?.captainId || e.detail.captainId === captainId) void refreshAds();
     };
 
     window.addEventListener(CAPTAIN_ADS_CONFIG.CUSTOM_EVENTS.ADS_UPDATED, onUpdated);
@@ -91,6 +85,7 @@ export function useCaptainAdsManager({ user, t }: UseCaptainAdsManagerProps) {
   }, [captainId, refreshAds]);
 
   const handleOpenAddForSeat = (seatNum: number) => {
+    if (ads.length >= CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT) return;
     setEditingAd(null);
     setSelectedSeatNumber(seatNum);
     setImageUrl('');
@@ -133,14 +128,14 @@ export function useCaptainAdsManager({ user, t }: UseCaptainAdsManagerProps) {
     const trimmedVal = val.slice(0, CAPTAIN_ADS_CONFIG.MAX_CAPTION_LENGTH);
     setCaption(trimmedVal);
     const validation = validateAdCaption(trimmedVal);
-    if (!validation.valid) {
-      setCaptionError(validation.error || '');
-    } else {
-      setCaptionError('');
-    }
+    setCaptionError(validation.valid ? '' : validation.error || '');
   };
 
   const handleSaveAd = async () => {
+    if (!editingAd && ads.length >= CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT) {
+      setImageError(t('errAdsLimitReached') || 'الحد الأقصى لرفع الإعلانات هو 4 إعلانات');
+      return;
+    }
     if (!imageUrl) {
       setImageError(t('errUploadImage'));
       return;
@@ -167,7 +162,6 @@ export function useCaptainAdsManager({ user, t }: UseCaptainAdsManagerProps) {
           caption: caption.trim() || undefined,
         });
       }
-
       setIsModalOpen(false);
       await refreshAds();
     } finally {
@@ -190,18 +184,23 @@ export function useCaptainAdsManager({ user, t }: UseCaptainAdsManagerProps) {
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget;
-    const src = target.src || '';
-    if (src.includes('/storage/v1/object/public/captain-documents/')) {
-      const path = src.split('/storage/v1/object/public/captain-documents/')[1]?.replace(/^\/+/, '');
-      if (path) {
-        target.src = `/api/captain/ads/image?bucket=captain-documents&path=${encodeURIComponent(path)}`;
-        return;
-      }
+    const normalized = normalizeCaptainAdImageUrl(target.src);
+    if (normalized && normalized !== target.src) {
+      target.src = normalized;
+      return;
     }
     target.style.opacity = '0';
   };
 
-  const nextSeatNumber = ads.length > 0 ? Math.max(...ads.map((a) => a.seatNumber)) + 1 : 1;
+  const usedSeats = new Set(ads.map((a) => a.seatNumber));
+  let nextSeatNumber = 1;
+  for (let i = 1; i <= CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT; i++) {
+    if (!usedSeats.has(i)) {
+      nextSeatNumber = i;
+      break;
+    }
+  }
+  const isLimitReached = ads.length >= CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT;
   const captionLength = caption.length;
   const charCountColorStyle =
     captionLength >= CAPTAIN_ADS_CONFIG.MAX_CAPTION_LENGTH
@@ -239,6 +238,7 @@ export function useCaptainAdsManager({ user, t }: UseCaptainAdsManagerProps) {
     handleToggleStatus,
     handleImageError,
     nextSeatNumber,
+    isLimitReached,
     captionLength,
     charCountColorStyle,
   };
