@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Clock,
   Info,
-  Wallet,
   Zap,
 } from 'lucide-react';
 import type { User } from '@/core/types';
@@ -43,12 +42,12 @@ export function DriverWalletBalanceCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-slate-900/95 via-[#071324] to-[#040812] shadow-2xl backdrop-blur-xl transition-all duration-300',
+        'relative overflow-hidden rounded-3xl border border-cyan-500/25 bg-gradient-to-br from-slate-900/95 via-[#071324] to-[#040812] shadow-2xl backdrop-blur-xl transition-all duration-300',
         isBalanceOpen ? 'p-5 sm:p-7 space-y-6' : 'p-4 sm:p-5'
       )}
     >
-      <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-cyan-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-cyan-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
 
       {/* Clickable Header Dropdown Toggle */}
       <div
@@ -69,23 +68,25 @@ export function DriverWalletBalanceCard({
         aria-label={t('balance')}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-400 transition-transform duration-300 group-hover:scale-105 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-            <Wallet className="h-5 w-5" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-500/10 text-[#14F5D5] transition-transform duration-300 group-hover:scale-105 shadow-[0_0_15px_rgba(20,245,213,0.15)]">
+            <Clock className="h-5 w-5" />
           </div>
           <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <h2 className="text-sm sm:text-base font-black text-white group-hover:text-emerald-300 transition-colors">
+            <h2 className="text-sm sm:text-base font-black text-white group-hover:text-cyan-300 transition-colors">
               {t('balance')}
             </h2>
 
-            {/* Quick Summary Badges */}
+            {/* Quick Summary Badges (Minutes Only) */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-500/15 px-2.5 py-0.5 text-xs font-mono font-bold text-amber-300">
-                {walletIsReady ? `${wallet.balanceJD.toFixed(2)} ${currencySymbol}` : '...'}
-              </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-500/15 px-2.5 py-0.5 text-xs font-mono font-bold text-[#14F5D5]">
                 <Clock className="h-3 w-3" />
                 <span>{walletIsReady ? t('durationFormat', toHoursMinutes(totalMinutes)) : '...'}</span>
               </span>
+              {bonusMinutes > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                  +{bonusMinutes} {language === 'ar' ? 'مكافأة' : 'bonus'}
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -103,8 +104,8 @@ export function DriverWalletBalanceCard({
           {/* Dropdown Chevron Toggle Icon */}
           <div
             className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition-all duration-300 group-hover:border-emerald-400/50 group-hover:bg-emerald-950/30 group-hover:text-emerald-300',
-              isBalanceOpen ? 'rotate-180 border-emerald-500/40 bg-emerald-950/50 text-emerald-300' : ''
+              'flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition-all duration-300 group-hover:border-cyan-400/50 group-hover:bg-cyan-950/30 group-hover:text-cyan-300',
+              isBalanceOpen ? 'rotate-180 border-cyan-500/40 bg-cyan-950/50 text-cyan-300' : ''
             )}
           >
             <ChevronDown className="h-4 w-4" />
@@ -129,42 +130,40 @@ export function DriverWalletBalanceCard({
             </div>
           )}
 
-          {/* Main Balance & Radar Time Grid */}
-          <div className="grid gap-6 sm:grid-cols-2 items-center">
-            <div className="space-y-1">
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-4xl sm:text-5xl font-black text-amber-400 tracking-tight">
-                  {walletIsReady ? wallet.balanceJD.toFixed(2) : wallet.walletLoaded ? '-' : '...'}
-                </span>
-                <span className="text-xl font-bold text-slate-300">{currencySymbol}</span>
+          {/* Main Radar Minutes Display */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-cyan-500/20 bg-gradient-to-r from-cyan-950/40 via-slate-900/40 to-slate-900/60 p-5 shadow-inner">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-500/10 text-cyan-300 shadow-[0_0_20px_rgba(20,245,213,0.2)]">
+                <Clock className="h-7 w-7 text-[#14F5D5]" />
               </div>
-              <p className="text-xs text-slate-400">
-                {language === 'ar' ? 'الرصيد النقدي الفعلي في محفظتك' : 'Current wallet cash balance'}
-              </p>
+              <div className="space-y-1">
+                <div className="font-mono text-3xl sm:text-4xl font-black text-[#14F5D5] tracking-tight">
+                  {walletIsReady ? t('durationFormat', toHoursMinutes(totalMinutes)) : '...'}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-slate-400 font-mono font-medium">
+                    ({totalMinutes} {language === 'ar' ? 'دقيقة رادار للتشغيل' : 'operating radar mins'})
+                  </span>
+                  {bonusMinutes > 0 ? (
+                    <span className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                      +{bonusMinutes} {language === 'ar' ? 'مكافأة' : 'bonus'}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
 
-            <div className="sm:border-r sm:border-white/10 sm:pr-6 space-y-1">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 p-2.5 text-cyan-300 shadow-[0_0_15px_rgba(20,245,213,0.15)]">
-                  <Clock className="h-6 w-6 text-[#14F5D5]" />
-                </div>
-                <div>
-                  <div className="font-mono text-2xl sm:text-3xl font-black text-[#14F5D5]">
-                    {walletIsReady ? t('durationFormat', toHoursMinutes(totalMinutes)) : '...'}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-400 font-mono">
-                      ({totalMinutes} {language === 'ar' ? 'دقيقة رادار' : 'radar mins'})
-                    </span>
-                    {bonusMinutes > 0 ? (
-                      <span className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
-                        +{bonusMinutes} {language === 'ar' ? 'مكافأة' : 'bonus'}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
+            {radarHourPrice > 0 && (
+              <div className="hidden sm:flex flex-col items-end justify-center border-r border-white/10 pr-6 space-y-1">
+                <span className="text-xs text-slate-400">{t('hourlyRateCard')}</span>
+                <span className="font-mono text-base font-bold text-cyan-300">
+                  {radarHourPrice.toFixed(2)} {currencySymbol}/ساعة
+                </span>
+                <span className="text-[11px] font-mono text-cyan-400/70">
+                  ({(radarHourPrice / 60).toFixed(3)} {currencySymbol}/{language === 'ar' ? 'دقيقة' : 'min'})
+                </span>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-950/30 px-4 py-2.5 text-xs text-cyan-200/90 leading-relaxed">
