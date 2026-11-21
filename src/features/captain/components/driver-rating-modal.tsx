@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
 } from './rating/driver-rating-modal.types';
 import { DriverRatingCriteria } from './rating/driver-rating-criteria';
 import { DriverRatingBlock } from './rating/driver-rating-block';
+import { setCaptainFavoriteRider, isCaptainFavoriteRider } from '@/features/referral/services/captain-referral';
 
 export type { CriterionVerdict, DriverRatingModalProps, RiderRatingKey };
 export { driverRatingModalCopy };
@@ -35,6 +37,7 @@ export function DriverRatingModal({
   captainId,
   supabase,
   onSuccess,
+  riderName,
 }: DriverRatingModalProps) {
   const { toast } = useToast();
   const isArabic = language === 'ar';
@@ -43,19 +46,66 @@ export function DriverRatingModal({
   const [isBlocking, setIsBlocking] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
   const [comment, setComment] = useState('');
+  const [saveFavorite, setSaveFavorite] = useState(false);
+  const [isAlreadyFavorite, setIsAlreadyFavorite] = useState(false);
   const [rider, setRider] = useState(initialRiderRatings);
 
   React.useEffect(() => {
     if (!isOpen) return;
+    let isMounted = true;
     setConfirmBlock(false);
     setComment('');
     setRider(initialRiderRatings);
-  }, [isOpen, tripId]);
+    setSaveFavorite(false);
+    setIsAlreadyFavorite(false);
+
+    async function checkFavorite() {
+      let resolvedCaptainId = captainId;
+      if (!resolvedCaptainId) {
+        const { data: authData } = await supabase.auth.getUser();
+        resolvedCaptainId = authData?.user?.id || '';
+      }
+
+      let resolvedRiderId = riderId;
+      if (!resolvedRiderId && tripId) {
+        const { data: tripData } = await supabase
+          .from('ride_requests')
+          .select('rider_id')
+          .eq('id', tripId)
+          .maybeSingle();
+        resolvedRiderId = tripData?.rider_id || '';
+      }
+
+      if (!resolvedCaptainId || !resolvedRiderId) return;
+
+      try {
+        const isFav = await isCaptainFavoriteRider(resolvedRiderId, resolvedCaptainId);
+
+        if (!isMounted) return;
+        if (isFav) {
+          setIsAlreadyFavorite(true);
+          setSaveFavorite(true);
+        }
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Driver Rating Modal] Check favorite error:', err);
+        }
+      }
+    }
+
+    void checkFavorite();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, tripId, riderId, captainId, supabase]);
 
   // Re-tapping the chosen verdict clears it back to "no opinion".
   const handleSelect = (key: RiderRatingKey, verdict: Exclude<CriterionVerdict, null>) => {
     setRider((previous) => ({ ...previous, [key]: previous[key] === verdict ? null : verdict }));
   };
+
+  const isFavActive = saveFavorite || isAlreadyFavorite;
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -75,7 +125,7 @@ export function DriverRatingModal({
       }
 
       let resolvedRiderId = riderId;
-      if (!resolvedRiderId) {
+      if (!resolvedRiderId && tripId) {
         const { data: tripData } = await supabase
           .from('ride_requests')
           .select('rider_id')
@@ -90,13 +140,33 @@ export function DriverRatingModal({
         reviewee_id: resolvedRiderId,
         detailed_stars: detailedStarsPayload,
         comment: comment.trim() || null,
+        gave_heart: saveFavorite,
       });
 
       if (error) throw error;
 
+      if (saveFavorite && !isAlreadyFavorite && resolvedCaptainId && resolvedRiderId) {
+        try {
+          await setCaptainFavoriteRider(
+            resolvedRiderId,
+            true,
+            { name: riderName },
+            resolvedCaptainId,
+          );
+        } catch (favErr) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[Driver Rating Modal] Favorite insert exception:', favErr);
+          }
+        }
+      }
+
       toast({
-        title: copy.submitSuccessTitle,
-        description: copy.submitSuccessDescription,
+        title: saveFavorite && !isAlreadyFavorite
+          ? copy.submitAndFavoriteSuccessTitle
+          : copy.submitSuccessTitle,
+        description: saveFavorite && !isAlreadyFavorite
+          ? copy.submitAndFavoriteSuccessDescription
+          : copy.submitSuccessDescription,
       });
 
       onSuccess();
@@ -167,6 +237,46 @@ export function DriverRatingModal({
 
         <div className={styles.body}>
           <DriverRatingCriteria rider={rider} onSelect={handleSelect} copy={copy} />
+
+          {/* Favorite Rider (إضافة الراكب للمفضلة) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isAlreadyFavorite) return;
+              setSaveFavorite((prev) => !prev);
+            }}
+            disabled={isAlreadyFavorite}
+            className={cn(
+              "flex w-full items-center justify-between gap-3 rounded-2xl border p-3.5 text-start transition-all active:scale-[0.99]",
+              isFavActive
+                ? "border-emerald-500/60 bg-emerald-500/15 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                : "border-white/10 bg-white/5 hover:border-emerald-500/30 hover:bg-emerald-500/5",
+              isAlreadyFavorite && "cursor-default border-emerald-500/40 bg-emerald-500/10"
+            )}
+          >
+            <div className="flex flex-col min-w-0">
+              <span className={cn("text-xs font-black", isFavActive ? "text-emerald-300" : "text-white")}>
+                {isAlreadyFavorite
+                  ? copy.favoriteAlreadySaved
+                  : saveFavorite
+                    ? copy.favoriteWillSave
+                    : copy.favoriteSave}
+              </span>
+              <span className="text-[10px] text-slate-400 mt-0.5 leading-tight">
+                {isAlreadyFavorite
+                  ? copy.favoriteAlreadySavedDesc
+                  : riderName
+                    ? copy.favoriteDescription.replace('{name}', riderName)
+                    : copy.favoriteFallbackDescription}
+              </span>
+            </div>
+            <div className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all",
+              isFavActive ? "border-emerald-500 bg-emerald-500 text-[#0A0F1D]" : "border-white/10 bg-black/40 text-slate-400"
+            )}>
+              <Heart className={cn("w-4 h-4", isFavActive ? "fill-current text-white" : "")} />
+            </div>
+          </button>
 
           <div className={styles.commentWrap}>
             <Label className={styles.commentLabel}>{copy.commentLabel}</Label>

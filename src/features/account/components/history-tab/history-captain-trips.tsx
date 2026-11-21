@@ -7,6 +7,8 @@ import { HistorySkeleton } from './history-skeleton';
 import { useBlockedRiders } from '@/features/captain/hooks/use-blocked-riders';
 import { DriverRatingModal } from '@/features/captain/components/driver-rating-modal';
 import { supabase } from '@/lib/supabase-client';
+import { useToast } from '@/hooks/use-toast';
+import { setCaptainFavoriteRider, fetchFavoriteRiderIds } from '@/features/referral/services/captain-referral';
 import { styles } from './captain-trips/history-captain-trips-styles';
 import { HistoryCaptainTripCard } from './captain-trips/history-captain-trip-card';
 
@@ -44,6 +46,65 @@ export function HistoryCaptainTrips({
   }, [defaultExpanded]);
   const [ratingTargetTrip, setRatingTargetTrip] = useState<any | null>(null);
   const activeCurrency = currencyLabel || (isArabic ? 'د.أ' : 'JOD');
+
+  const { toast } = useToast();
+  const [favoriteRiderIds, setFavoriteRiderIds] = useState<Set<string>>(new Set());
+
+  const loadFavoriteRiderIds = React.useCallback(async () => {
+    try {
+      const ids = await fetchFavoriteRiderIds(currentUserId);
+      setFavoriteRiderIds(ids);
+    } catch {}
+  }, [currentUserId]);
+
+  useEffect(() => {
+    void loadFavoriteRiderIds();
+    const handleUpdated = () => void loadFavoriteRiderIds();
+    window.addEventListener('radar_favorites_updated', handleUpdated);
+    window.addEventListener('captain-favorites-updated', handleUpdated);
+    return () => {
+      window.removeEventListener('radar_favorites_updated', handleUpdated);
+      window.removeEventListener('captain-favorites-updated', handleUpdated);
+    };
+  }, [loadFavoriteRiderIds]);
+
+  const handleToggleFavorite = async (trip: any) => {
+    let resolvedRiderId = trip.riderId;
+    if (!resolvedRiderId && trip.tripId) {
+      try {
+        const { data } = await supabase
+          .from('ride_requests')
+          .select('rider_id')
+          .eq('id', trip.tripId)
+          .maybeSingle();
+        resolvedRiderId = data?.rider_id;
+      } catch {}
+    }
+    if (!resolvedRiderId) return;
+
+    const isFav = favoriteRiderIds.has(resolvedRiderId);
+    const newFav = !isFav;
+
+    await setCaptainFavoriteRider(
+      resolvedRiderId,
+      newFav,
+      { name: trip.riderName },
+      currentUserId,
+    );
+
+    setFavoriteRiderIds((prev) => {
+      const next = new Set(prev);
+      if (newFav) next.add(resolvedRiderId);
+      else next.delete(resolvedRiderId);
+      return next;
+    });
+
+    toast({
+      title: newFav
+        ? (isArabic ? 'تمت إضافة المستخدم للمفضلة' : 'Added to favorites')
+        : (isArabic ? 'تمت الإزالة من المفضلة' : 'Removed from favorites'),
+    });
+  };
 
   const { blockedRiders = [], handleBlockRider, handleUnblockRider } = useBlockedRiders(isArabic ? 'ar' : 'en');
   const blockedRiderIdSet = useMemo(() => new Set((blockedRiders || []).map((r) => r.id)), [blockedRiders]);
@@ -174,6 +235,8 @@ export function HistoryCaptainTrips({
                     activeCurrency={activeCurrency}
                     hasReview={Boolean(tripReviews[trip.tripId])}
                     isBlocked={trip.riderId ? blockedRiderIdSet.has(trip.riderId) : false}
+                    isHearted={trip.riderId ? favoriteRiderIds.has(trip.riderId) : false}
+                    onToggleFavorite={handleToggleFavorite}
                     confirmingBlockId={confirmingBlockId}
                     onSetConfirmingBlockId={setConfirmingBlockId}
                     onOpenRating={handleOpenRating}

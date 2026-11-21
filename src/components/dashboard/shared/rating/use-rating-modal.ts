@@ -22,6 +22,7 @@ export function useRatingModal({
   onSuccess,
   captainName,
   captainPhone,
+  captainRank,
   vehicleInfo,
 }: RatingModalProps) {
   const { toast } = useToast();
@@ -43,31 +44,51 @@ export function useRatingModal({
     setVehicle(initialVehicleRatings);
     setCaptain(initialCaptainRatings);
 
-    if (captainId) {
+    async function checkCaptainFavorite() {
+      let resolvedCaptainId = captainId;
+      if (!resolvedCaptainId && tripId) {
+        const { data: tripData } = await supabase
+          .from('ride_requests')
+          .select('captain_id')
+          .eq('id', tripId)
+          .maybeSingle();
+        resolvedCaptainId = tripData?.captain_id || '';
+      }
+
+      if (!resolvedCaptainId) {
+        if (isMounted) {
+          setIsAlreadyFavorite(false);
+          setSaveFavorite(false);
+        }
+        return;
+      }
+
       let synchronousIsFav = false;
       if (typeof window !== 'undefined') {
         try {
-          synchronousIsFav = Boolean(window.localStorage.getItem(`radar_preferred_captain_${captainId}`));
+          synchronousIsFav = Boolean(window.localStorage.getItem(`radar_preferred_captain_${resolvedCaptainId}`));
         } catch {}
       }
+      if (!isMounted) return;
       setIsAlreadyFavorite(synchronousIsFav);
       setSaveFavorite(synchronousIsFav);
 
       void fetchFavoriteCaptainIds().then((favIds) => {
         if (!isMounted) return;
-        const isFav = favIds.has(String(captainId));
+        const isFav = favIds.has(String(resolvedCaptainId));
         setIsAlreadyFavorite(isFav);
-        setSaveFavorite(isFav);
+        if (isFav) {
+          setSaveFavorite(true);
+        }
       });
-    } else {
-      setIsAlreadyFavorite(false);
-      setSaveFavorite(false);
     }
+
+    void checkCaptainFavorite();
 
     return () => {
       isMounted = false;
     };
-  }, [isOpen, tripId, captainId]);
+  }, [isOpen, tripId, captainId, supabase]);
 
   const handleSetAdCompliance = (verdict: AdComplianceVerdict) => {
     setCaptain((prev) => ({ ...prev, adCompliance: verdict }));
@@ -90,10 +111,26 @@ export function useRatingModal({
         isFavorite: saveFavorite,
       });
 
+      let resolvedReviewerId = reviewerId;
+      if (!resolvedReviewerId) {
+        const { data: authData } = await supabase.auth.getUser();
+        resolvedReviewerId = authData?.user?.id || '';
+      }
+
+      let resolvedCaptainId = captainId;
+      if (!resolvedCaptainId && tripId) {
+        const { data: tripData } = await supabase
+          .from('ride_requests')
+          .select('captain_id')
+          .eq('id', tripId)
+          .maybeSingle();
+        resolvedCaptainId = tripData?.captain_id || '';
+      }
+
       const { error } = await supabase.from('reviews').insert({
         trip_id: tripId,
-        reviewer_id: reviewerId,
-        reviewee_id: captainId,
+        reviewer_id: resolvedReviewerId,
+        reviewee_id: resolvedCaptainId,
         detailed_stars: detailedStarsPayload,
         comment: comment.trim() || null,
         gave_heart: saveFavorite,
@@ -101,21 +138,26 @@ export function useRatingModal({
 
       if (error) throw error;
 
-      if (saveFavorite && captainId) {
+      if (saveFavorite && resolvedCaptainId) {
         try {
-          await setFavoriteCaptain(String(captainId), true);
+          await setFavoriteCaptain(String(resolvedCaptainId), true, {
+            name: captainName,
+            phone: captainPhone,
+            rank: captainRank,
+            vehicle: vehicleInfo,
+          });
         } catch (favoriteError) {
           if (process.env.NODE_ENV !== 'production') console.warn('[Rating] favourite write failed:', favoriteError);
         }
       }
 
-      if (saveFavorite) {
+      if (saveFavorite && resolvedCaptainId) {
         try {
           window.localStorage.setItem(
-            `radar_preferred_captain_${captainId}`,
+            `radar_preferred_captain_${resolvedCaptainId}`,
             JSON.stringify({
-              captainId,
-              driverId: captainId,
+              captainId: resolvedCaptainId,
+              driverId: resolvedCaptainId,
               captainName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
               fullName: captainName?.trim() || tAuto('ratingModal_defaultCaptainName'),
               captainPhone: captainPhone || '',

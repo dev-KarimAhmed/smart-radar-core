@@ -1,17 +1,20 @@
 import React from 'react';
-import { Ban, Clock, ShieldCheck, Star, User } from 'lucide-react';
+import { Ban, Clock, Heart, ShieldCheck, Star, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { formatHistoryMoney } from '../history-shared';
 import { formatReadableDateTime } from '@/shared/utils/date-format';
 import { styles } from './history-captain-trips-styles';
 
-interface HistoryCaptainTripCardProps {
+export interface HistoryCaptainTripCardProps {
   trip: any;
   now: number;
   isArabic: boolean;
   activeCurrency: string;
   hasReview: boolean;
   isBlocked: boolean;
+  isHearted?: boolean;
+  onToggleFavorite?: (trip: any) => Promise<void>;
   confirmingBlockId: string | null;
   onSetConfirmingBlockId: (id: string | null) => void;
   onOpenRating: (trip: any) => Promise<void>;
@@ -27,6 +30,8 @@ export function HistoryCaptainTripCard({
   activeCurrency,
   hasReview,
   isBlocked,
+  isHearted = false,
+  onToggleFavorite,
   confirmingBlockId,
   onSetConfirmingBlockId,
   onOpenRating,
@@ -42,9 +47,33 @@ export function HistoryCaptainTripCard({
       {/* Top Row: Rider Info & Earned Price */}
       <div className={styles.tripTopRow}>
         <div className={styles.riderBox}>
-          <div className={styles.riderAvatar}>
-            <User className={styles.riderAvatarIcon} />
-          </div>
+          {onToggleFavorite ? (
+            <button
+              type="button"
+              onClick={() => void onToggleFavorite(trip)}
+              title={
+                isHearted
+                  ? isArabic
+                    ? 'إزالة من المفضلة'
+                    : 'Remove from favorites'
+                  : isArabic
+                    ? 'إضافة إلى المفضلة'
+                    : 'Add to favorites'
+              }
+              className={cn(
+                'h-10 w-10 shrink-0 rounded-xl border flex items-center justify-center transition-all cursor-pointer',
+                isHearted
+                  ? 'border-[#14B8A6]/40 bg-[#14B8A6]/15 text-[#14F5D5] shadow-[0_0_12px_rgba(20,245,213,0.25)]'
+                  : 'border-white/10 bg-white/5 text-slate-400 hover:text-[#14F5D5] hover:border-[#14B8A6]/30 hover:bg-[#14B8A6]/10'
+              )}
+            >
+              <Heart className={cn('h-4.5 w-4.5 transition-all', isHearted ? 'fill-[#14F5D5] text-[#14F5D5]' : '')} />
+            </button>
+          ) : (
+            <div className={styles.riderAvatar}>
+              <User className={styles.riderAvatarIcon} />
+            </div>
+          )}
           <div className={styles.riderNameContainer}>
             <span className={styles.riderLabel}>{isArabic ? 'المستخدم' : 'Rider'}</span>
             <h4 className={styles.riderName} dir="auto">{trip.riderName}</h4>
@@ -115,6 +144,22 @@ export function HistoryCaptainTripCard({
                 <Star className="h-3 w-3 fill-emerald-400 text-emerald-400" />
                 <span>{t('rated') || (isArabic ? 'تم التقييم' : 'Rated')}</span>
               </span>
+            )}
+            {onToggleFavorite && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void onToggleFavorite(trip)}
+                className={cn(
+                  'h-8 px-2.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                  isHearted
+                    ? 'border-[#14B8A6]/40 bg-[#14B8A6]/20 text-[#14F5D5] shadow-sm shadow-[#14B8A6]/10'
+                    : 'border-white/10 bg-white/5 text-slate-400 hover:text-[#14F5D5] hover:border-[#14B8A6]/30'
+                )}
+              >
+                <Heart className={cn('h-3.5 w-3.5', isHearted ? 'fill-[#14F5D5] text-[#14F5D5]' : '')} />
+                <span>{isHearted ? (isArabic ? 'مفضل لديك' : 'Favorited') : (isArabic ? 'إضافة للمفضلة' : 'Favorite')}</span>
+              </Button>
             )}
             <span className="text-[11px] font-medium text-slate-400">
               {isBlocked

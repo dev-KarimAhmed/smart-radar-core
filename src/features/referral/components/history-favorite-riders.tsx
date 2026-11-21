@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Users, Heart, Sparkles, UserCheck, Phone, Trash2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getCaptainFavoriteRiders, type ReferredRiderInfo } from '../services/captain-referral';
+import { getCaptainFavoriteRiders, setCaptainFavoriteRider, type ReferredRiderInfo } from '../services/captain-referral';
 import { formatTelUri } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-client';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,7 @@ export function HistoryFavoriteRiders({ user, isArabic = true }: HistoryFavorite
     let mounted = true;
     async function loadRiders() {
       try {
-        const data = await getCaptainFavoriteRiders();
+        const data = await getCaptainFavoriteRiders(user?.uid);
         if (mounted) {
           setRiders(data);
           setLoading(false);
@@ -37,32 +37,24 @@ export function HistoryFavoriteRiders({ user, isArabic = true }: HistoryFavorite
         if (mounted) setLoading(false);
       }
     }
-    if (user?.uid) {
-      void loadRiders();
-    }
+    void loadRiders();
 
     const handleUpdated = () => {
-      if (user?.uid) {
-        void loadRiders();
-      }
+      void loadRiders();
     };
     window.addEventListener('radar_favorites_updated', handleUpdated);
+    window.addEventListener('captain-favorites-updated', handleUpdated);
 
     return () => {
       mounted = false;
       window.removeEventListener('radar_favorites_updated', handleUpdated);
+      window.removeEventListener('captain-favorites-updated', handleUpdated);
     };
   }, [user?.uid]);
 
   const handleRemove = async (riderId: string) => {
     try {
-      if (user?.uid) {
-        await supabase
-          .from('captain_favorite_riders')
-          .delete()
-          .eq('captain_id', user.uid)
-          .eq('rider_id', riderId);
-      }
+      await setCaptainFavoriteRider(riderId, false, undefined, user?.uid);
       setRiders((prev) => prev.filter((r) => r.rider_id !== riderId));
       toast({
         title: isArabic ? 'تمت الإزالة من المفضلة' : 'Removed from favorites',
