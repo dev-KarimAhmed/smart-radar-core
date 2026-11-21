@@ -1,11 +1,26 @@
 import type { CaptainAdPackage } from './captain-ads-types';
 import { AD_PACKAGE_A_DETAILS } from './captain-ads-types';
 
+export type { CaptainAdPackage };
+
 export function getCaptainAdPackageKey(captainId: string): string {
   return `radar_captain_ad_package_${captainId}`;
 }
 
-export function getCaptainAdPackage(captainId: string): CaptainAdPackage {
+export function getCaptainAdPackage(captainId: string, user?: any): CaptainAdPackage {
+  if (user?.ad_package_active === true) {
+    return {
+      ...AD_PACKAGE_A_DETAILS,
+      status: 'ACTIVE',
+      expiresAt: user?.ad_package_expires_at,
+    };
+  }
+  if (user?.ad_package_status === 'EXPIRED') {
+    return {
+      ...AD_PACKAGE_A_DETAILS,
+      status: 'EXPIRED',
+    };
+  }
   if (typeof window === 'undefined') return AD_PACKAGE_A_DETAILS;
   try {
     const raw = localStorage.getItem(getCaptainAdPackageKey(captainId));
@@ -37,4 +52,57 @@ export function subscribeCaptainAdPackage(captainId: string): CaptainAdPackage {
     window.dispatchEvent(new CustomEvent('radar_captain_ad_package_updated', { detail: { captainId, package: pkg } }));
   }
   return pkg;
+}
+
+export type CaptainOperatingLockReason = 'NEEDS_FREE_PACKAGE' | 'EXPIRED_NEEDS_HOURS' | null;
+
+export interface CaptainOperatingEligibility {
+  isEligible: boolean;
+  lockReason: CaptainOperatingLockReason;
+  lockMessage: string;
+}
+
+export function getCaptainOperatingEligibility({
+  adPackage,
+  totalUsableMinutes = 0,
+  language = 'ar',
+}: {
+  adPackage: CaptainAdPackage;
+  totalUsableMinutes?: number;
+  language?: 'ar' | 'en';
+}): CaptainOperatingEligibility {
+  if (adPackage.status === 'UNSUBSCRIBED') {
+    return {
+      isEligible: false,
+      lockReason: 'NEEDS_FREE_PACKAGE',
+      lockMessage:
+        language === 'ar'
+          ? 'يرجى تفعيل الباقة الافتتاحية المجانية (أول شهر مجاناً) لبدء استقبال الرحلات ونشر إعلاناتك.'
+          : 'Please activate the free Launch Package (first month free) to start receiving rides and publishing ads.',
+    };
+  }
+
+  if (adPackage.status === 'EXPIRED') {
+    if (totalUsableMinutes > 0) {
+      return {
+        isEligible: true,
+        lockReason: null,
+        lockMessage: '',
+      };
+    }
+    return {
+      isEligible: false,
+      lockReason: 'EXPIRED_NEEDS_HOURS',
+      lockMessage:
+        language === 'ar'
+          ? 'انتهت فترة الـ 30 يوماً للباقة الافتتاحية. يرجى شحن ساعات التشغيل لتفعيل الرادار ونشر الإعلانات.'
+          : 'Your 30-day Launch Package has expired. Please recharge operating hours to continue.',
+    };
+  }
+
+  return {
+    isEligible: true,
+    lockReason: null,
+    lockMessage: '',
+  };
 }

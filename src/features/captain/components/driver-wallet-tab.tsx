@@ -134,7 +134,7 @@ export function DriverWalletTab({
       <DriverWalletDelegateCard effectiveDelegate={effectiveDelegate} t={t} />
 
       {/* 5. Captain Promotional Ad Seats Manager (مكان رفع ونشر الإعلانات) */}
-      <CaptainAdsSeatsManager user={user} language={language} />
+      <CaptainAdsSeatsManager user={user} language={language} totalUsableMinutes={wallet.totalUsableMinutes} />
 
       {/* 6. Captain Ad Package Modal (الباقة الافتتاحية) */}
       <CaptainAdPackageModal

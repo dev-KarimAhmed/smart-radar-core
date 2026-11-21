@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useId } from 'react';
-import { Sparkles, Tv, Plus } from 'lucide-react';
+import { Sparkles, Tv, Plus, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { User } from '@/core/types';
 import { CAPTAIN_ADS_CONFIG } from '../config/captain-ads-config';
@@ -10,7 +10,7 @@ import { styles } from './ads-seats/captain-ads-styles';
 import { CaptainAdsSeatsGrid } from './ads-seats/captain-ads-seats-grid';
 import { CaptainAdEditModal } from './ads-seats/captain-ad-edit-modal';
 import { CaptainAdDeleteModal } from './ads-seats/captain-ad-delete-modal';
-import { TIER_CAPABILITIES, normalizeTierRank } from '@/core/logic/driver-tier';
+import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
 
 export * from './ads-seats/captain-ads-styles';
 export * from '../hooks/use-captain-ads-manager';
@@ -21,21 +21,20 @@ export * from './ads-seats/captain-ad-delete-modal';
 export interface CaptainAdsSeatsManagerProps {
   user: User | null;
   language?: 'ar' | 'en';
+  totalUsableMinutes?: number;
 }
 
-/**
- * 🛡️ مفتاح باقات الإعلانات (مخفية مؤقتاً لعدم اكتمال جاهزيتها)
- */
-export const SHOW_CAPTAIN_AD_PACKAGES = false;
+export const SHOW_CAPTAIN_AD_PACKAGES = true;
 
-export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeatsManagerProps) {
+export function CaptainAdsSeatsManager({ user, language = 'ar', totalUsableMinutes = 0 }: CaptainAdsSeatsManagerProps) {
   const t = useTranslations('captainAds');
   const isArabic = language === 'ar';
   const fileInputId = useId();
 
   const maxCap = CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT;
-  const state = useCaptainAdsManager({ user, t });
+  const state = useCaptainAdsManager({ user, t, totalUsableMinutes });
   const isLimitReached = state.ads.length >= maxCap;
+  const isLocked = !state.operatingEligibility.isEligible;
 
   return (
     <div className={styles.container} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -73,8 +72,12 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
             style={isLimitReached ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
             title={isLimitReached ? (isArabic ? 'وصلت للحد الأقصى (4 إعلانات)' : 'Maximum 4 ads reached') : undefined}
           >
-            <Plus className={styles.plusIcon} />
-            <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
+            {isLocked ? <Sparkles className={styles.plusIcon} /> : <Plus className={styles.plusIcon} />}
+            <span>
+              {isLocked
+                ? (isArabic ? 'تفعيل الباقة للرفع' : 'Activate to Upload')
+                : (isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd'))}
+            </span>
           </button>
         </div>
       </div>
@@ -85,6 +88,8 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
         nextSeatNumber={state.nextSeatNumber}
         isArabic={isArabic}
         maxAds={maxCap}
+        isLocked={isLocked}
+        lockReason={state.operatingEligibility.lockReason}
         t={t}
         onOpenAddForSeat={state.handleOpenAddForSeat}
         onOpenEdit={state.handleOpenEdit}
@@ -122,6 +127,16 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
         t={t}
         onConfirm={state.handleConfirmDelete}
         onCancel={() => state.setAdToDelete(null)}
+      />
+
+      {/* نافذة الباقة الافتتاحية */}
+      <CaptainAdPackageModal
+        mounted={state.mounted}
+        isOpen={state.isPackageModalOpen}
+        isArabic={isArabic}
+        onClose={() => state.setIsPackageModalOpen(false)}
+        onGoToPayment={state.handleGoToPayment}
+        onActivatePackage={state.handleActivatePackage}
       />
     </div>
   );

@@ -7,6 +7,8 @@ import {
   Play,
   Trash2,
   Plus,
+  Lock,
+  Sparkles,
 } from 'lucide-react';
 import type { CaptainAdItem } from '../../services/captain-ads-service';
 import { styles } from './captain-ads-styles';
@@ -17,6 +19,8 @@ export interface CaptainAdsSeatsGridProps {
   nextSeatNumber: number;
   isArabic: boolean;
   maxAds?: number;
+  isLocked?: boolean;
+  lockReason?: string | null;
   t: (key: string, values?: any) => string;
   onOpenAddForSeat: (seatNum: number) => void;
   onOpenEdit: (ad: CaptainAdItem) => void;
@@ -30,6 +34,8 @@ export function CaptainAdsSeatsGrid({
   nextSeatNumber,
   isArabic,
   maxAds = CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT,
+  isLocked = false,
+  lockReason = null,
   t,
   onOpenAddForSeat,
   onOpenEdit,
@@ -116,13 +122,17 @@ export function CaptainAdsSeatsGrid({
       {ads.length < maxAds ? (
         <div className={styles.seatCardVacant}>
           <div className={styles.vacantIconBox}>
-            <Plus className={styles.plusIconLarge} />
+            {isLocked ? <Lock className="h-7 w-7 text-amber-400" /> : <Plus className={styles.plusIconLarge} />}
           </div>
           <h3 className={styles.vacantTitle}>
             {t('newAd')} (#{nextSeatNumber})
           </h3>
           <p className={styles.vacantSubtitle}>
-            {isArabic
+            {isLocked
+              ? lockReason === 'NEEDS_FREE_PACKAGE'
+                ? (isArabic ? 'مطلوب تفعيل الباقة الافتتاحية لنشر الإعلانات' : 'Launch Package required to publish ads')
+                : (isArabic ? 'انتهت الـ 30 يوماً. مطلوب شحن ساعات التشغيل' : 'Hours recharge required to publish ads')
+              : isArabic
               ? `مساحة متاحة لإعلان ترويجي جديد (${maxAds - ads.length} متبقية)`
               : `${maxAds - ads.length} slots remaining`}
           </p>
@@ -131,8 +141,16 @@ export function CaptainAdsSeatsGrid({
             onClick={() => onOpenAddForSeat(nextSeatNumber)}
             className={styles.vacantAddBtn}
           >
-            <Plus className={styles.plusIcon} />
-            <span>{isArabic ? 'ارفع وعدل اعلانك' : t('addNewAd')}</span>
+            {isLocked ? <Sparkles className={styles.plusIcon} /> : <Plus className={styles.plusIcon} />}
+            <span>
+              {isLocked
+                ? lockReason === 'NEEDS_FREE_PACKAGE'
+                  ? (isArabic ? 'فعل الباقة المجانية للرفع ✨' : 'Activate Free Package')
+                  : (isArabic ? 'اشحن الرصيد للرفع 🔒' : 'Recharge to Upload')
+                : isArabic
+                ? 'ارفع وعدل اعلانك'
+                : t('addNewAd')}
+            </span>
           </button>
         </div>
       ) : null}
