@@ -4,10 +4,12 @@ import React from 'react';
 import Image from 'next/image';
 import { Bell, History, Languages, Loader2, LogOut, User, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { User as UserType } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { getLandingPageUrl } from '@/lib/constants';
 import type { CaptainScreen } from '../../state/captain-state-machine';
 import { MarketStatusIndicator } from '../market-status-indicator';
+import { CaptainReferralCopyButton } from './captain-referral-copy-button';
 
 const styles = {
   headerCard: 'flex flex-col gap-2 rounded-2xl border border-emerald-500/20 bg-[#05080f] p-2 sm:p-2.5 shadow-xl',
@@ -20,7 +22,6 @@ const styles = {
   actionsWrap: 'flex items-center gap-1.5 sm:gap-2 ms-auto',
   actionIcon: 'h-4 w-4 shrink-0',
   logoutIcon: 'h-4 w-4 shrink-0 rotate-180',
-  actionLabel: 'text-xs font-black sm:text-sm',
   notificationsBtn: 'relative inline-flex items-center justify-center rounded-xl border px-2.5 py-1.5 transition cursor-pointer sm:rounded-2xl sm:px-3 sm:py-2',
   notificationsBtnActive: 'border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5]',
   notificationsBtnIdle: 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white',
@@ -55,6 +56,7 @@ export interface CaptainHeaderProps {
   historyUnreadCount?: number;
   hasHistoryUnread?: boolean;
   marketIndicator: any;
+  user?: UserType | null;
   onToggleStatus: () => void;
   onOpenNotifications: () => void;
   onToggleLanguage: () => void;
@@ -76,6 +78,7 @@ export function CaptainHeader({
   historyUnreadCount,
   hasHistoryUnread,
   marketIndicator,
+  user,
   onToggleStatus,
   onOpenNotifications,
   onToggleLanguage,
@@ -119,6 +122,7 @@ export function CaptainHeader({
         </div>
 
         <div className={styles.actionsWrap}>
+          <CaptainReferralCopyButton user={user} isArabic={isRtl} />
           <button
             type="button"
             onClick={onToggleLanguage}

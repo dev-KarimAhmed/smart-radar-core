@@ -132,6 +132,7 @@ export function DriverViewTab() {
           historyUnreadCount={tripUnreadCount}
           hasHistoryUnread={hasTripUnread}
           marketIndicator={marketIndicator}
+          user={user}
           onToggleStatus={() => {
             if (isActive) {
               void driverOps.toggleDriverStatus('idle');
