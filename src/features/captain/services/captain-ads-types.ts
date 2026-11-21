@@ -34,7 +34,7 @@ export const AD_PACKAGE_A_DETAILS: CaptainAdPackage = {
   packageNameEn: 'Services Package / A',
   status: 'UNSUBSCRIBED',
   durationDays: 30,
-  maxAds: 3,
+  maxAds: 4,
   coverageMeters: 500,
   priceJOD: 10,
 };
