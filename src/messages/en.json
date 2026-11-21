@@ -1114,7 +1114,7 @@
     "sendReceipt": "Confirm & Submit Receipt",
     "selectPaymentChannel": "1. Choose Payment Channel",
     "amountAndReceipt": "2. Select Amount & Attach Receipt",
-    "rateLinkingNote": "Operating radar minutes are automatically deducted during trip execution.",
+    "rateLinkingNote": "Operating radar minutes are automatically deducted during the trip only.",
     "delegateTitle": "Pay Cash to Local Delegate",
     "delegateHint": "Prefer paying in cash? Contact your local accredited delegate to top up directly.",
     "delegateCall": "Phone Call",
