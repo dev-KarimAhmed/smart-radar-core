@@ -136,11 +136,13 @@ export function DriverWalletTab({
       {/* 5. Captain Promotional Ad Seats Manager (مكان رفع ونشر الإعلانات) */}
       <CaptainAdsSeatsManager user={user} language={language} />
 
-      {/* 6. Captain Ad Package Modal (باقة الخدمات / A) */}
+      {/* 6. Captain Ad Package Modal (الباقة الافتتاحية) */}
       <CaptainAdPackageModal
         mounted={mounted}
         isOpen={isPackageModalOpen}
         isArabic={language === 'ar'}
+        radarHourPrice={wallet.radarHourPrice || 300}
+        currencySymbol={user?.currencyAr || user?.currencyEn || (language === 'ar' ? 'ج.م' : 'EGP')}
         onClose={() => setIsPackageModalOpen(false)}
         onGoToPayment={handleGoToPayment}
         onActivatePackage={handleActivatePackage}

@@ -190,10 +190,10 @@ export function DriverWalletBalanceCard({
                 </div>
                 <div className="min-w-0">
                   <span className="block font-black text-xs sm:text-sm text-white group-hover:text-[#14F5D5] transition-colors truncate">
-                    {language === 'ar' ? 'اختار باقة اعلانك' : 'Choose Your Ad Package'}
+                    {language === 'ar' ? 'الباقة الافتتاحية' : 'The Launch Package'}
                   </span>
-                  <span className="block text-[11px] text-slate-400 font-sans truncate">
-                    {language === 'ar' ? 'حصص النشر وبث إعلاناتك الترويجية في محيطك' : 'Promote your local ads within your perimeter'}
+                  <span className="block text-[11px] text-teal-300/90 font-sans truncate">
+                    {language === 'ar' ? 'أول شهر مجاني بالكامل · استكشف 14 ميزة حصرية' : 'First month 100% free · Explore 14 exclusive features'}
                   </span>
                 </div>
               </div>
