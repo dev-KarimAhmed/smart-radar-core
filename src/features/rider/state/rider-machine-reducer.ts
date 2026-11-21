@@ -1,6 +1,7 @@
 import {
   RiderMachineState,
   RiderMachineAction,
+  RiderDestination,
   RIDER_STATE_STORAGE_KEY,
 } from './rider-machine-types';
 import {
@@ -104,18 +105,25 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
         } catch {}
       }
       if (state.screen === 'TRIP_ACTIVE') {
-        const destination = state.destination || (state.activeTrip?.destinationLabel ? {
-          id: state.activeTrip.tripId,
-          label: state.activeTrip.destinationLabel,
-          governorate: '',
-          district: '',
-          coords: {
-            lat: (state.activeTrip as any).destinationLat ?? 0,
-            lng: (state.activeTrip as any).destinationLng ?? 0,
-          },
-          originCell: state.activeTrip.originCell,
-          destinationCell: state.activeTrip.destinationCell,
-        } : null);
+        const destCoords = state.destination?.coords || state.activeTrip?.destinationCoords || {
+          lat: state.activeTrip?.destinationLat ?? (state.activeTrip as any)?.destinationLat ?? 0,
+          lng: state.activeTrip?.destinationLng ?? (state.activeTrip as any)?.destinationLng ?? 0,
+        };
+        const destination: RiderDestination | null = state.destination
+          ? {
+              ...state.destination,
+              serverEstimatedFare: state.destination.serverEstimatedFare ?? state.activeTrip?.serverEstimatedFare ?? state.activeTrip?.finalPrice ?? 0,
+            }
+          : (state.activeTrip?.destinationLabel ? {
+              id: state.activeTrip.tripId,
+              label: state.activeTrip.destinationLabel,
+              governorate: '',
+              district: '',
+              coords: destCoords,
+              serverEstimatedFare: state.activeTrip.serverEstimatedFare ?? state.activeTrip.finalPrice ?? 0,
+              originCell: state.activeTrip.originCell,
+              destinationCell: state.activeTrip.destinationCell,
+            } : null);
 
         return {
           ...initialRiderMachineState,
@@ -130,7 +138,12 @@ export function riderDashboardReducer(state: RiderMachineState, action: RiderMac
       }
       return {
         ...initialRiderMachineState,
-        destination: state.destination,
+        destination: state.destination
+          ? {
+              ...state.destination,
+              serverEstimatedFare: state.destination.serverEstimatedFare ?? 0,
+            }
+          : null,
         screen: 'RECEIVING_OFFERS',
         offers: [],
         requestCancelledAt: Date.now(),

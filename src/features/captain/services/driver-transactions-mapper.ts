@@ -12,7 +12,7 @@ export type RideRequestRow = Record<string, unknown>;
 
 export const MIN_OFFER_WAIT_SECONDS = 5;
 export const DEFAULT_OFFER_WAIT_SECONDS = 120;
-export const MAX_OFFER_WAIT_SECONDS = 180;
+export const MAX_OFFER_WAIT_SECONDS = 300;
 
 export function describeOfferSubmitError(rawMessage: string | undefined, t: any) {
   const message = String(rawMessage || '');

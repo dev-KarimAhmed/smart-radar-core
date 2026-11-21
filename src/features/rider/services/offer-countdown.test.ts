@@ -86,7 +86,7 @@ test('getOfferCountdown expires properly using created_at fallback', () => {
   assert.equal(countdown.percentRemaining, 0);
 });
 
-test('getOfferCountdown caps wait_seconds at MAX_OFFER_COUNTDOWN_SECONDS (180s) preventing 11+ min timers', () => {
+test('getOfferCountdown caps wait_seconds at MAX_OFFER_COUNTDOWN_SECONDS (300s) preventing 11+ min timers', () => {
   const now = BASE_TIMESTAMP;
   const firstSeen = BASE_TIMESTAMP;
   // Captain entered 900s (15 mins)
@@ -96,7 +96,7 @@ test('getOfferCountdown caps wait_seconds at MAX_OFFER_COUNTDOWN_SECONDS (180s) 
 
   assert.equal(countdown.hasCountdown, true);
   assert.equal(countdown.isExpired, false);
-  assert.equal(countdown.remainingSeconds, 180, 'Must be clamped to 180 seconds');
+  assert.equal(countdown.remainingSeconds, 300, 'Must be clamped to 300 seconds');
 });
 
 test('getOfferCountdown clamps remaining seconds by maxAllowedRemainingSeconds', () => {

@@ -130,6 +130,9 @@ export function HistoryCaptainView({
                 loading={loading}
                 clearSovereignLogs={clearSovereignLogs}
                 hideCaptainDiagnostics={hideCaptainDiagnostics}
+                user={state.user || user}
+                trips={captainHistoricalTrips}
+                isArabic={isArabic}
                 t={t}
               />
 

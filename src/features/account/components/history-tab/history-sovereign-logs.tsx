@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,54 @@ export function HistorySovereignLogs({
   loading,
   clearSovereignLogs,
   hideCaptainDiagnostics = false,
+  user,
+  trips = [],
+  isArabic = true,
   t,
 }: HistorySovereignLogsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Fixed item calculation: consumed & remaining hours/mins recorded at time of opening the log
+  const [openedAtTime] = useState(() => {
+    const d = new Date();
+    const hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const period = hours >= 12 ? (isArabic ? 'م' : 'PM') : (isArabic ? 'ص' : 'AM');
+    const h12 = hours % 12 || 12;
+    return `${h12}:${minutes} ${period}`;
+  });
+
+  const { consumedHours, consumedMinutes, remainingHours, remainingMinutes } = useMemo(() => {
+    // 1. Consumed in trips
+    let totalTripMins = 0;
+    if (Array.isArray(trips)) {
+      for (const tr of trips) {
+        const mins = Number(tr.duration_minutes ?? tr.durationMinutes);
+        if (Number.isFinite(mins) && mins > 0) {
+          totalTripMins += mins;
+        } else if (tr.completed_at && tr.started_at) {
+          const diff = Math.round((new Date(tr.completed_at).getTime() - new Date(tr.started_at).getTime()) / 60000);
+          if (diff > 0) totalTripMins += diff;
+        }
+      }
+    }
+    const cH = Math.floor(totalTripMins / 60);
+    const cM = totalTripMins % 60;
+
+    // 2. Remaining in balance
+    const paidMins = Number(user?.paidHoursRemaining ?? (user?.subscriptionHours ? user.subscriptionHours * 60 : 0)) || 0;
+    const bonusMins = Number(user?.bonusHoursRemaining) || 0;
+    const totalRemainingMins = Math.max(0, paidMins + bonusMins);
+    const rH = Math.floor(totalRemainingMins / 60);
+    const rM = totalRemainingMins % 60;
+
+    return {
+      consumedHours: cH,
+      consumedMinutes: cM,
+      remainingHours: rH,
+      remainingMinutes: rM,
+    };
+  }, [trips, user]);
 
   return (
     <>
@@ -71,6 +116,58 @@ export function HistorySovereignLogs({
 
         {isExpanded && (
           <CardContent className={styles.content}>
+            {/* Item ثابت: الساعات والدقائق المستهلكة في الرحلات والمتبقية في الرصيد حتى وقت فتح السجل */}
+            <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-[#0B0F19] to-slate-900/60 p-3.5 mb-3.5 shadow-lg shadow-cyan-950/20">
+              <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-white/5 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-cyan-500/40 bg-cyan-500/15 text-xs font-bold text-[#14F5D5]">
+                    <Clock className="h-3.5 w-3.5 text-[#14F5D5]" />
+                    <span>{t('tripHoursSummaryTitle') || (isArabic ? 'ملخص ساعات الرحلات (ثابت)' : 'Trip Hours Summary (Fixed)')}</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400">
+                  <span>{t('openedAtLabel') || (isArabic ? 'وقت فتح السجل:' : 'Log opened at:')}</span>
+                  <span className="text-white font-bold">{openedAtTime}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {/* المستهلكة في الرحلات */}
+                <div className="rounded-xl border border-white/5 bg-black/40 p-2.5 flex flex-col justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 leading-tight">
+                    {t('consumedHoursLabel') || (isArabic ? 'المستهلكة في الرحلات' : 'Consumed in Trips')}
+                  </span>
+                  <div className="mt-1.5 flex items-baseline gap-1 font-mono">
+                    <span className="text-base sm:text-lg font-black text-amber-300">
+                      {consumedHours}
+                    </span>
+                    <span className="text-xs text-amber-300/80 font-bold">{t('hoursUnit') || (isArabic ? 'س' : 'h')}</span>
+                    <span className="text-sm sm:text-base font-black text-amber-300 ml-1">
+                      {consumedMinutes}
+                    </span>
+                    <span className="text-xs text-amber-300/80 font-bold">{t('minsUnit') || (isArabic ? 'د' : 'm')}</span>
+                  </div>
+                </div>
+
+                {/* المتبقية في الرصيد */}
+                <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-2.5 flex flex-col justify-between">
+                  <span className="text-[11px] font-bold text-emerald-300 leading-tight">
+                    {t('remainingHoursLabel') || (isArabic ? 'المتبقية في الرصيد' : 'Remaining in Balance')}
+                  </span>
+                  <div className="mt-1.5 flex items-baseline gap-1 font-mono">
+                    <span className="text-base sm:text-lg font-black text-emerald-300">
+                      {remainingHours}
+                    </span>
+                    <span className="text-xs text-emerald-300/80 font-bold">{t('hoursUnit') || (isArabic ? 'س' : 'h')}</span>
+                    <span className="text-sm sm:text-base font-black text-emerald-300 ml-1">
+                      {remainingMinutes}
+                    </span>
+                    <span className="text-xs text-emerald-300/80 font-bold">{t('minsUnit') || (isArabic ? 'د' : 'm')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {sovereignLogs.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-white/5">
                 <div className="flex items-center gap-2">

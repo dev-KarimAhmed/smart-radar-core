@@ -169,6 +169,8 @@ const captainCancelledState = riderDashboardReducer(activeTripState, { type: 'RE
 assert.equal(captainCancelledState.screen, 'DESTINATION_SELECTION');
 assert.equal(captainCancelledState.autoRetryRequested, true);
 assert.equal(captainCancelledState.activeTrip, null);
+assert.notEqual(captainCancelledState.destination, null);
+assert.equal(typeof captainCancelledState.destination?.serverEstimatedFare, 'number');
 
 // RESET_TO_IDLE from captain cancelled dialog resets cleanly to IDLE_MAP
 const resetFromCancelled = riderDashboardReducer(captainCancelledState, { type: 'RESET_TO_IDLE' });

@@ -1,5 +1,6 @@
 import { latLngToCell } from 'h3-js';
 import { supabase } from '@/lib/supabase-client';
+import { calculateHaversineKm } from '@/lib/road-route';
 import { getSupabaseAuthHeaders } from '@/shared/services/supabase-auth-headers';
 import {
   buildRideRequestInsertPayload,
@@ -34,23 +35,27 @@ export async function executeCreateRideRequest(params: {
     effectiveRiderCount,
   } = params;
 
-  const payload = buildRideRequestInsertPayload({
-    riderId: userId,
-    origin: riderLocation,
-    pickupAddress,
-    destination: effectiveDestinationCoords,
-    originH3: effectiveDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
-    destinationH3:
-      effectiveDraftDestination.destinationCell ||
-      latLngToCell(effectiveDestinationCoords.lat, effectiveDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
-    destinationAddressAr: effectiveDraftDestination.label,
-    serverEstimatedFare: effectiveDraftDestination.serverEstimatedFare ?? 0,
-    routeDistanceKm: currentRouteEstimate?.distanceKm ?? effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2,
-    routeDurationMinutes: currentRouteEstimate?.durationMinutes ?? Math.max(1, Math.ceil((effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? 2) * 1.5)),
-    countryId,
-    pricingPreference: pricingPreference || null,
-    numberOfRiders: effectiveRiderCount,
-  });
+    const directKm = calculateHaversineKm(riderLocation, effectiveDestinationCoords);
+    const fallbackRoadKm = Math.max(0.5, directKm * 1.3);
+    const fallbackDuration = Math.max(1, Math.ceil(fallbackRoadKm * 1.8));
+
+    const payload = buildRideRequestInsertPayload({
+      riderId: userId,
+      origin: riderLocation,
+      pickupAddress,
+      destination: effectiveDestinationCoords,
+      originH3: effectiveDraftDestination.originCell || latLngToCell(riderLocation.lat, riderLocation.lng, H3_RIDER_REQUEST_RESOLUTION),
+      destinationH3:
+        effectiveDraftDestination.destinationCell ||
+        latLngToCell(effectiveDestinationCoords.lat, effectiveDestinationCoords.lng, H3_RIDER_REQUEST_RESOLUTION),
+      destinationAddressAr: effectiveDraftDestination.label,
+      serverEstimatedFare: effectiveDraftDestination.serverEstimatedFare ?? 0,
+      routeDistanceKm: currentRouteEstimate?.distanceKm ?? effectiveDraftDestination.fareQuote?.estimatedRoadDistanceKm ?? fallbackRoadKm,
+      routeDurationMinutes: currentRouteEstimate?.durationMinutes ?? fallbackDuration,
+      countryId,
+      pricingPreference: pricingPreference || null,
+      numberOfRiders: effectiveRiderCount,
+    });
 
   try {
     return await createRideRequest(supabase, payload);

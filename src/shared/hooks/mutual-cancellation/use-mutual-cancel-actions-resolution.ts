@@ -57,11 +57,24 @@ export function useMutualCancelActionsResolution({
 
       const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
       if (!outcome.ok) {
+        const closedStatus = String(data?.status || '').toUpperCase();
+        if (
+          closedStatus === 'CANCELLED' ||
+          data?.message === 'trip_already_closed' ||
+          data?.error === 'trip_already_closed'
+        ) {
+          applyCaptainFreeze();
+          await triggerCancelledConfirmedOnce();
+          return;
+        }
+
         setPendingRequestFrom(prevPending);
         toastRef.current({
           variant: 'destructive',
           title: 'تعذر رفض طلب الإلغاء',
-          description: 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى.',
+          description: outcome.errorCode === 'authentication_required'
+            ? 'يرجى تسجيل الدخول مجدداً ثم المحاولة.'
+            : 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى.',
         });
         return;
       }
@@ -118,11 +131,24 @@ export function useMutualCancelActionsResolution({
 
       const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
       if (!outcome.ok) {
+        const closedStatus = String(data?.status || '').toUpperCase();
+        if (
+          closedStatus === 'CANCELLED' ||
+          data?.message === 'trip_already_closed' ||
+          data?.error === 'trip_already_closed'
+        ) {
+          applyCaptainFreeze();
+          await triggerCancelledConfirmedOnce();
+          return;
+        }
+
         setPendingRequestFrom(prevPending);
         toastRef.current({
           variant: 'destructive',
           title: 'تعذر التراجع عن طلب الإلغاء',
-          description: 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى.',
+          description: outcome.errorCode === 'authentication_required'
+            ? 'يرجى تسجيل الدخول مجدداً ثم المحاولة.'
+            : 'حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى.',
         });
         return;
       }

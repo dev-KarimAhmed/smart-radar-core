@@ -8,23 +8,21 @@ export async function broadcastMutualCancelEvent(
   event: 'REQUEST_CANCEL' | 'DECLINE_CANCEL' | 'REVOKE_CANCEL' | 'ACCEPT_CANCEL',
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const channel = supabaseAdmin.channel(`trip-mutual-cancel-${requestId}`, {
-    config: { broadcast: { ack: false } },
-  });
-  let timer: ReturnType<typeof setTimeout> | null = null;
   try {
-    if (typeof (channel as any)?.httpSend !== 'function') return;
-    await Promise.race([
-      (channel as any).httpSend(event, payload),
-      new Promise<void>((resolve) => {
-        timer = setTimeout(resolve, 350);
-      }),
-    ]);
+    const channel = supabaseAdmin.channel(`trip-mutual-cancel-${requestId}`, {
+      config: { broadcast: { ack: false } },
+    });
+    if (typeof (channel as any)?.httpSend === 'function') {
+      await Promise.race([
+        (channel as any).httpSend(event, payload).catch(() => {}),
+        new Promise<void>((resolve) => setTimeout(resolve, 500)),
+      ]);
+    }
+    setTimeout(() => {
+      supabaseAdmin.removeChannel(channel).catch(() => {});
+    }, 1000);
   } catch {
     // Non-fatal real-time wakeup; persisted DB state and polling remain the SSOT
-  } finally {
-    if (timer) clearTimeout(timer);
-    await supabaseAdmin.removeChannel(channel).catch(() => {});
   }
 }
 

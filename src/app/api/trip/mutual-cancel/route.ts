@@ -102,10 +102,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'forbidden_trip_access' }, { status: 403 });
     }
 
-    const role: 'captain' | 'rider' = isCaptain ? 'captain' : 'rider';
+    const clientRole = body.cancelledByRole === 'captain' || body.cancelledByRole === 'rider'
+      ? (body.cancelledByRole as 'captain' | 'rider')
+      : undefined;
+    const role: 'captain' | 'rider' = clientRole && (isAdmin || (clientRole === 'captain' ? isCaptain : isRider))
+      ? clientRole
+      : (isCaptain ? 'captain' : 'rider');
+
     const currentStatus = String(requestRow.status || '').toUpperCase();
     if (currentStatus === 'COMPLETED' || currentStatus === 'CANCELLED') {
-      return NextResponse.json({ success: true, status: currentStatus, message: 'trip_already_closed' });
+      return NextResponse.json({
+        success: true,
+        requestId,
+        status: currentStatus,
+        message: 'trip_already_closed',
+      });
     }
 
     if (action === 'REQUEST') {

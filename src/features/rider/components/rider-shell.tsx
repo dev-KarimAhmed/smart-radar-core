@@ -181,10 +181,6 @@ export function RiderShell() {
             <AdStage
               audience="rider"
               isFullScreen
-              onRequestRideClick={() => {
-                setShowRequestFlow(true);
-                window.dispatchEvent(new CustomEvent('rider-open-destination'));
-              }}
             />
           </div>
         ) : null}

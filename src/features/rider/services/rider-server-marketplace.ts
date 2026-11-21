@@ -170,6 +170,8 @@ export async function acceptRideOffer(
     throw new Error('ride_offer_id_required');
   }
 
+  let apiError: Error | null = null;
+
   if (typeof window !== 'undefined' && typeof fetch === 'function') {
     try {
       const { getSupabaseAuthHeaders } = await import('@/shared/services/supabase-auth-headers');
@@ -187,17 +189,47 @@ export async function acceptRideOffer(
         if (res.ok && json?.success) {
           return json.data;
         }
-        if (typeof json?.error === 'string' && json.error && json.error !== 'internal_server_error') {
-          throw new Error(json.error);
+
+        const errCode = typeof json?.error === 'string' ? json.error : '';
+
+        // If the trip is already active/accepted, resolve with success instead of throwing error
+        if (errCode === 'ride_request_not_accepting_offers' || errCode === 'ride_offer_not_pending') {
+          try {
+            const { data: currentReq } = await (client as any)
+              .from('ride_requests')
+              .select('id, status, accepted_offer_id, accepted_captain_id, final_fare')
+              .eq('id', input.requestId)
+              .maybeSingle();
+
+            const reqStatus = String(currentReq?.status || '').toUpperCase();
+            if (currentReq && ['ACCEPTED', 'EN_ROUTE', 'ARRIVED', 'STARTED', 'TRIP_ACTIVE', 'ACTIVE', 'IN_PROGRESS'].includes(reqStatus)) {
+              return {
+                request_id: input.requestId,
+                offer_id: input.offerId,
+                captain_id: currentReq.accepted_captain_id,
+                final_fare: currentReq.final_fare,
+                status: currentReq.status,
+              };
+            }
+          } catch {
+            // Ignore fallback lookup errors
+          }
         }
-        if (res.status >= 400 && res.status < 500) {
-          throw new Error('accept_offer_failed');
+
+        if (errCode && errCode !== 'internal_server_error') {
+          apiError = new Error(errCode);
+          // Only throw domain errors where direct RPC cannot override
+          if (errCode === 'captain_already_busy' || errCode === 'not_request_owner') {
+            throw apiError;
+          }
         }
       }
     } catch (err) {
-      if (err instanceof Error && !/failed to fetch|networkerror|network request failed/i.test(err.message)) {
+      const msg = err instanceof Error ? err.message : '';
+      if (/captain_already_busy|not_request_owner/i.test(msg)) {
         throw err;
       }
+      apiError = err instanceof Error ? err : new Error(String(err));
     }
   }
 
@@ -206,7 +238,9 @@ export async function acceptRideOffer(
     p_offer_id: input.offerId,
   });
 
-  if (error) throw error;
+  if (error) {
+    throw apiError || error;
+  }
   return data;
 }
 

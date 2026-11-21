@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { normalizeCancelRole } from '@/shared/hooks/mutual-cancellation-helpers';
-import { broadcastMutualCancelEvent, isMissingRpcFunctionError } from './mutual-cancel-broadcast';
+import { broadcastMutualCancelEvent } from './mutual-cancel-broadcast';
 
 export async function handleMutualCancelRequest(
   requestId: string,
@@ -9,7 +9,6 @@ export async function handleMutualCancelRequest(
   tripDurationMinutes: number,
 ) {
   let rpcSucceeded = false;
-  let shouldFallback = false;
   let rpcCancelRequestedBy: unknown = role;
 
   try {
@@ -18,6 +17,7 @@ export async function handleMutualCancelRequest(
       p_role: role,
       p_action: 'REQUEST',
     });
+
     if (!rpcErr) {
       const rpcPayload = rpcData && typeof rpcData === 'object' ? (rpcData as Record<string, unknown>) : null;
       if (rpcPayload && rpcPayload.success === false) {
@@ -28,25 +28,19 @@ export async function handleMutualCancelRequest(
             message: 'trip_already_closed',
           });
         }
-        return NextResponse.json(
-          { success: false, error: String(rpcPayload.error || 'request_failed') },
-          { status: 400 },
-        );
+      } else {
+        rpcCancelRequestedBy = rpcPayload?.cancel_requested_by ?? role;
+        rpcSucceeded = true;
       }
-      rpcCancelRequestedBy = rpcPayload?.cancel_requested_by ?? role;
-      rpcSucceeded = true;
-    } else if (isMissingRpcFunctionError(rpcErr)) {
-      shouldFallback = true;
     } else {
-      console.error('[mutual-cancel] REQUEST RPC error:', rpcErr);
-      return NextResponse.json({ success: false, error: 'request_failed' }, { status: 400 });
+      console.warn('[mutual-cancel] REQUEST RPC error, using fallback:', rpcErr);
     }
   } catch (err) {
-    console.warn('[mutual-cancel] REQUEST RPC exception:', err);
-    shouldFallback = true;
+    console.warn('[mutual-cancel] REQUEST RPC exception, using fallback:', err);
   }
 
-  if (!rpcSucceeded && shouldFallback) {
+  // Resilient fallback: direct update of cancel_requested_by
+  if (!rpcSucceeded) {
     const { error: directErr } = await supabaseAdmin
       .from('ride_requests')
       .update({
@@ -64,12 +58,16 @@ export async function handleMutualCancelRequest(
   }
 
   const confirmedRole = normalizeCancelRole(rpcCancelRequestedBy) ?? role;
-  await broadcastMutualCancelEvent(requestId, 'REQUEST_CANCEL', {
-    fromRole: confirmedRole,
-    tripDurationMinutes,
-    timestamp: Date.now(),
-    source: 'server',
-  });
+  try {
+    await broadcastMutualCancelEvent(requestId, 'REQUEST_CANCEL', {
+      fromRole: confirmedRole,
+      tripDurationMinutes,
+      timestamp: Date.now(),
+      source: 'server',
+    });
+  } catch (bErr) {
+    console.warn('[mutual-cancel] broadcast warning:', bErr);
+  }
 
   return NextResponse.json({
     success: true,
@@ -85,13 +83,13 @@ export async function handleMutualCancelDeclineOrRevoke(
   action: 'DECLINE' | 'REVOKE',
 ) {
   let rpcSucceeded = false;
-  let shouldFallback = false;
   try {
     const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('request_mutual_trip_cancellation', {
       p_request_id: requestId,
       p_role: role,
       p_action: action,
     });
+
     if (!rpcErr) {
       const rpcPayload = rpcData && typeof rpcData === 'object' ? (rpcData as Record<string, unknown>) : null;
       if (rpcPayload && rpcPayload.success === false) {
@@ -102,24 +100,17 @@ export async function handleMutualCancelDeclineOrRevoke(
             message: 'trip_already_closed',
           });
         }
-        return NextResponse.json(
-          { success: false, error: String(rpcPayload.error || `${action.toLowerCase()}_failed`) },
-          { status: 400 },
-        );
+      } else {
+        rpcSucceeded = true;
       }
-      rpcSucceeded = true;
-    } else if (isMissingRpcFunctionError(rpcErr)) {
-      shouldFallback = true;
     } else {
-      console.error(`[mutual-cancel] ${action} RPC error:`, rpcErr);
-      return NextResponse.json({ success: false, error: `${action.toLowerCase()}_failed` }, { status: 400 });
+      console.warn(`[mutual-cancel] ${action} RPC error, using fallback:`, rpcErr);
     }
   } catch (err) {
-    console.warn(`[mutual-cancel] ${action} RPC exception:`, err);
-    shouldFallback = true;
+    console.warn(`[mutual-cancel] ${action} RPC exception, using fallback:`, err);
   }
 
-  if (!rpcSucceeded && shouldFallback) {
+  if (!rpcSucceeded) {
     const { error: directErr } = await supabaseAdmin
       .from('ride_requests')
       .update({
@@ -136,15 +127,19 @@ export async function handleMutualCancelDeclineOrRevoke(
     }
   }
 
-  await broadcastMutualCancelEvent(
-    requestId,
-    action === 'DECLINE' ? 'DECLINE_CANCEL' : 'REVOKE_CANCEL',
-    {
-      fromRole: role,
-      timestamp: Date.now(),
-      source: 'server',
-    },
-  );
+  try {
+    await broadcastMutualCancelEvent(
+      requestId,
+      action === 'DECLINE' ? 'DECLINE_CANCEL' : 'REVOKE_CANCEL',
+      {
+        fromRole: role,
+        timestamp: Date.now(),
+        source: 'server',
+      },
+    );
+  } catch (bErr) {
+    console.warn('[mutual-cancel] broadcast warning:', bErr);
+  }
 
   return NextResponse.json({
     success: true,
@@ -161,12 +156,12 @@ export async function handleMutualCancelAccept(
   tripDurationMinutes: number,
 ) {
   let cancelSucceeded = false;
-  let shouldFallbackCancel = false;
 
   try {
     const { data: acceptData, error: updateErr } = await supabaseAdmin.rpc('mutual_cancel_ride_request', {
       p_request_id: requestId,
     });
+
     if (!updateErr) {
       const acceptPayload = acceptData && typeof acceptData === 'object'
         ? (acceptData as Record<string, unknown>)
@@ -181,58 +176,97 @@ export async function handleMutualCancelAccept(
         });
       }
       cancelSucceeded = true;
-    } else if (isMissingRpcFunctionError(updateErr)) {
-      shouldFallbackCancel = true;
     } else {
-      console.error('[mutual-cancel] mutual_cancel_ride_request RPC error:', updateErr);
-      return NextResponse.json({ success: false, error: 'cancel_failed' }, { status: 400 });
+      console.warn('[mutual-cancel] mutual_cancel_ride_request RPC error, checking DB state:', updateErr);
     }
   } catch (err) {
-    console.warn('[mutual-cancel] mutual_cancel_ride_request exception:', err);
-    shouldFallbackCancel = true;
+    console.warn('[mutual-cancel] mutual_cancel_ride_request exception, checking DB state:', err);
   }
 
-  if (!cancelSucceeded && shouldFallbackCancel) {
-    const nowIso = new Date().toISOString();
-    const { error: directErr } = await supabaseAdmin
+  // If RPC returned an error or threw, verify if the trip is already CANCELLED in DB
+  if (!cancelSucceeded) {
+    const { data: checkRow } = await supabaseAdmin
       .from('ride_requests')
-      .update({
-        status: 'CANCELLED',
-        cancelled_at: nowIso,
-        cancel_requested_by: null,
-        cancel_request_time: null,
-        updated_at: nowIso,
-      })
+      .select('id, status')
       .eq('id', requestId)
-      .not('status', 'in', '("COMPLETED","CANCELLED")');
+      .maybeSingle();
 
-    if (directErr) {
-      console.error('[mutual-cancel] direct cancel update error:', directErr);
-      return NextResponse.json({ success: false, error: 'cancel_failed' }, { status: 500 });
+    const currentStatus = String(checkRow?.status || '').toUpperCase();
+    if (currentStatus === 'CANCELLED') {
+      cancelSucceeded = true;
+    } else if (currentStatus === 'COMPLETED') {
+      return NextResponse.json({
+        success: true,
+        requestId,
+        status: 'COMPLETED',
+        message: 'trip_already_closed',
+      });
+    } else {
+      // Retry RPC once after a short breath
+      try {
+        const { data: retryData, error: retryErr } = await supabaseAdmin.rpc('mutual_cancel_ride_request', {
+          p_request_id: requestId,
+        });
+        if (!retryErr) {
+          cancelSucceeded = true;
+        } else {
+          console.error('[mutual-cancel] mutual_cancel_ride_request retry failed:', retryErr);
+        }
+      } catch (retryExc) {
+        console.error('[mutual-cancel] mutual_cancel_ride_request retry exception:', retryExc);
+      }
     }
   }
 
-  await supabaseAdmin
-    .from('ride_requests')
-    .update({ cancel_requested_by: null, cancel_request_time: null })
-    .eq('id', requestId);
+  if (!cancelSucceeded) {
+    // Final check on status before failing
+    const { data: finalCheck } = await supabaseAdmin
+      .from('ride_requests')
+      .select('status')
+      .eq('id', requestId)
+      .maybeSingle();
 
-  const nowIso = new Date().toISOString();
-  await supabaseAdmin
-    .from('ride_offers')
-    .update({
-      status: 'REJECTED',
-      updated_at: nowIso,
-    })
-    .eq('request_id', requestId)
-    .neq('status', 'ACCEPTED');
+    if (String(finalCheck?.status || '').toUpperCase() === 'CANCELLED') {
+      cancelSucceeded = true;
+    } else {
+      return NextResponse.json({ success: false, error: 'cancel_failed' }, { status: 400 });
+    }
+  }
 
-  await broadcastMutualCancelEvent(requestId, 'ACCEPT_CANCEL', {
-    fromRole: role,
-    tripDurationMinutes,
-    timestamp: Date.now(),
-    source: 'server',
-  });
+  // Safe secondary cleanup - MUST never fail the request once cancellation succeeded
+  try {
+    await supabaseAdmin
+      .from('ride_requests')
+      .update({ cancel_requested_by: null, cancel_request_time: null })
+      .eq('id', requestId);
+  } catch (cleanErr) {
+    console.warn('[mutual-cancel] cancel_requested_by cleanup warning:', cleanErr);
+  }
+
+  try {
+    const nowIso = new Date().toISOString();
+    await supabaseAdmin
+      .from('ride_offers')
+      .update({
+        status: 'REJECTED',
+        updated_at: nowIso,
+      })
+      .eq('request_id', requestId)
+      .neq('status', 'ACCEPTED');
+  } catch (offersErr) {
+    console.warn('[mutual-cancel] ride_offers cleanup warning:', offersErr);
+  }
+
+  try {
+    await broadcastMutualCancelEvent(requestId, 'ACCEPT_CANCEL', {
+      fromRole: role,
+      tripDurationMinutes,
+      timestamp: Date.now(),
+      source: 'server',
+    });
+  } catch (bErr) {
+    console.warn('[mutual-cancel] broadcast warning:', bErr);
+  }
 
   return NextResponse.json({
     success: true,

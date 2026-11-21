@@ -72,6 +72,10 @@ export interface RiderActiveTrip {
   captain?: RiderActiveTripCaptain | null;
   status?: string;
   cancel_requested_by?: 'rider' | 'captain' | null;
+  destinationCoords?: { lat: number; lng: number };
+  destinationLat?: number;
+  destinationLng?: number;
+  serverEstimatedFare?: number;
 }
 
 export interface RiderMachineState {

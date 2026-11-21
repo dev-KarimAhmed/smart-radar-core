@@ -60,6 +60,9 @@ export interface HistorySovereignLogsProps {
   loading: boolean;
   clearSovereignLogs: () => void;
   hideCaptainDiagnostics?: boolean;
+  user?: any;
+  trips?: any[];
+  isArabic?: boolean;
   t: any;
 }
 

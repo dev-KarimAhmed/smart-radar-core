@@ -10,7 +10,7 @@ export const ACTIVE_TRIP_STATUSES = new Set([
   'IN_PROGRESS',
 ]);
 
-export const STALE_ACTIVE_TRIP_MS = 4 * 60 * 60 * 1000;
+export const STALE_ACTIVE_TRIP_MS = 60 * 60 * 1000;
 
 export function isActiveTripRow(
   row: Record<string, unknown> | null | undefined,
@@ -20,7 +20,7 @@ export function isActiveTripRow(
   const status = String(row.status || '').trim().toUpperCase();
   if (!ACTIVE_TRIP_STATUSES.has(status)) return false;
 
-  const rawTouch = row.started_at || row.accepted_at || row.updated_at || row.created_at;
+  const rawTouch = row.updated_at || row.started_at || row.accepted_at || row.created_at;
   if (!rawTouch) return true;
 
   const touchMs = Date.parse(String(rawTouch));

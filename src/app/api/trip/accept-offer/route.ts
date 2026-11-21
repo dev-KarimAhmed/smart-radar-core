@@ -89,8 +89,13 @@ export async function POST(req: Request) {
 
     const currentReqStatus = String(requestRow.status || '').trim().toUpperCase();
 
-    if (!offerRow) {
-      if (ACTIVE_TRIP_STATUSES.has(currentReqStatus) && requestRow.accepted_offer_id === offerId) {
+    // Idempotent check: if request is already in an active trip status
+    if (ACTIVE_TRIP_STATUSES.has(currentReqStatus)) {
+      const isSameOffer = requestRow.accepted_offer_id === offerId;
+      const isSameCaptain = Boolean(offerRow && requestRow.accepted_captain_id === offerRow.captain_id);
+      const isAlreadyAssigned = Boolean(requestRow.accepted_captain_id);
+
+      if (isSameOffer || isSameCaptain || isAlreadyAssigned) {
         if (requestRow.accepted_captain_id) {
           await cancelAndDeleteOtherCaptainOffers(
             adminClient,
@@ -104,12 +109,20 @@ export async function POST(req: Request) {
           data: {
             request_id: requestId,
             offer_id: offerId,
-            captain_id: requestRow.accepted_captain_id,
-            final_fare: requestRow.final_fare ?? requestRow.server_estimated_fare ?? 0,
+            captain_id: requestRow.accepted_captain_id || (offerRow ? offerRow.captain_id : null),
+            final_fare:
+              offerRow?.offer_price ??
+              offerRow?.offered_fare ??
+              requestRow.final_fare ??
+              requestRow.server_estimated_fare ??
+              0,
             status: requestRow.status,
           },
         });
       }
+    }
+
+    if (!offerRow) {
       return NextResponse.json({ success: false, error: 'ride_offer_not_found' }, { status: 404 });
     }
 
@@ -118,31 +131,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'ride_offer_missing_captain' }, { status: 400 });
     }
 
-    // Idempotent duplicate click on the same already-accepted offer
-    if (ACTIVE_TRIP_STATUSES.has(currentReqStatus) && requestRow.accepted_offer_id === offerId) {
-      await cancelAndDeleteOtherCaptainOffers(adminClient, captainId, requestId, offerId).catch(() => {});
-      return NextResponse.json({
-        success: true,
-        data: {
-          request_id: requestId,
-          offer_id: offerId,
-          captain_id: requestRow.accepted_captain_id || captainId,
-          final_fare:
-            offerRow.offer_price
-            ?? offerRow.offered_fare
-            ?? requestRow.final_fare
-            ?? requestRow.server_estimated_fare
-            ?? 0,
-          status: requestRow.status,
-        },
-      });
-    }
-
     if (currentReqStatus !== 'PENDING' && currentReqStatus !== 'RECEIVING_OFFERS') {
       return NextResponse.json({ success: false, error: 'ride_request_not_accepting_offers' }, { status: 409 });
     }
 
     const currentOfferStatus = String(offerRow.status || 'PENDING').trim().toUpperCase();
+    if (currentOfferStatus === 'ACCEPTED') {
+      return NextResponse.json({
+        success: true,
+        data: {
+          request_id: requestId,
+          offer_id: offerId,
+          captain_id: captainId,
+          final_fare: offerRow.offer_price ?? offerRow.offered_fare ?? requestRow.final_fare ?? 0,
+          status: 'ACCEPTED',
+        },
+      });
+    }
+
     if (currentOfferStatus !== 'PENDING' && currentOfferStatus !== '') {
       return NextResponse.json({ success: false, error: 'ride_offer_not_pending' }, { status: 409 });
     }

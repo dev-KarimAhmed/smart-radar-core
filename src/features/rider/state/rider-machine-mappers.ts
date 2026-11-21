@@ -54,7 +54,7 @@ export function buildDestinationFromRow(
       lat: lat ?? 0,
       lng: lng ?? 0,
     },
-    serverEstimatedFare: firstNumber(row.server_estimated_fare) ?? undefined,
+    serverEstimatedFare: firstNumber(row.server_estimated_fare, row.final_fare, row.final_price) ?? 0,
     originCell: firstString(row.origin_h3) || undefined,
     destinationCell: firstString(row.destination_h3) || undefined,
   };
@@ -164,6 +164,14 @@ export function buildActiveTrip(state: RiderMachineState, acceptedRow: Record<st
     cancel_requested_by: Object.prototype.hasOwnProperty.call(acceptedRow, 'cancel_requested_by')
       ? normalizeCancelRole(acceptedRow.cancel_requested_by)
       : (existing?.cancel_requested_by ?? null),
+    destinationCoords: state.destination?.coords || (
+      firstNumber(acceptedRow.destination_lat) !== null && firstNumber(acceptedRow.destination_lng) !== null
+        ? { lat: firstNumber(acceptedRow.destination_lat)!, lng: firstNumber(acceptedRow.destination_lng)! }
+        : existing?.destinationCoords
+    ),
+    destinationLat: state.destination?.coords.lat ?? firstNumber(acceptedRow.destination_lat) ?? existing?.destinationLat,
+    destinationLng: state.destination?.coords.lng ?? firstNumber(acceptedRow.destination_lng) ?? existing?.destinationLng,
+    serverEstimatedFare: state.destination?.serverEstimatedFare ?? firstNumber(acceptedRow.server_estimated_fare) ?? existing?.serverEstimatedFare,
   };
 }
 

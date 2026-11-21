@@ -50,8 +50,8 @@ export const HISTORY_CATEGORIES: CategoryTabItem[] = [
   },
   {
     key: 'activity',
-    labelAr: 'سجل النشاط',
-    labelEn: 'Activity',
+    labelAr: 'سجل نشاطك',
+    labelEn: 'Your Activity',
     icon: Car,
     color: 'text-cyan-400',
     activeClass: 'bg-cyan-500/20 border-cyan-500/40 text-[#14F5D5] shadow-md shadow-cyan-500/10',

@@ -35,8 +35,8 @@ export function useOfferAcceptance({
       return;
     }
 
-    const offerId = offer.id;
-    if (!offerId || offerId === offer.driverId) {
+    const offerId = offer.id || (offer as any).offer_id || (offer as any).offerId;
+    if (!offerId) {
       toast({
         variant: 'destructive',
         title: t('offers.acceptIncompleteTitle'),
@@ -48,11 +48,26 @@ export function useOfferAcceptance({
     setAcceptingOfferId(offerId);
 
     try {
-      await acceptRideOffer(supabase, {
+      const result = await acceptRideOffer(supabase, {
         requestId,
         offerId,
       });
       dispatch({ type: 'SELECT_OFFER', offerId });
+
+      if (result) {
+        dispatch({
+          type: 'SERVER_STATUS_ACCEPTED',
+          row: {
+            id: requestId,
+            status: result.status || 'ACCEPTED',
+            accepted_offer_id: offerId,
+            selected_offer_id: offerId,
+            accepted_captain_id: result.captain_id || offer.driverId,
+            final_fare: result.final_fare || offer.price,
+            accepted_at: new Date().toISOString(),
+          },
+        });
+      }
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') console.warn('[Rider Accept Offer]', error);
       void refreshOffers();

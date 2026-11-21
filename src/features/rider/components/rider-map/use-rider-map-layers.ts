@@ -20,38 +20,41 @@ export function useRiderMapLayers({
     const map = mapRef.current;
     if (!isMapReady || !map) return;
 
-    if (!map.getSource('rider-point')) {
-      map.addSource('rider-point', {
-        type: 'geojson',
-        data: toRiderFeatureCollection(riderLocation),
-      });
+    try {
+      if (typeof map.getSource !== 'function') return;
+      if (!map.getSource('rider-point')) {
+        map.addSource('rider-point', {
+          type: 'geojson',
+          data: toRiderFeatureCollection(riderLocation),
+        });
 
-      map.addLayer({
-        id: 'rider-anchor-halo',
-        type: 'circle',
-        source: 'rider-point',
-        paint: {
-          'circle-radius': 22,
-          'circle-color': '#14B8A6',
-          'circle-opacity': 0.16,
-          'circle-stroke-color': '#14F5D5',
-          'circle-stroke-width': 1,
-          'circle-stroke-opacity': 0.45,
-        },
-      });
+        map.addLayer({
+          id: 'rider-anchor-halo',
+          type: 'circle',
+          source: 'rider-point',
+          paint: {
+            'circle-radius': 22,
+            'circle-color': '#14B8A6',
+            'circle-opacity': 0.16,
+            'circle-stroke-color': '#14F5D5',
+            'circle-stroke-width': 1,
+            'circle-stroke-opacity': 0.45,
+          },
+        });
 
-      map.addLayer({
-        id: 'rider-anchor-dot',
-        type: 'circle',
-        source: 'rider-point',
-        paint: {
-          'circle-radius': 6,
-          'circle-color': '#14F5D5',
-          'circle-stroke-color': '#031315',
-          'circle-stroke-width': 2,
-        },
-      });
-    }
+        map.addLayer({
+          id: 'rider-anchor-dot',
+          type: 'circle',
+          source: 'rider-point',
+          paint: {
+            'circle-radius': 6,
+            'circle-color': '#14F5D5',
+            'circle-stroke-color': '#031315',
+            'circle-stroke-width': 2,
+          },
+        });
+      }
+    } catch {}
 
     if (!map.getSource('rider-captains')) {
       map.addSource('rider-captains', {
@@ -108,10 +111,12 @@ export function useRiderMapLayers({
 
     let pulse = 0;
     const interval = window.setInterval(() => {
-      if (!map.getLayer('captain-pulse')) return;
-      pulse = (pulse + 1) % 3;
-      map.setPaintProperty('captain-pulse', 'circle-radius', 14 + pulse * 5);
-      map.setPaintProperty('captain-pulse', 'circle-opacity', 0.22 - pulse * 0.05);
+      try {
+        if (!map || typeof map.getLayer !== 'function' || !map.getLayer('captain-pulse')) return;
+        pulse = (pulse + 1) % 3;
+        map.setPaintProperty('captain-pulse', 'circle-radius', 14 + pulse * 5);
+        map.setPaintProperty('captain-pulse', 'circle-opacity', 0.22 - pulse * 0.05);
+      } catch {}
     }, 650);
 
     return () => {
@@ -121,11 +126,14 @@ export function useRiderMapLayers({
 
   React.useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.getSource('rider-captains') || !map.getSource('rider-point')) return;
+    try {
+      if (!map || typeof map.getSource !== 'function') return;
+      if (!map.getSource('rider-captains') || !map.getSource('rider-point')) return;
 
-    const riderSource = map.getSource('rider-point') as GeoJSONSource;
-    const captainSource = map.getSource('rider-captains') as GeoJSONSource;
-    riderSource.setData(toRiderFeatureCollection(riderLocation));
-    captainSource.setData(toCaptainFeatureCollection(displayCaptains));
+      const riderSource = map.getSource('rider-point') as GeoJSONSource;
+      const captainSource = map.getSource('rider-captains') as GeoJSONSource;
+      riderSource?.setData(toRiderFeatureCollection(riderLocation));
+      captainSource?.setData(toCaptainFeatureCollection(displayCaptains));
+    } catch {}
   }, [displayCaptains, riderLocation, mapRef]);
 }

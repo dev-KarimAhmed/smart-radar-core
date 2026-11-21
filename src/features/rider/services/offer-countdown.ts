@@ -11,8 +11,8 @@ export interface OfferCountdown {
   isExpired: boolean;
 }
 
-// Absolute sovereign maximum wait window for any offer (3 minutes = 180 seconds)
-export const MAX_OFFER_COUNTDOWN_SECONDS = 180;
+// Absolute sovereign maximum wait window for any offer (5 minutes = 300 seconds)
+export const MAX_OFFER_COUNTDOWN_SECONDS = 300;
 
 /**
  * Computes an offer's remaining visibility window against `firstSeenAtMs` —
@@ -30,7 +30,7 @@ export function getOfferCountdown(
   maxAllowedRemainingSeconds?: number
 ): OfferCountdown {
   let waitSeconds = Number(offer.wait_seconds) > 0 ? Number(offer.wait_seconds) : 90;
-  // Hard ceiling: an offer's initial wait window can NEVER exceed 180 seconds
+  // Hard ceiling: an offer's initial wait window can NEVER exceed 300 seconds
   waitSeconds = Math.min(MAX_OFFER_COUNTDOWN_SECONDS, waitSeconds);
 
   // Authoritative start timestamp: the offer's created timestamp on the server
@@ -50,7 +50,28 @@ export function getOfferCountdown(
   }
 
   const totalMs = waitSeconds * 1000;
-  const elapsedMs = Math.max(0, now - effectiveStartTime);
+  const serverElapsedMs = Math.max(0, now - effectiveStartTime);
+
+  // If the offer has already exceeded totalMs from server creation, it's expired
+  if (serverElapsedMs >= totalMs) {
+    return {
+      hasCountdown: true,
+      remainingSeconds: 0,
+      percentRemaining: 0,
+      isExpired: true,
+    };
+  }
+
+  // If the offer was just observed by the rider (within 15s transit window),
+  // anchor the countdown to firstSeenAtMs so polling delay or clock drift doesn't steal 10-15s from the timer.
+  let elapsedMs = serverElapsedMs;
+  if (Number.isFinite(firstSeenAtMs)) {
+    const clientElapsedMs = Math.max(0, now - (firstSeenAtMs as number));
+    if (serverElapsedMs < 15_000) {
+      elapsedMs = Math.min(serverElapsedMs, clientElapsedMs);
+    }
+  }
+
   let remainingMs = totalMs - elapsedMs;
 
   // Clamped by trip's remaining search lifespan (4-minute radar window)

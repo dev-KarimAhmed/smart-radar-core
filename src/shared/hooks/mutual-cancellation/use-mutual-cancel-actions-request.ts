@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import {
   interpretMutualCancelMutationResult,
+  normalizeCancelRole,
   type MutualCancelRole,
   type PostCommitExpectationLock,
 } from '../mutual-cancellation-helpers';
@@ -60,6 +61,25 @@ export function useMutualCancelActionsRequest({
 
       const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
       if (!outcome.ok) {
+        const closedStatus = String(data?.status || '').toUpperCase();
+        if (
+          closedStatus === 'CANCELLED' ||
+          data?.message === 'trip_already_closed' ||
+          data?.error === 'trip_already_closed'
+        ) {
+          setPendingRequestFrom(null);
+          applyCaptainFreeze(duration);
+          await triggerCancelledConfirmedOnce();
+          return;
+        }
+
+        const confirmedBy = normalizeCancelRole(data?.cancel_requested_by);
+        if (confirmedBy) {
+          postCommitLockRef.current = { expectedPendingFrom: confirmedBy, untilMs: Date.now() + POST_COMMIT_GRACE_MS };
+          setPendingRequestFrom(confirmedBy);
+          return;
+        }
+
         setPendingRequestFrom(prevPending);
         toastRef.current({
           variant: 'destructive',
@@ -134,9 +154,29 @@ export function useMutualCancelActionsRequest({
 
       const outcome = interpretMutualCancelMutationResult(Boolean(res?.ok), data);
       if (!outcome.ok) {
+        const closedStatus = String(data?.status || '').toUpperCase();
+        if (
+          closedStatus === 'CANCELLED' ||
+          data?.message === 'trip_already_closed' ||
+          data?.error === 'trip_already_closed'
+        ) {
+          applyCaptainFreeze(duration);
+          await triggerCancelledConfirmedOnce();
+          setPendingRequestFrom(null);
+          toastRef.current({
+            title: 'تم إلغاء الرحلة بالتوافق',
+            description: 'تم إلغاء الرحلة بالتوافق المشترك.',
+            variant: 'default',
+            duration: 5000,
+          });
+          return;
+        }
+
         toastRef.current({
           title: 'فشل إلغاء الرحلة',
-          description: 'حدث خطأ أثناء إلغاء الرحلة، يرجى المحاولة مرة أخرى.',
+          description: outcome.errorCode === 'authentication_required'
+            ? 'يرجى تسجيل الدخول مجدداً ثم المحاولة.'
+            : 'حدث خطأ أثناء إلغاء الرحلة، يرجى المحاولة مرة أخرى.',
           variant: 'destructive',
         });
         return;

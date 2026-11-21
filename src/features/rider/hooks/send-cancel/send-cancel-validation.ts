@@ -151,18 +151,29 @@ export function validateRideRequestInput(params: ValidateRideRequestParams): {
     return { isValid: false, effectiveRiderCount: 0 };
   }
 
-  if (
-    effectiveDraftDestination.serverEstimatedFare === undefined ||
-    (isServerFareLoading && !hasDestinationInState) ||
-    (isRouteEstimateLoading && !hasDestinationInState) ||
-    (!currentRouteEstimate && !hasDestinationInState)
-  ) {
-    toast({
-      variant: 'destructive',
-      title: t('request.fareNotReadyTitle'),
-      description: t('request.fareNotReadyDescription'),
-    });
-    return { isValid: false, effectiveRiderCount: 0 };
+  const isRetryOrResend =
+    Boolean(autoRetryRequested) ||
+    screen === 'RECEIVING_OFFERS' ||
+    hasDestinationInState;
+
+  if (!isRetryOrResend) {
+    if (isServerFareLoading) {
+      toast({
+        variant: 'destructive',
+        title: t('request.fareNotReadyTitle'),
+        description: t('request.fareNotReadyDescription'),
+      });
+      return { isValid: false, effectiveRiderCount: 0 };
+    }
+
+    if (effectiveDraftDestination.serverEstimatedFare === undefined && isRouteEstimateLoading) {
+      toast({
+        variant: 'destructive',
+        title: t('request.fareNotReadyTitle'),
+        description: t('request.fareNotReadyDescription'),
+      });
+      return { isValid: false, effectiveRiderCount: 0 };
+    }
   }
 
   return { isValid: true, effectiveRiderCount: effectiveCount };

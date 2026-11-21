@@ -208,7 +208,7 @@ export function useDriverBidding({ captainId, activeReqRef }: UseDriverBiddingPa
       }
       pendingOfferTimeoutsRef.current[payload.tripId] = setTimeout(() => {
         void cancelOffer(payload.tripId, true);
-      }, Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, payload.waitSeconds)) * 1000);
+      }, (Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, payload.waitSeconds)) + 5) * 1000);
 
       toast({
         title: t('offerSubmittedTitle'),

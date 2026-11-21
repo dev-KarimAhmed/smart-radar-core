@@ -111,7 +111,7 @@ export function useRadarOfferFlow({
     setSubmittingRequestId(trip.id);
     try {
       const parsedWait = parseInt(waitSeconds, 10) || 120;
-      const finalWaitSeconds = Math.max(30, Math.min(180, parsedWait));
+      const finalWaitSeconds = Math.max(30, Math.min(300, parsedWait));
       await onSubmitDirectBid(trip, finalPrice, finalWaitSeconds, pricingMode);
       setDirectPrices((prev) => ({ ...prev, [trip.id]: finalPrice.toFixed(2) }));
       setLastSubmittedPrices((prev) => ({

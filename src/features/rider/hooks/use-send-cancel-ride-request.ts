@@ -76,8 +76,27 @@ export function useSendCancelRideRequest(params: {
   }), [t]);
 
   const handleSendRequest = React.useCallback(async (explicitRiderCount?: number) => {
-    const effectiveDraftDestination = selectedDraftDestination || state.destination;
-    const effectiveDestinationCoords = selectedDestinationCoords || state.destination?.coords || null;
+    const rawDestination = selectedDraftDestination || state.destination;
+    const effectiveDestinationCoords = selectedDestinationCoords || state.destination?.coords || rawDestination?.coords || null;
+
+    const resolvedFare =
+      rawDestination?.serverEstimatedFare ??
+      (rawDestination?.fareQuote as any)?.serverEstimatedFare ??
+      (rawDestination?.fareQuote as any)?.finalFare ??
+      (rawDestination?.fareQuote as any)?.guidePriceJod ??
+      state.activeTrip?.finalPrice ??
+      state.activeTrip?.serverEstimatedFare ??
+      0;
+
+    const effectiveDraftDestination: RiderDestination | null = rawDestination
+      ? {
+          ...rawDestination,
+          coords: effectiveDestinationCoords || rawDestination.coords,
+          serverEstimatedFare: typeof rawDestination.serverEstimatedFare === 'number'
+            ? rawDestination.serverEstimatedFare
+            : resolvedFare,
+        }
+      : null;
 
     const validation = validateRideRequestInput({
       userId,

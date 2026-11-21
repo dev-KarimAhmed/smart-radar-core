@@ -113,19 +113,23 @@ export function interpretMutualCancelMutationResult(
   resOk: boolean,
   data: Record<string, unknown> | null | undefined,
 ): MutualCancelMutationOutcome {
-  if (!resOk || !data || data.success === false) {
-    return {
-      ok: false,
-      errorCode: String(data?.error || 'request_failed'),
-    };
-  }
-
-  const terminalStatus = normalizeTerminalTripStatus(data.status);
-  if (terminalStatus || data.message === 'trip_already_closed') {
+  const terminalStatus = normalizeTerminalTripStatus(data?.status);
+  if (
+    terminalStatus ||
+    data?.message === 'trip_already_closed' ||
+    data?.error === 'trip_already_closed'
+  ) {
     return {
       ok: true,
       isClosed: true,
       terminalStatus: terminalStatus || 'CANCELLED',
+    };
+  }
+
+  if (!resOk || !data || data.success === false) {
+    return {
+      ok: false,
+      errorCode: String(data?.error || 'request_failed'),
     };
   }
 
