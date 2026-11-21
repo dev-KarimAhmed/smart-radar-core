@@ -48,7 +48,7 @@ export function CaptainAdsSeatsManager({ user, language = 'ar' }: CaptainAdsSeat
           </div>
           <div>
             <h2 className={styles.titleText}>
-              {isArabic ? 'إدارة النشر وترويج إعلاناتك المعروضة في المحيط' : t('title')}
+              {isArabic ? 'ارفع وانشر إعلاناتك الترويجية في محيطك' : t('title')}
             </h2>
             <p className={styles.subtitleText}>
               {isArabic

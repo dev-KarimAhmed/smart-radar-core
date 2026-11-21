@@ -89,10 +89,7 @@ export function DriverWalletTab({
         t={t}
       />
 
-      {/* 3. Captain Promotional Ad Seats Manager (مكانها الأصلي في الشاشة وبدون حد أقصى) */}
-      <CaptainAdsSeatsManager user={user} language={language} />
-
-      {/* 4. Digital Recharge Section */}
+      {/* 3. Digital Recharge Section (وسائل الدفع والشحن) */}
       <DriverWalletRechargeSection
         language={language}
         effectiveChannels={effectiveChannels}
@@ -110,8 +107,11 @@ export function DriverWalletTab({
         t={t}
       />
 
-      {/* 5. Financial Delegate Card */}
+      {/* 4. Financial Delegate Card */}
       <DriverWalletDelegateCard effectiveDelegate={effectiveDelegate} t={t} />
+
+      {/* 5. Captain Promotional Ad Seats Manager (مكان رفع ونشر الإعلانات) */}
+      <CaptainAdsSeatsManager user={user} language={language} />
     </div>
   );
 }

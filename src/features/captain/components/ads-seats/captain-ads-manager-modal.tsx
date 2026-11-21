@@ -64,7 +64,7 @@ export function CaptainAdsManagerModal({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-white">
-                {isArabic ? 'إدارة النشر وترويج إعلاناتك المعروضة للمستخدمين في المحيط' : 'Manage & Promote Your Ads in Area'}
+                {isArabic ? 'ارفع وانشر إعلاناتك الترويجية في محيطك' : 'Upload & Promote Your Local Ads'}
               </h3>
               <p className="text-xs text-slate-400 font-sans mt-0.5 leading-relaxed">
                 {isArabic
