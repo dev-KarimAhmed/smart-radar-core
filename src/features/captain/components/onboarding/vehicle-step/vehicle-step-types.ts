@@ -47,8 +47,6 @@ export const styles = {
   label: 'block text-[10px] font-medium text-[#94A3B8] tracking-wider uppercase mb-1',
   input:
     'w-full bg-[#0B0F19] border border-[#243249] focus:border-[#14B8A6] text-[#F8FAFC] placeholder-[#94A3B8]/30 rounded-xl px-4 h-11 text-sm outline-none transition-all duration-300',
-  colorRow: 'flex items-center gap-2',
-  colorSwatch: 'h-11 w-14 shrink-0 cursor-pointer rounded-xl border border-[#243249] bg-[#0B0F19] p-1',
   error: 'text-[10px] font-bold text-rose-400 mt-1',
   helper: 'text-[11px] text-slate-400 mt-1 leading-relaxed',
   documentBlock: 'p-3 rounded-xl bg-[#0B0F19] border border-[#14B8A6]/20 space-y-2',

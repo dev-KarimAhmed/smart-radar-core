@@ -25,7 +25,7 @@ export const emptyVehicle: CaptainVehicleValues = {
   companyCode: '',
   make: '',
   model: '',
-  color: 'تركواز',
+  color: '',
   plate: '',
   year: '',
   licenseNumber: '',

@@ -4,7 +4,6 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { AppSelect } from '@/shared/components/ui/app-select';
-import { colorNameToHex, hexToColorName } from '@/shared/services/color-name';
 import { VEHICLE_YEAR_MAX, VEHICLE_YEAR_MIN } from '../../../lib/captain-registration-schema';
 import { styles, type CaptainVehicleValues } from './vehicle-step-types';
 
@@ -51,44 +50,22 @@ export function VehicleIdentityFields({ vehicle, errors, onFieldChange }: Omit<F
   );
 }
 
-export function ColorAndPlateFields({ vehicle, errors, onFieldChange, isArabic }: Omit<FieldProps, 'country'>) {
+export function ColorAndPlateFields({ vehicle, errors, onFieldChange }: Omit<FieldProps, 'country' | 'isArabic'> & { isArabic?: boolean }) {
   const t = useTranslations('captainOnboarding.vehicle');
-  const [colorSwatch, setColorSwatch] = React.useState('#14b8a6');
-
-  React.useEffect(() => {
-    if (!vehicle.color || vehicle.color.startsWith('#')) {
-      onFieldChange('color', hexToColorName(colorSwatch, isArabic ? 'ar' : 'en'));
-    } else {
-      const hex = colorNameToHex(vehicle.color);
-      if (hex) setColorSwatch(hex);
-    }
-  }, [vehicle.color, isArabic]);
 
   return (
     <div className={styles.fieldRow}>
       <div>
         <label className={styles.label}>{t('color')}</label>
-        <div className={styles.colorRow}>
-          <input
-            type="color"
-            value={colorSwatch}
-            onChange={(event) => {
-              setColorSwatch(event.target.value);
-              onFieldChange('color', hexToColorName(event.target.value, isArabic ? 'ar' : 'en'));
-            }}
-            className={styles.colorSwatch}
-          />
-          <input
-            type="text"
-            name="color"
-            data-field="color"
-            value={vehicle.color || ''}
-            readOnly
-            className={styles.input}
-            placeholder={t('colorPlaceholder')}
-            required
-          />
-        </div>
+        <Input
+          name="color"
+          data-field="color"
+          value={vehicle.color || ''}
+          onChange={(event) => onFieldChange('color', event.target.value)}
+          className={styles.input}
+          placeholder={t('colorPlaceholder')}
+          required
+        />
         {errors.color ? <p className={styles.error}>{errors.color}</p> : null}
       </div>
       <div>

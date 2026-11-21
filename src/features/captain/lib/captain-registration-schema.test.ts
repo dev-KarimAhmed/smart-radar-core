@@ -38,6 +38,15 @@ test('captain smart-app vehicle schema validates with licenseNumber and requires
 
   const missingLicense = { ...validPayload, licenseNumber: '' };
   await assert.rejects(schema.validate(missingLicense));
+
+  const missingColor = { ...validPayload, color: '' };
+  await assert.rejects(schema.validate(missingColor));
+
+  const arabicColor = { ...validPayload, color: 'أبيض' };
+  await assert.doesNotReject(schema.validate(arabicColor));
+
+  const invalidColor = { ...validPayload, color: '123' };
+  await assert.rejects(schema.validate(invalidColor));
 });
 
 test('captain taxi vehicle schema validates with licenseNumber and requires no national ID', async () => {
@@ -74,6 +83,12 @@ test('captain independent vehicle schema validates without companyName, companyC
   };
 
   await assert.doesNotReject(schemaJo.validate(validPayload));
+
+  const missingColor = { ...validPayload, color: '' };
+  await assert.rejects(schemaJo.validate(missingColor));
+
+  const arabicColor = { ...validPayload, color: 'فضي' };
+  await assert.doesNotReject(schemaJo.validate(arabicColor));
 
   const invalidPayload = { ...validPayload, make: '' };
   await assert.rejects(schemaJo.validate(invalidPayload));

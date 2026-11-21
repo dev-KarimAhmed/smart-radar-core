@@ -2,7 +2,7 @@ import React from 'react';
 import { Car } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Panel, EditableField, styles } from './driver-profile-shared';
-import { resolveColorDisplayName, colorNameToHex, hexToColorName } from '@/shared/services/color-name';
+import { resolveColorDisplayName } from '@/shared/services/color-name';
 import { DriverVehicleAffiliation } from './driver-vehicle-affiliation';
 import { DriverVehicleSocial } from './driver-vehicle-social';
 
@@ -84,21 +84,12 @@ export function DriverVehiclePanel({ state, language }: { state: any, language: 
         onSave={handleFieldSave}
         onCancel={() => { setVehicleColor(savedSnapshotRef.current.vehicleColor); stopEditingField('vehicleColor'); }}
       >
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={colorNameToHex(vehicleColor) || '#ffffff'}
-            onChange={(event) => setVehicleColor(hexToColorName(event.target.value, language))}
-            className="h-9 w-12 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0.5 shrink-0"
-            title={language === 'ar' ? 'اختر اللون' : 'Pick Color'}
-          />
-          <input
-            value={vehicleColor}
-            onChange={(event) => setVehicleColor(event.target.value)}
-            placeholder={language === 'ar' ? 'أدخل لون السيارة...' : 'Enter vehicle color...'}
-            className={styles.editingInput}
-          />
-        </div>
+        <input
+          value={vehicleColor}
+          onChange={(event) => setVehicleColor(event.target.value)}
+          placeholder={language === 'ar' ? 'أدخل لون السيارة...' : 'Enter vehicle color...'}
+          className={styles.editingInput}
+        />
       </EditableField>
       <EditableField
         label={t('year')}
