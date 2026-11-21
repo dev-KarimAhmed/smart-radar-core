@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
-import { DriverReferralCard } from '@/features/referral/components/driver-referral-card';
 import type { CaptainReceiptItem } from '../types/driver-wallet-types';
 import { useDriverWalletDirectory } from '../hooks/use-driver-wallet-directory';
 import { DriverWalletBalanceCard } from './wallet/driver-wallet-balance-card';
@@ -76,9 +75,6 @@ export function DriverWalletTab({
         <h1 className="text-2xl sm:text-3xl font-black text-white">{t('title')}</h1>
         <p className="mt-1 text-xs sm:text-sm text-slate-400">{t('subtitle')}</p>
       </div>
-
-      {/* Driver Referral Card */}
-      <DriverReferralCard user={user} isArabic={language === 'ar'} onOpenHistory={onOpenHistory} />
 
       {/* 2. Unified Hero Balance Card */}
       <DriverWalletBalanceCard
