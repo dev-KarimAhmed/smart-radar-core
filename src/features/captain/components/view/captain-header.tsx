@@ -21,12 +21,12 @@ const styles = {
   actionIcon: 'h-4 w-4 shrink-0',
   logoutIcon: 'h-4 w-4 shrink-0 rotate-180',
   actionLabel: 'text-xs font-black sm:text-sm',
-  notificationsBtn: 'relative inline-flex items-center justify-center rounded-xl border px-2.5 py-1.5 transition sm:rounded-2xl sm:px-3 sm:py-2',
+  notificationsBtn: 'relative inline-flex items-center justify-center rounded-xl border px-2.5 py-1.5 transition cursor-pointer sm:rounded-2xl sm:px-3 sm:py-2',
   notificationsBtnActive: 'border-[#14B8A6]/50 bg-[#14B8A6]/20 text-[#14F5D5]',
   notificationsBtnIdle: 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white',
   unreadBadge: 'absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white shadow-lg animate-pulse',
-  languageBtn: 'inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1.5 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 sm:rounded-2xl sm:px-3 sm:py-2',
-  logoutBtn: 'inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-600/15 px-2.5 py-1.5 text-red-100 transition hover:bg-red-600/25 sm:rounded-2xl sm:px-3 sm:py-2',
+  languageBtn: 'inline-flex items-center justify-center rounded-xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1.5 text-[#14F5D5] transition hover:bg-[#14B8A6]/20 cursor-pointer sm:rounded-2xl sm:px-3 sm:py-2',
+  logoutBtn: 'inline-flex items-center justify-center rounded-xl border border-red-500/30 bg-red-600/15 px-2.5 py-1.5 text-red-100 transition hover:bg-red-600/25 cursor-pointer sm:rounded-2xl sm:px-3 sm:py-2',
   statusRow: 'flex items-center gap-1.5 sm:gap-2.5 w-full',
   statusBtnBase: 'relative inline-flex w-full sm:w-auto sm:flex-[1.8] sm:grow-[2] items-center justify-center gap-2 rounded-xl px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-black transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 select-none',
   statusBtnActive: 'border-2 border-emerald-400 bg-gradient-to-r from-emerald-500/25 via-emerald-500/35 to-teal-500/25 text-emerald-200 shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:bg-emerald-500/40 ring-1 ring-emerald-400/50',
@@ -127,7 +127,6 @@ export function CaptainHeader({
             className={styles.languageBtn}
           >
             <Languages className={styles.actionIcon} />
-            <span className={styles.actionLabel}>{t('switchLanguageLabel')}</span>
           </button>
           <button
             type="button"
@@ -154,7 +153,6 @@ export function CaptainHeader({
             className={styles.logoutBtn}
           >
             <LogOut className={styles.logoutIcon} />
-            <span className={styles.actionLabel}>{t('logout')}</span>
           </button>
         </div>
       </div>
