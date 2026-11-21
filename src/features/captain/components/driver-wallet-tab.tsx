@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import type { User } from '@/core/types';
 import { useSovereignWallet } from '@/hooks/use-sovereign-wallet';
@@ -10,6 +10,8 @@ import { DriverWalletBalanceCard } from './wallet/driver-wallet-balance-card';
 import { CaptainAdsSeatsManager } from './captain-ads-seats-manager';
 import { DriverWalletRechargeSection } from './wallet/driver-wallet-recharge-section';
 import { DriverWalletDelegateCard } from './wallet/driver-wallet-delegate-card';
+import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
+import { subscribeCaptainAdPackage } from '../services/captain-ads-service';
 
 export type { CaptainReceiptItem };
 
@@ -36,6 +38,26 @@ export function DriverWalletTab({
   const [copiedChannelId, setCopiedChannelId] = useState<string | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isBalanceOpen, setIsBalanceOpen] = useState<boolean>(false);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleActivatePackage = () => {
+    const captainId = user?.uid || 'current_captain';
+    subscribeCaptainAdPackage(captainId);
+    setIsPackageModalOpen(false);
+  };
+
+  const handleGoToPayment = () => {
+    setIsPackageModalOpen(false);
+    const rechargeSection = document.getElementById('captain-recharge-section');
+    if (rechargeSection) {
+      rechargeSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const { effectiveChannels, effectiveDelegate } = useDriverWalletDirectory(
     user,
@@ -87,6 +109,7 @@ export function DriverWalletTab({
         isBalanceOpen={isBalanceOpen}
         setIsBalanceOpen={setIsBalanceOpen}
         t={t}
+        onOpenAdPackage={() => setIsPackageModalOpen(true)}
       />
 
       {/* 3. Digital Recharge Section (وسائل الدفع والشحن) */}
@@ -112,6 +135,16 @@ export function DriverWalletTab({
 
       {/* 5. Captain Promotional Ad Seats Manager (مكان رفع ونشر الإعلانات) */}
       <CaptainAdsSeatsManager user={user} language={language} />
+
+      {/* 6. Captain Ad Package Modal (باقة الخدمات / A) */}
+      <CaptainAdPackageModal
+        mounted={mounted}
+        isOpen={isPackageModalOpen}
+        isArabic={language === 'ar'}
+        onClose={() => setIsPackageModalOpen(false)}
+        onGoToPayment={handleGoToPayment}
+        onActivatePackage={handleActivatePackage}
+      />
     </div>
   );
 }
