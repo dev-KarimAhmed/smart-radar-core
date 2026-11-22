@@ -10,7 +10,7 @@ export const DATA_IMAGE_PATTERN = /^data:(image\/(?:png|jpeg|jpg|webp|gif));base
 
 export function isValidSeatNumber(value: unknown): boolean {
   const num = Number(value);
-  return Number.isInteger(num) && num >= 1 && num <= 20;
+  return Number.isInteger(num) && num >= 1 && num <= CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT;
 }
 
 export function validateSafeImageInput(raw: unknown): { ok: true; value: string } | { ok: false; error: string } {

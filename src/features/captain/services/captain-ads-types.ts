@@ -30,11 +30,11 @@ export interface CaptainAdPackage {
 
 export const AD_PACKAGE_A_DETAILS: CaptainAdPackage = {
   packageId: 'PACKAGE_A',
-  packageNameAr: 'باقة الخدمات / A',
-  packageNameEn: 'Services Package / A',
+  packageNameAr: 'الباقة الافتتاحية',
+  packageNameEn: 'Launch Package',
   status: 'UNSUBSCRIBED',
   durationDays: 30,
-  maxAds: 3,
+  maxAds: 4,
   coverageMeters: 500,
-  priceJOD: 10,
+  priceJOD: 0,
 };

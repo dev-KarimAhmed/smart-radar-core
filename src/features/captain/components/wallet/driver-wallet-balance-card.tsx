@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Clock,
   Info,
+  Sparkles,
   Zap,
 } from 'lucide-react';
 import type { User } from '@/core/types';
@@ -21,6 +22,7 @@ interface DriverWalletBalanceCardProps {
   isBalanceOpen: boolean;
   setIsBalanceOpen: React.Dispatch<React.SetStateAction<boolean>>;
   t: (key: string, values?: any) => string;
+  onOpenAdPackage?: () => void;
 }
 
 export function DriverWalletBalanceCard({
@@ -33,6 +35,7 @@ export function DriverWalletBalanceCard({
   isBalanceOpen,
   setIsBalanceOpen,
   t,
+  onOpenAdPackage,
 }: DriverWalletBalanceCardProps) {
   const radarHourPrice = wallet.radarHourPrice || 1;
   const totalMinutes = wallet.totalUsableMinutes;
@@ -170,6 +173,39 @@ export function DriverWalletBalanceCard({
             <Info className="h-4 w-4 shrink-0 text-cyan-400" />
             <span>{t('rateLinkingNote')}</span>
           </div>
+
+          {/* اختار باقة اعلانك - زر أنيق ولطيف في أسفل البطاقة */}
+          {onOpenAdPackage && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenAdPackage();
+              }}
+              className="group relative flex w-full items-center justify-between overflow-hidden rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/70 via-slate-900/80 to-emerald-950/50 p-3 sm:p-3.5 text-start transition-all hover:border-[#14F5D5] hover:shadow-[0_0_25px_rgba(20,245,213,0.25)] active:scale-[0.99] cursor-pointer"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-500/15 text-[#14F5D5] transition-transform group-hover:scale-110 shadow-[0_0_12px_rgba(20,245,213,0.2)]">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block font-black text-xs sm:text-sm text-white group-hover:text-[#14F5D5] transition-colors truncate">
+                    {language === 'ar' ? 'الباقة الافتتاحية' : 'The Launch Package'}
+                  </span>
+                  <span className="block text-[11px] text-teal-300/90 font-sans truncate">
+                    {language === 'ar' ? 'أول شهر مجاني بالكامل · استكشف 14 ميزة حصرية' : 'First month 100% free · Explore 14 exclusive features'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-[#14F5D5] px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-md shadow-teal-500/20 transition-all group-hover:scale-105 group-hover:brightness-110">
+                  <span>{language === 'ar' ? 'عرض الباقة' : 'View Package'}</span>
+                  <Sparkles className="h-3 w-3 text-slate-950" />
+                </span>
+              </div>
+            </button>
+          )}
 
           {walletIsMissing || walletHasError ? (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-100">

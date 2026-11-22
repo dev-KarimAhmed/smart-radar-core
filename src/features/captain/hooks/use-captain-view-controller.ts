@@ -2,12 +2,19 @@ import React from 'react';
 import type { Trip } from '@/core/types';
 import type { useDriverOperations } from '../hooks/use-driver-operations';
 import type { CaptainDashboardAction, CaptainDashboardState } from '../state/captain-state-machine';
+import {
+  getCaptainAdPackage,
+  getCaptainOperatingEligibility,
+  subscribeCaptainAdPackage,
+  type CaptainAdPackage,
+} from '../services/captain-ads-package';
 
 type DriverOperations = ReturnType<typeof useDriverOperations>;
 
 interface UseCaptainViewControllerParams {
   user: any;
   driverOps: DriverOperations | null;
+  wallet?: any;
   currentTariff: {
     baseFare: number | null;
     pricePerKm: number | null;
@@ -22,6 +29,7 @@ interface UseCaptainViewControllerParams {
 export function useCaptainViewController({
   user,
   driverOps,
+  wallet,
   currentTariff,
   state,
   dispatch,
@@ -31,8 +39,34 @@ export function useCaptainViewController({
   const [isInstallModalOpen, setIsInstallModalOpen] = React.useState(false);
   const [isManualPriceSetupOpen, setIsManualPriceSetupOpen] = React.useState(false);
   const [isPendingActivation, setIsPendingActivation] = React.useState(false);
+  const [isPackageModalOpen, setIsPackageModalOpen] = React.useState(false);
+  const [adPackage, setAdPackage] = React.useState<CaptainAdPackage>(() => getCaptainAdPackage(user?.uid || '', user));
   const [_prefilledOfferPrice, setPrefilledOfferPrice] = React.useState<number | null>(null);
   const [_prefilledPricingMode, setPrefilledPricingMode] = React.useState<'FREE' | 'APP' | 'TAXI' | null>(null);
+
+  const operatingEligibility = React.useMemo(() => {
+    return getCaptainOperatingEligibility({
+      adPackage,
+      totalUsableMinutes: wallet?.totalUsableMinutes ?? 0,
+      language: user?.language === 'en' ? 'en' : 'ar',
+    });
+  }, [adPackage, wallet?.totalUsableMinutes, user]);
+
+  React.useEffect(() => {
+    const onPkgUpdated = (e: any) => {
+      if (e?.detail?.package) setAdPackage(e.detail.package);
+      else setAdPackage(getCaptainAdPackage(user?.uid || '', user));
+    };
+    window.addEventListener('radar_captain_ad_package_updated', onPkgUpdated);
+    return () => window.removeEventListener('radar_captain_ad_package_updated', onPkgUpdated);
+  }, [user]);
+
+  // Security guard: If a captain has 'active' status but not eligible or tariff missing, revert to 'idle'
+  React.useEffect(() => {
+    if (!operatingEligibility.isEligible && driverOps?.driverStatus === 'active') {
+      void driverOps.toggleDriverStatus('idle');
+    }
+  }, [operatingEligibility.isEligible, driverOps]);
 
   // Check pending PWA install prompt
   React.useEffect(() => {
@@ -101,6 +135,30 @@ export function useCaptainViewController({
     }
   };
 
+  const handleToggleCaptainStatus = React.useCallback(() => {
+    if (driverOps?.driverStatus === 'active') {
+      void driverOps.toggleDriverStatus('idle');
+      return;
+    }
+    if (!operatingEligibility.isEligible) {
+      setIsPackageModalOpen(true);
+      return;
+    }
+    setIsPendingActivation(true);
+  }, [driverOps, operatingEligibility.isEligible]);
+
+  const handleActivatePackage = React.useCallback(() => {
+    if (user?.uid) {
+      subscribeCaptainAdPackage(user.uid);
+    }
+    setIsPackageModalOpen(false);
+  }, [user?.uid]);
+
+  const handleGoToPayment = React.useCallback(() => {
+    setIsPackageModalOpen(false);
+    dispatch({ type: 'OPEN_WALLET' });
+  }, [dispatch]);
+
   return {
     isInstallModalOpen,
     setIsInstallModalOpen,
@@ -108,6 +166,12 @@ export function useCaptainViewController({
     setIsManualPriceSetupOpen,
     isPendingActivation,
     setIsPendingActivation,
+    isPackageModalOpen,
+    setIsPackageModalOpen,
+    operatingEligibility,
+    handleToggleCaptainStatus,
+    handleActivatePackage,
+    handleGoToPayment,
     handleClosePriceSetup,
     submitBid,
     submitDirectBid,

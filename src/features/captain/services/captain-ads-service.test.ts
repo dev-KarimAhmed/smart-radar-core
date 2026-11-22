@@ -10,7 +10,8 @@ import {
 // 1. فحص متغيرات وثوابت التحقق
 assert.equal(CAPTAIN_ADS_CONFIG.MAX_CAPTION_LENGTH, 100, 'Max caption length should be 100');
 assert.equal(CAPTAIN_ADS_CONFIG.STORY_DURATION_SECONDS, 6, 'Story duration should be 6s');
-assert.equal(CAPTAIN_ADS_CONFIG.ALLOW_UNLIMITED_ADS, true, 'Captain can have unlimited ads');
+assert.equal(CAPTAIN_ADS_CONFIG.MAX_ADS_LIMIT, 4, 'Max ads limit should be 4');
+assert.equal(CAPTAIN_ADS_CONFIG.ALLOW_UNLIMITED_ADS, false, 'Captain ads limit is 4');
 assert.equal(CAPTAIN_ADS_CONFIG.SPEED_DURATIONS.slow, 95, 'Slow speed should be 95s');
 assert.equal(CAPTAIN_ADS_CONFIG.SPEED_DURATIONS.normal, 60, 'Normal speed should be 60s');
 assert.equal(CAPTAIN_ADS_CONFIG.SPEED_DURATIONS.fast, 32, 'Fast speed should be 32s');

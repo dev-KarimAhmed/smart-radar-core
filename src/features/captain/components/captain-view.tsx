@@ -30,6 +30,7 @@ import { CaptainBottomNav } from './view/captain-bottom-nav';
 import { CaptainSecurityScreens } from './view/captain-security-screens';
 import { CaptainMainContent } from './view/captain-main-content';
 import { CaptainModals } from './view/captain-modals';
+import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
 
 const styles = {
   root: 'min-h-screen w-full max-w-full overflow-x-hidden bg-[#0B0F19] p-2.5 pb-24 text-white sm:p-3 sm:pb-12 md:p-5',
@@ -73,21 +74,10 @@ export function DriverViewTab() {
 
   useCaptainSyncEffects({ driverOps, isOffline, state, dispatch, toast, t });
 
-  const {
-    isInstallModalOpen,
-    setIsInstallModalOpen,
-    isManualPriceSetupOpen,
-    setIsManualPriceSetupOpen,
-    isPendingActivation,
-    setIsPendingActivation,
-    handleClosePriceSetup,
-    submitBid,
-    submitDirectBid,
-    selectRequest,
-    completeTrip,
-  } = useCaptainViewController({
+  const vc = useCaptainViewController({
     user,
     driverOps,
+    wallet,
     currentTariff,
     state,
     dispatch,
@@ -133,13 +123,7 @@ export function DriverViewTab() {
           hasHistoryUnread={hasTripUnread}
           marketIndicator={marketIndicator}
           user={user}
-          onToggleStatus={() => {
-            if (isActive) {
-              void driverOps.toggleDriverStatus('idle');
-            } else {
-              setIsPendingActivation(true);
-            }
-          }}
+          onToggleStatus={vc.handleToggleCaptainStatus}
           onOpenNotifications={() => dispatch({ type: 'OPEN_NOTIFICATIONS' })}
           onToggleLanguage={toggleLanguage}
           onLogout={() => void logout()}
@@ -187,32 +171,36 @@ export function DriverViewTab() {
             const ok = await driverOps.startTrip();
             if (ok) dispatch({ type: 'START_TRIP' });
           }}
-          onCompleteTrip={completeTrip}
-          onSelectRequest={selectRequest}
-          onSubmitDirectBid={submitDirectBid}
-          onSubmitBid={submitBid}
-          onOpenPriceSetup={() => setIsManualPriceSetupOpen(true)}
+          onCompleteTrip={vc.completeTrip}
+          onSelectRequest={vc.selectRequest}
+          onSubmitDirectBid={vc.submitDirectBid}
+          onSubmitBid={vc.submitBid}
+          onOpenPriceSetup={() => vc.setIsManualPriceSetupOpen(true)}
           dispatch={dispatch}
         />
       </div>
 
       <CaptainModals
-        needsPriceSetup={needsPriceSetup || isPendingActivation}
-        isManualPriceSetupOpen={isManualPriceSetupOpen}
+        needsPriceSetup={needsPriceSetup || vc.isPendingActivation}
+        isManualPriceSetupOpen={vc.isManualPriceSetupOpen}
         activationNonce={driverOps?.activationNonce ?? 0}
         direction={direction}
         currency={currency}
         currentTariff={currentTariff}
         marketIndicator={marketIndicator}
         isInDifferentCountry={isInDifferentCountry}
-        isActivationConfirm={isPendingActivation || isActivationConfirm}
+        isActivationConfirm={vc.isPendingActivation || isActivationConfirm}
         onSaveTariff={async (val) => {
           const res = await saveTariff(val);
           if (res.saved) {
-            setIsManualPriceSetupOpen(false);
-            setIsPendingActivation(false);
+            vc.setIsManualPriceSetupOpen(false);
+            vc.setIsPendingActivation(false);
             if (!isActive) {
-              await driverOps.toggleDriverStatus('active');
+              if (vc.operatingEligibility.isEligible) {
+                await driverOps.toggleDriverStatus('active');
+              } else {
+                vc.setIsPackageModalOpen(true);
+              }
             }
             if (!driverOps?.activeRequest && state.selectedRequest) {
               dispatch({ type: 'IGNORE_REQUEST', requestId: state.selectedRequest.id });
@@ -221,14 +209,25 @@ export function DriverViewTab() {
           }
           return res;
         }}
-        onClosePriceSetup={handleClosePriceSetup}
+        onClosePriceSetup={vc.handleClosePriceSetup}
         isRatingModalOpen={screen === 'RATING_MODAL'}
         completedTrip={state.completedTrip}
         userUid={user?.uid}
         language={language}
         onDismissRating={() => dispatch({ type: 'RATING_DISMISSED' })}
-        isInstallModalOpen={isInstallModalOpen}
-        onCloseInstallModal={() => setIsInstallModalOpen(false)}
+        isInstallModalOpen={vc.isInstallModalOpen}
+        onCloseInstallModal={() => vc.setIsInstallModalOpen(false)}
+      />
+
+      <CaptainAdPackageModal
+        mounted={true}
+        isOpen={vc.isPackageModalOpen}
+        isArabic={language === 'ar'}
+        radarHourPrice={wallet.radarHourPrice || 300}
+        currencySymbol={user?.currencyAr || user?.currencyEn || (language === 'ar' ? 'ج.م' : 'EGP')}
+        onClose={() => vc.setIsPackageModalOpen(false)}
+        onGoToPayment={vc.handleGoToPayment}
+        onActivatePackage={vc.handleActivatePackage}
       />
 
       <CaptainBottomNav
