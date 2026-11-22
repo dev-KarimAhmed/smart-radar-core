@@ -13,10 +13,10 @@ export interface WelcomeHoursConfig {
 }
 
 export const DEFAULT_WELCOME_HOURS_CONFIG: WelcomeHoursConfig = {
-  enabled: true,
-  hours: 20,
-  minutes: 1200,
-  validityDays: 30,
+  enabled: false,
+  hours: 0,
+  minutes: 0,
+  validityDays: 0,
 };
 
 export async function getWelcomeHoursConfig(): Promise<WelcomeHoursConfig> {

@@ -6,11 +6,11 @@ import {
 } from './captain-welcome-credit';
 import { encodeNotificationPayload, parseNotificationContent } from '@/shared/utils/notification-i18n';
 
-test('DEFAULT_WELCOME_HOURS_CONFIG has 20 hours (1200 minutes) and 30 validity days', () => {
-  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.enabled, true);
-  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.hours, 20);
-  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.minutes, 1200);
-  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.validityDays, 30);
+test('DEFAULT_WELCOME_HOURS_CONFIG is disabled (0 hours) since Launch Package provides the free month', () => {
+  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.enabled, false);
+  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.hours, 0);
+  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.minutes, 0);
+  assert.equal(DEFAULT_WELCOME_HOURS_CONFIG.validityDays, 0);
   assert.equal(WELCOME_HOURS_FLAG_KEY, 'new_captain_welcome_credit');
 });
 
