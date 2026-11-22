@@ -7,13 +7,13 @@ import {
   Info,
   Sparkles,
   Zap,
-  CheckCircle2,
 } from 'lucide-react';
 import type { User } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { toHoursMinutes } from '../../types/driver-wallet-types';
 import { resolveUserCurrency } from '@/shared/services/currency-label';
 import type { CaptainAdPackage } from '../../services/captain-ads-package';
+import { LaunchPackageFreeTrialBanner } from './launch-package-free-trial-banner';
 
 interface DriverWalletBalanceCardProps {
   user: User | null;
@@ -94,6 +94,12 @@ export function DriverWalletBalanceCard({
               {bonusMinutes > 0 ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
                   +{bonusMinutes} {language === 'ar' ? 'مكافأة' : 'bonus'}
+                </span>
+              ) : null}
+              {adPackage?.status === 'ACTIVE' ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-teal-400/30 bg-teal-500/15 px-2 py-0.5 text-[11px] font-bold text-teal-300">
+                  <Sparkles className="h-3 w-3 text-[#14F5D5]" />
+                  <span>{language === 'ar' ? 'العرض المجاني نشط (30 يوم)' : 'Free Trial (30 Days)'}</span>
                 </span>
               ) : null}
             </div>
@@ -180,45 +186,13 @@ export function DriverWalletBalanceCard({
             <span>{t('rateLinkingNote')}</span>
           </div>
 
-          {/* اختار باقة اعلانك - زر أنيق ولطيف في أسفل البطاقة */}
+          {/* 30-Day Free Trial Notice & Countdown / Launch Package Banner */}
           {onOpenAdPackage && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenAdPackage();
-              }}
-              className="group relative flex w-full items-center justify-between overflow-hidden rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/70 via-slate-900/80 to-emerald-950/50 p-3 sm:p-3.5 text-start transition-all hover:border-[#14F5D5] hover:shadow-[0_0_25px_rgba(20,245,213,0.25)] active:scale-[0.99] cursor-pointer"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-500/15 text-[#14F5D5] transition-transform group-hover:scale-110 shadow-[0_0_12px_rgba(20,245,213,0.2)]">
-                  {adPackage?.status === 'ACTIVE' ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                  ) : (
-                    <Sparkles className="h-5 w-5" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <span className="block font-black text-xs sm:text-sm text-white group-hover:text-[#14F5D5] transition-colors truncate">
-                    {adPackage?.status === 'ACTIVE'
-                      ? (language === 'ar' ? 'الباقة الافتتاحية (نشطة)' : 'Launch Package (Active)')
-                      : (language === 'ar' ? 'الباقة الافتتاحية' : 'The Launch Package')}
-                  </span>
-                  <span className="block text-[11px] text-teal-300/90 font-sans truncate">
-                    {adPackage?.status === 'ACTIVE'
-                      ? (language === 'ar' ? 'الباقة مفعلة حالياً · استكشف 14 ميزة حصرية' : 'Package Active · 14 features unlocked')
-                      : (language === 'ar' ? 'أول شهر مجاني بالكامل · استكشف 14 ميزة حصرية' : 'First month 100% free · Explore 14 exclusive features')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-[#14F5D5] px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-md shadow-teal-500/20 transition-all group-hover:scale-105 group-hover:brightness-110">
-                  <span>{adPackage?.status === 'ACTIVE' ? (language === 'ar' ? 'عرض التفاصيل' : 'Details') : (language === 'ar' ? 'عرض الباقة' : 'View Package')}</span>
-                  <Sparkles className="h-3 w-3 text-slate-950" />
-                </span>
-              </div>
-            </button>
+            <LaunchPackageFreeTrialBanner
+              adPackage={adPackage}
+              language={language}
+              onOpenAdPackage={onOpenAdPackage}
+            />
           )}
 
           {walletIsMissing || walletHasError ? (

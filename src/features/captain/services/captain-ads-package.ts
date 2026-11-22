@@ -9,12 +9,14 @@ export function getCaptainAdPackageKey(captainId: string): string {
 
 export function getCaptainAdPackage(captainId: string, user?: any): CaptainAdPackage {
   if (user?.ad_package_active === true) {
+    const subAt = user?.ad_package_subscribed_at || new Date().toISOString();
+    const expAt = user?.ad_package_expires_at || new Date(new Date(subAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
     return {
       ...AD_PACKAGE_A_DETAILS,
       status: 'ACTIVE',
       hasActivatedBefore: true,
-      subscribedAt: user?.ad_package_subscribed_at || new Date().toISOString(),
-      expiresAt: user?.ad_package_expires_at,
+      subscribedAt: subAt,
+      expiresAt: expAt,
     };
   }
   if (user?.ad_package_status === 'EXPIRED' || user?.ad_package_activated === true) {
@@ -33,12 +35,14 @@ export function getCaptainAdPackage(captainId: string, user?: any): CaptainAdPac
     const parsed = JSON.parse(raw);
     const hasActivated = Boolean(parsed.hasActivatedBefore || parsed.subscribedAt || parsed.status === 'ACTIVE' || parsed.status === 'EXPIRED');
     if (parsed && parsed.status === 'ACTIVE') {
-      if (parsed.expiresAt && new Date(parsed.expiresAt).getTime() < Date.now()) {
+      const subAt = parsed.subscribedAt || new Date().toISOString();
+      const expAt = parsed.expiresAt || new Date(new Date(subAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      if (new Date(expAt).getTime() < Date.now()) {
         const expired = { ...parsed, status: 'EXPIRED' as const, hasActivatedBefore: true };
         localStorage.setItem(getCaptainAdPackageKey(captainId), JSON.stringify(expired));
         return expired;
       }
-      return { ...parsed, hasActivatedBefore: true };
+      return { ...parsed, subscribedAt: subAt, expiresAt: expAt, hasActivatedBefore: true };
     }
     return { ...AD_PACKAGE_A_DETAILS, ...parsed, hasActivatedBefore: hasActivated };
   } catch {
