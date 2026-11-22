@@ -12,6 +12,7 @@ import { DriverWalletRechargeSection } from './wallet/driver-wallet-recharge-sec
 import { DriverWalletDelegateCard } from './wallet/driver-wallet-delegate-card';
 import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
 import { subscribeCaptainAdPackage } from '../services/captain-ads-service';
+import { resolveUserCurrency } from '@/shared/services/currency-label';
 
 export type { CaptainReceiptItem };
 
@@ -142,7 +143,7 @@ export function DriverWalletTab({
         isOpen={isPackageModalOpen}
         isArabic={language === 'ar'}
         radarHourPrice={wallet.radarHourPrice || 300}
-        currencySymbol={user?.currencyAr || user?.currencyEn || (language === 'ar' ? 'ج.م' : 'EGP')}
+        currencySymbol={resolveUserCurrency(user, language)}
         onClose={() => setIsPackageModalOpen(false)}
         onGoToPayment={handleGoToPayment}
         onActivatePackage={handleActivatePackage}

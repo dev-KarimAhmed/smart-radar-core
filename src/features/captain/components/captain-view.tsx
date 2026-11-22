@@ -15,6 +15,7 @@ import { useConnectionGuard } from '../hooks/use-connection-guard';
 import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
 import { useCaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
 import { useCountryConfig } from '@/shared/hooks/use-country-config';
+import { resolveUserCurrency } from '@/shared/services/currency-label';
 import { getCurrencyLabel } from '@/shared/services/currency-label';
 import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-from-location';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
@@ -224,7 +225,7 @@ export function DriverViewTab() {
         isOpen={vc.isPackageModalOpen}
         isArabic={language === 'ar'}
         radarHourPrice={wallet.radarHourPrice || 300}
-        currencySymbol={user?.currencyAr || user?.currencyEn || (language === 'ar' ? 'ج.م' : 'EGP')}
+        currencySymbol={resolveUserCurrency(user, language)}
         onClose={() => vc.setIsPackageModalOpen(false)}
         onGoToPayment={vc.handleGoToPayment}
         onActivatePackage={vc.handleActivatePackage}

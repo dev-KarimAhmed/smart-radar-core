@@ -36,7 +36,9 @@ export function CaptainAdPackageModal({
 }: CaptainAdPackageModalProps) {
   if (!mounted || !isOpen) return null;
 
-  const currency = currencySymbol || (isArabic ? 'ج.م' : 'EGP');
+  const isEgypt = currencySymbol === 'ج.م' || currencySymbol === 'EGP';
+  const defaultCurrency = isEgypt ? (isArabic ? 'ج.م' : 'EGP') : (isArabic ? 'د.أ' : 'JOD');
+  const currency = currencySymbol || defaultCurrency;
   const formattedRate = Number(radarHourPrice || 300).toFixed(2);
 
   return createPortal(

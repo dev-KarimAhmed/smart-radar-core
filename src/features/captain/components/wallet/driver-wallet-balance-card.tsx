@@ -11,6 +11,7 @@ import {
 import type { User } from '@/core/types';
 import { cn } from '@/lib/utils';
 import { toHoursMinutes } from '../../types/driver-wallet-types';
+import { resolveUserCurrency } from '@/shared/services/currency-label';
 
 interface DriverWalletBalanceCardProps {
   user: User | null;
@@ -40,7 +41,8 @@ export function DriverWalletBalanceCard({
   const radarHourPrice = wallet.radarHourPrice || 1;
   const totalMinutes = wallet.totalUsableMinutes;
   const bonusMinutes = wallet.bonusMinutesRemaining || 0;
-  const currencySymbol = user?.currencyAr || user?.currencyEn || '';
+  const currencySymbol = resolveUserCurrency(user, language);
+  const hourUnit = language === 'ar' ? 'ساعة' : 'hr';
 
   return (
     <div
@@ -99,7 +101,7 @@ export function DriverWalletBalanceCard({
             <span className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-950/60 px-3 py-1 text-xs font-mono font-bold text-cyan-300">
               <Zap className="h-3.5 w-3.5 text-cyan-400" />
               <span>
-                {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/ساعة
+                {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/{hourUnit}
               </span>
             </span>
           ) : null}
@@ -124,10 +126,10 @@ export function DriverWalletBalanceCard({
               <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-950/60 px-3 py-1 text-xs font-mono font-bold text-cyan-300">
                 <Zap className="h-3.5 w-3.5 text-cyan-400" />
                 <span>
-                  {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/ساعة
+                  {t('hourlyRateCard')}: {radarHourPrice.toFixed(2)} {currencySymbol}/{hourUnit}
                 </span>
                 <span className="text-cyan-400/70 text-[11px]">
-                  ({(radarHourPrice / 60).toFixed(3)}/د)
+                  ({(radarHourPrice / 60).toFixed(3)} {currencySymbol}/{language === 'ar' ? 'د' : 'm'})
                 </span>
               </span>
             </div>
@@ -160,7 +162,7 @@ export function DriverWalletBalanceCard({
               <div className="hidden sm:flex flex-col items-end justify-center border-r border-white/10 pr-6 space-y-1">
                 <span className="text-xs text-slate-400">{t('hourlyRateCard')}</span>
                 <span className="font-mono text-base font-bold text-cyan-300">
-                  {radarHourPrice.toFixed(2)} {currencySymbol}/ساعة
+                  {radarHourPrice.toFixed(2)} {currencySymbol}/{hourUnit}
                 </span>
                 <span className="text-[11px] font-mono text-cyan-400/70">
                   ({(radarHourPrice / 60).toFixed(3)} {currencySymbol}/{language === 'ar' ? 'دقيقة' : 'min'})

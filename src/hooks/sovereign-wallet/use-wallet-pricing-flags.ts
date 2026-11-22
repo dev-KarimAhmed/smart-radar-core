@@ -9,14 +9,15 @@ export function useRadarHourPrice(user: User | null): number {
     let active = true;
     async function resolveHourlyRate() {
       try {
-        const countryId = user?.countryId || 1;
+        const isEgypt = user?.countryId === 2 || (typeof user?.phone === 'string' && user.phone.startsWith('+20'));
+        const countryId = user?.countryId || (isEgypt ? 2 : 1);
         const { data } = await supabase
           .from('countries')
           .select('radar_hour_price')
           .eq('id', countryId)
           .maybeSingle();
 
-        let price = Number(data?.radar_hour_price) || 1;
+        let price = Number(data?.radar_hour_price) || (isEgypt ? 300 : 1);
 
         const { data: flagRow } = await supabase
           .from('app_flags')
