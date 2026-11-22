@@ -168,6 +168,7 @@ export function useCaptainViewController({
     setIsPendingActivation,
     isPackageModalOpen,
     setIsPackageModalOpen,
+    adPackage,
     operatingEligibility,
     handleToggleCaptainStatus,
     handleActivatePackage,

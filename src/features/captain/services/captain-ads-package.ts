@@ -12,13 +12,18 @@ export function getCaptainAdPackage(captainId: string, user?: any): CaptainAdPac
     return {
       ...AD_PACKAGE_A_DETAILS,
       status: 'ACTIVE',
+      hasActivatedBefore: true,
+      subscribedAt: user?.ad_package_subscribed_at || new Date().toISOString(),
       expiresAt: user?.ad_package_expires_at,
     };
   }
-  if (user?.ad_package_status === 'EXPIRED') {
+  if (user?.ad_package_status === 'EXPIRED' || user?.ad_package_activated === true) {
     return {
       ...AD_PACKAGE_A_DETAILS,
       status: 'EXPIRED',
+      hasActivatedBefore: true,
+      subscribedAt: user?.ad_package_subscribed_at,
+      expiresAt: user?.ad_package_expires_at,
     };
   }
   if (typeof window === 'undefined') return AD_PACKAGE_A_DETAILS;
@@ -26,24 +31,33 @@ export function getCaptainAdPackage(captainId: string, user?: any): CaptainAdPac
     const raw = localStorage.getItem(getCaptainAdPackageKey(captainId));
     if (!raw) return AD_PACKAGE_A_DETAILS;
     const parsed = JSON.parse(raw);
+    const hasActivated = Boolean(parsed.hasActivatedBefore || parsed.subscribedAt || parsed.status === 'ACTIVE' || parsed.status === 'EXPIRED');
     if (parsed && parsed.status === 'ACTIVE') {
       if (parsed.expiresAt && new Date(parsed.expiresAt).getTime() < Date.now()) {
-        return { ...parsed, status: 'EXPIRED' };
+        const expired = { ...parsed, status: 'EXPIRED' as const, hasActivatedBefore: true };
+        localStorage.setItem(getCaptainAdPackageKey(captainId), JSON.stringify(expired));
+        return expired;
       }
-      return parsed;
+      return { ...parsed, hasActivatedBefore: true };
     }
-    return { ...AD_PACKAGE_A_DETAILS, ...parsed };
+    return { ...AD_PACKAGE_A_DETAILS, ...parsed, hasActivatedBefore: hasActivated };
   } catch {
     return AD_PACKAGE_A_DETAILS;
   }
 }
 
 export function subscribeCaptainAdPackage(captainId: string): CaptainAdPackage {
+  const existing = getCaptainAdPackage(captainId);
+  // Launch package is strictly single-use: cannot re-activate once used!
+  if (existing.hasActivatedBefore || existing.status === 'ACTIVE' || existing.status === 'EXPIRED') {
+    return existing;
+  }
   const now = new Date();
   const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const pkg: CaptainAdPackage = {
     ...AD_PACKAGE_A_DETAILS,
     status: 'ACTIVE',
+    hasActivatedBefore: true,
     subscribedAt: now.toISOString(),
     expiresAt: expires.toISOString(),
   };

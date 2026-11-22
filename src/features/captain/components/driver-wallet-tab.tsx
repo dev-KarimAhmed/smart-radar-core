@@ -11,7 +11,11 @@ import { CaptainAdsSeatsManager } from './captain-ads-seats-manager';
 import { DriverWalletRechargeSection } from './wallet/driver-wallet-recharge-section';
 import { DriverWalletDelegateCard } from './wallet/driver-wallet-delegate-card';
 import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
-import { subscribeCaptainAdPackage } from '../services/captain-ads-service';
+import {
+  subscribeCaptainAdPackage,
+  getCaptainAdPackage,
+  type CaptainAdPackage,
+} from '../services/captain-ads-package';
 import { resolveUserCurrency } from '@/shared/services/currency-label';
 
 export type { CaptainReceiptItem };
@@ -41,14 +45,24 @@ export function DriverWalletTab({
   const [isBalanceOpen, setIsBalanceOpen] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
   const [isPackageModalOpen, setIsPackageModalOpen] = useState<boolean>(false);
+  const [adPackage, setAdPackage] = useState<CaptainAdPackage>(() =>
+    getCaptainAdPackage(user?.uid || 'current_captain', user)
+  );
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const onPkgUpdated = (e: any) => {
+      if (e?.detail?.package) setAdPackage(e.detail.package);
+      else setAdPackage(getCaptainAdPackage(user?.uid || 'current_captain', user));
+    };
+    window.addEventListener('radar_captain_ad_package_updated', onPkgUpdated);
+    return () => window.removeEventListener('radar_captain_ad_package_updated', onPkgUpdated);
+  }, [user]);
 
   const handleActivatePackage = () => {
     const captainId = user?.uid || 'current_captain';
-    subscribeCaptainAdPackage(captainId);
+    const pkg = subscribeCaptainAdPackage(captainId);
+    setAdPackage(pkg);
     setIsPackageModalOpen(false);
   };
 
@@ -109,6 +123,7 @@ export function DriverWalletTab({
         walletHasError={walletHasError}
         isBalanceOpen={isBalanceOpen}
         setIsBalanceOpen={setIsBalanceOpen}
+        adPackage={adPackage}
         t={t}
         onOpenAdPackage={() => setIsPackageModalOpen(true)}
       />
@@ -144,6 +159,7 @@ export function DriverWalletTab({
         isArabic={language === 'ar'}
         radarHourPrice={wallet.radarHourPrice || 300}
         currencySymbol={resolveUserCurrency(user, language)}
+        adPackage={adPackage}
         onClose={() => setIsPackageModalOpen(false)}
         onGoToPayment={handleGoToPayment}
         onActivatePackage={handleActivatePackage}

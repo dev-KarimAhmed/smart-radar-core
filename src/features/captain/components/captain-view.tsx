@@ -226,6 +226,7 @@ export function DriverViewTab() {
         isArabic={language === 'ar'}
         radarHourPrice={wallet.radarHourPrice || 300}
         currencySymbol={resolveUserCurrency(user, language)}
+        adPackage={vc.adPackage}
         onClose={() => vc.setIsPackageModalOpen(false)}
         onGoToPayment={vc.handleGoToPayment}
         onActivatePackage={vc.handleActivatePackage}

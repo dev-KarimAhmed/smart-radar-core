@@ -11,7 +11,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { styles } from './captain-ads-styles';
-import { CAPTAIN_AD_PACKAGE_FEATURES } from '../../config/captain-ad-package-features';
+import { CaptainAdPackageFeaturesList } from './parts/captain-ad-package-features-list';
+import type { CaptainAdPackage } from '../../services/captain-ads-package';
 
 interface CaptainAdPackageModalProps {
   mounted: boolean;
@@ -19,6 +20,7 @@ interface CaptainAdPackageModalProps {
   isArabic: boolean;
   radarHourPrice?: number;
   currencySymbol?: string;
+  adPackage?: CaptainAdPackage;
   onClose: () => void;
   onGoToPayment: () => void;
   onActivatePackage: () => void;
@@ -30,6 +32,7 @@ export function CaptainAdPackageModal({
   isArabic,
   radarHourPrice = 300,
   currencySymbol,
+  adPackage,
   onClose,
   onGoToPayment,
   onActivatePackage,
@@ -40,6 +43,16 @@ export function CaptainAdPackageModal({
   const defaultCurrency = isEgypt ? (isArabic ? 'ج.م' : 'EGP') : (isArabic ? 'د.أ' : 'JOD');
   const currency = currencySymbol || defaultCurrency;
   const formattedRate = Number(radarHourPrice || 300).toFixed(2);
+
+  const isAlreadyActive = adPackage?.status === 'ACTIVE';
+  const isExpired = adPackage?.status === 'EXPIRED';
+  const hasActivatedBefore = Boolean(adPackage?.hasActivatedBefore || adPackage?.subscribedAt || isAlreadyActive || isExpired);
+
+  const remainingDays = React.useMemo(() => {
+    if (!adPackage?.expiresAt || !isAlreadyActive) return 0;
+    const diff = new Date(adPackage.expiresAt).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [adPackage?.expiresAt, isAlreadyActive]);
 
   return createPortal(
     <div className={styles.modalOverlay} role="dialog" aria-modal="true" dir={isArabic ? 'rtl' : 'ltr'}>
@@ -82,12 +95,24 @@ export function CaptainAdPackageModal({
 
             {/* Badges Row */}
             <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
-                <Zap className="h-3.5 w-3.5 text-amber-300" />
-                <span>{isArabic ? 'عرض التدشين الحصري' : 'Exclusive Launch Offer'}</span>
-              </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-400 to-[#00ffcc] px-3 py-1 text-xs font-black text-slate-950 shadow-sm shadow-[#00ffcc]/20">
-                <span>{isArabic ? 'وفر 100%' : 'SAVE 100%'}</span>
+              {isAlreadyActive ? (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-300">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>{isArabic ? 'الباقة مفعلة حالياً' : 'Package Active'}</span>
+                </div>
+              ) : isExpired ? (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-300">
+                  <Clock className="h-3.5 w-3.5 text-amber-300" />
+                  <span>{isArabic ? 'انتهت الـ 30 يوماً المجانية' : '30 Days Expired'}</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                  <Zap className="h-3.5 w-3.5 text-amber-300" />
+                  <span>{isArabic ? 'عرض التدشين الحصري' : 'Exclusive Launch Offer'}</span>
+                </div>
+              )}
+              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-400 to-[#00ffcc] px-3 py-1 text-xs font-black text-slate-950">
+                <span>{isAlreadyActive ? (isArabic ? `متبقي ${remainingDays} يوم` : `${remainingDays}d Left`) : (isArabic ? 'وفر 100%' : 'SAVE 100%')}</span>
               </span>
             </div>
 
@@ -115,7 +140,13 @@ export function CaptainAdPackageModal({
 
                 <div className="inline-flex items-center gap-1.5 rounded-xl border border-teal-400/40 bg-teal-500/20 px-3 py-1 text-xs font-black text-[#00ffcc] shadow-[0_0_15px_rgba(0,255,204,0.15)]">
                   <Sparkles className="h-3.5 w-3.5" />
-                  <span>{isArabic ? 'أول شهر مجاني بالكامل' : 'First Month 100% Free'}</span>
+                  <span>
+                    {isAlreadyActive
+                      ? (isArabic ? `متبقي ${remainingDays} يوماً` : `${remainingDays}d left`)
+                      : isExpired || hasActivatedBefore
+                      ? (isArabic ? 'انتهى العرض' : 'Expired')
+                      : (isArabic ? 'أول شهر مجاني' : 'First Month Free')}
+                  </span>
                 </div>
               </div>
             </div>
@@ -144,53 +175,36 @@ export function CaptainAdPackageModal({
           </div>
 
           {/* Clean 14 Features Checklist */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold text-slate-300">
-                {isArabic ? 'المميزات المشمولة في الباقة الافتتاحية:' : 'Features included in Launch Package:'}
-              </span>
-              <span className="text-[11px] font-mono text-[#00ffcc]">
-                {CAPTAIN_AD_PACKAGE_FEATURES.length} {isArabic ? 'ميزة كاملة' : 'Total'}
-              </span>
-            </div>
-
-            {CAPTAIN_AD_PACKAGE_FEATURES.map((feat) => {
-              const Icon = feat.icon;
-              return (
-                <div
-                  key={feat.id}
-                  className="flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-teal-400/30 hover:bg-white/[0.06] transition-all"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 text-[#00ffcc] font-black text-xs font-mono shadow-[0_0_10px_rgba(0,255,204,0.1)]">
-                      {feat.id < 10 ? `0${feat.id}` : feat.id}
-                    </div>
-                    <span className="text-white font-bold text-xs sm:text-sm truncate">
-                      {isArabic ? feat.titleAr : feat.titleEn}
-                    </span>
-                  </div>
-                  <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl bg-slate-800/60 border border-white/5 text-teal-300">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <CaptainAdPackageFeaturesList isArabic={isArabic} />
         </div>
 
         {/* Modal Footer Actions */}
         <div className="p-4 sm:p-5 border-t border-white/10 bg-[#070D19]/95 flex flex-col gap-2.5 shrink-0">
-          {/* Primary Hero Button: Activate 100% Free Month Now */}
-          <button
-            type="button"
-            onClick={onActivatePackage}
-            className="w-full h-12 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-400 via-[#00ffcc] to-emerald-400 px-4 text-xs sm:text-sm font-black text-slate-950 shadow-lg shadow-teal-500/25 hover:shadow-[0_0_25px_rgba(0,255,204,0.4)] hover:brightness-105 active:scale-[0.99] transition cursor-pointer"
-          >
-            <Sparkles className="h-4 w-4 text-slate-950 shrink-0" />
-            <span>
-              {isArabic ? 'تفعيل الباقة الافتتاحية مجاناً (أول 30 يوم)' : 'Activate Launch Package Free (First 30 Days)'}
-            </span>
-          </button>
+          {/* Primary Action Button */}
+          {isAlreadyActive ? (
+            <div className="w-full h-12 inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-950/60 px-4 text-xs sm:text-sm font-black text-emerald-300 shadow-inner select-none">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <span>{isArabic ? `الباقة نشطة بالفعل (متبقي ${remainingDays} يوم)` : `Package Active (${remainingDays}d left)`}</span>
+            </div>
+          ) : isExpired || hasActivatedBefore ? (
+            <button
+              type="button"
+              onClick={onGoToPayment}
+              className="w-full h-12 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-400 px-4 text-xs sm:text-sm font-black text-slate-950 shadow-lg hover:brightness-105 active:scale-[0.99] transition cursor-pointer"
+            >
+              <CreditCard className="h-4 w-4 text-slate-950 shrink-0" />
+              <span>{isArabic ? 'تم تفعيلها سابقاً · اشحن الرصيد للمتابعة' : 'Previously Activated · Recharge Hours'}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onActivatePackage}
+              className="w-full h-12 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-400 via-[#00ffcc] to-emerald-400 px-4 text-xs sm:text-sm font-black text-slate-950 shadow-lg shadow-teal-500/25 hover:shadow-[0_0_25px_rgba(0,255,204,0.4)] hover:brightness-105 active:scale-[0.99] transition cursor-pointer"
+            >
+              <Sparkles className="h-4 w-4 text-slate-950 shrink-0" />
+              <span>{isArabic ? 'تفعيل الباقة الافتتاحية مجاناً (أول 30 يوم)' : 'Activate Launch Package Free (First 30 Days)'}</span>
+            </button>
+          )}
 
           {/* Secondary Row: Payment Channels and Back */}
           <div className="flex items-center gap-2">

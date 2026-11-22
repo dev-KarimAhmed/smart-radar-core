@@ -24,6 +24,7 @@ export interface CaptainAdPackage {
   maxAds: number;
   coverageMeters: number;
   priceJOD?: number;
+  hasActivatedBefore?: boolean;
   subscribedAt?: string;
   expiresAt?: string;
 }
