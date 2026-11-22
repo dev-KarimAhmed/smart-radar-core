@@ -22,6 +22,8 @@ export async function readLocalDexieTrips(
           completed_at: new Date(entry.completedAt).toISOString(),
           created_at: new Date(entry.completedAt).toISOString(),
           final_fare: entry.finalFare,
+          wallet_minutes_charged: entry.walletMinutesCharged ?? entry.durationMinutes,
+          duration_minutes: entry.durationMinutes,
           rider: { full_name: isArabic ? 'مستخدم محلي' : 'Local Rider', phone: '', rating: 5.0 },
           destination_address_ar: (entry.destination && entry.destination !== 'Destination' && entry.destination !== 'غير متاح') ? entry.destination : '',
           pickup_address_ar: entry.pickup || '',
@@ -97,6 +99,8 @@ export async function mergeLocalDexieTrips(
           completed_at: new Date(entry.completedAt).toISOString(),
           created_at: new Date(entry.completedAt).toISOString(),
           final_fare: entry.finalFare,
+          wallet_minutes_charged: entry.walletMinutesCharged ?? entry.durationMinutes,
+          duration_minutes: entry.durationMinutes,
           rider: {
             id: riderId,
             full_name: (entry as any).riderName || (isArabic ? 'مستخدم محلي' : 'Local Rider'),

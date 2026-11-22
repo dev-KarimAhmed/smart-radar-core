@@ -75,6 +75,8 @@ export interface CaptainLedgerEntry {
   finalFare: number;
   completedAt: number;
   purgeAt: number;
+  durationMinutes?: number;
+  walletMinutesCharged?: number;
   paidMinutesRemaining?: number;
   bonusMinutesRemaining?: number;
 }

@@ -121,6 +121,8 @@ export function useDriverTripMilestones({
 
       if (error) throw error;
 
+      const calculatedMins = elapsedSec > 0 ? Math.max(1, Math.ceil(elapsedSec / 60)) : 0;
+
       await dexieDb.captainLedger.put({
         requestId: activeRequest.id,
         captainId,
@@ -132,6 +134,8 @@ export function useDriverTripMilestones({
         finalFare: Number(activeRequest.offerPrice || 0),
         completedAt: Date.now(),
         purgeAt: Date.now() + 72 * 60 * 60 * 1000,
+        durationMinutes: calculatedMins,
+        walletMinutesCharged: calculatedMins,
       });
 
       toast({

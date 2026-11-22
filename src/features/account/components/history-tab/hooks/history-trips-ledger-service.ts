@@ -134,6 +134,10 @@ export async function fetchRemoteLedgerTrips(user: User, isCaptain: boolean): Pr
           );
           return {
             ...base,
+            wallet_minutes_charged: req?.wallet_minutes_charged ?? row.wallet_minutes_charged ?? (base as any).wallet_minutes_charged,
+            duration_minutes: req?.duration_minutes ?? row.duration_minutes ?? base.duration_minutes,
+            started_at: req?.started_at ?? row.started_at,
+            completed_at: req?.completed_at ?? row.completed_at ?? row.ended_at,
             destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
             destination_address: req?.destination_address || req?.destination_address_ar || base.destination_address,
             pickup_address_ar: req?.origin_address || '',
@@ -142,6 +146,8 @@ export async function fetchRemoteLedgerTrips(user: User, isCaptain: boolean): Pr
               ...base.metadata,
               pickup_address_ar: req?.origin_address,
               destination_address_ar: req?.destination_address_ar || req?.destination_address || base.destination_address_ar,
+              wallet_minutes_charged: req?.wallet_minutes_charged ?? row.wallet_minutes_charged,
+              duration_minutes: req?.duration_minutes ?? row.duration_minutes,
             },
           };
         });

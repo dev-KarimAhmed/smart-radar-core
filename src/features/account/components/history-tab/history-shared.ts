@@ -1,6 +1,7 @@
 export { styles } from './history-styles';
 export {
   type HistoricalTrip,
+  type HistoricalCaptainTrip,
   HISTORY_TTL_MS,
   UNAVAILABLE_FALLBACK,
   normalizeCaptainRank,

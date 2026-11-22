@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ban, Clock, Heart, ShieldCheck, Star, User } from 'lucide-react';
+import { Ban, Clock, Heart, ShieldCheck, Star, Timer, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatHistoryMoney } from '../history-shared';
@@ -80,11 +80,29 @@ export function HistoryCaptainTripCard({
           </div>
         </div>
 
-        <div className={styles.priceBox}>
-          <span className={styles.priceLabel}>{isArabic ? 'سعر الرحلة:' : 'Trip Fare:'}</span>
-          <span className={styles.priceText}>
-            +{formatHistoryMoney(trip.earnedPrice, activeCurrency)}
-          </span>
+        <div className="flex flex-col items-end gap-1.5 shrink-0 text-left">
+          <div className={styles.priceBox}>
+            <span className={styles.priceLabel}>{isArabic ? 'سعر الرحلة:' : 'Trip Fare:'}</span>
+            <span className={styles.priceText}>
+              +{formatHistoryMoney(trip.earnedPrice, activeCurrency)}
+            </span>
+          </div>
+          <div
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold font-mono',
+              (trip.deductedMinutes ?? 0) > 0
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+            )}
+            title={isArabic ? 'الوقت المخصوم من رصيد الكابتن للرحلة' : 'Time deducted from captain balance'}
+          >
+            <Timer className="h-3 w-3 shrink-0" />
+            <span>
+              {isArabic
+                ? `الوقت المخصوم: ${trip.deductedMinutes ?? 0} دقيقة`
+                : `Deducted: ${trip.deductedMinutes ?? 0} min`}
+            </span>
+          </div>
         </div>
       </div>
 

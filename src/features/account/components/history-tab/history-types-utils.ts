@@ -18,6 +18,20 @@ export interface HistoricalTrip {
   destinationLng?: number;
 }
 
+export interface HistoricalCaptainTrip {
+  tripId: string;
+  riderId: string;
+  riderPhone: string;
+  serialId: string;
+  riderName: string;
+  pickup: string;
+  dropoff: string;
+  earnedPrice: number;
+  deductedMinutes: number;
+  timestamp: number;
+  status: string;
+}
+
 export const HISTORY_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 export const UNAVAILABLE_FALLBACK = '';
 

@@ -60,6 +60,19 @@ export function useHistoryTripMappers({ realTrips, isArabic }: UseHistoryTripMap
         ? (isArabic ? 'وجهة الرحلة' : 'Trip Destination')
         : rawDropoff;
 
+      const rawCharged =
+        trip.wallet_minutes_charged ??
+        trip.duration_minutes ??
+        trip.metadata?.wallet_minutes_charged ??
+        trip.metadata?.duration_minutes ??
+        (trip.completed_at && trip.started_at
+          ? Math.max(1, Math.round((new Date(trip.completed_at).getTime() - new Date(trip.started_at).getTime()) / 60000))
+          : undefined);
+
+      const deductedMinutes = typeof rawCharged === 'number' && Number.isFinite(rawCharged)
+        ? Math.max(0, Math.round(rawCharged))
+        : 0;
+
       return {
         tripId: trip.id,
         riderId: trip.rider?.id || trip.rider_id || trip.metadata?.rider_id || trip.riderId || '',
@@ -69,6 +82,7 @@ export function useHistoryTripMappers({ realTrips, isArabic }: UseHistoryTripMap
         pickup: cleanPickup,
         dropoff: cleanDropoff,
         earnedPrice: Number(trip.final_fare ?? trip.settled_fare ?? trip.final_price ?? trip.offer_price ?? trip.server_estimated_fare ?? trip.offerPrice ?? 0),
+        deductedMinutes,
         timestamp: parseTripTimestamp(trip),
         status: trip.status || 'COMPLETED',
       };
