@@ -93,14 +93,14 @@ export function AdRiverCarousel({
         style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
         className={cn(
           'no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-4 sm:gap-8 overflow-x-auto items-center h-full',
-          isFullScreen && 'py-2 sm:py-3',
+          isFullScreen && 'py-0.5 sm:py-1',
           adsToUse.length === 1 ? 'justify-center px-4 sm:px-16' : 'justify-start px-4 sm:px-14',
         )}
       >
         {displayAds.map((ad: any, index: number) => (
           <div
             key={`${ad.id}-${index}`}
-            className="flex-shrink-0 flex-grow-0 my-auto h-full max-h-full flex items-center justify-center overflow-hidden"
+            className="flex-shrink-0 flex-grow-0 my-auto h-full max-h-full flex items-center justify-center py-0.5 sm:py-1"
           >
             <AdDisplayCard
               ad={ad}

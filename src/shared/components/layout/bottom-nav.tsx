@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { useNotifications } from '@/shared/hooks/use-notifications';
 
 const styles = {
-  root: 'fixed bottom-0 left-0 right-0 z-50',
+  root: 'w-full z-50',
   nav: 'flex items-center justify-around border-t border-white/[0.06] bg-[#0A0F1D]/80 px-2 pb-safe pt-2 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] backdrop-blur-xl',
   item: 'flex h-14 min-w-[64px] max-w-[84px] px-1 flex-col items-center justify-center rounded-xl transition-all text-center',
   itemActive: 'bg-[#14B8A6]/10 text-[#14B8A6]',
@@ -20,7 +20,7 @@ const styles = {
   label: 'text-[10px] font-bold text-center leading-tight tracking-tight w-full block',
 } as const;
 
-export function BottomNav() {
+export function BottomNav({ className }: { className?: string } = {}) {
   const [hash, setHash] = useState(typeof window !== 'undefined' ? window.location.hash || '#' : '#');
   const { user, isSovereign } = useAuth();
   const { isArabic } = useDashboardLanguage();
@@ -72,7 +72,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className={styles.root}>
+    <div className={cn(styles.root, className)}>
       <nav className={styles.nav}>
         {navItems.map((item) => {
           const isActive = hash === item.href || (item.href === '#' && hash === '');
