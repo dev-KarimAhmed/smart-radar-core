@@ -16,6 +16,7 @@ import {
   getCaptainAdPackage,
   type CaptainAdPackage,
 } from '../services/captain-ads-package';
+import { checkAndDispatchPackageExpirationReminder } from '../services/captain-package-reminder';
 import { resolveUserCurrency } from '@/shared/services/currency-label';
 
 export type { CaptainReceiptItem };
@@ -58,6 +59,17 @@ export function DriverWalletTab({
     window.addEventListener('radar_captain_ad_package_updated', onPkgUpdated);
     return () => window.removeEventListener('radar_captain_ad_package_updated', onPkgUpdated);
   }, [user]);
+
+  // Check and dispatch 2-day expiration reminder notification
+  useEffect(() => {
+    if (user?.uid && adPackage?.status === 'ACTIVE') {
+      checkAndDispatchPackageExpirationReminder({
+        captainId: user.uid,
+        adPackage,
+        language,
+      });
+    }
+  }, [user?.uid, language, adPackage]);
 
   const handleActivatePackage = () => {
     const captainId = user?.uid || 'current_captain';

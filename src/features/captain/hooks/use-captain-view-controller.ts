@@ -8,6 +8,7 @@ import {
   subscribeCaptainAdPackage,
   type CaptainAdPackage,
 } from '../services/captain-ads-package';
+import { checkAndDispatchPackageExpirationReminder } from '../services/captain-package-reminder';
 
 type DriverOperations = ReturnType<typeof useDriverOperations>;
 
@@ -60,6 +61,17 @@ export function useCaptainViewController({
     window.addEventListener('radar_captain_ad_package_updated', onPkgUpdated);
     return () => window.removeEventListener('radar_captain_ad_package_updated', onPkgUpdated);
   }, [user]);
+
+  // Check and dispatch 2-day expiration reminder notification automatically
+  React.useEffect(() => {
+    if (user?.uid && adPackage?.status === 'ACTIVE') {
+      checkAndDispatchPackageExpirationReminder({
+        captainId: user.uid,
+        adPackage,
+        language: user?.language === 'en' ? 'en' : 'ar',
+      });
+    }
+  }, [user?.uid, user?.language, adPackage]);
 
   // Security guard: If a captain has 'active' status but not eligible or tariff missing, revert to 'idle'
   React.useEffect(() => {
