@@ -165,10 +165,10 @@ export function AdStage({
 
   const heightClass = isFullScreen
     ? 'h-full min-h-0 w-full flex-1 justify-center items-center'
-    : 'h-[280px] w-full sm:h-[320px]';
+    : 'h-[250px] w-full sm:h-[280px]';
   const cardClassName = isFullScreen
     ? '!h-full !max-h-[700px] aspect-[904/1280] !w-auto max-w-[94vw] sm:max-w-[min(490px,88vw)] !flex-shrink-0 !flex-grow-0'
-    : 'h-[216px] w-[270px] sm:h-[250px] sm:w-[280px] md:w-[340px]';
+    : 'h-[220px] sm:h-[240px] aspect-[904/1280] !w-auto !flex-shrink-0 !flex-grow-0';
 
   if (isLoadingAds && serverAds.length === 0) {
     return (

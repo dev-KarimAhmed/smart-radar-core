@@ -4,8 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { enqueueAdEvent, getVisibleAdForMetric } from '../services/ad-stage-metrics';
 import {
+  advanceRtlScroll,
   calculateNextScrollStep,
   getSeamlessManualScrollStart,
+  getRtlScrollType,
+  setCachedRtlScrollType,
   type AdStageDirection,
 } from '../services/ad-stage-scroll';
 
@@ -39,8 +42,10 @@ export function useAdRiverScroll({
     if (adsToUse.length > 0 && children.length > adsToUse.length) {
       const first = children[0] as HTMLElement;
       const secondSetFirst = children[adsToUse.length] as HTMLElement;
-      const measured = Math.abs(secondSetFirst.offsetLeft - first.offsetLeft);
-      if (measured > 0) return measured;
+      if (first && secondSetFirst) {
+        const measured = Math.abs(secondSetFirst.getBoundingClientRect().left - first.getBoundingClientRect().left);
+        if (measured > 0) return measured;
+      }
     }
     return repeatCount > 0 ? track.scrollWidth / repeatCount : track.scrollWidth;
   }, [adsToUse.length, repeatCount]);
@@ -72,8 +77,12 @@ export function useAdRiverScroll({
   useEffect(() => {
     const track = scrollTrackRef.current;
     if (!track) return;
-    track.scrollLeft = 0;
-    scrollAccumulatorRef.current = 0;
+    const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+    const initialPos = adStageDirection === 'rtl' && getRtlScrollType() === 'positive-descending'
+      ? maxScroll
+      : 0;
+    track.scrollLeft = initialPos;
+    scrollAccumulatorRef.current = initialPos;
     updateOverflowState();
   }, [adStageDirection, adsToUse.length, updateOverflowState]);
 
@@ -97,7 +106,6 @@ export function useAdRiverScroll({
       const track = scrollTrackRef.current;
       const isPaused =
         isHoveredRef.current ||
-        isFocusedRef.current ||
         isInteractingRef.current ||
         isTakeoverOpen ||
         document.visibilityState !== 'visible';
@@ -108,14 +116,30 @@ export function useAdRiverScroll({
           if (scrollAccumulatorRef.current === null) scrollAccumulatorRef.current = track.scrollLeft;
           const singleSetWidth = measureSingleSetWidth(track);
           const loopWidth = singleSetWidth > 0 && singleSetWidth <= maxScroll ? singleSetWidth : maxScroll;
-          const nextScroll = calculateNextScrollStep(
-            scrollAccumulatorRef.current,
-            AUTO_SCROLL_SPEED_PX_PER_SEC * deltaSeconds,
-            loopWidth,
-            adStageDirection,
-          );
+          const nextScroll = adStageDirection === 'rtl'
+            ? advanceRtlScroll(
+              scrollAccumulatorRef.current,
+              AUTO_SCROLL_SPEED_PX_PER_SEC * deltaSeconds,
+              loopWidth,
+              maxScroll,
+              getRtlScrollType(),
+            )
+            : calculateNextScrollStep(
+              scrollAccumulatorRef.current,
+              AUTO_SCROLL_SPEED_PX_PER_SEC * deltaSeconds,
+              loopWidth,
+              'ltr',
+            );
           scrollAccumulatorRef.current = nextScroll;
           track.scrollLeft = nextScroll;
+
+          if (adStageDirection === 'rtl' && Math.abs(nextScroll) > 1 && track.scrollLeft === 0) {
+            track.scrollLeft = -nextScroll;
+            if (track.scrollLeft !== 0) {
+              scrollAccumulatorRef.current = track.scrollLeft;
+              setCachedRtlScrollType(nextScroll < 0 ? 'positive-ascending' : 'negative');
+            }
+          }
         }
       }
       animFrameId = requestAnimationFrame(animateScroll);
@@ -125,23 +149,20 @@ export function useAdRiverScroll({
     return () => cancelAnimationFrame(animFrameId);
   }, [adsToUse.length, adStageDirection, isTakeoverOpen, measureSingleSetWidth]);
 
-  const handlePointerEnter = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse') isHoveredRef.current = true;
+  const handlePointerEnter = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse') isHoveredRef.current = true;
   }, []);
 
-  const handlePointerLeave = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'mouse') {
+  const handlePointerLeave = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse') {
       isHoveredRef.current = false;
       syncAccumulator();
     }
   }, [syncAccumulator]);
 
-  const handleFocusCapture = useCallback(() => {
-    isFocusedRef.current = true;
-  }, []);
-
-  const handleBlurCapture = useCallback((event: React.FocusEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+  const handleFocusCapture = useCallback(() => { isFocusedRef.current = true; }, []);
+  const handleBlurCapture = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
       isFocusedRef.current = false;
       syncAccumulator();
     }
@@ -151,50 +172,41 @@ export function useAdRiverScroll({
     if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
     isInteractingRef.current = true;
   }, []);
-
   const handleTouchEnd = useCallback(() => scheduleInteractionResume(), [scheduleInteractionResume]);
-
   const handleWheel = useCallback(() => {
     isInteractingRef.current = true;
     scheduleInteractionResume();
   }, [scheduleInteractionResume]);
 
-  const scrollAds = useCallback(
-    (scrollDirection: 'left' | 'right') => {
-      const track = scrollTrackRef.current;
-      if (!track || adsToUse.length <= 1) return;
+  const scrollAds = useCallback((scrollDirection: 'left' | 'right') => {
+    const track = scrollTrackRef.current;
+    if (!track || adsToUse.length <= 1) return;
 
-      isInteractingRef.current = true;
-      scheduleInteractionResume();
-      lastManualSwipeMetricAtRef.current = Date.now();
-      enqueueAdEvent(getVisibleAdForMetric(track, adsToUse), 'swipe');
+    isInteractingRef.current = true;
+    scheduleInteractionResume(1600);
+    lastManualSwipeMetricAtRef.current = Date.now();
+    enqueueAdEvent(getVisibleAdForMetric(track, adsToUse), 'swipe');
 
-      const distance = Math.max(220, Math.min(track.clientWidth * 0.8, 480));
-      const delta = scrollDirection === 'left' ? -distance : distance;
-      const jumpStart = getSeamlessManualScrollStart(
-        track.scrollLeft,
-        delta,
-        measureSingleSetWidth(track),
-        track.scrollWidth - track.clientWidth,
-        adStageDirection,
-      );
-      if (jumpStart !== null) {
-        track.scrollLeft = jumpStart;
-        scrollAccumulatorRef.current = jumpStart;
-      }
-      track.scrollBy({ left: delta, behavior: 'smooth' });
-    },
-    [adsToUse, adStageDirection, measureSingleSetWidth, scheduleInteractionResume],
-  );
-
-  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      scrollAds('left');
-    } else if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      scrollAds('right');
+    const distance = Math.max(220, Math.min(track.clientWidth * 0.8, 480));
+    const delta = scrollDirection === 'left' ? -distance : distance;
+    const jumpStart = getSeamlessManualScrollStart(
+      track.scrollLeft,
+      delta,
+      measureSingleSetWidth(track),
+      track.scrollWidth - track.clientWidth,
+      adStageDirection,
+      getRtlScrollType(),
+    );
+    if (jumpStart !== null) {
+      track.scrollLeft = jumpStart;
+      scrollAccumulatorRef.current = jumpStart;
     }
+    track.scrollBy({ left: delta, behavior: 'smooth' });
+  }, [adsToUse, adStageDirection, measureSingleSetWidth, scheduleInteractionResume]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); scrollAds('left'); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); scrollAds('right'); }
   }, [scrollAds]);
 
   const registerManualTrackScroll = useCallback(() => {
@@ -203,6 +215,7 @@ export function useAdRiverScroll({
     if (isInteractingRef.current || isHoveredRef.current || isFocusedRef.current) {
       scrollAccumulatorRef.current = track.scrollLeft;
     }
+
     const now = Date.now();
     if (now - lastManualSwipeMetricAtRef.current < 1200) return;
     lastManualSwipeMetricAtRef.current = now;

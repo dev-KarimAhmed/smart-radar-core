@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     const expectedRole = body.expectedRole ? String(body.expectedRole).trim().toUpperCase() : undefined;
     const rawEmail = body.email ? String(body.email).trim().toLowerCase() : undefined;
     const incomingDeviceId = String(body.deviceId || '').trim();
+    const forceTakeover = Boolean(body.forceTakeover);
 
     if (isSaudiPhoneNumber(normalizedPhone) || isSaudiPhoneNumber(rawPhone)) {
       return NextResponse.json(
@@ -142,7 +143,7 @@ export async function POST(req: Request) {
       profileLastSeenAt: (profile as any)?.last_seen_at,
     });
 
-    if (!sessionCheck.allowed) {
+    if (!forceTakeover && !sessionCheck.allowed) {
       return NextResponse.json(
         {
           success: false,
@@ -168,9 +169,10 @@ export async function POST(req: Request) {
         adminClient,
         userId: user.id,
         deviceId: incomingDeviceId,
+        force: forceTakeover,
       });
 
-      if (!claimResult.success) {
+      if (!claimResult.success && !forceTakeover) {
         return NextResponse.json(
           {
             success: false,

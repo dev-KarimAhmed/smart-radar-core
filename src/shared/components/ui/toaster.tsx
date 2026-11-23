@@ -74,6 +74,11 @@ export function Toaster() {
                           {cleanDesc}
                         </p>
                       )}
+                      {toast.action && (
+                        <div className="mt-2.5 pt-2 border-t border-white/10">
+                          {toast.action}
+                        </div>
+                      )}
                     </>
                   );
                 })()}

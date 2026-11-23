@@ -141,7 +141,7 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
   }
 
   // 1. Strict single-session check: reject login if account is already active on another device/browser
-  if (currentDeviceId && typeof window !== 'undefined') {
+  if (!input.forceTakeover && currentDeviceId && typeof window !== 'undefined') {
     const isPhoneActive = await checkAccountInUse(supabase, validation.phone, currentDeviceId);
     const isEmailActive = input.email ? await checkAccountInUse(supabase, input.email, currentDeviceId) : false;
 
@@ -167,6 +167,7 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
       expectedRole: input.expectedRole,
       email: input.email,
       deviceId: currentDeviceId,
+      forceTakeover: Boolean(input.forceTakeover),
     }),
   });
 

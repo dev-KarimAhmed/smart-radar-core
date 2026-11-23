@@ -91,18 +91,18 @@ export function AdDisplayCard({
       onKeyDown={
         onOpen
           ? (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onOpen(event as unknown as React.MouseEvent, ad);
-              }
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onOpen(event as unknown as React.MouseEvent, ad);
             }
+          }
           : undefined
       }
       style={isSectorAd ? { aspectRatio: '904 / 1280' } : undefined}
       className={cn(
         styles.style87_1,
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14F5D5]/70',
-        isSectorAd && '!p-0 overflow-hidden rounded-[24px] sm:rounded-[28px] border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)]',
+        isSectorAd && '!p-0 overflow-hidden rounded-[24px] sm:rounded-[28px] border-cyan-400/20 hover:border-[#14B8A6]/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_0_35px_rgba(20,184,166,0.3)] !w-auto aspect-[904/1280]',
         isPlaceholder && styles.style88_2,
         !onOpen && styles.staticCursor,
         className,
@@ -121,8 +121,9 @@ export function AdDisplayCard({
               event.currentTarget.src = FALLBACK_IMAGE;
             }
           }}
-          className="relative z-[1] h-full w-full max-h-full max-w-full rounded-[inherit] overflow-hidden object-cover p-0 transition-transform duration-500 group-hover:scale-[1.02]"
+          className="relative z-[1] h-full w-full max-h-full max-w-full rounded-[inherit] overflow-hidden object-contain p-0 transition-transform duration-500 group-hover:scale-[1.02]"
           referrerPolicy="no-referrer"
+          draggable={false}
         />
       ) : (
         <>
@@ -138,12 +139,13 @@ export function AdDisplayCard({
             }}
             className={cn(
               styles.style99_3,
-              'rounded-[inherit] overflow-hidden max-h-full max-w-full',
+              'rounded-[inherit] overflow-hidden max-h-full max-w-full select-none pointer-events-none',
               isPlaceholder
                 ? styles.style101_4
                 : styles.style102_5
             )}
             referrerPolicy="no-referrer"
+            draggable={false}
           />
           <div className={cn(styles.style106_6, isPlaceholder ? styles.style106_7 : styles.style106_8)} />
           <div

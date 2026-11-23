@@ -40,6 +40,7 @@ export interface RiderSupabaseSignInInput {
   rememberMe?: boolean;
   expectedRole?: 'RIDER' | 'CAPTAIN' | 'ADVERTISER' | 'DELEGATE' | 'ADMIN';
   email?: string;
+  forceTakeover?: boolean;
 }
 
 export interface RiderAuthMetadata {

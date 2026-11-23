@@ -71,7 +71,7 @@ export function useRegistrationSubmit({
   const { toast } = useToast();
   const [logoTapCount, setLogoTapCount] = useState(0);
 
-  const submitSupabaseAuth = useCallback(async () => {
+  const submitSupabaseAuth = useCallback(async (forceTakeover = false) => {
     if (isSubmittingRef.current) return;
 
     const validated = validateAuthFields();
@@ -94,6 +94,7 @@ export function useRegistrationSubmit({
           password: authPassword,
           rememberMe,
           expectedRole: toSupabaseAuthRole(role),
+          forceTakeover,
         });
 
         toast({
@@ -134,6 +135,7 @@ export function useRegistrationSubmit({
         toast,
         setAwaitingConfirmationEmail,
         setCreateAccountPulseKey,
+        onForceTakeover: authMode === 'login' ? () => void submitSupabaseAuth(true) : undefined,
       });
     } finally {
       setIsSubmitting(false);

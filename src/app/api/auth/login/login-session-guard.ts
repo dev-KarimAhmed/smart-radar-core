@@ -96,8 +96,9 @@ export async function claimActiveSession(params: {
   adminClient: SupabaseClient;
   userId: string;
   deviceId: string;
+  force?: boolean;
 }): Promise<ClaimResult> {
-  const { adminClient, userId, deviceId } = params;
+  const { adminClient, userId, deviceId, force } = params;
   if (!deviceId || !userId) return { success: true };
 
   const nowMs = Date.now();
@@ -105,41 +106,44 @@ export async function claimActiveSession(params: {
   const cleanDevice = deviceId.trim();
 
   // 1. In-process microsecond barrier
-  const existingClaim = recentClaimsByUser.get(userId);
-  if (existingClaim && existingClaim.deviceId !== cleanDevice && (nowMs - existingClaim.claimedAt < 5000)) {
-    return { success: false, conflict: true, reason: 'concurrency_race_lost' };
+  if (!force) {
+    const existingClaim = recentClaimsByUser.get(userId);
+    if (existingClaim && existingClaim.deviceId !== cleanDevice && (nowMs - existingClaim.claimedAt < 5000)) {
+      return { success: false, conflict: true, reason: 'concurrency_race_lost' };
+    }
   }
 
-  // 2. Try Atomic CAS via Database RPC if available
-  try {
-    const { data: rpcResult, error: rpcErr } = await adminClient.rpc('claim_single_device_session', {
-      p_user_id: userId,
-      p_device_id: cleanDevice,
-    });
-    if (!rpcErr && typeof rpcResult === 'boolean') {
-      if (!rpcResult) {
-        return { success: false, conflict: true, reason: 'cas_rpc_rejected' };
+  // 2. Try Atomic CAS via Database RPC if available (bypassed on force)
+  if (!force) {
+    try {
+      const { data: rpcResult, error: rpcErr } = await adminClient.rpc('claim_single_device_session', {
+        p_user_id: userId,
+        p_device_id: cleanDevice,
+      });
+      if (!rpcErr && typeof rpcResult === 'boolean') {
+        if (!rpcResult) {
+          return { success: false, conflict: true, reason: 'cas_rpc_rejected' };
+        }
+        recentClaimsByUser.set(userId, { deviceId: cleanDevice, claimedAt: nowMs });
+        return { success: true };
       }
-      recentClaimsByUser.set(userId, { deviceId: cleanDevice, claimedAt: nowMs });
-      return { success: true };
-    }
-  } catch {}
+    } catch {}
+  }
 
-  // 3. Fallback: Atomic CAS via PostgREST conditional update
+  // 3. Fallback: Atomic CAS via PostgREST update
   try {
-    const { data: updatedRows, error: updateErr } = await adminClient
-      .from('profiles')
-      .update({
-        active_device_id: cleanDevice,
-        last_seen_at: nowIso,
-      })
-      .eq('id', userId)
-      .or(`active_device_id.is.null,active_device_id.eq.${cleanDevice}`)
-      .select('id');
+    const updateQuery = adminClient.from('profiles').update({
+      active_device_id: cleanDevice,
+      last_seen_at: nowIso,
+    }).eq('id', userId);
 
-    if (!updateErr && Array.isArray(updatedRows)) {
+    if (!force) {
+      updateQuery.or(`active_device_id.is.null,active_device_id.eq.${cleanDevice}`);
+    }
+    const { data: updatedRows, error: updateErr } = await updateQuery.select('id');
+
+    if (!force && !updateErr && Array.isArray(updatedRows)) {
       if (updatedRows.length === 0) {
-        // Condition was false: another device acquired the lock in this exact millisecond!
         return { success: false, conflict: true, reason: 'cas_postgrest_rejected' };
       }
     }
@@ -149,12 +153,14 @@ export async function claimActiveSession(params: {
   try {
     const { data: authUser } = await adminClient.auth.admin.getUserById(userId);
     const meta = authUser?.user?.user_metadata || {};
-    const metaDevice = meta.active_device_id ? String(meta.active_device_id).trim() : null;
-    const metaLastSeenMs = meta.last_seen_at ? new Date(meta.last_seen_at).getTime() : 0;
-    const isMetaActive = metaDevice && (nowMs - metaLastSeenMs < 24 * 60 * 60 * 1000);
+    if (!force) {
+      const metaDevice = meta.active_device_id ? String(meta.active_device_id).trim() : null;
+      const metaLastSeenMs = meta.last_seen_at ? new Date(meta.last_seen_at).getTime() : 0;
+      const isMetaActive = metaDevice && (nowMs - metaLastSeenMs < 24 * 60 * 60 * 1000);
 
-    if (metaDevice && metaDevice !== cleanDevice && isMetaActive) {
-      return { success: false, conflict: true, reason: 'metadata_conflict' };
+      if (metaDevice && metaDevice !== cleanDevice && isMetaActive) {
+        return { success: false, conflict: true, reason: 'metadata_conflict' };
+      }
     }
 
     await adminClient.auth.admin.updateUserById(userId, {

@@ -14,6 +14,7 @@ export interface Toast {
   description?: string;
   variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
   duration?: number;
+  action?: React.ReactNode;
 }
 
 type ToastListener = (toasts: Toast[]) => void;
@@ -35,6 +36,7 @@ export const toast = (options: {
   description?: string;
   variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
   duration?: number;
+  action?: React.ReactNode;
 }) => {
   const isArabic = typeof window !== 'undefined' ? readStoredDashboardLanguage() === 'ar' : true;
   const parsed = resolveNotificationForDisplay(
@@ -46,7 +48,7 @@ export const toast = (options: {
   const description = options.description !== undefined ? parsed.description : undefined;
 
   const id = Math.random().toString(36).substring(2, 9);
-  const newToast: Toast = { ...options, id, title, description };
+  const newToast: Toast = { ...options, id, title, description, action: options.action };
 
   // Limiting active notifications to keep UI clean and focused
   toastMemory = [newToast, ...toastMemory].slice(0, 3);

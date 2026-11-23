@@ -134,6 +134,15 @@ async function runTests() {
   });
   assert.equal(claimAfterLogout.success, true);
 
+  // Test 8: Force takeover allows immediate claim
+  const forceClaim = await claimActiveSession({
+    adminClient: mockAdminClient,
+    userId: 'user-race-condition',
+    deviceId: 'device-mobile-forced',
+    force: true,
+  });
+  assert.equal(forceClaim.success, true);
+
   console.log('All single session guard & atomic CAS unit tests passed successfully!');
 }
 

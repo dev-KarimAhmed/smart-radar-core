@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   isInvalidPhoneOrPasswordError,
   mapSupabaseAuthError,
@@ -15,6 +16,7 @@ interface HandleAuthSubmitErrorParams {
   toast: (opts: any) => void;
   setAwaitingConfirmationEmail: (email: string | null) => void;
   setCreateAccountPulseKey: React.Dispatch<React.SetStateAction<number>>;
+  onForceTakeover?: () => Promise<void> | void;
 }
 
 export function handleAuthSubmitError({
@@ -27,6 +29,7 @@ export function handleAuthSubmitError({
   toast,
   setAwaitingConfirmationEmail,
   setCreateAccountPulseKey,
+  onForceTakeover,
 }: HandleAuthSubmitErrorParams): void {
   if (process.env.NODE_ENV !== 'production') {
     const authError = error as { name?: string; code?: string; status?: number; message?: string };
@@ -51,9 +54,24 @@ export function handleAuthSubmitError({
       variant: 'destructive',
       title: lang === 'ar' ? 'الحساب قيد الاستخدام حالياً' : 'Account Already In Use',
       description: lang === 'ar'
-        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.'
-        : 'This account is currently active on another device or browser. You cannot log in until it is logged out from the active session first.',
-      duration: 10000,
+        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. هل ترغب في تسجيل الخروج من الأجهزة الأخرى والدخول هنا؟'
+        : 'This account is active on another device or browser. Do you want to log out from other devices and sign in here?',
+      duration: 16000,
+      action: onForceTakeover
+        ? React.createElement(
+          'button',
+          {
+            type: 'button',
+            onClick: (event: any) => {
+              event.stopPropagation();
+              void onForceTakeover();
+            },
+            className:
+              'w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer border border-red-400/40',
+          },
+          lang === 'ar' ? 'تسجيل الخروج من الأجهزة الأخرى والدخول' : 'Force logout other devices & sign in',
+        )
+        : undefined,
     });
     return;
   }
