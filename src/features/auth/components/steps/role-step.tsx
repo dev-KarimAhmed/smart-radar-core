@@ -129,12 +129,10 @@ export function RoleStep() {
             })}
           </AnimatePresence>
         </motion.div>
-
-        {/* Official Social Channels */}
-        <div className="mt-8 sm:mt-10 w-full">
-          <SocialLinks variant="hero" isArabic={isArabic} />
-        </div>
       </section>
+
+      {/* Floating Chic Social Pill */}
+      <SocialLinks variant="pill" isArabic={isArabic} />
     </main>
   );
 }
