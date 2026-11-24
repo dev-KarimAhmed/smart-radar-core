@@ -45,14 +45,6 @@ export function AdRiverCarousel({
     canScrollLeft,
     canScrollRight,
     scrollAds,
-    registerManualTrackScroll,
-    handlePointerEnter,
-    handlePointerLeave,
-    handleFocusCapture,
-    handleBlurCapture,
-    handleTouchStart,
-    handleTouchEnd,
-    handleWheel,
     handleKeyDown,
   } = useAdRiverScroll({
     adsToUse,
@@ -68,10 +60,6 @@ export function AdRiverCarousel({
         isFullScreen && 'py-0 sm:py-0 h-full',
       )}
       dir={adStageDirection}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-      onFocusCapture={handleFocusCapture}
-      onBlurCapture={handleBlurCapture}
       onKeyDown={handleKeyDown}
     >
       {showNavigationShell && (
@@ -85,34 +73,37 @@ export function AdRiverCarousel({
 
       <div
         ref={scrollTrackRef}
-        onScroll={registerManualTrackScroll}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
-        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
         className={cn(
-          'no-scrollbar flex min-w-0 flex-1 flex-nowrap gap-4 sm:gap-8 overflow-x-auto items-center h-full',
+          'w-full h-full overflow-hidden select-none',
           isFullScreen && 'py-0.5 sm:py-1',
-          adsToUse.length === 1 ? 'justify-center px-4 sm:px-16' : 'justify-start px-4 sm:px-14',
         )}
       >
-        {displayAds.map((ad: any, index: number) => (
-          <div
-            key={`${ad.id}-${index}`}
-            className="flex-shrink-0 flex-grow-0 my-auto h-full max-h-full flex items-center justify-center py-0.5 sm:py-1"
-          >
-            <AdDisplayCard
-              ad={ad}
-              isHearted={heartedAdIds.includes(ad.id)}
-              onHeart={toggleHeart}
-              onOpen={ad.isPlaceholder ? undefined : openTakeover}
-              badgeText={getBadgeText(ad)}
-              showHeart={!ad.isPlaceholder}
-              className={cardClassName}
-            />
-          </div>
-        ))}
+        <div
+          className={cn(
+            'flex h-full items-center',
+            adsToUse.length === 1
+              ? 'justify-center px-4 sm:px-16'
+              : 'gap-4 sm:gap-8 px-4 sm:px-14',
+          )}
+          style={{ touchAction: 'pan-y pinch-zoom' }}
+        >
+          {displayAds.map((ad: any, index: number) => (
+            <div
+              key={`${ad.id}-${index}`}
+              className="flex-[0_0_auto] min-w-0 my-auto h-full max-h-full flex items-center justify-center py-0.5 sm:py-1"
+            >
+              <AdDisplayCard
+                ad={ad}
+                isHearted={heartedAdIds.includes(ad.id)}
+                onHeart={toggleHeart}
+                onOpen={ad.isPlaceholder ? undefined : openTakeover}
+                badgeText={getBadgeText(ad)}
+                showHeart={!ad.isPlaceholder}
+                className={cardClassName}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
