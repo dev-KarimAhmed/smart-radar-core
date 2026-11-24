@@ -46,6 +46,11 @@ export const SOVEREIGN_PAYMENT_CHANNELS = [
   { id: 'efawateer', name: 'eFAWATEERcom', label: 'إي فواتيركم' }
 ] as const;
 
+export const BYNCOM_OFFICIAL_SOCIAL_LINKS = {
+  instagram: 'https://www.instagram.com/byncom3?fqnt=dGpmY3RoMHRnMmhr',
+  facebook: 'https://www.facebook.com/share/1H1qHtBFFV/?mibextid=wwXIfr',
+} as const;
+
 export function getLandingPageUrl(): string {
   const raw = (process.env.NEXT_PUBLIC_PAGE || 'https://radar-page.vercel.app').trim();
   const sanitized = raw.replace(/["'\\]/g, '').trim();

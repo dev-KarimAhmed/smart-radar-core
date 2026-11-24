@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAuthLocation } from '@/lib/auth-routing';
 import { CaptainOnboarding } from '@/features/captain/contract';
 import { useTranslations } from "next-intl";
+import { SocialLinks } from '@/components/social-links';
 
 const styles = {
   style128_1: "min-h-screen bg-[#0B0F19] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans",
@@ -218,6 +219,7 @@ function LoginOrchestrator() {
 
         {/* Footer */}
         <div className={styles.style232_32}>
+          <SocialLinks variant="compact" isArabic={true} className="mb-3" />
           <p>{tAuto('key_0bcf6815')}</p>
         </div>
       </div>

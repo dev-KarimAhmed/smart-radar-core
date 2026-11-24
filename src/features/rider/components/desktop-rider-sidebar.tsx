@@ -14,6 +14,7 @@ import { SovereignPwaInstallModal } from '@/components/sovereign-pwa-install-mod
 import { styles, desktopSidebarCopy } from './desktop-sidebar/desktop-sidebar-styles';
 import { DesktopSidebarProfile } from './desktop-sidebar/desktop-sidebar-profile';
 import { DesktopSidebarNav } from './desktop-sidebar/desktop-sidebar-nav';
+import { SocialLinks } from '@/components/social-links';
 
 export function DesktopRiderSidebar({
   hash,
@@ -158,6 +159,7 @@ export function DesktopRiderSidebar({
 
       {/* Footer / Logout */}
       <div className={styles.footer}>
+        <SocialLinks variant="compact" isArabic={isArabic} className="mb-2.5" />
         <Button className={styles.logout} onClick={() => void logout()}>
           <LogOut className={styles.actionIcon} />
           {text.logout}

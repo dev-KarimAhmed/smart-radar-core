@@ -18,6 +18,7 @@ import { getLandingPageUrl } from '@/lib/constants';
 import { styles } from './role-step.styles';
 import { copy, type Lang, type RoleKey } from './role-step.copy';
 import { RoleStepCard } from './role-step-card';
+import { SocialLinks } from '@/components/social-links';
 
 export { demoUsers } from './role-step-demo-users';
 
@@ -128,6 +129,11 @@ export function RoleStep() {
             })}
           </AnimatePresence>
         </motion.div>
+
+        {/* Official Social Channels */}
+        <div className="mt-8 sm:mt-10 w-full">
+          <SocialLinks variant="hero" isArabic={isArabic} />
+        </div>
       </section>
     </main>
   );

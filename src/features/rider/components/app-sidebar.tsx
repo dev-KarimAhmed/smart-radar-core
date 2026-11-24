@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { styles } from './sidebar/app-sidebar-styles';
 import { RiderFavoriteDrivers } from './sidebar/rider-favorite-drivers';
 import { RiderSidebarOperations } from './sidebar/rider-sidebar-operations';
+import { SocialLinks } from '@/components/social-links';
 
 export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}) {
   const tAuto = useTranslations('auto');
@@ -142,6 +143,7 @@ export function AppSidebar({ isCritical = false }: { isCritical?: boolean } = {}
       </ScrollArea>
 
       <div className={styles.footer}>
+        <SocialLinks variant="compact" isArabic={isArabic} className="mb-2.5" />
         <div className={styles.footerText}>{tAuto('key_89b66bbd')}</div>
         <Button className={styles.logout} onClick={() => void logout()} variant="destructive">
           <span>{tAuto('key_5c4e4796')}</span>
