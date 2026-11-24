@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils';
 import { BYNCOM_OFFICIAL_SOCIAL_LINKS } from '@/lib/constants';
 
 export interface SocialLinksProps {
-  variant?: 'pill' | 'compact' | 'inline';
+  variant?: 'header' | 'compact' | 'pill' | 'inline';
   isArabic?: boolean;
   className?: string;
 }
 
 export function SocialLinks({
-  variant = 'pill',
+  variant = 'header',
   isArabic = true,
   className,
 }: SocialLinksProps) {
@@ -41,6 +41,40 @@ export function SocialLinks({
           className="group relative flex h-8 w-8 items-center justify-center rounded-full bg-[#1877F2] text-white shadow-md transition-all duration-300 hover:scale-115 hover:shadow-[0_0_15px_rgba(24,119,242,0.5)] active:scale-95"
         >
           <Facebook className="h-4 w-4" />
+        </a>
+      </div>
+    );
+  }
+
+  if (variant === 'header') {
+    return (
+      <div
+        dir="ltr"
+        className={cn(
+          'inline-flex min-h-11 sm:min-h-12 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-[#161F30]/60 px-2 sm:px-2.5 shadow-2xl backdrop-blur-xl transition-colors duration-300 hover:border-[#14B8A6]/40',
+          className
+        )}
+      >
+        <a
+          href={instagram}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={isArabic ? 'إنستغرام بينكم (@byncom3)' : 'Byncom Instagram (@byncom3)'}
+          title={isArabic ? 'إنستغرام (@byncom3)' : 'Instagram (@byncom3)'}
+          className="group flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white shadow-sm transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_rgba(225,48,108,0.55)] active:scale-95"
+        >
+          <Instagram className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        </a>
+
+        <a
+          href={facebook}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={isArabic ? 'فيسبوك بينكم' : 'Byncom Facebook'}
+          title={isArabic ? 'فيسبوك بينكم' : 'Byncom Facebook'}
+          className="group flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#1877F2] text-white shadow-sm transition-all duration-300 hover:scale-110 hover:shadow-[0_0_15px_rgba(24,119,242,0.55)] active:scale-95"
+        >
+          <Facebook className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </a>
       </div>
     );

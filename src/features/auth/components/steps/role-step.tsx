@@ -51,18 +51,22 @@ export function RoleStep() {
     >
       <div className={styles.style262_2} />
 
-      <motion.button
-        type="button"
-        aria-label={content.ariaSwitch}
-        onClick={() => setLang(isArabic ? 'en' : 'ar')}
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-        className={cn(styles.style271_3, isArabic ? styles.style272_4 : styles.style272_5)}
-      >
-        <Languages aria-hidden="true" className={styles.style275_6} />
-        <span>{content.switchLabel}</span>
-      </motion.button>
+      <div className={cn("fixed top-4 z-40 flex items-center gap-2 sm:top-6 sm:gap-2.5", isArabic ? styles.style272_4 : styles.style272_5)}>
+        <motion.button
+          type="button"
+          aria-label={content.ariaSwitch}
+          onClick={() => setLang(isArabic ? 'en' : 'ar')}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+          className={styles.headerButton}
+        >
+          <Languages aria-hidden="true" className={styles.style275_6} />
+          <span>{content.switchLabel}</span>
+        </motion.button>
+
+        <SocialLinks variant="header" isArabic={isArabic} />
+      </div>
 
       <motion.a
         href={getLandingPageUrl()}
@@ -74,7 +78,8 @@ export function RoleStep() {
         className={cn(styles.style271_3, isArabic ? styles.style272_5 : styles.style272_4)}
       >
         <Home aria-hidden="true" className={styles.style275_6} />
-        <span>{content.backToHome}</span>
+        <span className="hidden sm:inline">{content.backToHome}</span>
+        <span className="sm:hidden">{isArabic ? 'الرئيسية' : 'Home'}</span>
       </motion.a>
 
       <section className={styles.style279_7}>
@@ -130,9 +135,6 @@ export function RoleStep() {
           </AnimatePresence>
         </motion.div>
       </section>
-
-      {/* Floating Chic Social Pill */}
-      <SocialLinks variant="pill" isArabic={isArabic} />
     </main>
   );
 }
