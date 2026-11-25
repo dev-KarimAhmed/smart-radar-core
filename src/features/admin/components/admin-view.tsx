@@ -4,7 +4,6 @@ import React from 'react';
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { DriversManagementTab } from './admin/drivers-management-tab';
 import { AdminTopBar } from './admin/admin-top-bar';
-import { AdminMasterKPIBar } from './admin/admin-master-kpi-bar';
 import { WalletManagementTab } from './admin/wallet-management-tab';
 import { RidersManagementPanel } from './admin/riders-management-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
@@ -35,9 +34,6 @@ export function AdminViewTab() {
     <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
       <AdminTopBar />
-
-      {/* شريط الإحصائيات السيادية الموحد - للمدير العام فقط */}
-      {isGeneral && <AdminMasterKPIBar />}
 
       {/* المنظومة الإدارية المنظمة */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
