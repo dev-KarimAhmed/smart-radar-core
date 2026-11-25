@@ -6,12 +6,11 @@ import {
   Sparkles,
   X,
   CreditCard,
-  Clock,
-  Zap,
   CheckCircle2,
 } from 'lucide-react';
 import { styles } from './captain-ads-styles';
 import { CaptainAdPackageFeaturesList } from './parts/captain-ad-package-features-list';
+import { CaptainAdPackageHeroCard } from './parts/captain-ad-package-hero-card';
 import type { CaptainAdPackage } from '../../services/captain-ads-package';
 
 interface CaptainAdPackageModalProps {
@@ -37,13 +36,6 @@ export function CaptainAdPackageModal({
   onGoToPayment,
   onActivatePackage,
 }: CaptainAdPackageModalProps) {
-  if (!mounted || !isOpen) return null;
-
-  const isEgypt = currencySymbol === 'ج.م' || currencySymbol === 'EGP';
-  const defaultCurrency = isEgypt ? (isArabic ? 'ج.م' : 'EGP') : (isArabic ? 'د.أ' : 'JOD');
-  const currency = currencySymbol || defaultCurrency;
-  const formattedRate = Number(radarHourPrice || 300).toFixed(2);
-
   const isAlreadyActive = adPackage?.status === 'ACTIVE';
   const isExpired = adPackage?.status === 'EXPIRED';
   const hasActivatedBefore = Boolean(adPackage?.hasActivatedBefore || adPackage?.subscribedAt || isAlreadyActive || isExpired);
@@ -53,6 +45,13 @@ export function CaptainAdPackageModal({
     const diff = new Date(adPackage.expiresAt).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }, [adPackage?.expiresAt, isAlreadyActive]);
+
+  if (!mounted || !isOpen) return null;
+
+  const isEgypt = currencySymbol === 'ج.م' || currencySymbol === 'EGP';
+  const defaultCurrency = isEgypt ? (isArabic ? 'ج.م' : 'EGP') : (isArabic ? 'د.أ' : 'JOD');
+  const currency = currencySymbol || defaultCurrency;
+  const formattedRate = Number(radarHourPrice || 300).toFixed(2);
 
   return createPortal(
     <div className={styles.modalOverlay} role="dialog" aria-modal="true" dir={isArabic ? 'rtl' : 'ltr'}>
@@ -88,99 +87,21 @@ export function CaptainAdPackageModal({
 
         {/* Modal Body */}
         <div className="overflow-y-auto p-4 sm:p-5 space-y-4 flex-1 overscroll-contain">
-          {/* Hostinger-Style Pricing Hero Card */}
-          <div className="relative overflow-hidden rounded-3xl border border-[#00ffcc]/35 bg-gradient-to-b from-[#0f1d33] via-[#091424] to-[#050b14] p-5 shadow-[0_0_35px_rgba(0,255,204,0.12)]">
-            <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#00ffcc]/15 blur-3xl" />
-            <div className="pointer-events-none absolute -left-12 -bottom-12 h-36 w-36 rounded-full bg-emerald-500/15 blur-3xl" />
+          <CaptainAdPackageHeroCard
+            isArabic={isArabic}
+            currency={currency}
+            formattedRate={formattedRate}
+            isAlreadyActive={isAlreadyActive}
+            isExpired={isExpired}
+            hasActivatedBefore={hasActivatedBefore}
+            remainingDays={remainingDays}
+          />
 
-            {/* Badges Row */}
-            <div className="flex items-center justify-between gap-2 mb-3">
-              {isAlreadyActive ? (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-300">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>{isArabic ? 'الباقة مفعلة حالياً' : 'Package Active'}</span>
-                </div>
-              ) : isExpired ? (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-300">
-                  <Clock className="h-3.5 w-3.5 text-amber-300" />
-                  <span>{isArabic ? 'انتهت الـ 30 يوماً المجانية' : '30 Days Expired'}</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs font-black text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
-                  <Zap className="h-3.5 w-3.5 text-amber-300" />
-                  <span>{isArabic ? 'عرض التدشين الحصري' : 'Exclusive Launch Offer'}</span>
-                </div>
-              )}
-              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-400 to-[#00ffcc] px-3 py-1 text-xs font-black text-slate-950">
-                <span>{isAlreadyActive ? (isArabic ? `متبقي ${remainingDays} يوم` : `${remainingDays}d Left`) : (isArabic ? 'وفر 100%' : 'SAVE 100%')}</span>
-              </span>
-            </div>
-
-            {/* Price Strikethrough + Hero Numbers */}
-            <div className="my-3">
-              <div className="flex items-center gap-2 text-xs text-slate-400 font-sans mb-1">
-                <span>{isArabic ? 'السعر بعد العرض:' : 'Regular Price:'}</span>
-                <span className="line-through decoration-rose-500 decoration-2 font-bold text-slate-400">
-                  {formattedRate} {currency} / {isArabic ? 'ساعة' : 'hr'}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight font-mono">
-                    0.00
-                  </span>
-                  <span className="text-lg sm:text-xl font-bold text-[#00ffcc]">
-                    {currency}
-                  </span>
-                  <span className="text-xs sm:text-sm text-slate-300 font-sans">
-                    / {isArabic ? 'ساعة تشغيل' : 'operating hour'}
-                  </span>
-                </div>
-
-                <div className="inline-flex items-center gap-1.5 rounded-xl border border-teal-400/40 bg-teal-500/20 px-3 py-1 text-xs font-black text-[#00ffcc] shadow-[0_0_15px_rgba(0,255,204,0.15)]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>
-                    {isAlreadyActive
-                      ? (isArabic ? `متبقي ${remainingDays} يوماً` : `${remainingDays}d left`)
-                      : isExpired || hasActivatedBefore
-                      ? (isArabic ? 'انتهى العرض' : 'Expired')
-                      : (isArabic ? 'أول شهر مجاني' : 'First Month Free')}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Clear 2-Column Guarantee Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-white/10 text-xs text-slate-200 font-sans">
-              <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/5 px-3 py-2">
-                <Clock className="h-4 w-4 text-[#00ffcc] shrink-0" />
-                <span className="truncate">
-                  {isArabic ? 'سعر ساعة التشغيل: 0.00 للشهر الأول' : 'Hourly rate: 0.00 for month 1'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/5 px-3 py-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                <span className="truncate">
-                  {isArabic ? '30 يوماً كاملة بصفر تكلفة' : 'Full 30 days at zero cost'}
-                </span>
-              </div>
-            </div>
-
-            <p className="mt-2 text-center text-[11px] text-slate-400 font-sans">
-              {isArabic
-                ? `* يطبق السعر الاعتيادي (${formattedRate} ${currency}/ساعة) بعد انتهاء فترة الهدية المجانية`
-                : `* Regular rate (${formattedRate} ${currency}/hr) applies only after the free gift period`}
-            </p>
-          </div>
-
-          {/* Clean 14 Features Checklist */}
           <CaptainAdPackageFeaturesList isArabic={isArabic} />
         </div>
 
         {/* Modal Footer Actions */}
         <div className="p-4 sm:p-5 border-t border-white/10 bg-[#070D19]/95 flex flex-col gap-2.5 shrink-0">
-          {/* Primary Action Button */}
           {isAlreadyActive ? (
             <div className="w-full h-12 inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-950/60 px-4 text-xs sm:text-sm font-black text-emerald-300 shadow-inner select-none">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -206,7 +127,6 @@ export function CaptainAdPackageModal({
             </button>
           )}
 
-          {/* Secondary Row: Payment Channels and Back */}
           <div className="flex items-center gap-2">
             <button
               type="button"
