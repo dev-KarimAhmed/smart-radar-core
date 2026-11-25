@@ -36,8 +36,8 @@ export function AdminViewTab() {
       {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
       <AdminTopBar />
 
-      {/* شريط الإحصائيات السيادية الموحد - Master Supervisor KPI Bar */}
-      <AdminMasterKPIBar />
+      {/* شريط الإحصائيات السيادية الموحد - للمدير العام فقط */}
+      {isGeneral && <AdminMasterKPIBar />}
 
       {/* المنظومة الإدارية المنظمة */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
