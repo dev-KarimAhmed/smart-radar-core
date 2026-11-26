@@ -5,10 +5,13 @@ import type { CaptainDashboardAction, CaptainDashboardState } from '../state/cap
 import {
   getCaptainAdPackage,
   getCaptainOperatingEligibility,
-  subscribeCaptainAdPackage,
   type CaptainAdPackage,
 } from '../services/captain-ads-package';
 import { checkAndDispatchPackageExpirationReminder } from '../services/captain-package-reminder';
+import {
+  executeCaptainPackageActivation,
+  navigateToLegalRecord,
+} from '../services/captain-package-activation-flow';
 
 type DriverOperations = ReturnType<typeof useDriverOperations>;
 
@@ -41,6 +44,7 @@ export function useCaptainViewController({
   const [isManualPriceSetupOpen, setIsManualPriceSetupOpen] = React.useState(false);
   const [isPendingActivation, setIsPendingActivation] = React.useState(false);
   const [isPackageModalOpen, setIsPackageModalOpen] = React.useState(false);
+  const [isPackageSuccessModalOpen, setIsPackageSuccessModalOpen] = React.useState(false);
   const [adPackage, setAdPackage] = React.useState<CaptainAdPackage>(() => getCaptainAdPackage(user?.uid || '', user));
   const [_prefilledOfferPrice, setPrefilledOfferPrice] = React.useState<number | null>(null);
   const [_prefilledPricingMode, setPrefilledPricingMode] = React.useState<'FREE' | 'APP' | 'TAXI' | null>(null);
@@ -159,12 +163,21 @@ export function useCaptainViewController({
     setIsPendingActivation(true);
   }, [driverOps, operatingEligibility.isEligible]);
 
-  const handleActivatePackage = React.useCallback(() => {
+  const handleActivatePackage = React.useCallback(async () => {
     if (user?.uid) {
-      subscribeCaptainAdPackage(user.uid);
+      const res = await executeCaptainPackageActivation({
+        userId: user.uid,
+        isArabic: user?.language !== 'en',
+      });
+      setAdPackage(res.package);
     }
-    setIsPackageModalOpen(false);
-  }, [user?.uid]);
+  }, [user]);
+
+  const handleNavigateToLegalRecord = React.useCallback(() => {
+    setIsPackageSuccessModalOpen(false);
+    dispatch({ type: 'OPEN_HISTORY' });
+    navigateToLegalRecord();
+  }, [dispatch]);
 
   const handleGoToPayment = React.useCallback(() => {
     setIsPackageModalOpen(false);
@@ -180,10 +193,13 @@ export function useCaptainViewController({
     setIsPendingActivation,
     isPackageModalOpen,
     setIsPackageModalOpen,
+    isPackageSuccessModalOpen,
+    setIsPackageSuccessModalOpen,
     adPackage,
     operatingEligibility,
     handleToggleCaptainStatus,
     handleActivatePackage,
+    handleNavigateToLegalRecord,
     handleGoToPayment,
     handleClosePriceSetup,
     submitBid,

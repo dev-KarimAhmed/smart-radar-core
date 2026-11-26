@@ -5,7 +5,8 @@ import { sendAccountConfirmationEmail, resolveEmailLanguage } from '@/server/ser
 import { getAppOrigin } from '@/lib/utils';
 import { validateRegistrationInput } from './register-validation';
 import { checkRegistrationUniqueness } from './register-uniqueness';
-import { handleCaptainPostRegistration } from './captain-onboarding';
+import { handleRiderPostRegistration } from './rider-onboarding';
+import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
 
 export async function POST(req: Request) {
   try {
@@ -141,19 +142,27 @@ export async function POST(req: Request) {
       console.warn('[Registration API] Failed to update preferred_language in profile:', profileSyncErr);
     }
 
-    // Automatically handle captain onboarding if captain
+    // 5. Grant welcome credit for new captain
     if (userRole === 'CAPTAIN') {
-      const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
-      handleCaptainPostRegistration({
-        userId,
-        fullName,
-        normalizedPhone,
-        rawEmail,
-        captainProfile,
-        clientIp,
-        lang,
-      });
+      try {
+        void grantNewCaptainWelcomeCredit(userId);
+      } catch (creditErr) {
+        console.warn('[Registration API] Welcome credit error:', creditErr);
+      }
     }
+
+    // 6. Send User Privacy Policy PDF and welcome email to ALL registered users (Captain & Rider)
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined;
+    handleRiderPostRegistration({
+      userId,
+      fullName,
+      normalizedPhone,
+      rawEmail,
+      governorateId,
+      districtId,
+      clientIp,
+      lang,
+    });
 
     // 6. Generate official confirmation link from Supabase Auth
     const reqOrigin = req.headers.get('origin') || req.headers.get('x-forwarded-host')

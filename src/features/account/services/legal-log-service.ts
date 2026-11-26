@@ -55,7 +55,7 @@ export function getStoredLegalDeclarations(userId?: string | null): LegalDeclara
 export async function recordLegalDeclaration(params: {
   userId: string;
   userSerialId?: string;
-  actionType: 'NEW_ACCOUNT' | 'PROFILE_UPDATE' | 'VEHICLE_UPDATE';
+  actionType: 'NEW_ACCOUNT' | 'PROFILE_UPDATE' | 'VEHICLE_UPDATE' | 'CAPTAIN_CONTRACT_ACTIVATION' | string;
   actionLabel?: string;
   fieldsChanged?: string[];
   isArabic?: boolean;

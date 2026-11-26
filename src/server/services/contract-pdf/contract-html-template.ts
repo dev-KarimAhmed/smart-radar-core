@@ -3,18 +3,19 @@ import { CONTRACT_HTML_STYLES } from './contract-html-styles';
 
 /**
  * Builds the sovereign, high-fidelity Arabic contract HTML template
- * strictly complying with the Unified Captain Terms & Privacy Document.
+ * strictly complying with the Foundational Contract & Captain Subscription Document V2.6.
  */
-export function buildCaptainContractHtml(data: CaptainContractData, _contractHash?: string): string {
+export function buildCaptainContractHtml(data: CaptainContractData, contractHash?: string): string {
   const serial = 'BYNK-CAP-' + data.captainId.slice(0, 8).toUpperCase();
   const dateFormatted = formatContractDate(data.acceptedAt);
-  const version = data.contractVersion || 'V1.0-Unified';
+  const version = data.contractVersion || 'V2.6-Secured';
+  const seal = contractHash ? contractHash.slice(0, 32) : 'BYNKCOM-SECURED-ELECTRONIC-SEAL';
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>عقد اشتراك الكابتن المعلن - شبكة بينكم</title>
+  <title>وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن المعلن - شبكة بينكم</title>
   <style>
 ${CONTRACT_HTML_STYLES}
   </style>
@@ -28,7 +29,7 @@ ${CONTRACT_HTML_STYLES}
           <td style="vertical-align: top;">
             <div class="badge-sovereign">وثيقة رسمية معتمدة · قانون المعاملات الإلكترونية</div>
             <h1 class="brand-title">شبكة بينكم للإعلان الرقمي</h1>
-            <div class="sub-title">وثيقة عقد اشتراك الكابتن المعلن - النسخة النهائية الموحدة ${version}</div>
+            <div class="sub-title">وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن المعلن والخدمات التقنية (${version})</div>
           </td>
           <td style="vertical-align: top; width: 230px;">
             <div class="serial-box">
@@ -69,31 +70,26 @@ ${CONTRACT_HTML_STYLES}
         </table>
       </div>
 
-      <!-- Section 2: Articles 1 to 4 -->
+      <!-- Foundational Preamble -->
       <div class="section-box" style="margin-bottom: 0;">
-        <div class="section-title">ثانياً: الضوابط والاشتراطات التأسيسية المعتمدة (المواد الحاكمة من وثيقة الشروط الموحدة)</div>
-        
+        <div class="section-title">ثانياً: البند التأسيسي وطبيعة المنصة (بروتوكول إعلاني بحت)</div>
         <div class="clause-item">
-          <span class="clause-num">1.</span>
-          <span><b>صفة الكابتن:</b> يزاول الكابتن نشاطه كمعلن مستقل لحسابه الخاص، وتعد المركبة وسيلة إعلانية شخصية له، ولا ينشأ أي عقد عمل أو تبعية مع الشبكة بأي شكل.</span>
+          <span class="clause-num">●</span>
+          <span><b>البند التأسيسي:</b> تعد مركبة الكابتن وسيلة إعلانية مستقلة لبث المحتوى الإعلاني. وتقتصر شبكة بينكم على توفير البنية التقنية وبوابة البث، ولا تمارس نشاط نقل الركاب أو التوصيل، ولا تمتلك أساطيل، ولا ترتبط مع الكابتن بعقد عمل أو تبعية تشغيلية.</span>
         </div>
         <div class="clause-item">
-          <span class="clause-num">2.</span>
-          <span><b>طبيعة الشبكة:</b> شبكة بينكم منصة تقنية للإعلانات الرقمية والتسويق، ولا تقدم أي خدمات نقل أو توجيه أو توصيل ركاب إطلاقاً.</span>
-        </div>
-        <div class="clause-item">
-          <span class="clause-num">3.</span>
-          <span><b>صفر عمولة (0%):</b> لا تتقاضى الشبكة أي عمولة أو نسبة مئوية من أجور الرحلات أو الصفقات المباشرة بين الكابتن والمستخدمين في أي وقت.</span>
+          <span class="clause-num">●</span>
+          <span><b>مجانية التعاملات (0.00% عمولة):</b> لا تتقاضى المنصة أي عمولة أو نسبة اقتطاع مالي من أجور النقل أو المعاملات المباشرة بين المستخدمين إطلاقاً، وتقتصر مواردها على بدلات اشتراكات وباقات البث الإعلاني.</span>
         </div>
         <div class="clause-item" style="margin-bottom: 0;">
-          <span class="clause-num">4.</span>
-          <span><b>مؤشر السوق الاسترشادي:</b> مؤشر إحصائي استرشادي غير إلزامي محسوب محلياً، ولا يعد بأي حال تسعيرة إجبارية على الكابتن.</span>
+          <span class="clause-num">●</span>
+          <span><b>دلالة مصطلح «الراكب»:</b> يُقصد به الدلالة الوظيفية التفاعلية البحتة للمستخدم عند انتفاعه الفعلي بخدمة يقدمها معلن مستقل، دون منحه صفة قانونية كراكب نقل عام تجاه الشبكة.</span>
         </div>
       </div>
     </div>
 
     <div class="page-footer">
-      <span>شبكة بينكم للإعلان الرقمي · عقد اشتراك الكابتن المعلن الموحد</span>
+      <span>شبكة بينكم للإعلان الرقمي · وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن</span>
       <span>الصفحة 1 من 2</span>
     </div>
   </div>
@@ -105,49 +101,49 @@ ${CONTRACT_HTML_STYLES}
         <tr>
           <td style="vertical-align: top;">
             <h2 class="brand-title" style="font-size: 22px;">شبكة بينكم للإعلان الرقمي</h2>
-            <div class="sub-title" style="font-size: 13.5px;">تابع: الضوابط التأسيسية والاشتراطات التشغيلية للعقد</div>
+            <div class="sub-title" style="font-size: 13.5px;">تابع: المواد الحاكمة، الرتب، وكتالوج الخدمات التقنية</div>
           </td>
           <td style="vertical-align: top; width: 230px; text-align: left;">
-            <div style="font-size: 12.5px; color: #94A3B8;">رقم الوثيقة: <span style="color: #14F5D5; font-family: monospace; direction: ltr; display: inline-block; font-weight: 900;">${serial}</span></div>
+            <div style="font-size: 12.5px; color: #94A3B8;">الختم الرقمي: <span style="color: #14F5D5; font-family: monospace; direction: ltr; display: inline-block; font-weight: 800; font-size: 10px;">${seal}</span></div>
           </td>
         </tr>
       </table>
 
-      <!-- Section 2 Continued: Articles 5 to 9 -->
+      <!-- Section 2 Continued: Governing Articles -->
       <div class="section-box">
-        <div class="section-title">تابع ثانياً: المواد والاشتراطات التشغيلية المعتمدة</div>
+        <div class="section-title">ثالثاً: المواد التشغيلية والرتب وكتالوج الخدمات الإعلانية المعتمدة</div>
 
         <div class="clause-item">
-          <span class="clause-num">5.</span>
-          <span><b>أذونات موارد الجهاز:</b> يمنح الكابتن إذناً صريحاً ومحدداً للموقع والإنترنت والشاشة بالقدر الضروري لتشغيل التطبيق وبث الإعلانات فقط.</span>
+          <span class="clause-num">1.</span>
+          <span><b>المادة (1) و (2) الاستقلال الإعلاني:</b> يزاول الكابتن نشاطه لحسابه الخاص وباستقلال مهني وإداري ومالي، ويتحمل مسؤولية التراخيص، وتخضع المواد الإعلانية للضوابط الشرعية والقانونية.</span>
         </div>
         <div class="clause-item">
-          <span class="clause-num">6.</span>
-          <span><b>زر مشاركة التتبع المباشر:</b> ميزة تتبع لحظية طارئة تنتهي فورياً بإغلاق الرحلة، دون حفظ أي مسار أو سجل في خوادم النظام حفاظاً على السرية.</span>
+          <span class="clause-num">2.</span>
+          <span><b>المادة (5) حماية خصوصية المستخدمين:</b> يلتزم الكابتن بحظر استغلال بيانات الركاب أو تسجيل الصوت/الفيديو دون إذن صريح، ويعد أي خرق إخلالاً جسيماً يوجب الحظر الفوري والمسؤولية الكاملة.</span>
         </div>
         <div class="clause-item">
-          <span class="clause-num">7.</span>
-          <span><b>إسقاط الأجل ومسح السجلات (72 ساعة):</b> تخضع سجلات التحركات لمسح وتطهير آلي دوري كل 72 ساعة حتمية لحماية الخصوصية المطلقة.</span>
+          <span class="clause-num">3.</span>
+          <span><b>الباب الثاني - موارد الجهاز والرتب:</b> استخدام موارد الجهاز بالقدر الضروري للبث الإعلاني، وتفعيل الرتب الإعلانية الخمس (البرونزية، الفضية، الذهبية، البلاتينية، والماسية للبث المركزي).</span>
         </div>
         <div class="clause-item">
-          <span class="clause-num">8.</span>
-          <span><b>نظام الرتب الخمسة:</b> يخضع الكابتن للتصنيف الآلي المعتمد (برونزي، فضي، ذهبي، بلاتيني، ماسي) حسب ساعات التواجد وجودة الأداء والتقييم.</span>
+          <span class="clause-num">4.</span>
+          <span><b>الباب الثالث - الخدمة (11) مشاركة التتبع:</b> أداة طمأنينة اختيارية تفعل بطلب المستخدم لمشاركة الرحلة مع الأقارب، وتنتهي وفوراً بانتهاء الرحلة مع مسح بيانات التحركات آلياً خلال 72 ساعة حتمية.</span>
         </div>
         <div class="clause-item" style="margin-bottom: 0;">
-          <span class="clause-num">9.</span>
-          <span><b>التدقيق الآلي للإعلانات:</b> تخضع كافة المواد الإعلانية للفرز المسبق بالذكاء الاصطناعي لضمان الامتثال للقوانين والآداب العامة وسيادة القانون.</span>
+          <span class="clause-num">5.</span>
+          <span><b>الباب الرابع - التدقيق الآلي والوثيقة المصدرية:</b> تدقيق آلي بالذكاء الاصطناعي، واعتماد هذه الوثيقة كمصدر الحقيقة الواحد وسريان العقد الإلكتروني النافذ بالجزء من الثانية.</span>
         </div>
       </div>
 
       <!-- Acceptance verification note -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; background: rgba(255,255,255,0.025); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-        <span style="color: #10B981; font-size: 12.5px; font-weight: 800;">✓ تم توثيق وقبول الشروط إلكترونياً وسريان العقد</span>
+        <span style="color: #10B981; font-size: 12.5px; font-weight: 800;">✓ تم توثيق وقبول الوثيقة إلكترونياً وسريان العقد رسمياً</span>
         <span style="color: #94A3B8; font-size: 12.5px;"><b>تاريخ وساعة التوثيق:</b> <span style="color: #14F5D5; font-weight: 800;">${dateFormatted}</span></span>
       </div>
     </div>
 
     <div class="page-footer">
-      <span>شبكة بينكم للإعلان الرقمي · عقد اشتراك الكابتن المعلن الموحد</span>
+      <span>شبكة بينكم للإعلان الرقمي · وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن</span>
       <span>الصفحة 2 من 2</span>
     </div>
   </div>

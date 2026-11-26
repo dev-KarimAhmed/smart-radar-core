@@ -28,6 +28,9 @@ export function usePersonalStepState() {
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [privacyError, setPrivacyError] = useState('');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [isResending, setIsResending] = useState(false);
 
@@ -130,6 +133,11 @@ export function usePersonalStepState() {
         setEmailError(isArabic ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Invalid email format');
         return;
       }
+      setPrivacyError('');
+      if (!agreePrivacy) {
+        setPrivacyError(isArabic ? 'يجب قراءة والموافقة على سياسة الخصوصية للمتابعة' : 'You must read and agree to the privacy policy');
+        return;
+      }
       const isValid = await reg.validateBeforeAccuracyConfirm();
       if (!isValid) return;
       setShowAccuracyModal(true);
@@ -182,6 +190,12 @@ export function usePersonalStepState() {
     resetError,
     emailError,
     setEmailError,
+    agreePrivacy,
+    setAgreePrivacy,
+    privacyError,
+    setPrivacyError,
+    showPrivacyModal,
+    setShowPrivacyModal,
     resendCountdown,
     isResending,
     phoneValidation,

@@ -15,6 +15,7 @@ import {
   type HistoryLegalDeclarationsProps,
 } from './legal/legal-declarations-styles';
 import { LegalDeclarationCard } from './legal/legal-declaration-card';
+import { CaptainContractRecordCard } from './legal/captain-contract-record-card';
 
 export * from './legal/legal-declarations-styles';
 export * from './legal/legal-declarations-helpers';
@@ -54,9 +55,17 @@ export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclar
     loadRecords();
 
     const handleNewRecord = () => loadRecords();
+    const handleExpandLegal = () => setIsExpanded(true);
     window.addEventListener('radar-legal-declaration-recorded', handleNewRecord);
-    return () => window.removeEventListener('radar-legal-declaration-recorded', handleNewRecord);
+    window.addEventListener('radar_navigate_to_legal_record', handleExpandLegal);
+    return () => {
+      window.removeEventListener('radar-legal-declaration-recorded', handleNewRecord);
+      window.removeEventListener('radar_navigate_to_legal_record', handleExpandLegal);
+    };
   }, [user?.uid, user?.serial_id, (user as any)?.created_at, isArabic]);
+
+  const userRole = ((user as any)?.role || '').toLowerCase();
+  const isCaptain = userRole === 'driver' || userRole === 'captain';
 
   return (
     <Card className={styles.card} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -115,6 +124,10 @@ export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclar
 
       {isExpanded && (
         <CardContent className={styles.content}>
+          {isCaptain && user?.uid ? (
+            <CaptainContractRecordCard isArabic={isArabic} captainId={user.uid} />
+          ) : null}
+
           {declarations.length === 0 ? (
             <div className={styles.emptyBox}>
               <ShieldAlert className={styles.emptyIcon} />

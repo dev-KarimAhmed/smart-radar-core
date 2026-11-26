@@ -15,14 +15,10 @@ import { useConnectionGuard } from '../hooks/use-connection-guard';
 import { usePricePerKmSetup } from '../hooks/use-price-per-km-setup';
 import { useCaptainMarketIndicator } from '../hooks/use-captain-market-indicator';
 import { useCountryConfig } from '@/shared/hooks/use-country-config';
-import { resolveUserCurrency } from '@/shared/services/currency-label';
-import { getCurrencyLabel } from '@/shared/services/currency-label';
+import { resolveUserCurrency, getCurrencyLabel } from '@/shared/services/currency-label';
 import { useLiveCurrencyFromLocation } from '@/shared/hooks/use-live-currency-from-location';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
-import {
-  captainDashboardReducer,
-  initialCaptainDashboardState,
-} from '../state/captain-state-machine';
+import { captainDashboardReducer, initialCaptainDashboardState } from '../state/captain-state-machine';
 import { useCaptainSyncEffects } from '../hooks/use-captain-sync-effects';
 import { useCaptainViewController } from '../hooks/use-captain-view-controller';
 import { CaptainHeader } from './view/captain-header';
@@ -32,6 +28,7 @@ import { CaptainSecurityScreens } from './view/captain-security-screens';
 import { CaptainMainContent } from './view/captain-main-content';
 import { CaptainModals } from './view/captain-modals';
 import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
+import { CaptainPackageActivatedModal } from './ads-seats/captain-package-activated-modal';
 
 const styles = {
   root: 'min-h-screen w-full max-w-full overflow-x-hidden bg-[#0B0F19] p-2.5 pb-24 text-white sm:p-3 sm:pb-12 md:p-5',
@@ -230,6 +227,14 @@ export function DriverViewTab() {
         onClose={() => vc.setIsPackageModalOpen(false)}
         onGoToPayment={vc.handleGoToPayment}
         onActivatePackage={vc.handleActivatePackage}
+        captainId={user?.uid || ''}
+      />
+
+      <CaptainPackageActivatedModal
+        isOpen={vc.isPackageSuccessModalOpen}
+        isArabic={language === 'ar'}
+        onClose={() => vc.setIsPackageSuccessModalOpen(false)}
+        onNavigateToLegalRecord={vc.handleNavigateToLegalRecord}
       />
 
       <CaptainBottomNav

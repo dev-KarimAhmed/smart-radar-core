@@ -78,7 +78,11 @@ export function CaptainMainContent({
   React.useEffect(() => {
     const handleOpenHistory = () => dispatch({ type: 'OPEN_HISTORY' });
     window.addEventListener('radar_open_history', handleOpenHistory);
-    return () => window.removeEventListener('radar_open_history', handleOpenHistory);
+    window.addEventListener('radar_navigate_to_legal_record', handleOpenHistory);
+    return () => {
+      window.removeEventListener('radar_open_history', handleOpenHistory);
+      window.removeEventListener('radar_navigate_to_legal_record', handleOpenHistory);
+    };
   }, [dispatch]);
 
   return (

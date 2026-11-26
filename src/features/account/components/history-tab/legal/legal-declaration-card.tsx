@@ -15,12 +15,21 @@ interface LegalDeclarationCardProps {
 export function LegalDeclarationCard({ item, isArabic }: LegalDeclarationCardProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
+  const isCaptainDoc = item.actionType === 'CAPTAIN_CONTRACT_ACTIVATION';
+  const buttonLabel = isCaptainDoc
+    ? (isArabic ? 'تحميل الوثيقة الرسمية (PDF)' : 'Download Official Document (PDF)')
+    : (isArabic ? 'تحميل سياسة الخصوصية (PDF)' : 'Download Privacy Policy (PDF)');
+
   const handleDownloadPdf = async () => {
     try {
       setIsDownloading(true);
       const accessToken = (await getClientAccessToken()) || undefined;
-      const downloadUrl = `/api/captain/contract?download=true&captainId=${encodeURIComponent(item.userId)}&_t=${Date.now()}`;
-      const filename = `وثيقة_الإقرار_${item.id}.pdf`;
+      const downloadUrl = isCaptainDoc
+        ? `/api/captain/contract?download=true&captainId=${encodeURIComponent(item.userId)}&_t=${Date.now()}`
+        : `/api/privacy-policy/pdf?download=true&_t=${Date.now()}`;
+      const filename = isCaptainDoc
+        ? `وثيقة_الكابتن_${item.id}.pdf`
+        : `وثيقة_سياسة_الخصوصية_${item.id}.pdf`;
       await downloadPdfInWorker({ url: downloadUrl, filename, accessToken });
     } catch (err) {
       console.warn('PDF download error:', err);
@@ -93,7 +102,7 @@ export function LegalDeclarationCard({ item, isArabic }: LegalDeclarationCardPro
           ) : (
             <>
               <Download className="h-3.5 w-3.5 text-amber-400" />
-              <span>{isArabic ? 'تحميل الوثيقة الرسمية (PDF)' : 'Download Official Document (PDF)'}</span>
+              <span>{buttonLabel}</span>
             </>
           )}
         </button>

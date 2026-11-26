@@ -16,6 +16,14 @@ export function HistoryTab({ hideCaptainDiagnostics = false }: HistoryTabProps =
   const state = useHistoryState();
   const [activeCategory, setActiveCategory] = useState<HistoryCategoryKey>('all');
 
+  React.useEffect(() => {
+    const handleNavigateLegal = () => {
+      setActiveCategory('legal');
+    };
+    window.addEventListener('radar_navigate_to_legal_record', handleNavigateLegal);
+    return () => window.removeEventListener('radar_navigate_to_legal_record', handleNavigateLegal);
+  }, []);
+
   const { isPassenger } = state;
 
   const effectiveCategory = isPassenger && (activeCategory === 'financial' || activeCategory === 'ranks')

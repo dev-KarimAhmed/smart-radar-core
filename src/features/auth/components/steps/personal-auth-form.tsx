@@ -32,6 +32,10 @@ interface PersonalAuthFormProps {
   locationDataLoading: boolean;
   rememberMe: boolean;
   setRememberMe: (val: boolean) => void;
+  agreePrivacy?: boolean;
+  setAgreePrivacy?: (val: boolean) => void;
+  privacyError?: string;
+  onOpenPrivacyModal?: () => void;
   isSubmitting: boolean;
   onFormSubmit: (e: React.FormEvent) => void;
   openPasswordReset: () => void;
@@ -59,6 +63,10 @@ export function PersonalAuthForm({
   locationDataLoading,
   rememberMe,
   setRememberMe,
+  agreePrivacy = false,
+  setAgreePrivacy,
+  privacyError = '',
+  onOpenPrivacyModal,
   isSubmitting,
   onFormSubmit,
   openPasswordReset,
@@ -162,6 +170,37 @@ export function PersonalAuthForm({
             className={styles.style776_129}
           />
         </label>
+
+        {mode === 'register' && setAgreePrivacy ? (
+          <div className="space-y-1 my-1">
+            <label className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-teal-500/5 border border-teal-500/20 hover:border-teal-500/40 transition cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreePrivacy}
+                onChange={(e) => setAgreePrivacy(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-teal-500/40 bg-black/40 text-teal-400 focus:ring-teal-500/20 cursor-pointer"
+                required
+              />
+              <span className="text-xs text-slate-300 select-none leading-relaxed">
+                {isArabic ? 'قرأت وأوافق على ' : 'I have read and agree to the '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (onOpenPrivacyModal) onOpenPrivacyModal();
+                  }}
+                  className="font-bold text-[#14F5D5] underline hover:text-teal-300 transition cursor-pointer"
+                >
+                  {isArabic ? 'سياسة خصوصية المستخدم والإعلانات' : 'User Privacy & Advertising Policy'}
+                </button>
+              </span>
+            </label>
+            {privacyError ? (
+              <p className="text-[11px] font-bold text-rose-400 ps-1.5">{privacyError}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         <motion.button
           whileTap={{ scale: 0.98 }}

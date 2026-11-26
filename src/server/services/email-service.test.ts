@@ -6,6 +6,7 @@ import {
   buildAccountConfirmationEmail,
   buildPasswordResetEmail,
   buildCaptainContractEmail,
+  buildRiderContractEmail,
 } from './email-service';
 import { formatContractDate } from './contract-pdf-service';
 
@@ -125,7 +126,7 @@ describe('email-service localization & template checks', () => {
       lang: 'ar',
     });
 
-    assert.ok(emailAr.subject.includes('وثيقة عقد اشتراك الكابتن'));
+    assert.ok(emailAr.subject.includes('وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن المعلن'));
     assert.ok(emailAr.html.includes('dir="rtl"'));
     assert.ok(emailAr.html.includes('كابتن معلن مستقل'));
     assert.ok(emailAr.html.includes('تاريخ الاعتماد والسريان'));
@@ -137,9 +138,35 @@ describe('email-service localization & template checks', () => {
       lang: 'en',
     });
 
-    assert.ok(emailEn.subject.includes('Certified Captain Advertiser Agreement'));
+    assert.ok(emailEn.subject.includes('Certified Captain Foundational Contract'));
     assert.ok(emailEn.html.includes('dir="ltr"'));
     assert.ok(emailEn.html.includes('Independent Captain Advertiser'));
+    assert.ok(emailEn.html.includes('Effective & Certified Date'));
+  });
+
+  it('builds rider privacy contract email in Arabic and English', () => {
+    const emailAr = buildRiderContractEmail({
+      userName: 'سارة خالد',
+      contractHash: 'f3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b866',
+      acceptedAt: '2026-11-25T14:30:00Z',
+      lang: 'ar',
+    });
+
+    assert.ok(emailAr.subject.includes('وثيقة سياسة خصوصية المستخدم والإعلانات الرقمية المعتمدة'));
+    assert.ok(emailAr.html.includes('dir="rtl"'));
+    assert.ok(emailAr.html.includes('سياسة خصوصية المستخدم والإعلانات المركزية والمستقلة'));
+    assert.ok(emailAr.html.includes('تاريخ الاعتماد والسريان'));
+
+    const emailEn = buildRiderContractEmail({
+      userName: 'Sara Khaled',
+      contractHash: 'f3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b866',
+      acceptedAt: '2026-11-25T14:30:00Z',
+      lang: 'en',
+    });
+
+    assert.ok(emailEn.subject.includes('Certified User Privacy Policy & Platform Terms'));
+    assert.ok(emailEn.html.includes('dir="ltr"'));
+    assert.ok(emailEn.html.includes('User Privacy Policy & Central and Independent Advertising Agreement'));
     assert.ok(emailEn.html.includes('Effective & Certified Date'));
   });
 });

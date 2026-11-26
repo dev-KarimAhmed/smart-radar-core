@@ -92,13 +92,13 @@ export function CaptainUnifiedTermsModal({
             <div>
               <h2 className="text-base sm:text-lg font-black text-white">
                 {isArabic
-                  ? 'وثيقة شروط وخصوصية اشتراك الكابتن المعلن'
-                  : 'Advertiser Captain Subscription Terms & Privacy Document'}
+                  ? 'وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن المعلن'
+                  : 'Foundational Contract & Captain Subscription Terms'}
               </h2>
               <p className="text-xs font-semibold text-[#14B8A6]">
                 {isArabic
-                  ? 'شبكة بينكم للإعلان الرقمي · النسخة النهائية الموحدة V1.0'
-                  : 'Bynkcom Digital Ad Network · Unified Final Edition V1.0'}
+                  ? 'شبكة بينكم للإعلان الرقمي · النسخة المعتمدة V2.6'
+                  : 'Bynkcom Digital Ad Network · Certified Edition V2.6'}
               </p>
             </div>
           </div>

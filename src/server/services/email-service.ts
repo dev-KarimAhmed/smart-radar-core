@@ -15,9 +15,11 @@ export {
 export { buildPasswordResetEmail } from './email/templates/password-reset-template';
 export { buildAccountConfirmationEmail } from './email/templates/account-confirmation-template';
 export { buildCaptainContractEmail } from './email/templates/captain-contract-template';
+export { buildRiderContractEmail } from './email/templates/rider-contract-template';
 
 export {
   sendPasswordResetEmail,
   sendAccountConfirmationEmail,
   sendCaptainContractEmail,
+  sendRiderContractEmail,
 } from './email/email-senders';

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Mail } from 'lucide-react';
 import { LegalDataAccuracyModal } from '@/shared/components/legal-data-accuracy-modal';
+import { UserPrivacyModal } from '@/shared/components/user-privacy-policy/user-privacy-modal';
 import { navigateAuth } from '@/lib/auth-routing';
 import { styles } from './personal-step.styles';
 import {
@@ -127,6 +128,10 @@ export function PersonalStep() {
             locationDataLoading={state.locationDataLoading}
             rememberMe={state.rememberMe}
             setRememberMe={state.setRememberMe}
+            agreePrivacy={state.agreePrivacy}
+            setAgreePrivacy={state.setAgreePrivacy}
+            privacyError={state.privacyError}
+            onOpenPrivacyModal={() => state.setShowPrivacyModal(true)}
             isSubmitting={state.isSubmitting}
             onFormSubmit={state.onFormSubmit}
             openPasswordReset={state.openPasswordReset}
@@ -194,6 +199,17 @@ export function PersonalStep() {
         onClose={() => state.setShowAccuracyModal(false)}
         isArabic={state.isArabic}
         isLoading={state.isSubmitting}
+      />
+
+      <UserPrivacyModal
+        isOpen={state.showPrivacyModal}
+        onClose={() => state.setShowPrivacyModal(false)}
+        isArabic={state.isArabic}
+        readOnly={true}
+        onAccept={() => {
+          state.setAgreePrivacy(true);
+          state.setShowPrivacyModal(false);
+        }}
       />
     </main>
   );

@@ -1,6 +1,4 @@
 import { grantNewCaptainWelcomeCredit } from '@/features/captain/services/captain-welcome-credit';
-import { saveCaptainContract } from '@/server/services/contract-pdf-service';
-import { sendCaptainContractEmail } from '@/server/services/email-service';
 import type { AppLanguage } from '@/lib/i18n/simple-copy';
 
 interface HandleCaptainPostRegistrationParams {
@@ -15,14 +13,8 @@ interface HandleCaptainPostRegistrationParams {
 
 export function handleCaptainPostRegistration({
   userId,
-  fullName,
-  normalizedPhone,
-  rawEmail,
-  captainProfile,
-  clientIp,
-  lang,
 }: HandleCaptainPostRegistrationParams) {
-  // 1. Grant welcome hours
+  // 1. Grant welcome operating hours to the newly registered captain
   void (async () => {
     try {
       await grantNewCaptainWelcomeCredit(userId);
@@ -31,34 +23,6 @@ export function handleCaptainPostRegistration({
     }
   })();
 
-  // 2. Generate official PDF contract & email it to the captain asynchronously (Article 5 Section 4)
-  void (async () => {
-    try {
-      const contractRes = await saveCaptainContract({
-        captainId: userId,
-        fullName,
-        phone: normalizedPhone,
-        email: rawEmail,
-        licenseNumber: captainProfile?.license_number,
-        plateNumber: captainProfile?.plate_number,
-        vehicleMake: captainProfile?.make || captainProfile?.vehicle_brand,
-        vehicleModel: captainProfile?.model || captainProfile?.vehicle_model,
-        vehicleYear: captainProfile?.year || captainProfile?.vehicle_year,
-        governorate: captainProfile?.governorate,
-        district: captainProfile?.district,
-        ipAddress: clientIp,
-      });
-
-      await sendCaptainContractEmail({
-        to: rawEmail,
-        captainName: fullName,
-        pdfBuffer: contractRes.pdfBuffer,
-        contractHash: contractRes.contractHash,
-        acceptedAt: contractRes.acceptedAt,
-        lang,
-      });
-    } catch (contractErr) {
-      console.warn('[Registration API] Async captain contract email error:', contractErr);
-    }
-  })();
+  // Note: Per Sovereign V2.6 protocol, the official Captain Contract
+  // is certified and emailed upon Package Activation in the Control Room.
 }

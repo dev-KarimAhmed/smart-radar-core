@@ -82,7 +82,7 @@ function drawPageFrame(page: PDFPage, font: PDFFont, pageNum: number) {
   });
   drawRightAlignedText(
     page,
-    'شبكة بينكم للإعلان الرقمي · عقد اشتراك الكابتن المعلن الموحد',
+    'شبكة بينكم للإعلان الرقمي · وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن',
     A4_WIDTH - MARGIN_X,
     MARGIN_X,
     36,

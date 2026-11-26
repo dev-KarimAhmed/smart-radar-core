@@ -14,15 +14,15 @@ export function buildCaptainContractEmail(params: {
   const formattedDate = formatContractDate(params.acceptedAt, isEn ? 'en' : 'ar');
 
   const subject = isEn
-    ? 'Certified Captain Advertiser Agreement | Bynkcom Digital Ad Network'
-    : 'وثيقة عقد اشتراك الكابتن المعلن المعتمدة | شبكة بينكم للإعلان الرقمي';
+    ? 'Certified Captain Foundational Contract & Subscription Terms | Bynkcom Ad-Tech Network'
+    : 'وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن المعلن والخدمات التقنية | شبكة بينكم للإعلان الرقمي';
 
-  const brandName = isEn ? '⚡ Bynkcom Digital Ad Network' : '⚡ شبكة بينكم للإعلان الرقمي';
-  const heading = isEn ? 'Certified Captain Advertiser Agreement' : 'وثيقة عقد اشتراك الكابتن المعلن المعتمدة';
+  const brandName = isEn ? '⚡ Bynkcom Ad-Tech Network' : '⚡ شبكة بينكم للإعلان الرقمي';
+  const heading = isEn ? 'Certified Captain Contract & Subscription Document' : 'وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن المعلن';
 
   const greeting = isEn
-    ? `Welcome Captain <strong style="color: #F8FAFC;">${params.captainName || "Advertiser"}</strong>,<br>We are pleased to inform you that your subscription and contractual capacity as an <strong style="color: #14F5D5;">"Independent Captain Advertiser"</strong> in Bynkcom Digital Ad Network have been officially certified, confirming your agreement to the Unified Terms and Privacy Policy.`
-    : `مرحباً بك كابتن <strong style="color: #F8FAFC;">${params.captainName || "المعلن"}</strong>،<br>نحيطك علماً بأنه قد تم توثيق اشتراكك واعتماد صفتك التعاقدية كـ <strong style="color: #14F5D5;">«كابتن معلن مستقل»</strong> في شبكة بينكم للإعلان الرقمي بنجاح، وتأكيد موافقتك على وثيقة الشروط والخصوصية الموحدة.`;
+    ? `Welcome Captain <strong style="color: #F8FAFC;">${params.captainName || "Advertiser"}</strong>,<br>We are pleased to inform you that your subscription package has been activated and your contractual status as an <strong style="color: #14F5D5;">"Independent Captain Advertiser"</strong> has been certified, confirming your agreement to the Foundational Contract & Tech Services Document.`
+    : `مرحباً بك كابتن <strong style="color: #F8FAFC;">${params.captainName || "المعلن"}</strong>،<br>نحيطك علماً بأنه تم تفعيل باقتك واعتماد صفتك التعاقدية كـ <strong style="color: #14F5D5;">«كابتن معلن مستقل»</strong> في شبكة بينكم للإعلان الرقمي بنجاح، وتأكيد موافقتك على وثيقة التأسيس والتعاقد وشروط اشتراك الكابتن والخدمات التقنية المعتمدة.`;
 
   const dateLabel = isEn ? 'Effective & Certified Date:' : 'تاريخ الاعتماد والسريان:';
 
@@ -43,8 +43,8 @@ export function buildCaptainContractEmail(params: {
   const textAlign = isEn ? 'left' : 'right';
 
   const plainText = isEn
-    ? `Welcome Captain ${params.captainName || "Advertiser"}\n\nYour subscription as an "Independent Captain Advertiser" has been certified on Bynkcom Digital Ad Network.\nEffective Date: ${formattedDate}\n\nYour certified PDF contract is attached.\n\nBynkcom Digital Ad Network © 2026`
-    : `مرحباً بك كابتن ${params.captainName || "المعلن"}\n\nتم اعتماد صفتك التعاقدية كـ «كابتن معلن مستقل» في شبكة بينكم للإعلان الرقمي بنجاح.\nتاريخ السريان: ${formattedDate}\n\nنسختك الرسمية المعتمدة بصيغة PDF مرفقة مع هذه الرسالة.\n\nشبكة بينكم للإعلان الرقمي © 2026`;
+    ? `Welcome Captain ${params.captainName || "Advertiser"}\n\nYour subscription package has been activated and your status as an "Independent Captain Advertiser" certified on Bynkcom Ad-Tech Network.\nEffective Date: ${formattedDate}\n\nYour certified PDF document is attached.\n\nBynkcom Digital Ad Network © 2026`
+    : `مرحباً بك كابتن ${params.captainName || "المعلن"}\n\nتم تفعيل باقتك واعتماد صفتك التعاقدية كـ «كابتن معلن مستقل» في شبكة بينكم للإعلان الرقمي بنجاح.\nتاريخ السريان: ${formattedDate}\n\nنسختك الرسمية المعتمدة بصيغة PDF مرفقة مع هذه الرسالة.\n\nشبكة بينكم للإعلان الرقمي © 2026`;
 
   const html = `
 <!DOCTYPE html>

@@ -12,10 +12,10 @@ import { DriverWalletRechargeSection } from './wallet/driver-wallet-recharge-sec
 import { DriverWalletDelegateCard } from './wallet/driver-wallet-delegate-card';
 import { CaptainAdPackageModal } from './ads-seats/captain-ad-package-modal';
 import {
-  subscribeCaptainAdPackage,
   getCaptainAdPackage,
   type CaptainAdPackage,
 } from '../services/captain-ads-package';
+import { executeCaptainPackageActivation } from '../services/captain-package-activation-flow';
 import { checkAndDispatchPackageExpirationReminder } from '../services/captain-package-reminder';
 import { resolveUserCurrency } from '@/shared/services/currency-label';
 
@@ -71,11 +71,13 @@ export function DriverWalletTab({
     }
   }, [user?.uid, language, adPackage]);
 
-  const handleActivatePackage = () => {
+  const handleActivatePackage = async () => {
     const captainId = user?.uid || 'current_captain';
-    const pkg = subscribeCaptainAdPackage(captainId);
-    setAdPackage(pkg);
-    setIsPackageModalOpen(false);
+    const res = await executeCaptainPackageActivation({
+      userId: captainId,
+      isArabic: language === 'ar',
+    });
+    setAdPackage(res.package);
   };
 
   const handleGoToPayment = () => {

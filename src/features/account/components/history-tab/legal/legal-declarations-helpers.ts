@@ -8,6 +8,7 @@ export function getLocalizedActionLabel(item: LegalDeclarationRecord, isArabic: 
   const label = (item.actionLabel || '').trim();
   if (isArabic) {
     if (item.actionType === 'NEW_ACCOUNT' || label === 'New Account Registration') return 'تسجيل حساب جديد';
+    if (item.actionType === 'CAPTAIN_CONTRACT_ACTIVATION') return 'توثيق وثيقة الكابتن وتفعيل الباقة';
     if (item.actionType === 'VEHICLE_UPDATE' || label === 'Vehicle Details Update') return 'تعديل بيانات المركبة';
     if (item.actionType === 'PROFILE_UPDATE' || label === 'Account Details Update') return 'تعديل بيانات الحساب';
     if (item.actionType === 'ADMIN_NOTIFICATION' || label === 'Official Admin Notice Acknowledged') return 'إشعار إداري رسمي مقروء';
@@ -15,6 +16,9 @@ export function getLocalizedActionLabel(item: LegalDeclarationRecord, isArabic: 
   }
 
   if (item.actionType === 'NEW_ACCOUNT' || label === 'تسجيل حساب جديد') return 'New Account Registration';
+  if (item.actionType === 'CAPTAIN_CONTRACT_ACTIVATION' || label.includes('توثيق وثيقة الكابتن')) {
+    return 'Official Captain Contract Activation';
+  }
   if (item.actionType === 'VEHICLE_UPDATE' || label === 'تعديل بيانات المركبة' || label === 'تحديث بيانات المركبة والوثائق') {
     return 'Vehicle Details Update';
   }

@@ -14,12 +14,12 @@ import {
   convertImageFileToDataUrl,
   normalizeCaptainAdImageUrl,
   getCaptainAdPackage,
-  subscribeCaptainAdPackage,
   getCaptainOperatingEligibility,
   type CaptainAdItem,
   type CaptainAdPackage,
   type CaptainOperatingEligibility,
 } from '../services/captain-ads-service';
+import { executeCaptainPackageActivation } from '../services/captain-package-activation-flow';
 import { styles } from '../components/ads-seats/captain-ads-styles';
 
 interface UseCaptainAdsManagerProps {
@@ -57,9 +57,12 @@ export function useCaptainAdsManager({ user, t, totalUsableMinutes = 0 }: UseCap
 
   const isPackageActive = operatingEligibility.isEligible;
 
-  const handleActivatePackage = () => {
-    setAdPackage(subscribeCaptainAdPackage(captainId));
-    setIsPackageModalOpen(false);
+  const handleActivatePackage = async () => {
+    const res = await executeCaptainPackageActivation({
+      userId: captainId,
+      isArabic: (user as any)?.language !== 'en',
+    });
+    setAdPackage(res.package);
   };
   const handleGoToPayment = () => {
     setIsPackageModalOpen(false);

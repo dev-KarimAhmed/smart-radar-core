@@ -52,6 +52,9 @@ export function buildAccountConfirmationEmail(params: {
       `
     : '';
 
+  const privacyNote = isEn
+    ? '📄 <strong>An official certified PDF copy of Bynkcom Privacy Policy is attached to this email.</strong>'
+    : '📄 <strong>مرفق مع هذه الرسالة نسخة معتمدة من سياسة الخصوصية والأمان الرقمي لشبكة بينكم بصيغة PDF.</strong>';
   const oneClickIntro = isEn ? 'Or activate directly with one click:' : 'أو يمكنك التفعيل بضغطة واحدة مباشرة:';
   const buttonText = isEn ? 'Confirm & Activate Account 🚀' : 'تأكيد وتفعيل الحساب مباشرة 🚀';
   const copyLinkIntro = isEn ? 'Or copy and paste the following link into your browser:' : 'أو يمكنك نسخ الرابط التالي ولصقه في المتصفح:';
@@ -67,8 +70,8 @@ export function buildAccountConfirmationEmail(params: {
   const textAlign = isEn ? 'left' : 'right';
 
   const plainText = isEn
-    ? `Hello ${params.userName || 'there'}\n\n${params.otpCode ? `Your verification code is: ${params.otpCode}\nThis code is valid for 15 minutes only.\n\n` : ''}Or activate your account directly via the link:\n${params.confirmUrl}\n\nIf you did not create this account, please ignore this email.`
-    : `مرحباً ${params.userName || 'بك'}\n\n${params.otpCode ? `كود تفعيل حسابك هو: ${params.otpCode}\nهذا الكود صالح لمدة 15 دقيقة فقط من وقت إرساله.\n\n` : ''}أو يمكنك تفعيل حسابك مباشرة عبر الرابط:\n${params.confirmUrl}\n\nإذا لم تكن أنت من قام بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة بأمان.`;
+    ? `Hello ${params.userName || 'there'}\n\n${params.otpCode ? `Your verification code is: ${params.otpCode}\nThis code is valid for 15 minutes only.\n\n` : ''}An official certified copy of Bynkcom Privacy Policy is attached to this email.\n\nOr activate your account directly via the link:\n${params.confirmUrl}\n\nIf you did not create this account, please ignore this email.`
+    : `مرحباً ${params.userName || 'بك'}\n\n${params.otpCode ? `كود تفعيل حسابك هو: ${params.otpCode}\nهذا الكود صالح لمدة 15 دقيقة فقط من وقت إرساله.\n\n` : ''}نسخة معتمدة من سياسة الخصوصية والأمان الرقمي مرفقة بصيغة PDF مع هذه الرسالة.\n\nأو يمكنك تفعيل حسابك مباشرة عبر الرابط:\n${params.confirmUrl}\n\nإذا لم تكن أنت من قام بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة بأمان.`;
 
   const html = `
 <!DOCTYPE html>
@@ -96,6 +99,12 @@ export function buildAccountConfirmationEmail(params: {
               <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.8; color: #94A3B8;">
                 ${greeting}
               </p>
+
+              <div style="background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.25); border-radius: 12px; padding: 12px 16px; margin: 16px 0;">
+                <p style="margin: 0; font-size: 13px; color: #2DD4BF; line-height: 1.6;">
+                  ${privacyNote}
+                </p>
+              </div>
 
               ${otpSection}
 

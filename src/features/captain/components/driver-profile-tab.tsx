@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDriverProfileState } from '../hooks/use-driver-profile-state';
 import { styles } from './profile/driver-profile-shared';
 import { DriverAccountPanel } from './profile/driver-account-panel';
-import { DriverContractPanel } from './profile/driver-contract-panel';
+import { DriverPrivacyPolicyPanel } from './profile/driver-privacy-policy-panel';
 import { DriverVehiclePanel } from './profile/driver-vehicle-panel';
 import { DriverTariffPanel } from './profile/driver-tariff-panel';
 import { DriverReferralCard } from '@/features/referral/components/driver-referral-card';
@@ -200,7 +200,7 @@ export function DriverProfileTab({ user, language }: DriverProfileTabProps) {
         <div className="w-full min-w-0 space-y-5">
           <DriverReferralCard user={user} isArabic={language === 'ar'} />
           <DriverAccountPanel state={state} user={user} />
-          <DriverContractPanel state={state} user={user} language={language} />
+          <DriverPrivacyPolicyPanel state={state} user={user} language={language} />
         </div>
         <div className="w-full min-w-0 space-y-5">
           <DriverVehiclePanel state={state} language={language} />
