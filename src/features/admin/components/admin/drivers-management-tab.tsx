@@ -19,7 +19,6 @@ export function DriversManagementTab() {
     setIsBulkMessageOpen,
     fetchCaptains,
     loading,
-    stats,
     isArabic,
     direction,
     t,
@@ -57,7 +56,7 @@ export function DriversManagementTab() {
 
   return (
     <div className="space-y-6" dir={direction}>
-      {/* 1. Header & Live Analytics KPIs */}
+      {/* 1. Header & Actions */}
       <DriversStatsHeader
         welcomeConfig={welcomeConfig}
         onOpenWelcomeHours={() => setIsWelcomeHoursOpen(true)}
@@ -65,7 +64,6 @@ export function DriversManagementTab() {
         onOpenBulkMessage={() => setIsBulkMessageOpen(true)}
         onRefresh={() => fetchCaptains()}
         loading={loading}
-        stats={stats}
         isArabic={isArabic}
         t={t}
       />
