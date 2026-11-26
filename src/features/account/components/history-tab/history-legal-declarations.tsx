@@ -15,7 +15,6 @@ import {
   type HistoryLegalDeclarationsProps,
 } from './legal/legal-declarations-styles';
 import { LegalDeclarationCard } from './legal/legal-declaration-card';
-import { CaptainContractRecordCard } from './legal/captain-contract-record-card';
 
 export * from './legal/legal-declarations-styles';
 export * from './legal/legal-declarations-helpers';
@@ -124,10 +123,6 @@ export function HistoryLegalDeclarations({ isArabic = true }: HistoryLegalDeclar
 
       {isExpanded && (
         <CardContent className={styles.content}>
-          {isCaptain && user?.uid ? (
-            <CaptainContractRecordCard isArabic={isArabic} captainId={user.uid} />
-          ) : null}
-
           {declarations.length === 0 ? (
             <div className={styles.emptyBox}>
               <ShieldAlert className={styles.emptyIcon} />

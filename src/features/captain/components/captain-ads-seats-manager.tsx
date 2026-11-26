@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useId } from 'react';
-import { Sparkles, Tv, Plus, Lock } from 'lucide-react';
+import { Sparkles, Tv, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { User } from '@/core/types';
 import { CAPTAIN_ADS_CONFIG } from '../config/captain-ads-config';

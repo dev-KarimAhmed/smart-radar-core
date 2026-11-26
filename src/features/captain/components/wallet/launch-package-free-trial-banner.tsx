@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { AlertTriangle, CheckCircle2, Sparkles, Timer } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Sparkles, Timer, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CaptainAdPackage } from '../../services/captain-ads-types';
 import { checkAndDispatchPackageExpirationReminder } from '../../services/captain-package-reminder';
 import { useAdPackageCountdown } from './hooks/use-ad-package-countdown';
+import { navigateToLegalRecord } from '../../services/captain-package-activation-flow';
 
 interface LaunchPackageFreeTrialBannerProps {
   adPackage?: CaptainAdPackage;
@@ -179,6 +180,18 @@ export function LaunchPackageFreeTrialBanner({
               <span className={cn('text-[10px] font-sans', isUrgent ? 'text-amber-300' : 'text-teal-300')}>{isArabic ? 'ث' : 's'}</span>
             </div>
           </div>
+        </div>
+
+        {/* زرار الوثيقة الرسمية — أسفل العداد */}
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => navigateToLegalRecord()}
+            className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:text-white transition-all active:scale-95 cursor-pointer"
+          >
+            <FileText className="h-3 w-3 text-amber-400 shrink-0" />
+            <span>{isArabic ? 'الوثيقة الرسمية (PDF)' : 'Official Document (PDF)'}</span>
+          </button>
         </div>
       </div>
     );
