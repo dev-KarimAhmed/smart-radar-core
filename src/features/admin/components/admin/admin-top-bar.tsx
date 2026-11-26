@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { adminFetch } from '@/features/admin/lib/admin-api-client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { LogOut, KeyRound, Languages } from 'lucide-react';
+import { LogOut, KeyRound, Languages, BarChart3 } from 'lucide-react';
 import { AdminNotificationCenter } from './admin-notification-center';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
@@ -80,6 +81,19 @@ export function AdminTopBar() {
 
         {/* Left Section: Action Buttons */}
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end flex-wrap">
+          {/* General Admin Exclusive Analytics Screen Button */}
+          {adminRank === 'GENERAL_ADMIN' && (
+            <Button
+              asChild
+              className="flex-1 sm:flex-initial bg-gradient-to-r from-teal-500/20 to-emerald-500/20 hover:from-teal-500/30 hover:to-emerald-500/30 text-[#14F5D5] border border-[#14B8A6]/45 hover:border-[#14F5D5] font-black text-xs sm:text-sm py-2 px-3.5 sm:px-4 rounded-xl transition-all shadow-[0_0_16px_rgba(20,184,166,0.18)] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Link href="/admin/analytics">
+                <BarChart3 className="w-4 h-4 text-[#14F5D5] shrink-0" />
+                <span>{isArabic ? 'الإحصائيات والمؤشرات' : 'Analytics'}</span>
+              </Link>
+            </Button>
+          )}
+
           {/* Sovereign Notification Center */}
           <AdminNotificationCenter />
 

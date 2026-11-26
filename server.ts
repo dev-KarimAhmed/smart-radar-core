@@ -117,7 +117,8 @@ async function startServer() {
 
   // Rate limited like every other state-mutating route: /password-reset/request is public
   // and unauthenticated, so it is the one an attacker would hammer to enumerate phones.
-  app.use('/api', rateLimiterMiddleware, passwordResetRouter);
+  app.use('/api/password-reset', rateLimiterMiddleware);
+  app.use('/api', passwordResetRouter);
 
   // Diagnostic Endpoint for Sovereignties (Zone D)
   app.get('/api/health', (req, res) => {

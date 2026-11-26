@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { getAdminRank, verifyAdminCaller } from '@/lib/admin-auth-verifier';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 
@@ -9,6 +9,9 @@ export async function GET(req: Request) {
     const admin = await verifyAdminCaller(req);
     if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (getAdminRank(admin) !== 'GENERAL_ADMIN') {
+      return NextResponse.json({ error: 'Forbidden: General Admin access required' }, { status: 403 });
     }
 
     const [driversRes, ridersRes, delegatesRes] = await Promise.all([
