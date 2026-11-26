@@ -154,6 +154,7 @@ export function PricePerKmSetupModal({
                 isArabic={isArabic}
                 marketAverage={marketAverage}
                 initialTariff={initialTariff}
+                baseFare={state.baseFare}
                 pricePerKm={state.pricePerKm}
                 setPricePerKm={state.setPricePerKm}
                 pricePerMin={state.pricePerMin}

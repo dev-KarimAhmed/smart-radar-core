@@ -22,7 +22,7 @@ export function CaptainAdPackageFeaturesList({ isArabic }: CaptainAdPackageFeatu
         return (
           <div
             key={feat.id}
-            className="flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-teal-400/30 hover:bg-white/[0.06] transition-all"
+            className="flex items-center justify-between gap-3 py-2 px-3 rounded-xl bg-white/[0.02] border border-white/5 select-text"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 text-[#00ffcc] font-black text-xs font-mono shadow-[0_0_10px_rgba(0,255,204,0.1)]">

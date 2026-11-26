@@ -2,6 +2,7 @@ import React from 'react';
 import { getServerTime } from '@/lib/server-time';
 import type { RiderMachineState } from '../../state/rider-state-machine';
 import { getOfferCountdown } from '../../services/offer-countdown';
+import { isOfferPendingVisibilityDelay } from '@/shared/services/offer-visibility-delay';
 import {
   TOTAL_SEARCH_SECONDS,
   STAGE_DURATION_SECONDS,
@@ -45,6 +46,7 @@ export function useReceivingOffersTimer({
 
   const activeOffers = React.useMemo(() => {
     return state.offers.filter((offer) => {
+      if (isOfferPendingVisibilityDelay(offer, now)) return false;
       const offerId = offer.id || offer.driverId;
       const firstSeen = firstSeenAtRef.current?.get(offerId);
       const countdown = getOfferCountdown(offer, firstSeen, now);

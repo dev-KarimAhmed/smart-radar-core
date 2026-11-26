@@ -1,7 +1,10 @@
+import { getOfferVisibleAtMs } from '@/shared/services/offer-visibility-delay';
+
 export interface OfferCountdownInput {
   wait_seconds?: number;
   createdAt?: number | string | Date;
   created_at?: string;
+  fare_breakdown?: Record<string, unknown> | null;
 }
 
 export interface OfferCountdown {
@@ -33,10 +36,12 @@ export function getOfferCountdown(
   // Hard ceiling: an offer's initial wait window can NEVER exceed 300 seconds
   waitSeconds = Math.min(MAX_OFFER_COUNTDOWN_SECONDS, waitSeconds);
 
-  // Authoritative start timestamp: the offer's created timestamp on the server
+  // Authoritative start timestamp: visibleAt (if delayed) or created timestamp on the server
   let effectiveStartTime: number | undefined;
-
-  if (offer.created_at) {
+  const visibleAtMs = getOfferVisibleAtMs(offer);
+  if (visibleAtMs !== null) {
+    effectiveStartTime = visibleAtMs;
+  } else if (offer.created_at) {
     const parsed = new Date(offer.created_at).getTime();
     if (Number.isFinite(parsed) && parsed > 0) effectiveStartTime = parsed;
   } else if (offer.createdAt) {

@@ -188,7 +188,7 @@ export function useDriverBidding({ captainId, activeReqRef }: UseDriverBiddingPa
         throw new Error('captain_already_busy');
       }
 
-      const { error } = await supabase.rpc('submit_ride_offer', {
+      const { data: submittedOffer, error } = await supabase.rpc('submit_ride_offer', {
         p_request_id: payload.tripId,
         p_offer_price: Number(payload.offerPrice),
         p_wait_seconds: Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, payload.waitSeconds)),
@@ -196,6 +196,12 @@ export function useDriverBidding({ captainId, activeReqRef }: UseDriverBiddingPa
       });
 
       if (error) throw error;
+
+      const breakdown = (submittedOffer && typeof submittedOffer === 'object'
+        ? (submittedOffer as Record<string, unknown>).fare_breakdown
+        : null) as Record<string, unknown> | null;
+      const delaySeconds = Number(breakdown?.visibilityDelaySeconds ?? 0);
+      const effectiveDelaySeconds = Number.isFinite(delaySeconds) && delaySeconds > 0 ? delaySeconds : 0;
 
       setPendingOffersCount((prev) => ({
         ...prev,
@@ -208,11 +214,13 @@ export function useDriverBidding({ captainId, activeReqRef }: UseDriverBiddingPa
       }
       pendingOfferTimeoutsRef.current[payload.tripId] = setTimeout(() => {
         void cancelOffer(payload.tripId, true);
-      }, (Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, payload.waitSeconds)) + 5) * 1000);
+      }, (Math.min(MAX_OFFER_WAIT_SECONDS, Math.max(MIN_OFFER_WAIT_SECONDS, payload.waitSeconds)) + effectiveDelaySeconds + 5) * 1000);
 
       toast({
         title: t('offerSubmittedTitle'),
-        description: t('offerSubmittedDesc'),
+        description: effectiveDelaySeconds > 0
+          ? 'تم إرسال عرضك، ولأن سعرك أقل من متوسط السوق سيتأخر ظهوره للمستخدم لمدة 3 دقائق.'
+          : t('offerSubmittedDesc'),
       });
       return true;
     } catch (error) {

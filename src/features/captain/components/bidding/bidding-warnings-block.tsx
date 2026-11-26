@@ -47,6 +47,18 @@ export function BiddingWarningsBlock({
         </div>
       ) : null}
 
+      {/* Below Market 3-Minute Delay Notice */}
+      {marketFare > 0 && finalOfferPrice > 0 && finalOfferPrice < marketFare && !isDumpingBlocked ? (
+        <div className={styles.dumpingAmberBox}>
+          <div className={styles.dumpingAmberInner}>
+            <AlertTriangle className={styles.dumpingAmberIcon} />
+            <div className={styles.dumpingAmberText}>
+              {'تنبيه: عرضك أقل من متوسط السوق — سيتأخر ظهور عرضك للمستخدم لمدة 3 دقائق.'}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Dumping Amber Warning */}
       {isDumpingAmber ? (
         <div className={styles.dumpingAmberBox}>

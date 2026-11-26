@@ -11,6 +11,7 @@ import {
   findBusyCaptainTripMap,
 } from '@/shared/server/captain-offer-cleanup';
 import { fetchCaptainCardsMapAdmin } from '@/shared/server/captain-vehicle-card';
+import { isOfferPendingVisibilityDelay } from '@/shared/services/offer-visibility-delay';
 
 export async function GET(req: Request) {
   try {
@@ -80,9 +81,11 @@ export async function GET(req: Request) {
       );
     }
 
+    const nowMs = Date.now();
     const cleanRows = rows.filter((row) => {
       const capId = String(row.captain_id || row.driver_id || '').trim();
-      return !capId || !busyMap.has(capId);
+      if (capId && busyMap.has(capId)) return false;
+      return !isOfferPendingVisibilityDelay(row, nowMs);
     });
 
     const cleanCaptainIds = Array.from(

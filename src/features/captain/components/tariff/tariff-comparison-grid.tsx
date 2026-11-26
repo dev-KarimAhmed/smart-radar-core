@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { Clock, Minus, Plus } from 'lucide-react';
 import type { MarketAverageTariff } from '../../hooks/use-price-per-km-setup';
 import { tariffModalStyles as styles } from './tariff-modal-styles';
 
@@ -11,6 +11,7 @@ interface TariffComparisonGridProps {
   isArabic: boolean;
   marketAverage?: MarketAverageTariff | null;
   initialTariff?: { pricePerKm: number | null; pricePerMin: number | null };
+  baseFare?: string;
   pricePerKm: string;
   setPricePerKm: (val: string) => void;
   pricePerMin: string;
@@ -28,6 +29,7 @@ export function TariffComparisonGrid({
   isArabic,
   marketAverage,
   initialTariff,
+  baseFare,
   pricePerKm,
   setPricePerKm,
   pricePerMin,
@@ -38,6 +40,16 @@ export function TariffComparisonGrid({
   isSaving,
   t,
 }: TariffComparisonGridProps) {
+  const numPerKm = Number(pricePerKm);
+  const numPerMin = Number(pricePerMin);
+  const numBaseFare = baseFare !== undefined ? Number(baseFare) : NaN;
+  const isBelowMarket = Boolean(
+    marketAverage &&
+      ((marketAverage.perKm > 0 && pricePerKm !== '' && Number.isFinite(numPerKm) && numPerKm < marketAverage.perKm) ||
+        (marketAverage.perMin > 0 && pricePerMin !== '' && Number.isFinite(numPerMin) && numPerMin < marketAverage.perMin) ||
+        (marketAverage.baseFare > 0 && baseFare !== undefined && baseFare !== '' && Number.isFinite(numBaseFare) && numBaseFare < marketAverage.baseFare))
+  );
+
   return (
     <>
       {isGoldOrPlatinum ? (
@@ -49,6 +61,20 @@ export function TariffComparisonGrid({
       (Number(pricePerKm) < marketAverage.perKm * 0.85 ||
         Number(pricePerMin) < marketAverage.perMin * 0.85) ? (
         <div className={styles.silverWarningLine}>{t('tariffSilverReduceWarning')}</div>
+      ) : null}
+
+      {isBelowMarket ? (
+        <div
+          role="alert"
+          className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs font-bold text-amber-200 text-start leading-relaxed"
+        >
+          <Clock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+          <span>
+            {isArabic
+              ? 'تنبيه: سعرك أقل من متوسط السوق — عند تقديم أي عرض على طلب، سيتأخر ظهور عرضك للمستخدم لمدة 3 دقائق.'
+              : 'Notice: Your price is below the market average — when you submit an offer, its appearance to the rider will be delayed by 3 minutes.'}
+          </span>
+        </div>
       ) : null}
 
       {/* 3 Horizontal Columns: Market Average, Current Price, Update Price */}
