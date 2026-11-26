@@ -27,8 +27,6 @@ export function DriversManagementTab() {
     setSearchQuery,
     statusFilter,
     setStatusFilter,
-    verificationFilter,
-    setVerificationFilter,
     rankFilter,
     setRankFilter,
     languageFilter,
@@ -78,8 +76,6 @@ export function DriversManagementTab() {
         setSearchQuery={setSearchQuery}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
-        verificationFilter={verificationFilter}
-        setVerificationFilter={setVerificationFilter}
         rankFilter={rankFilter}
         setRankFilter={setRankFilter}
         languageFilter={languageFilter}

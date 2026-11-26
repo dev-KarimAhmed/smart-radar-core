@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { getRankTheme } from '@/core/utils';
 import { getCaptainCurrency, type CaptainUser } from '@/features/admin/types/driver-management';
-import { DriverStatusBadge, DriverVerificationBadge } from './drivers-table-row-badges';
+import { DriverStatusBadge } from './drivers-table-row-badges';
 import { DriversTableRowActions } from './drivers-table-row-actions';
 
 interface DriversTableRowProps {
@@ -189,11 +189,6 @@ export function DriversTableRow({
             </Badge>
           )}
         </div>
-      </td>
-
-      {/* Verification */}
-      <td className="py-4 px-4">
-        <DriverVerificationBadge status={captain.verification_status} isArabic={isArabic} t={t} />
       </td>
 
       {/* Operational */}

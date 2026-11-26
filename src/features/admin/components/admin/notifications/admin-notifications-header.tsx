@@ -4,7 +4,6 @@ import React from 'react';
 import {
   Bell,
   ReceiptText,
-  UserCheck,
   KeyRound,
   AlertTriangle,
   RefreshCw,
@@ -133,22 +132,6 @@ export function AdminNotificationsHeader({
           <span>{t('tabReceipts')}</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'RECEIPT' ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-300'}`}>
             {summary.pendingReceiptsCount}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setFilterTab('CAPTAIN')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-            filterTab === 'CAPTAIN'
-              ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-              : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 border border-white/5'
-          }`}
-        >
-          <UserCheck className="w-3.5 h-3.5" />
-          <span>{t('tabCaptains')}</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${filterTab === 'CAPTAIN' ? 'bg-black/20 text-black' : 'bg-cyan-500/20 text-cyan-300'}`}>
-            {summary.pendingCaptainsCount}
           </span>
         </button>
 

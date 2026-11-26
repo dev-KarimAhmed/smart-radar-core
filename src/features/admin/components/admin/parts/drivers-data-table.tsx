@@ -147,7 +147,6 @@ export function DriversDataTable({
                     <th className="py-4 px-4 font-black text-slate-200">{t('colVehicle')}</th>
                     <th className="py-4 px-4 font-black text-slate-200">{t('colFlightMinutes')}</th>
                     <th className="py-4 px-4 font-black text-slate-200">{t('colRankRating')}</th>
-                    <th className="py-4 px-4 font-black text-slate-200">{t('colVerification')}</th>
                     <th className="py-4 px-4 font-black text-slate-200">{t('colOperational')}</th>
                     <th className="py-4 px-4 font-black text-slate-200 text-center">{t('colActions')}</th>
                   </tr>

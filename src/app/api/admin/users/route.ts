@@ -8,7 +8,6 @@ import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
 import { handleUsersGet } from './services/users-get-handler';
 import {
   handleUpdateStatus,
-  handleUpdateVerification,
   handleUpdateLanguage,
   handleUpdateTier,
   handleForceClearTrip,
@@ -63,8 +62,6 @@ export async function POST(req: Request) {
     switch (action) {
       case 'update_status':
         return await handleUpdateStatus(body, effectiveUserId);
-      case 'update_verification':
-        return await handleUpdateVerification(body, effectiveUserId);
       case 'update_language':
         return await handleUpdateLanguage(body, effectiveUserId);
       case 'update_tier':

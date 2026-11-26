@@ -112,14 +112,6 @@ export function useDriversActions({ isArabic, onRefresh, setCaptains }: UseDrive
     }
   };
 
-  const handleApproveCaptain = async (cap: CaptainUser) => {
-    const ok = await executeAction(
-      { action: 'update_verification', userId: cap.id, verificationStatus: 'APPROVED' },
-      isArabic ? 'تم اعتماد وتوثيق الكابتن المعلن بنجاح' : 'Captain successfully verified and approved'
-    );
-    if (ok) setInspectCaptain(null);
-  };
-
   const handleTopupSubmit = async () => {
     if (!topupCaptain) return;
     if (topupMode === 'minutes') {
@@ -231,7 +223,6 @@ export function useDriversActions({ isArabic, onRefresh, setCaptains }: UseDrive
     executeAction,
     handleTranslateDirect,
     handleToggleCaptainLanguage,
-    handleApproveCaptain,
     handleTopupSubmit,
     handleResetPenalties,
     handleClearTrip,

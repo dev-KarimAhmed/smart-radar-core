@@ -8,48 +8,6 @@ import { insertDualNotification } from './users-shared';
 
 export { handleUpdateStatus } from './users-status-update';
 
-export async function handleUpdateVerification(body: any, userId: string) {
-  const { verificationStatus, reason } = body;
-  const normStatus = String(verificationStatus).toUpperCase();
-  if (!['APPROVED', 'REJECTED', 'PENDING'].includes(normStatus)) {
-    return NextResponse.json({ success: false, error: 'Invalid verification status' }, { status: 400 });
-  }
-
-  const { error } = await supabaseAdmin
-    .from('captain_profiles')
-    .update({
-      verification_status: normStatus,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
-
-  if (error) throw error;
-
-  if (normStatus === 'APPROVED') {
-    await insertDualNotification({
-      id: `notif_verif_${userId}_${Date.now()}`,
-      user_id: userId,
-      title: 'تهانينا يا كابتن معلن! تم اعتماد وتوثيق حسابك رسمياً 🏆',
-      description: 'تمت مراجعة وتدقيق هويتك ومستنداتك بنجاح من قبل إدارة المنظومة، ومُنحت شارة «كابتن معلن موثق رسمياً ✓».',
-      type: 'admin_message',
-      is_read: false,
-      created_at: new Date().toISOString(),
-    });
-  } else if (normStatus === 'REJECTED') {
-    await insertDualNotification({
-      id: `notif_verif_rej_${userId}_${Date.now()}`,
-      user_id: userId,
-      title: 'تنبيه: مراجعة وثائق الكابتن المعلن ⚠️',
-      description: reason || 'يرجى إعادة رفع وثائق واضحة ومطابقة للشروط والتعليمات لتأكيد اعتماد الحساب.',
-      type: 'warning',
-      is_read: false,
-      created_at: new Date().toISOString(),
-    });
-  }
-
-  return NextResponse.json({ success: true, message: `تم تحديث حالة الاعتماد إلى ${normStatus}` });
-}
-
 export async function handleUpdateLanguage(body: any, userId: string) {
   const targetLang = String(body.language || 'ar').toLowerCase() === 'en' ? 'en' : 'ar';
   const { error: langErr } = await supabaseAdmin

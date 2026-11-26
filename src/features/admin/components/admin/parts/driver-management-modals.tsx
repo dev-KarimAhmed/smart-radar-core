@@ -18,7 +18,6 @@ export function DriverManagementModals({ manager }: DriverManagementModalsProps)
   const {
     inspectCaptain,
     setInspectCaptain,
-    handleApproveCaptain,
     topupCaptain,
     setTopupCaptain,
     topupMode,
@@ -106,8 +105,6 @@ export function DriverManagementModals({ manager }: DriverManagementModalsProps)
       <DriverInspectModal
         captain={inspectCaptain}
         onClose={() => setInspectCaptain(null)}
-        onApprove={handleApproveCaptain}
-        submittingAction={submittingAction}
         isArabic={isArabic}
         direction={direction}
         t={t}

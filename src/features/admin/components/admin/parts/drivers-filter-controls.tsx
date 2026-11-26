@@ -11,8 +11,6 @@ interface DriversFilterControlsProps {
   setSearchQuery: (val: string) => void;
   statusFilter: string;
   setStatusFilter: (val: string) => void;
-  verificationFilter: string;
-  setVerificationFilter: (val: string) => void;
   rankFilter: string;
   setRankFilter: (val: string) => void;
   languageFilter: 'ALL' | 'ar' | 'en';
@@ -41,8 +39,6 @@ export function DriversFilterControls({
   setSearchQuery,
   statusFilter,
   setStatusFilter,
-  verificationFilter,
-  setVerificationFilter,
   rankFilter,
   setRankFilter,
   languageFilter,
@@ -61,7 +57,6 @@ export function DriversFilterControls({
 }: DriversFilterControlsProps) {
   const isAnyFilterActive =
     statusFilter !== 'ALL' ||
-    verificationFilter !== 'ALL' ||
     rankFilter !== 'ALL' ||
     languageFilter !== 'ALL' ||
     selectedCountry !== 'ALL' ||
@@ -105,28 +100,6 @@ export function DriversFilterControls({
                 )}
               >
                 {st.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Verification filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">{t('filterVerification')}</span>
-            {[
-              { key: 'ALL', label: t('statusAll') },
-              { key: 'APPROVED', label: t('verApproved') },
-              { key: 'PENDING', label: t('verPending') },
-            ].map((ver) => (
-              <button
-                key={ver.key}
-                type="button"
-                onClick={() => setVerificationFilter(ver.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  verificationFilter === ver.key ? "bg-[#14B8A6] text-[#0B0F19]" : "text-slate-400 hover:text-white"
-                )}
-              >
-                {ver.label}
               </button>
             ))}
           </div>

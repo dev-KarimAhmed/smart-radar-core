@@ -18,7 +18,7 @@ export function AnalyticsKpiGrid({ summary, loading, isArabic }: AnalyticsKpiGri
     {
       title: isArabic ? 'السائقين المسجلين' : 'Registered Captains',
       main: val(summary.totalCaptains),
-      sub: `${summary.activeCaptains} ${isArabic ? 'نشط الآن' : 'online'} · ${summary.verifiedCaptains} ${isArabic ? 'موثق' : 'verified'}`,
+      sub: `${summary.activeCaptains} ${isArabic ? 'نشط الآن' : 'online'} · ${summary.totalCaptains - summary.bannedCaptains} ${isArabic ? 'مفعل' : 'enabled'}`,
       icon: Car,
       accent: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400',
       badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',

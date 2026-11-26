@@ -4,12 +4,7 @@ import React from 'react';
 import {
   Car,
   FileText,
-  CheckCircle2,
   ExternalLink,
-  Loader2,
-  BadgeAlert,
-  AlertTriangle,
-  XCircle,
 } from 'lucide-react';
 import {
   Dialog,
@@ -28,8 +23,6 @@ import type { CaptainUser } from '@/features/admin/types/driver-management';
 interface DriverInspectModalProps {
   captain: CaptainUser | null;
   onClose: () => void;
-  onApprove: (cap: CaptainUser) => void;
-  submittingAction: boolean;
   isArabic: boolean;
   direction: 'rtl' | 'ltr';
   t: (key: string, values?: Record<string, any>) => string;
@@ -38,8 +31,6 @@ interface DriverInspectModalProps {
 export function DriverInspectModal({
   captain,
   onClose,
-  onApprove,
-  submittingAction,
   isArabic,
   direction,
   t,
@@ -69,19 +60,6 @@ export function DriverInspectModal({
                     {t('joinedDate', { date: new Date(captain.created_at).toLocaleDateString(isArabic ? 'ar-JO' : 'en-US') })}
                   </DialogDescription>
                 </div>
-              </div>
-              <div>
-                {captain.verification_status === 'APPROVED' ? (
-                  <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 text-xs font-bold px-2.5 py-1">
-                    <CheckCircle2 className={cn("w-3.5 h-3.5 text-emerald-400", isArabic ? "ml-1" : "mr-1")} />
-                    {t('verBadgeApproved')}
-                  </Badge>
-                ) : (
-                  <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1">
-                    <AlertTriangle className={cn("w-3.5 h-3.5 text-amber-400", isArabic ? "ml-1" : "mr-1")} />
-                    {t('verBadgeAuto')}
-                  </Badge>
-                )}
               </div>
             </div>
           </DialogHeader>
@@ -168,12 +146,11 @@ export function DriverInspectModal({
           <DialogFooter className="flex flex-row items-center justify-end gap-3 border-t border-white/10 pt-4">
             <Button
               type="button"
-              disabled={submittingAction}
-              onClick={() => onApprove(captain)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs h-9 rounded-xl px-5 shadow-lg shadow-emerald-600/20"
+              variant="outline"
+              onClick={onClose}
+              className="border-white/10 text-slate-300 text-xs h-9 rounded-xl px-5"
             >
-              {submittingAction ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 ml-1" />}
-              {t('approveCaptainFull')}
+              {isArabic ? 'إغلاق' : 'Close'}
             </Button>
           </DialogFooter>
         </div>

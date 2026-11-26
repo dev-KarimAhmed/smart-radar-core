@@ -106,16 +106,6 @@ export function useAdminNotificationsCenter(isArabic: boolean) {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'captain_profiles' },
-        (payload) => {
-          const row = payload.new as any;
-          if (row?.verification_status === 'PENDING') {
-            void fetchNotifications();
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
         { event: '*', schema: 'public', table: 'user_notifications' },
         () => {
           void fetchNotifications();

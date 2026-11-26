@@ -7,7 +7,6 @@ import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar
 export function useDriversFilters(captains: CaptainUser[]) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [verificationFilter, setVerificationFilter] = useState<string>('ALL');
   const [rankFilter, setRankFilter] = useState<string>('ALL');
   const [languageFilter, setLanguageFilter] = useState<'ALL' | 'ar' | 'en'>('ALL');
 
@@ -63,7 +62,6 @@ export function useDriversFilters(captains: CaptainUser[]) {
 
   const handleResetAllFilters = useCallback(() => {
     setStatusFilter('ALL');
-    setVerificationFilter('ALL');
     setRankFilter('ALL');
     setLanguageFilter('ALL');
     setSelectedCountry('ALL');
@@ -90,12 +88,6 @@ export function useDriversFilters(captains: CaptainUser[]) {
       const matchesStatus =
         statusFilter === 'ALL' ||
         String(c.status || '').toUpperCase() === statusFilter.toUpperCase();
-
-      const matchesVerification =
-        verificationFilter === 'ALL' ||
-        (verificationFilter === 'APPROVED'
-          ? c.verification_status === 'APPROVED'
-          : c.verification_status !== 'APPROVED');
 
       const matchesRank =
         rankFilter === 'ALL' ||
@@ -126,7 +118,6 @@ export function useDriversFilters(captains: CaptainUser[]) {
       return (
         matchesSearch &&
         matchesStatus &&
-        matchesVerification &&
         matchesRank &&
         matchesLanguage &&
         matchesCountry &&
@@ -138,7 +129,6 @@ export function useDriversFilters(captains: CaptainUser[]) {
     captains,
     searchQuery,
     statusFilter,
-    verificationFilter,
     rankFilter,
     languageFilter,
     selectedCountry,
@@ -150,9 +140,8 @@ export function useDriversFilters(captains: CaptainUser[]) {
   const stats = useMemo(() => {
     const total = captains.length;
     const active = captains.filter(c => c.status === 'ACTIVE' || c.status === 'BUSY').length;
-    const pendingVerification = captains.filter(c => c.verification_status === 'PENDING').length;
     const flagged = captains.filter(c => c.status === 'SUSPENDED' || c.status === 'BANNED' || c.penalty_count > 0).length;
-    return { total, active, pendingVerification, flagged };
+    return { total, active, flagged };
   }, [captains]);
 
   const toggleSelectOne = useCallback((id: string) => {
@@ -191,8 +180,6 @@ export function useDriversFilters(captains: CaptainUser[]) {
     setSearchQuery,
     statusFilter,
     setStatusFilter,
-    verificationFilter,
-    setVerificationFilter,
     rankFilter,
     setRankFilter,
     languageFilter,

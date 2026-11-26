@@ -17,18 +17,7 @@ export async function fetchAdminNotifications(adminId: string): Promise<{
   const pendingReceipts = rawReceipts || [];
   const receiptProfileIds = Array.from(new Set(pendingReceipts.map((r) => r.profile_id).filter(Boolean)));
 
-  // 2. Fetch pending captains
-  const { data: rawCaptains } = await supabaseAdmin
-    .from('captain_profiles')
-    .select('id, nickname, plate_number, vehicle_brand, vehicle_model, vehicle_color, vehicle_year, created_at, verification_status')
-    .eq('verification_status', 'PENDING')
-    .order('created_at', { ascending: false })
-    .limit(30);
-
-  const pendingCaptains = rawCaptains || [];
-  const captainProfileIds = Array.from(new Set(pendingCaptains.map((c) => c.id).filter(Boolean)));
-
-  // 3. Fetch pending password resets
+  // 2. Fetch pending password resets (manual captain approval removed)
   const { data: rawResets } = await supabaseAdmin
     .from('password_reset_requests')
     .select('id, claimed_phone, profile_id, status, created_at')
@@ -38,7 +27,7 @@ export async function fetchAdminNotifications(adminId: string): Promise<{
 
   const pendingResets = rawResets || [];
 
-  // 4. Fetch system / direct admin notifications
+  // 3. Fetch system / direct admin notifications
   const { data: rawSystemNotifs } = await supabaseAdmin
     .from('user_notifications')
     .select('*')
@@ -48,8 +37,8 @@ export async function fetchAdminNotifications(adminId: string): Promise<{
 
   const systemNotifs = rawSystemNotifs || [];
 
-  // Gather all profile IDs to resolve names and phones in 1 query
-  const allProfileIds = Array.from(new Set([...receiptProfileIds, ...captainProfileIds]));
+  // Gather profile IDs to resolve names and phones in 1 query
+  const allProfileIds = Array.from(new Set([...receiptProfileIds]));
   let profilesMap = new Map();
   let govMap = new Map();
   let distMap = new Map();
@@ -135,39 +124,6 @@ export async function fetchAdminNotifications(adminId: string): Promise<{
     })
   );
 
-  // Build captain verification notification items
-  const captainItems: AdminNotificationItem[] = pendingCaptains.map((cap) => {
-    const prof = profilesMap.get(cap.id) || {};
-    const captainName = prof.full_name || cap.nickname || 'كابتن معلن جديد';
-    const captainNameEn = prof.full_name || cap.nickname || 'New Captain';
-    const captainPhone = prof.phone || '-';
-    const encodedCaptain = encodeNotificationPayload(
-      `كابتن معلن جديد بانتظار مراجعة المستندات والتحقق`,
-      `انضم الكابتن المعلن ${captainName} (${captainPhone}) للأسطول وبانتظار اعتماد رخصة القيادة والسيارة.`,
-      `New Captain Pending Document Verification`,
-      `Captain ${captainNameEn} (${captainPhone}) joined the fleet and is awaiting driver's license & vehicle verification.`
-    );
-
-    return {
-      id: `cap_${cap.id}`,
-      category: 'CAPTAIN',
-      title: encodedCaptain.title,
-      description: encodedCaptain.description,
-      createdAt: cap.created_at || new Date().toISOString(),
-      severity: 'warning',
-      targetTab: 'captains',
-      isRead: false,
-      payload: {
-        captainId: cap.id,
-        captainName,
-        captainPhone,
-        plateNumber: cap.plate_number || '',
-        vehicleBrand: cap.vehicle_brand || '',
-        vehicleModel: cap.vehicle_model || '',
-      },
-    };
-  });
-
   // Build password reset notification items
   const resetItems: AdminNotificationItem[] = pendingResets.map((rst) => {
     const encodedReset = encodeNotificationPayload(
@@ -213,19 +169,18 @@ export async function fetchAdminNotifications(adminId: string): Promise<{
   // Merge and sort chronologically (newest first)
   const allNotifications: AdminNotificationItem[] = [
     ...receiptItems,
-    ...captainItems,
     ...resetItems,
     ...systemItems,
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const unreadSystemCount = systemItems.filter((s) => !s.isRead).length;
-  const totalUnread = receiptItems.length + captainItems.length + resetItems.length + unreadSystemCount;
+  const totalUnread = receiptItems.length + resetItems.length + unreadSystemCount;
 
   return {
     summary: {
       totalUnread,
       pendingReceiptsCount: receiptItems.length,
-      pendingCaptainsCount: captainItems.length,
+      pendingCaptainsCount: 0,
       pendingResetsCount: resetItems.length,
       unreadSystemCount,
     },

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, Gift, Zap, Send, RefreshCw, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Users, Gift, Zap, Send, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { WelcomeHoursConfig } from '@/features/admin/types/driver-management';
@@ -16,7 +16,6 @@ interface DriversStatsHeaderProps {
   stats: {
     total: number;
     active: number;
-    pendingVerification: number;
     flagged: number;
   };
   isArabic: boolean;
@@ -25,7 +24,7 @@ interface DriversStatsHeaderProps {
 
 const styles = {
   header: "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-white/10",
-  kpiGrid: "grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6",
+  kpiGrid: "grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6",
   kpiCard: "rounded-2xl border border-white/10 bg-[#161F30]/70 p-4 backdrop-blur-xl shadow-lg relative overflow-hidden",
   kpiTitle: "text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5",
   kpiValue: "text-2xl font-black text-white font-mono",
@@ -139,16 +138,6 @@ export function DriversStatsHeader({
           </p>
           <p className={cn(styles.kpiValue, "text-emerald-400")}>{stats.active}</p>
           <span className="text-[10px] text-slate-500 mt-1 block">{t('kpiActiveSub')}</span>
-        </div>
-
-        <div className={styles.kpiCard}>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-2xl rounded-full" />
-          <p className={styles.kpiTitle}>
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-            {t('kpiPending')}
-          </p>
-          <p className={cn(styles.kpiValue, "text-amber-400")}>{stats.pendingVerification}</p>
-          <span className="text-[10px] text-slate-500 mt-1 block">{t('kpiPendingSub')}</span>
         </div>
 
         <div className={styles.kpiCard}>
