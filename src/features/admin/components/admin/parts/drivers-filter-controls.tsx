@@ -1,38 +1,60 @@
 'use client';
 
-import React from 'react';
-import { Search, Languages, RotateCcw } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { GeoFilterBar, GeoLookup } from '../geo-filter-bar';
+import React, { type ComponentProps } from 'react';
+import { Languages, Search, X } from 'lucide-react';
+import { GeoFilterBar } from '../geo-filter-bar';
+import { FilterActionFooter } from './filter-action-footer';
 
-interface DriversFilterControlsProps {
+export interface DriversFilterControlsProps {
   searchQuery: string;
-  setSearchQuery: (val: string) => void;
+  setSearchQuery: (q: string) => void;
   statusFilter: string;
-  setStatusFilter: (val: string) => void;
+  setStatusFilter: (s: string) => void;
   rankFilter: string;
-  setRankFilter: (val: string) => void;
+  setRankFilter: (r: string) => void;
   languageFilter: 'ALL' | 'ar' | 'en';
-  setLanguageFilter: (val: 'ALL' | 'ar' | 'en') => void;
+  setLanguageFilter: (l: 'ALL' | 'ar' | 'en') => void;
   selectedCountry: string;
   selectedGovernorate: string;
   selectedDistrict: string;
-  geoLookup: GeoLookup;
-  onCountryChange: (val: string) => void;
-  onGovernorateChange: (val: string) => void;
-  onDistrictChange: (val: string) => void;
+  geoLookup: ComponentProps<typeof GeoFilterBar>['geoLookup'];
+  onCountryChange: (c: string) => void;
+  onGovernorateChange: (g: string) => void;
+  onDistrictChange: (d: string) => void;
   onResetGeo: () => void;
+  onApplyFilters: () => void;
   onResetAllFilters: () => void;
+  hasDraftFilter: boolean;
+  hasActiveFilter: boolean;
+  hasPendingChanges: boolean;
+  loading: boolean;
   isArabic: boolean;
-  t: (key: string, values?: Record<string, any>) => string;
+  t: (key: string) => string;
 }
 
-const styles = {
-  searchContainer: "relative w-full sm:w-80",
-  searchInput: "bg-black/70 border-white/15 text-white pl-3 pr-9 h-10 text-xs rounded-xl focus:border-[#14B8A6] text-start font-medium placeholder:text-slate-500",
-  searchIcon: "absolute right-3 top-3 h-4 w-4 text-slate-400",
-} as const;
+const STATUS_OPTIONS = [
+  { id: 'ALL', ar: 'الكل', en: 'All' },
+  { id: 'ACTIVE', ar: 'نشط', en: 'Active' },
+  { id: 'IDLE', ar: 'خامل', en: 'Idle' },
+  { id: 'BUSY', ar: 'في رحلة', en: 'On Trip' },
+  { id: 'SUSPENDED', ar: 'معلق', en: 'Suspended' },
+  { id: 'BANNED', ar: 'محظور', en: 'Banned' },
+] as const;
+
+const RANK_OPTIONS = [
+  { id: 'ALL', ar: 'الكل', en: 'All' },
+  { id: 'DIAMOND', ar: 'ماسي', en: 'Diamond' },
+  { id: 'PLATINUM', ar: 'بلاتيني', en: 'Platinum' },
+  { id: 'GOLD', ar: 'ذهبي', en: 'Gold' },
+  { id: 'BRONZE', ar: 'برونزي', en: 'Bronze' },
+  { id: 'SILVER', ar: 'فضي', en: 'Silver' },
+] as const;
+
+const LANGUAGE_OPTIONS = [
+  { id: 'ALL', ar: 'كل اللغات', en: 'All' },
+  { id: 'ar', ar: 'العربية', en: 'Arabic' },
+  { id: 'en', ar: 'English', en: 'English' },
+] as const;
 
 export function DriversFilterControls({
   searchQuery,
@@ -51,134 +73,145 @@ export function DriversFilterControls({
   onGovernorateChange,
   onDistrictChange,
   onResetGeo,
+  onApplyFilters,
   onResetAllFilters,
+  hasDraftFilter,
+  hasActiveFilter,
+  hasPendingChanges,
+  loading,
   isArabic,
   t,
 }: DriversFilterControlsProps) {
-  const isAnyFilterActive =
-    statusFilter !== 'ALL' ||
-    rankFilter !== 'ALL' ||
-    languageFilter !== 'ALL' ||
-    selectedCountry !== 'ALL' ||
-    selectedGovernorate !== 'ALL' ||
-    selectedDistrict !== 'ALL' ||
-    searchQuery.trim() !== '';
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && hasDraftFilter && !loading) {
+      e.preventDefault();
+      onApplyFilters();
+    }
+  };
 
   return (
-    <div className="space-y-2.5">
-      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-[#0B0F19]/90 border border-white/10 p-3.5 rounded-2xl">
-        <div className={styles.searchContainer}>
-          <Search className={styles.searchIcon} />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('searchPlaceholder')}
-            className={styles.searchInput}
-          />
-        </div>
-
-        {/* Filter Badges */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Status filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">{t('filterStatus')}</span>
-            {[
-              { key: 'ALL', label: t('statusAll') },
-              { key: 'ACTIVE', label: t('statusActive') },
-              { key: 'IDLE', label: t('statusIdle') },
-              { key: 'BUSY', label: t('statusBusy') },
-              { key: 'SUSPENDED', label: t('statusSuspended') },
-              { key: 'BANNED', label: t('statusBanned') },
-            ].map((st) => (
-              <button
-                key={st.key}
-                type="button"
-                onClick={() => setStatusFilter(st.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  statusFilter === st.key ? "bg-[#14B8A6] text-[#0B0F19]" : "text-slate-400 hover:text-white"
-                )}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Rank Tier filter */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded-xl p-1 text-[11px]">
-            <span className="text-slate-400 px-2 font-bold">{t('filterRank')}</span>
-            {[
-              { key: 'ALL', label: t('statusAll') },
-              { key: 'DIAMOND', label: t('rankDiamond') },
-              { key: 'PLATINUM', label: t('rankPlatinum') },
-              { key: 'GOLD', label: t('rankGold') },
-              { key: 'BRONZE', label: t('rankBronze') },
-              { key: 'SILVER', label: t('rankSilver') },
-            ].map((rk) => (
-              <button
-                key={rk.key}
-                type="button"
-                onClick={() => setRankFilter(rk.key)}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px]",
-                  rankFilter === rk.key ? "bg-[#14B8A6] text-[#0B0F19]" : "text-slate-400 hover:text-white"
-                )}
-              >
-                {rk.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Language Filter */}
-          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
-            <Languages className="w-3.5 h-3.5 text-[#14B8A6] mx-1 shrink-0" />
-            {[
-              { key: 'ALL', label: isArabic ? 'كل اللغات' : 'All' },
-              { key: 'ar', label: '🇸🇦 العربية' },
-              { key: 'en', label: '🇬🇧 English' },
-            ].map((lf) => (
-              <button
-                key={lf.key}
-                type="button"
-                onClick={() => setLanguageFilter(lf.key as 'ALL' | 'ar' | 'en')}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg font-bold transition text-[11px] cursor-pointer",
-                  languageFilter === lf.key ? "bg-[#14B8A6] text-[#0B0F19]" : "text-slate-400 hover:text-white"
-                )}
-              >
-                {lf.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Reset Filters button */}
-          {isAnyFilterActive && (
-            <button
-              type="button"
-              onClick={onResetAllFilters}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-[11px] font-bold transition cursor-pointer"
-              title={t('resetFiltersTooltip')}
-            >
-              <RotateCcw className="w-3 h-3 text-[#14B8A6]" />
-              <span>{t('resetFilters')}</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Geographic Filtering Bar */}
+    <div className="bg-[#060f1a]/90 border border-white/[0.08] rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
+      {/* 1. Geographic Filter (Top Priority) */}
       <GeoFilterBar
-        geoLookup={geoLookup}
         selectedCountry={selectedCountry}
         selectedGovernorate={selectedGovernorate}
         selectedDistrict={selectedDistrict}
+        geoLookup={geoLookup}
         onCountryChange={onCountryChange}
         onGovernorateChange={onGovernorateChange}
         onDistrictChange={onDistrictChange}
         onResetGeo={onResetGeo}
         isArabic={isArabic}
       />
+
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+
+      {/* 2. Search & Language Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+        <div className="lg:col-span-7 relative">
+          <Search className="w-4 h-4 text-slate-500 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder={
+              isArabic
+                ? 'بحث بالاسم، الهاتف، كود الكابتن (C-1250)، أو رقم اللوحة...'
+                : t('adminDrivers.searchPlaceholder')
+            }
+            className="w-full h-11 bg-[#0b1524] border border-white/10 rounded-xl ps-10 pe-9 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 transition-all"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label={isArabic ? 'مسح البحث' : 'Clear search'}
+              className="absolute end-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="lg:col-span-5 flex items-center justify-between gap-2 bg-[#0b1524] border border-white/10 rounded-xl p-1.5 h-11">
+          <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 px-2 shrink-0">
+            <Languages className="w-3.5 h-3.5 text-cyan-400" />
+            {isArabic ? 'اللغة:' : 'Lang:'}
+          </span>
+          <div className="flex items-center gap-1 flex-1 justify-end">
+            {LANGUAGE_OPTIONS.map((lang) => (
+              <button
+                key={lang.id}
+                type="button"
+                onClick={() => setLanguageFilter(lang.id)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  languageFilter === lang.id
+                    ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                {isArabic ? lang.ar : lang.en}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Status & Rank Segmented Filters */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <div className="flex flex-wrap items-center gap-1.5 bg-[#0b1524] border border-white/10 rounded-xl p-2">
+          <span className="text-[11px] font-bold text-slate-400 px-2 shrink-0">
+            {isArabic ? 'الحالة:' : 'Status:'}
+          </span>
+          {STATUS_OPTIONS.map((st) => (
+            <button
+              key={st.id}
+              type="button"
+              onClick={() => setStatusFilter(st.id)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                statusFilter === st.id
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+              }`}
+            >
+              {isArabic ? st.ar : st.en}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 bg-[#0b1524] border border-white/10 rounded-xl p-2">
+          <span className="text-[11px] font-bold text-slate-400 px-2 shrink-0">
+            {isArabic ? 'الرتبة:' : 'Rank:'}
+          </span>
+          {RANK_OPTIONS.map((rk) => (
+            <button
+              key={rk.id}
+              type="button"
+              onClick={() => setRankFilter(rk.id)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                rankFilter === rk.id
+                  ? 'bg-amber-400 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+              }`}
+            >
+              {isArabic ? rk.ar : rk.en}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Action Footer */}
+      <FilterActionFooter
+        onApplyFilters={onApplyFilters}
+        onResetAllFilters={onResetAllFilters}
+        hasDraftFilter={hasDraftFilter}
+        hasActiveFilter={hasActiveFilter}
+        hasPendingChanges={hasPendingChanges}
+        loading={loading}
+        isArabic={isArabic}
+        emptyPromptEn='Select criteria and click "Apply Filter" to load drivers'
+      />
     </div>
   );
 }
-

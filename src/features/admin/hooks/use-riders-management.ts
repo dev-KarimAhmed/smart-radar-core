@@ -25,12 +25,8 @@ export function useRidersManagement() {
   const {
     setGeoLookup,
     clearSelection,
-    hasActiveFilter,
-    searchQuery,
-    statusFilter,
-    selectedCountry,
-    selectedGovernorate,
-    selectedDistrict,
+    appliedFilters,
+    applyFilters,
   } = filters;
   const requestSeqRef = useRef(0);
 
@@ -54,7 +50,7 @@ export function useRidersManagement() {
 
   const fetchRiders = useCallback(async (quiet = false) => {
     const seq = ++requestSeqRef.current;
-    if (!hasActiveFilter) {
+    if (!appliedFilters) {
       setRiders([]);
       clearSelection();
       try {
@@ -73,11 +69,11 @@ export function useRidersManagement() {
     if (!quiet) setLoading(true);
     try {
       const data = await fetchRidersData({
-        countryId: selectedCountry,
-        governorateId: selectedGovernorate,
-        districtId: selectedDistrict,
-        status: statusFilter,
-        q: searchQuery,
+        countryId: appliedFilters.selectedCountry,
+        governorateId: appliedFilters.selectedGovernorate,
+        districtId: appliedFilters.selectedDistrict,
+        status: appliedFilters.statusFilter,
+        q: appliedFilters.searchQuery,
       });
       if (seq !== requestSeqRef.current) return;
       setRiders(data.users);
@@ -94,12 +90,7 @@ export function useRidersManagement() {
       if (seq === requestSeqRef.current) setLoading(false);
     }
   }, [
-    hasActiveFilter,
-    selectedCountry,
-    selectedGovernorate,
-    selectedDistrict,
-    statusFilter,
-    searchQuery,
+    appliedFilters,
     toast,
     isArabic,
     setGeoLookup,
@@ -107,12 +98,8 @@ export function useRidersManagement() {
   ]);
 
   useEffect(() => {
-    const delay = searchQuery.trim() ? 300 : 0;
-    const timer = window.setTimeout(() => {
-      void fetchRiders(false);
-    }, delay);
-    return () => window.clearTimeout(timer);
-  }, [fetchRiders, searchQuery]);
+    void fetchRiders(false);
+  }, [fetchRiders]);
 
   const executeAdminAction = async (payload: Record<string, any>, successMsg: string) => {
     setSubmittingAction(true);
@@ -144,6 +131,7 @@ export function useRidersManagement() {
     totalRidersCount,
     loading,
     fetchRiders,
+    handleApplyFilters: applyFilters,
     executeAdminAction,
     ...filters,
     inspectRider,

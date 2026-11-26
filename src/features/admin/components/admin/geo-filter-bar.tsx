@@ -1,14 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Globe, MapPin, X } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { MapPin, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GeoFilterBarProps } from './geo-filter/geo-filter-types';
 import { getCountryFlag } from './geo-filter/geo-filter-types';
@@ -89,38 +82,7 @@ export function GeoFilterBar({
         })}
       </div>
 
-      {/* 1. Country Selector Dropdown */}
-      <div className="w-32 sm:w-36 shrink-0">
-        <Select
-          value={selectedCountry}
-          onValueChange={(val) => {
-            onCountryChange(val);
-          }}
-        >
-          <SelectTrigger className="h-9 bg-[#0B0F19] border-white/10 text-xs font-bold text-white rounded-xl focus:ring-[#14B8A6]/40 focus:border-[#14B8A6]">
-            <div className="flex items-center gap-1.5 truncate">
-              <Globe className="w-3.5 h-3.5 text-[#14B8A6] shrink-0" />
-              <SelectValue placeholder={isArabic ? 'كل الدول' : 'All Countries'} />
-            </div>
-          </SelectTrigger>
-          <SelectContent className="bg-[#0B0F19] text-white border-white/10 z-[100]">
-            <SelectItem value="ALL" className="text-xs font-bold cursor-pointer">
-              {isArabic ? '🌍 كل الدول' : '🌍 All Countries'}
-            </SelectItem>
-            {countries.map((c) => (
-              <SelectItem
-                key={c.id}
-                value={String(c.id)}
-                className="text-xs font-bold cursor-pointer"
-              >
-                {getCountryFlag(c)} {c.name_ar}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* 2. Governorate Selector (Separated by country groups) */}
+      {/* 1. Governorate Selector (Separated by country groups) */}
       <GeoGovernorateSelect
         selectedGovernorate={selectedGovernorate}
         onGovernorateChange={onGovernorateChange}

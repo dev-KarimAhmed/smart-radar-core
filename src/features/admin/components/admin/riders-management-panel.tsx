@@ -37,8 +37,11 @@ export function RidersManagementPanel() {
     handleGovernorateChange,
     handleDistrictChange,
     handleResetGeo,
+    handleApplyFilters,
     resetAllFilters,
+    hasDraftFilter,
     hasActiveFilter,
+    hasPendingChanges,
     selectedRiderIds,
     handleSelectAll,
     handleToggleSelect,
@@ -115,7 +118,12 @@ export function RidersManagementPanel() {
         onGovernorateChange={handleGovernorateChange}
         onDistrictChange={handleDistrictChange}
         onResetGeo={handleResetGeo}
+        onApplyFilters={handleApplyFilters}
         onResetAllFilters={resetAllFilters}
+        hasDraftFilter={hasDraftFilter}
+        hasActiveFilter={hasActiveFilter}
+        hasPendingChanges={hasPendingChanges}
+        loading={loading}
         isArabic={isArabic}
         t={t}
       />

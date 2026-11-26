@@ -38,8 +38,11 @@ export function DriversManagementTab() {
     handleGovernorateChange,
     handleDistrictChange,
     handleResetGeo,
+    handleApplyFilters,
     handleResetAllFilters,
+    hasDraftFilter,
     hasActiveFilter,
+    hasPendingChanges,
     captains,
     filteredCaptains,
     selectedCaptainIds,
@@ -87,7 +90,12 @@ export function DriversManagementTab() {
         onGovernorateChange={handleGovernorateChange}
         onDistrictChange={handleDistrictChange}
         onResetGeo={handleResetGeo}
+        onApplyFilters={handleApplyFilters}
         onResetAllFilters={handleResetAllFilters}
+        hasDraftFilter={hasDraftFilter}
+        hasActiveFilter={hasActiveFilter}
+        hasPendingChanges={hasPendingChanges}
+        loading={loading}
         isArabic={isArabic}
         t={t}
       />

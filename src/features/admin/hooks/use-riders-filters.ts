@@ -3,6 +3,14 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { RiderUser, RiderStats } from '@/features/admin/types/rider-management';
 import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
+import {
+  areRidersFiltersEqual,
+  hasAnyRidersFilter,
+  matchesRiderSnapshot,
+  type RidersFilterSnapshot,
+} from './riders-filter-helpers';
+
+export type { RidersFilterSnapshot };
 
 interface UseRidersFiltersProps {
   riders: RiderUser[];
@@ -16,6 +24,7 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
   const [selectedCountry, setSelectedCountry] = useState<string>('ALL');
   const [selectedGovernorate, setSelectedGovernorate] = useState<string>('ALL');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('ALL');
+  const [appliedFilters, setAppliedFilters] = useState<RidersFilterSnapshot | null>(null);
   const [geoLookup, setGeoLookup] = useState<GeoLookup>({
     countries: [],
     governorates: [],
@@ -61,6 +70,34 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
     setSelectedDistrict('ALL');
   }, []);
 
+  const draftFilters: RidersFilterSnapshot = useMemo(
+    () => ({
+      searchQuery,
+      statusFilter,
+      immunityFilter,
+      selectedCountry,
+      selectedGovernorate,
+      selectedDistrict,
+    }),
+    [searchQuery, statusFilter, immunityFilter, selectedCountry, selectedGovernorate, selectedDistrict]
+  );
+
+  const hasDraftFilter = useMemo(() => hasAnyRidersFilter(draftFilters), [draftFilters]);
+  const hasActiveFilter = appliedFilters !== null;
+  const hasPendingChanges = useMemo(() => {
+    if (!appliedFilters) return hasDraftFilter;
+    return !areRidersFiltersEqual(draftFilters, appliedFilters);
+  }, [appliedFilters, draftFilters, hasDraftFilter]);
+
+  const applyFilters = useCallback(() => {
+    if (!hasAnyRidersFilter(draftFilters)) {
+      setAppliedFilters(null);
+      setSelectedRiderIds(new Set());
+      return;
+    }
+    setAppliedFilters({ ...draftFilters });
+  }, [draftFilters]);
+
   const resetAllFilters = useCallback(() => {
     setStatusFilter('ALL');
     setImmunityFilter('ALL');
@@ -68,75 +105,14 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
     setSelectedGovernorate('ALL');
     setSelectedDistrict('ALL');
     setSearchQuery('');
+    setAppliedFilters(null);
+    setSelectedRiderIds(new Set());
   }, []);
 
-  const hasActiveFilter = useMemo(() => (
-    searchQuery.trim() !== '' ||
-    statusFilter !== 'ALL' ||
-    immunityFilter !== 'ALL' ||
-    selectedCountry !== 'ALL' ||
-    selectedGovernorate !== 'ALL' ||
-    selectedDistrict !== 'ALL'
-  ), [searchQuery, statusFilter, immunityFilter, selectedCountry, selectedGovernorate, selectedDistrict]);
-
   const filteredRiders = useMemo(() => {
-    if (!hasActiveFilter) return [];
-    return riders.filter((r) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        r.full_name.toLowerCase().includes(q) ||
-        r.phone.toLowerCase().includes(q) ||
-        r.serial_id.toLowerCase().includes(q) ||
-        (r.governorate && r.governorate.toLowerCase().includes(q)) ||
-        (r.district && r.district.toLowerCase().includes(q)) ||
-        (r.country_name && r.country_name.toLowerCase().includes(q));
-
-      const matchesStatus =
-        statusFilter === 'ALL' || r.status === statusFilter;
-
-      let matchesImmunity = true;
-      if (immunityFilter === 'HIGH') matchesImmunity = r.trust_score >= 4.5;
-      else if (immunityFilter === 'WARNING') matchesImmunity = r.trust_score >= 4.2 && r.trust_score < 4.5;
-      else if (immunityFilter === 'CRITICAL') matchesImmunity = r.trust_score < 4.2;
-
-      const targetCountry = geoLookup.countries.find((cntry) => String(cntry.id) === selectedCountry);
-      const matchesCountry =
-        selectedCountry === 'ALL' ||
-        r.country_id === Number(selectedCountry) ||
-        (targetCountry && (r.country_name === targetCountry.name_ar || (targetCountry.country_code && r.phone?.startsWith(targetCountry.country_code === 'EG' ? '+20' : '+962'))));
-
-      const targetGov = geoLookup.governorates.find((g) => String(g.id) === selectedGovernorate);
-      const matchesGov =
-        selectedGovernorate === 'ALL' ||
-        r.governorate_id === Number(selectedGovernorate) ||
-        (targetGov && r.governorate === targetGov.name_ar);
-
-      const targetDist = geoLookup.districts.find((d) => String(d.id) === selectedDistrict);
-      const matchesDist =
-        selectedDistrict === 'ALL' ||
-        r.district_id === Number(selectedDistrict) ||
-        (targetDist && r.district === targetDist.name_ar);
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesImmunity &&
-        matchesCountry &&
-        matchesGov &&
-        matchesDist
-      );
-    });
-  }, [
-    riders,
-    searchQuery,
-    statusFilter,
-    immunityFilter,
-    selectedCountry,
-    selectedGovernorate,
-    selectedDistrict,
-    geoLookup,
-  ]);
+    if (!appliedFilters) return [];
+    return riders.filter((r) => matchesRiderSnapshot(r, appliedFilters, geoLookup));
+  }, [riders, appliedFilters, geoLookup]);
 
   const handleSelectAll = useCallback(() => {
     if (selectedRiderIds.size === filteredRiders.length) {
@@ -161,10 +137,10 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
 
   const stats: RiderStats = useMemo(() => {
     const total = riders.length;
-    const online = riders.filter(r => r.status === 'ACTIVE' || r.status === 'BUSY').length;
-    const idle = riders.filter(r => r.status === 'IDLE').length;
-    const suspended = riders.filter(r => r.status === 'SUSPENDED' || r.status === 'BANNED').length;
-    const atRisk = riders.filter(r => r.trust_score < 4.2 || r.consecutive_cancellations >= 3).length;
+    const online = riders.filter((r) => r.status === 'ACTIVE' || r.status === 'BUSY').length;
+    const idle = riders.filter((r) => r.status === 'IDLE').length;
+    const suspended = riders.filter((r) => r.status === 'SUSPENDED' || r.status === 'BANNED').length;
+    const atRisk = riders.filter((r) => r.trust_score < 4.2 || r.consecutive_cancellations >= 3).length;
     const completedTrips = riders.reduce((acc, r) => acc + (r.completed_trips_count || 0), 0);
     return { total, online, idle, suspended, atRisk, completedTrips };
   }, [riders]);
@@ -185,8 +161,12 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
     handleGovernorateChange,
     handleDistrictChange,
     handleResetGeo,
+    applyFilters,
     resetAllFilters,
+    appliedFilters,
+    hasDraftFilter,
     hasActiveFilter,
+    hasPendingChanges,
     selectedRiderIds,
     handleSelectAll,
     handleToggleSelect,
@@ -195,4 +175,3 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
     stats,
   };
 }
-

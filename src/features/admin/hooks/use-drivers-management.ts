@@ -26,21 +26,16 @@ export function useDriversManagement() {
     filteredCaptains,
     selectedCaptainIds,
     clearSelection,
-    hasActiveFilter,
-    searchQuery,
-    statusFilter,
-    rankFilter,
-    languageFilter,
-    selectedCountry,
-    selectedGovernorate,
-    selectedDistrict,
+    appliedFilters,
+    applyFilters,
+    handleResetAllFilters,
   } = filters;
 
   const requestSeqRef = useRef(0);
 
   const fetchCaptains = useCallback(async (quiet = false) => {
     const seq = ++requestSeqRef.current;
-    if (!hasActiveFilter) {
+    if (!appliedFilters) {
       setCaptains([]);
       clearSelection();
       try {
@@ -59,13 +54,13 @@ export function useDriversManagement() {
     if (!quiet) setLoading(true);
     try {
       const data = await fetchCaptainsData({
-        countryId: selectedCountry,
-        governorateId: selectedGovernorate,
-        districtId: selectedDistrict,
-        status: statusFilter,
-        tier: rankFilter,
-        language: languageFilter,
-        q: searchQuery,
+        countryId: appliedFilters.selectedCountry,
+        governorateId: appliedFilters.selectedGovernorate,
+        districtId: appliedFilters.selectedDistrict,
+        status: appliedFilters.statusFilter,
+        tier: appliedFilters.rankFilter,
+        language: appliedFilters.languageFilter,
+        q: appliedFilters.searchQuery,
       });
       if (seq !== requestSeqRef.current) return;
       setCaptains(data.users);
@@ -81,29 +76,29 @@ export function useDriversManagement() {
     } finally {
       if (seq === requestSeqRef.current) setLoading(false);
     }
-  }, [
-    hasActiveFilter,
-    selectedCountry,
-    selectedGovernorate,
-    selectedDistrict,
-    statusFilter,
-    rankFilter,
-    languageFilter,
-    searchQuery,
-    toast,
-    isArabic,
-    setGeoLookup,
-    clearSelection,
-  ]);
+  }, [appliedFilters, toast, isArabic, setGeoLookup, clearSelection]);
 
-  // Debounce text search; trigger immediately on discrete filter switches
+  // Fetches metaOnly on mount, and fetches filtered list ONLY when appliedFilters changes via Apply Filter button
   useEffect(() => {
-    const delay = searchQuery.trim() ? 300 : 0;
-    const timer = window.setTimeout(() => {
-      void fetchCaptains(false);
-    }, delay);
-    return () => window.clearTimeout(timer);
-  }, [fetchCaptains, searchQuery]);
+    void fetchCaptains(false);
+  }, [fetchCaptains]);
+
+  const handleApplyFilters = useCallback(() => {
+    const snap = applyFilters();
+    if (!snap) {
+      toast({
+        title: isArabic ? 'اختر فلتراً أولاً' : 'Select a Filter First',
+        description: isArabic
+          ? 'يرجى تحديد أي فلتر (الدولة، المحافظة، الحالة، الرتبة، اللغة) أو كتابة كلمة بحث ثم الضغط على تطبيق الفلتر.'
+          : 'Please choose at least one filter or enter a search query.',
+      });
+    }
+  }, [applyFilters, toast, isArabic]);
+
+  const handleResetAll = useCallback(() => {
+    handleResetAllFilters();
+    setCaptains([]);
+  }, [handleResetAllFilters]);
 
   const actions = useDriversActions({
     isArabic,
@@ -134,6 +129,8 @@ export function useDriversManagement() {
     loading,
     fetchCaptains,
     ...filters,
+    handleApplyFilters,
+    handleResetAllFilters: handleResetAll,
     ...actions,
     ...bulk,
     ...welcome,
