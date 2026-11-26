@@ -8,7 +8,8 @@ export const copy = {
     backToHome: 'العودة إلى الشاشة الافتتاحية',
     title: 'شبكة بينكم للإعلان الرقمي ترحب بكم',
     subtitle: 'اختر نوع حسابك وكمل دخولك بسهولة',
-    underDevelopment: 'قيد التطوير',
+    underDevelopment: '30 يوم مجاناً',
+    free30DaysBadge: '30 يوم مجاناً',
     roles: {
       rider: {
         title: 'مستخدم',
@@ -23,12 +24,12 @@ export const copy = {
         description: 'مدخل خاص بإدارة وتشغيل النظام.',
       },
       advertiser: {
-        title: 'معلن',
-        description: 'اعمل إعلانات موجهة لمنطقتك، وتابع المشاهدات والنقرات بسهولة.',
+        title: 'إعلانات منشآت تجارية',
+        description: 'احجز أولوية الظهور المجاني',
       },
       delegate: {
-        title: 'مندوب تسويق',
-        description: 'زيد من دخلك وأنت في عملك',
+        title: 'إعلانات مهن يدوية والحرفيين',
+        description: 'احجز أولوية الانتشار',
       },
     },
   },
@@ -38,7 +39,8 @@ export const copy = {
     backToHome: 'Back to Opening Screen',
     title: 'Welcome to byncom Digital Advertising Network',
     subtitle: 'Choose your account type and continue easily',
-    underDevelopment: 'Under Development',
+    underDevelopment: '30 Days Free',
+    free30DaysBadge: '30 Days Free',
     roles: {
       rider: {
         title: 'User',
@@ -53,12 +55,12 @@ export const copy = {
         description: 'Private entrance for system administration and operations.',
       },
       advertiser: {
-        title: 'Advertiser',
-        description: 'Create targeted ads for your area, track views and clicks easily.',
+        title: 'Commercial Establishments Ads',
+        description: 'Book free priority visibility',
       },
       delegate: {
-        title: 'Marketing Delegate',
-        description: 'Increase your income while working',
+        title: 'Handcrafts & Artisans Ads',
+        description: 'Book priority reach',
       },
     },
   },

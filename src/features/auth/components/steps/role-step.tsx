@@ -18,6 +18,7 @@ import { getLandingPageUrl } from '@/lib/constants';
 import { styles } from './role-step.styles';
 import { copy, type Lang, type RoleKey } from './role-step.copy';
 import { RoleStepCard } from './role-step-card';
+import { EarlyLaunchAdModal, type EarlyLaunchCardType } from './early-launch-ad-modal';
 import { SocialLinks } from '@/components/social-links';
 
 export { demoUsers } from './role-step-demo-users';
@@ -25,21 +26,30 @@ export { demoUsers } from './role-step-demo-users';
 const roleConfig: Array<{
   key: RoleKey;
   Icon: typeof UserRound;
-  disabled?: boolean;
+  promoBadge?: boolean;
 }> = [
   { key: 'rider', Icon: UserRound },
   { key: 'driver', Icon: CarTaxiFront },
-  { key: 'advertiser', Icon: Megaphone, disabled: true },
-  { key: 'delegate', Icon: Store, disabled: true },
+  { key: 'advertiser', Icon: Megaphone, promoBadge: true },
+  { key: 'delegate', Icon: Store, promoBadge: true },
 ];
 
 export function RoleStep() {
   const { setRole, lang, setLang } = useRegistration();
+  const [earlyLaunchCard, setEarlyLaunchCard] = React.useState<EarlyLaunchCardType | null>(null);
   const currentLang = lang as Lang;
   const content = copy[currentLang];
   const isArabic = currentLang === 'ar';
 
   const handleRoleSelect = (role: RoleKey) => {
+    if (role === 'advertiser') {
+      setEarlyLaunchCard('COMMERCIAL');
+      return;
+    }
+    if (role === 'delegate') {
+      setEarlyLaunchCard('CRAFTS');
+      return;
+    }
     setRole(role);
     navigateAuth('login', role);
   };
@@ -114,7 +124,7 @@ export function RoleStep() {
           className={cn(styles.style328_19, styles.style329_20)}
         >
           <AnimatePresence mode="popLayout" initial={false}>
-            {roleConfig.map(({ key, Icon, disabled }, index) => {
+            {roleConfig.map(({ key, Icon, promoBadge }, index) => {
               const role = content.roles[key];
 
               return (
@@ -124,8 +134,7 @@ export function RoleStep() {
                   Icon={Icon}
                   title={role.title}
                   description={role.description}
-                  underDevelopmentLabel={content.underDevelopment}
-                  disabled={disabled}
+                  badgeLabel={promoBadge ? content.free30DaysBadge : undefined}
                   isArabic={isArabic}
                   index={index}
                   onSelect={() => handleRoleSelect(key)}
@@ -135,6 +144,12 @@ export function RoleStep() {
           </AnimatePresence>
         </motion.div>
       </section>
+
+      <EarlyLaunchAdModal
+        cardType={earlyLaunchCard}
+        isArabic={isArabic}
+        onClose={() => setEarlyLaunchCard(null)}
+      />
     </main>
   );
 }
