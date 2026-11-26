@@ -26,8 +26,8 @@ export function useAdminCreateForm({
   const [phone, setPhone] = useState('+9627');
   const [password, setPassword] = useState('');
   const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>('ASSISTANT_ADMIN');
-  const [allowedSectors, setAllowedSectors] = useState<AdminSectorId[]>([...ALL_SECTOR_IDS]);
-  const [allowedPermissions, setAllowedPermissions] = useState<string[]>([...ALL_SUB_PERMISSION_IDS]);
+  const [allowedSectors, setAllowedSectors] = useState<AdminSectorId[]>([]);
+  const [allowedPermissions, setAllowedPermissions] = useState<string[]>([]);
   const [geoScope, setGeoScopeState] = useState<AdminGeoScope>({ ...UNRESTRICTED_GEO_SCOPE });
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -100,8 +100,8 @@ export function useAdminCreateForm({
       setPhone('+9627');
       setPassword('');
       setAdminRank('ASSISTANT_ADMIN');
-      setAllowedSectors([...ALL_SECTOR_IDS]);
-      setAllowedPermissions([...ALL_SUB_PERMISSION_IDS]);
+      setAllowedSectors([]);
+      setAllowedPermissions([]);
       setGeoScopeState({ ...UNRESTRICTED_GEO_SCOPE });
       await onSuccess();
       setTimeout(() => {

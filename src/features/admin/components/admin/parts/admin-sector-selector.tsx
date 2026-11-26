@@ -9,7 +9,6 @@ import {
   ALL_SECTOR_IDS,
   ALL_SUB_PERMISSION_IDS,
   AdminSectorId,
-  deriveSectorsFromPermissions,
   getSubPermissionsForSector,
 } from '@/features/admin/lib/admin-permissions';
 import { AdminSubPermissionsPanel } from './admin-sub-permissions-panel';
@@ -43,7 +42,6 @@ export function AdminSectorSelector({
       setAllowedPermissions((prev) => prev.filter((p) => !sectorPermIds.includes(p)));
     } else {
       setAllowedSectors((prev) => Array.from(new Set([...prev, sectorId])));
-      setAllowedPermissions((prev) => Array.from(new Set([...prev, ...sectorPermIds])));
     }
   };
 
@@ -53,12 +51,9 @@ export function AdminSectorSelector({
       ? allowedPermissions.filter((p) => p !== permId)
       : [...allowedPermissions, permId];
     setAllowedPermissions(nextPerms);
-    const syncedSectors = deriveSectorsFromPermissions(nextPerms) as AdminSectorId[];
-    setAllowedSectors((prev) =>
-      syncedSectors.includes(sectorId)
-        ? Array.from(new Set([...prev, sectorId]))
-        : prev.filter((id) => id !== sectorId)
-    );
+    if (!isGranted) {
+      setAllowedSectors((prev) => Array.from(new Set([...prev, sectorId])));
+    }
   };
 
   const toggleAllInSector = (sectorId: AdminSectorId, grantAll: boolean) => {
@@ -100,11 +95,7 @@ export function AdminSectorSelector({
 
           <button
             type="button"
-            onClick={() => {
-              setAdminRank('GENERAL_ADMIN');
-              setAllowedSectors([...ALL_SECTOR_IDS]);
-              setAllowedPermissions([...ALL_SUB_PERMISSION_IDS]);
-            }}
+            onClick={() => setAdminRank('GENERAL_ADMIN')}
             className={`p-3.5 rounded-xl border text-start transition-all flex items-start gap-3 cursor-pointer ${
               adminRank === 'GENERAL_ADMIN'
                 ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/50'

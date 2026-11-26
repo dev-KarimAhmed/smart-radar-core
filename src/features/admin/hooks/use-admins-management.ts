@@ -192,11 +192,10 @@ export function useAdminsManagement() {
   };
 
   const openEditPermissions = (target: AdminProfile) => {
-    const sectors = target.allowed_sectors || [...ALL_SECTOR_IDS];
-    const perms =
-      Array.isArray(target.allowed_permissions) && target.allowed_permissions.length > 0
-        ? target.allowed_permissions
-        : getAllSubPermissionIdsForSectors(sectors);
+    const sectors = target.allowed_sectors || [];
+    const perms = Array.isArray(target.allowed_permissions)
+      ? target.allowed_permissions
+      : getAllSubPermissionIdsForSectors(sectors);
     setEditPermissionsTarget(target);
     setEditRank(target.admin_rank || 'ASSISTANT_ADMIN');
     setEditSectors(sectors);
