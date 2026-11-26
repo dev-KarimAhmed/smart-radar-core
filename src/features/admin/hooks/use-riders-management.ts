@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
-import type { RiderUser, RiderMessageType, RiderBulkScope } from '@/features/admin/types/rider-management';
+import type { RiderUser } from '@/features/admin/types/rider-management';
 import {
   fetchRidersData,
   executeRiderAdminAction,
-  translateNotificationContent,
 } from '@/features/admin/services/riders-admin-service';
 import { useRidersFilters } from './use-riders-filters';
+import { useRidersMessaging } from './use-riders-messaging';
 
 export function useRidersManagement() {
   const t = useTranslations('adminRiders');
@@ -18,9 +18,21 @@ export function useRidersManagement() {
   const { toast } = useToast();
 
   const [riders, setRiders] = useState<RiderUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [totalRidersCount, setTotalRidersCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const filters = useRidersFilters({ riders });
+  const {
+    setGeoLookup,
+    clearSelection,
+    hasActiveFilter,
+    searchQuery,
+    statusFilter,
+    selectedCountry,
+    selectedGovernorate,
+    selectedDistrict,
+  } = filters;
+  const requestSeqRef = useRef(0);
 
   // Modals state
   const [inspectRider, setInspectRider] = useState<RiderUser | null>(null);
@@ -38,76 +50,40 @@ export function useRidersManagement() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Direct Message modal
-  const [messageRider, setMessageRider] = useState<RiderUser | null>(null);
-  const [messageTitle, setMessageTitle] = useState(isArabic ? 'رسالة من إدارة المنظومة' : 'Message from Platform Administration');
-  const [messageBody, setMessageBody] = useState('');
-  const [messageTitleEn, setMessageTitleEn] = useState('');
-  const [messageBodyEn, setMessageBodyEn] = useState('');
-  const [isTranslatingDirect, setIsTranslatingDirect] = useState(false);
-  const [messageType, setMessageType] = useState<RiderMessageType>('admin_message');
-  const [submittingMessage, setSubmittingMessage] = useState(false);
-
-  const handleTranslateDirect = async () => {
-    setIsTranslatingDirect(true);
-    try {
-      const { titleEn, bodyEn } = await translateNotificationContent(messageTitle, messageBody);
-      setMessageTitleEn(titleEn);
-      setMessageBodyEn(bodyEn);
-      toast({
-        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English Translation Generated',
-        description: isArabic ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.' : 'You can review or edit the translated text before sending.',
-      });
-    } catch {
-      toast({
-        variant: 'destructive',
-        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation Failed',
-        description: isArabic ? 'يرجى إدخال النص الإنجليزي يدوياً.' : 'Please enter English text manually.',
-      });
-    } finally {
-      setIsTranslatingDirect(false);
-    }
-  };
-
-  // Bulk Broadcast modal
-  const [isBulkMessageOpen, setIsBulkMessageOpen] = useState(false);
-  const [bulkScope, setBulkScope] = useState<RiderBulkScope>('all');
-  const [bulkMsgTitle, setBulkMsgTitle] = useState(isArabic ? 'إشعار توجيهي من إدارة المنظومة' : 'Directive Notification from System Administration');
-  const [bulkMsgBody, setBulkMsgBody] = useState('');
-  const [bulkMsgTitleEn, setBulkMsgTitleEn] = useState('');
-  const [bulkMsgBodyEn, setBulkMsgBodyEn] = useState('');
-  const [isTranslatingBulk, setIsTranslatingBulk] = useState(false);
-  const [bulkMsgType, setBulkMsgType] = useState<RiderMessageType>('admin_message');
-  const [submittingBulkMessage, setSubmittingBulkMessage] = useState(false);
-
-  const handleTranslateBulk = async () => {
-    setIsTranslatingBulk(true);
-    try {
-      const { titleEn, bodyEn } = await translateNotificationContent(bulkMsgTitle, bulkMsgBody);
-      setBulkMsgTitleEn(titleEn);
-      setBulkMsgBodyEn(bodyEn);
-      toast({
-        title: isArabic ? '🌐 تم إنشاء الترجمة الإنجليزية بنجاح' : '🌐 English Translation Generated',
-        description: isArabic ? 'يمكنك مراجعة النص الإنجليزي المترجم أو تعديله قبل الإرسال.' : 'You can review or edit the translated text before sending.',
-      });
-    } catch {
-      toast({
-        variant: 'destructive',
-        title: isArabic ? 'تعذر توليد الترجمة' : 'Translation Failed',
-        description: isArabic ? 'يرجى إدخال النص الإنجليزي يدوياً.' : 'Please enter English text manually.',
-      });
-    } finally {
-      setIsTranslatingBulk(false);
-    }
-  };
+  const messaging = useRidersMessaging(isArabic);
 
   const fetchRiders = useCallback(async (quiet = false) => {
+    const seq = ++requestSeqRef.current;
+    if (!hasActiveFilter) {
+      setRiders([]);
+      clearSelection();
+      try {
+        const meta = await fetchRidersData({ metaOnly: true });
+        if (seq !== requestSeqRef.current) return;
+        if (meta.geo) setGeoLookup(meta.geo);
+        if (typeof meta.totalCount === 'number') setTotalRidersCount(meta.totalCount);
+      } catch (err) {
+        console.warn('[RidersManagementPanel] meta fetch error:', err);
+      } finally {
+        if (seq === requestSeqRef.current) setLoading(false);
+      }
+      return;
+    }
+
     if (!quiet) setLoading(true);
     try {
-      const data = await fetchRidersData();
+      const data = await fetchRidersData({
+        countryId: selectedCountry,
+        governorateId: selectedGovernorate,
+        districtId: selectedDistrict,
+        status: statusFilter,
+        q: searchQuery,
+      });
+      if (seq !== requestSeqRef.current) return;
       setRiders(data.users);
-      if (data.geo) filters.setGeoLookup(data.geo);
+      if (data.geo) setGeoLookup(data.geo);
     } catch (err: any) {
+      if (seq !== requestSeqRef.current) return;
       console.warn('[RidersManagementPanel] fetch error:', err);
       toast({
         variant: 'destructive',
@@ -115,13 +91,28 @@ export function useRidersManagement() {
         description: err.message || (isArabic ? 'تعذر جلب بيانات المستخدمين من قاعدة البيانات' : 'Could not fetch riders from database'),
       });
     } finally {
-      setLoading(false);
+      if (seq === requestSeqRef.current) setLoading(false);
     }
-  }, [toast, isArabic, filters]);
+  }, [
+    hasActiveFilter,
+    selectedCountry,
+    selectedGovernorate,
+    selectedDistrict,
+    statusFilter,
+    searchQuery,
+    toast,
+    isArabic,
+    setGeoLookup,
+    clearSelection,
+  ]);
 
   useEffect(() => {
-    void fetchRiders();
-  }, [fetchRiders]);
+    const delay = searchQuery.trim() ? 300 : 0;
+    const timer = window.setTimeout(() => {
+      void fetchRiders(false);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [fetchRiders, searchQuery]);
 
   const executeAdminAction = async (payload: Record<string, any>, successMsg: string) => {
     setSubmittingAction(true);
@@ -150,6 +141,7 @@ export function useRidersManagement() {
     isArabic,
     direction,
     riders,
+    totalRidersCount,
     loading,
     fetchRiders,
     executeAdminAction,
@@ -166,40 +158,6 @@ export function useRidersManagement() {
     simulationRiderId,
     setSimulationRiderId,
     handleOpenSimulationForRider,
-    messageRider,
-    setMessageRider,
-    messageTitle,
-    setMessageTitle,
-    messageBody,
-    setMessageBody,
-    messageTitleEn,
-    setMessageTitleEn,
-    messageBodyEn,
-    setMessageBodyEn,
-    isTranslatingDirect,
-    messageType,
-    setMessageType,
-    submittingMessage,
-    setSubmittingMessage,
-    handleTranslateDirect,
-    isBulkMessageOpen,
-    setIsBulkMessageOpen,
-    bulkScope,
-    setBulkScope,
-    bulkMsgTitle,
-    setBulkMsgTitle,
-    bulkMsgBody,
-    setBulkMsgBody,
-    bulkMsgTitleEn,
-    setBulkMsgTitleEn,
-    bulkMsgBodyEn,
-    setBulkMsgBodyEn,
-    isTranslatingBulk,
-    bulkMsgType,
-    setBulkMsgType,
-    submittingBulkMessage,
-    setSubmittingBulkMessage,
-    handleTranslateBulk,
+    ...messaging,
   };
 }
-

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldCheck, Filter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { RiderUser } from '@/features/admin/types/rider-management';
@@ -10,6 +10,7 @@ import { RidersTableRow } from './riders-table-row';
 interface RidersTableProps {
   loading: boolean;
   filteredRiders: RiderUser[];
+  hasActiveFilter: boolean;
   selectedRiderIds: Set<string>;
   onSelectAll: () => void;
   onToggleSelect: (id: string) => void;
@@ -24,6 +25,7 @@ interface RidersTableProps {
 export function RidersTable({
   loading,
   filteredRiders,
+  hasActiveFilter,
   selectedRiderIds,
   onSelectAll,
   onToggleSelect,
@@ -41,6 +43,20 @@ export function RidersTable({
           <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">
             <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
             <p className="text-xs font-bold">{t('loadingTable')}</p>
+          </div>
+        ) : !hasActiveFilter ? (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-3 p-6 text-center text-slate-400">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+              <Filter className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-black text-white">
+              {isArabic ? 'اختر فلتراً أو ابحث لعرض قائمة المستخدمين' : 'Apply a filter or search to load users'}
+            </p>
+            <p className="max-w-md text-xs text-slate-400 leading-relaxed">
+              {isArabic
+                ? 'لتخفيف الحمل على النظام وقاعدة البيانات، لا يتم تحميل القائمة تلقائياً. استخدم البحث أو اختر الدولة / المحافظة / اللواء / الحالة / المناعة لعرض النتائج.'
+                : 'To minimize system load, the list only loads after applying a search query or selecting any geo, status, or immunity filter.'}
+            </p>
           </div>
         ) : filteredRiders.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">

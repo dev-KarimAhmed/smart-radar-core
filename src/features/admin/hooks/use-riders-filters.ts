@@ -70,7 +70,17 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
     setSearchQuery('');
   }, []);
 
+  const hasActiveFilter = useMemo(() => (
+    searchQuery.trim() !== '' ||
+    statusFilter !== 'ALL' ||
+    immunityFilter !== 'ALL' ||
+    selectedCountry !== 'ALL' ||
+    selectedGovernorate !== 'ALL' ||
+    selectedDistrict !== 'ALL'
+  ), [searchQuery, statusFilter, immunityFilter, selectedCountry, selectedGovernorate, selectedDistrict]);
+
   const filteredRiders = useMemo(() => {
+    if (!hasActiveFilter) return [];
     return riders.filter((r) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -176,6 +186,7 @@ export function useRidersFilters({ riders }: UseRidersFiltersProps) {
     handleDistrictChange,
     handleResetGeo,
     resetAllFilters,
+    hasActiveFilter,
     selectedRiderIds,
     handleSelectAll,
     handleToggleSelect,

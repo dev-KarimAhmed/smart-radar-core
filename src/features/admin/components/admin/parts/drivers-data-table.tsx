@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2, Car, Check, Zap, Send } from 'lucide-react';
+import { Loader2, Car, Check, Zap, Send, Filter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { DriversTableRow } from './drivers-table-row';
 interface DriversDataTableProps {
   captains: CaptainUser[];
   filteredCaptains: CaptainUser[];
+  hasActiveFilter: boolean;
   loading: boolean;
   selectedCaptainIds: Set<string>;
   onToggleSelectOne: (id: string) => void;
@@ -34,6 +35,7 @@ const styles = {
 
 export function DriversDataTable({
   filteredCaptains,
+  hasActiveFilter,
   loading,
   selectedCaptainIds,
   onToggleSelectOne,
@@ -110,6 +112,20 @@ export function DriversDataTable({
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">
               <Loader2 className="h-8 w-8 animate-spin text-[#14B8A6]" />
               <p className="text-xs font-bold">{t('loadingTable')}</p>
+            </div>
+          ) : !hasActiveFilter ? (
+            <div className="flex min-h-64 flex-col items-center justify-center gap-3 p-6 text-center text-slate-400">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 text-[#14F5D5]">
+                <Filter className="h-6 w-6" />
+              </div>
+              <p className="text-sm font-black text-white">
+                {isArabic ? 'اختر فلتراً أو ابحث لعرض قائمة السائقين' : 'Apply a filter or search to load captains'}
+              </p>
+              <p className="max-w-md text-xs text-slate-400 leading-relaxed">
+                {isArabic
+                  ? 'لتخفيف الحمل على النظام وقاعدة البيانات، لا يتم تحميل القائمة تلقائياً. استخدم البحث أو اختر الدولة / المحافظة / اللواء / الحالة / الرتبة لعرض السائقين.'
+                  : 'To minimize system load, the list only loads after applying a search query or selecting any geo, status, rank, or language filter.'}
+              </p>
             </div>
           ) : filteredCaptains.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-400">

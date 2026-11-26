@@ -70,7 +70,18 @@ export function useDriversFilters(captains: CaptainUser[]) {
     setSearchQuery('');
   }, []);
 
+  const hasActiveFilter = useMemo(() => (
+    searchQuery.trim() !== '' ||
+    statusFilter !== 'ALL' ||
+    rankFilter !== 'ALL' ||
+    languageFilter !== 'ALL' ||
+    selectedCountry !== 'ALL' ||
+    selectedGovernorate !== 'ALL' ||
+    selectedDistrict !== 'ALL'
+  ), [searchQuery, statusFilter, rankFilter, languageFilter, selectedCountry, selectedGovernorate, selectedDistrict]);
+
   const filteredCaptains = useMemo(() => {
+    if (!hasActiveFilter) return [];
     return captains.filter((c) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -194,6 +205,7 @@ export function useDriversFilters(captains: CaptainUser[]) {
     handleDistrictChange,
     handleResetGeo,
     handleResetAllFilters,
+    hasActiveFilter,
     filteredCaptains,
     stats,
     selectedCaptainIds,

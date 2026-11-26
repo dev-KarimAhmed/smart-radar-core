@@ -4,17 +4,40 @@ import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar
 
 export interface FetchCaptainsResult {
   users: CaptainUser[];
+  totalCount?: number;
   geo?: GeoLookup;
 }
 
-export async function fetchCaptainsData(): Promise<FetchCaptainsResult> {
-  const res = await adminFetch('/api/admin/users?role=CAPTAIN');
+export interface FetchCaptainsParams {
+  metaOnly?: boolean;
+  countryId?: string;
+  governorateId?: string;
+  districtId?: string;
+  status?: string;
+  tier?: string;
+  language?: string;
+  q?: string;
+}
+
+export async function fetchCaptainsData(params: FetchCaptainsParams = {}): Promise<FetchCaptainsResult> {
+  const qs = new URLSearchParams({ role: 'CAPTAIN' });
+  if (params.metaOnly) qs.set('metaOnly', '1');
+  if (params.countryId && params.countryId !== 'ALL') qs.set('countryId', params.countryId);
+  if (params.governorateId && params.governorateId !== 'ALL') qs.set('governorateId', params.governorateId);
+  if (params.districtId && params.districtId !== 'ALL') qs.set('districtId', params.districtId);
+  if (params.status && params.status !== 'ALL') qs.set('status', params.status);
+  if (params.tier && params.tier !== 'ALL') qs.set('tier', params.tier);
+  if (params.language && params.language !== 'ALL') qs.set('language', params.language);
+  if (params.q && params.q.trim()) qs.set('q', params.q.trim());
+
+  const res = await adminFetch(`/api/admin/users?${qs.toString()}`);
   const data = await res.json();
   if (!res.ok || !data?.success || !Array.isArray(data.users)) {
     throw new Error(data?.error || 'Failed to fetch captains data');
   }
   return {
     users: data.users,
+    totalCount: typeof data.totalCount === 'number' ? data.totalCount : undefined,
     geo: data.geo
       ? {
           countries: Array.isArray(data.geo.countries) ? data.geo.countries : [],

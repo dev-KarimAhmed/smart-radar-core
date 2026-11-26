@@ -38,6 +38,7 @@ export function RidersManagementPanel() {
     handleDistrictChange,
     handleResetGeo,
     resetAllFilters,
+    hasActiveFilter,
     selectedRiderIds,
     handleSelectAll,
     handleToggleSelect,
@@ -137,6 +138,7 @@ export function RidersManagementPanel() {
       <RidersTable
         loading={loading}
         filteredRiders={filteredRiders}
+        hasActiveFilter={hasActiveFilter}
         selectedRiderIds={selectedRiderIds}
         onSelectAll={handleSelectAll}
         onToggleSelect={handleToggleSelect}

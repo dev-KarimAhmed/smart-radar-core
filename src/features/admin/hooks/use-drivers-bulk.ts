@@ -9,6 +9,7 @@ import { requestTranslation } from '@/shared/utils/notification-i18n';
 interface UseDriversBulkProps {
   isArabic: boolean;
   captains: CaptainUser[];
+  totalCaptainsCount?: number;
   filteredCaptains: CaptainUser[];
   selectedCaptainIds: Set<string>;
   onRefresh: (quiet?: boolean) => Promise<void>;
@@ -17,6 +18,7 @@ interface UseDriversBulkProps {
 export function useDriversBulk({
   isArabic,
   captains,
+  totalCaptainsCount,
   filteredCaptains,
   selectedCaptainIds,
   onRefresh,
@@ -53,11 +55,11 @@ export function useDriversBulk({
   }, [selectedCaptainIds, filteredCaptains]);
 
   const getTargetCount = useCallback((scope: BulkScope): number => {
-    if (scope === 'all') return captains.length;
+    if (scope === 'all') return totalCaptainsCount || captains.length;
     if (scope === 'selected') return selectedCaptainIds.size;
     if (scope === 'filtered') return filteredCaptains.length;
     return 0;
-  }, [captains.length, selectedCaptainIds.size, filteredCaptains.length]);
+  }, [totalCaptainsCount, captains.length, selectedCaptainIds.size, filteredCaptains.length]);
 
   const getTargetList = useCallback((scope: BulkScope): CaptainUser[] => {
     if (scope === 'all') return captains;

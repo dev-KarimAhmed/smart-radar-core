@@ -7,11 +7,13 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { hasAdminSectorAccess } from '@/lib/admin-auth-verifier';
 import { mapEnrichedUser } from './users-get-mapper';
+import { buildFilteredProfilesQuery, fetchGeoLookups } from './users-query-builder';
 
 export async function handleUsersGet(req: Request, admin: any) {
   const { searchParams } = new URL(req.url);
   const roleFilter = searchParams.get('role')?.toUpperCase() || 'CAPTAIN';
   const targetSector = roleFilter === 'CAPTAIN' ? 'captains' : 'riders';
+  const metaOnly = searchParams.get('metaOnly') === '1';
 
   if (!hasAdminSectorAccess(admin, targetSector)) {
     return NextResponse.json(
@@ -23,15 +25,35 @@ export async function handleUsersGet(req: Request, admin: any) {
   try {
     const targetRole = roleFilter === 'CAPTAIN' ? 'CAPTAIN' : 'RIDER';
 
-    const { data: profiles, error: pErr } = await supabaseAdmin
-      .from('profiles')
-      .select('*')
-      .eq('role', targetRole)
-      .order('created_at', { ascending: false });
+    if (metaOnly) {
+      const [lookups, countRes] = await Promise.all([
+        fetchGeoLookups(),
+        supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', targetRole),
+      ]);
+      return NextResponse.json({
+        success: true,
+        users: [],
+        totalCount: countRes.count ?? 0,
+        geo: lookups.geo,
+      });
+    }
+
+    const [{ data: profiles, error: pErr }, lookups] = await Promise.all([
+      buildFilteredProfilesQuery(targetRole, {
+        countryId: searchParams.get('countryId') || 'ALL',
+        governorateId: searchParams.get('governorateId') || 'ALL',
+        districtId: searchParams.get('districtId') || 'ALL',
+        status: searchParams.get('status') || 'ALL',
+        tier: searchParams.get('tier') || 'ALL',
+        language: searchParams.get('language') || 'ALL',
+        q: searchParams.get('q') || '',
+      }),
+      fetchGeoLookups(),
+    ]);
 
     if (pErr) throw pErr;
     if (!profiles || profiles.length === 0) {
-      return NextResponse.json({ success: true, users: [] });
+      return NextResponse.json({ success: true, users: [], geo: lookups.geo });
     }
 
     const profileIds = profiles.map(p => p.id);
@@ -160,11 +182,7 @@ export async function handleUsersGet(req: Request, admin: any) {
       }
     }
 
-    const [govRes, distRes, countriesRes] = await Promise.all([
-      supabaseAdmin.from('governorates').select('id, name_ar, country_id').order('id', { ascending: true }),
-      supabaseAdmin.from('districts').select('id, name_ar, governorate_id').order('id', { ascending: true }),
-      supabaseAdmin.from('countries').select('id, currency_ar, currency_en, name_ar, country_code').order('id', { ascending: true }),
-    ]);
+    const { govRes, distRes, countriesRes, geo } = lookups;
 
     const govMap = new Map((govRes.data || []).map(g => [g.id, g.name_ar]));
     const distMap = new Map((distRes.data || []).map(d => [d.id, d.name_ar]));
@@ -188,11 +206,7 @@ export async function handleUsersGet(req: Request, admin: any) {
     return NextResponse.json({
       success: true,
       users,
-      geo: {
-        countries: (countriesRes.data || []).map(c => ({ id: c.id, name_ar: c.name_ar, country_code: c.country_code })),
-        governorates: (govRes.data || []).map(g => ({ id: g.id, name_ar: g.name_ar, country_id: g.country_id })),
-        districts: (distRes.data || []).map(d => ({ id: d.id, name_ar: d.name_ar, governorate_id: d.governorate_id })),
-      },
+      geo,
     });
   } catch (error: any) {
     console.error('[Admin Users API] GET error:', error);

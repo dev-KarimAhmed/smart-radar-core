@@ -39,6 +39,7 @@ export function DriversManagementTab() {
     handleDistrictChange,
     handleResetGeo,
     handleResetAllFilters,
+    hasActiveFilter,
     captains,
     filteredCaptains,
     selectedCaptainIds,
@@ -95,6 +96,7 @@ export function DriversManagementTab() {
       <DriversDataTable
         captains={captains}
         filteredCaptains={filteredCaptains}
+        hasActiveFilter={hasActiveFilter}
         loading={loading}
         selectedCaptainIds={selectedCaptainIds}
         onToggleSelectOne={toggleSelectOne}
