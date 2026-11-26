@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
-  verifyAdminCaller,
-  getAdminRank,
-  getAdminAllowedSectors,
   PRIMARY_SOVEREIGN_ADMIN_ID,
   PRIMARY_SOVEREIGN_ADMIN_PHONE,
+  getAdminAllowedPermissions,
+  getAdminAllowedSectors,
+  getAdminGeoScope,
+  getAdminRank,
+  verifyAdminCaller,
 } from '@/lib/admin-auth-verifier';
+import { fetchGeoLookups } from '@/app/api/admin/users/services/users-query-builder';
 
 export async function GET(req: Request) {
   const admin = await verifyAdminCaller(req);
@@ -17,12 +20,17 @@ export async function GET(req: Request) {
   try {
     const callerRank = getAdminRank(admin);
     const callerAllowedSectors = getAdminAllowedSectors(admin);
+    const callerAllowedPermissions = getAdminAllowedPermissions(admin);
+    const callerGeoScope = getAdminGeoScope(admin);
 
-    const { data: admins, error } = await supabaseAdmin
-      .from('profiles')
-      .select('id, full_name, phone, email, status, created_at, rank_audit_log, allowed_sectors')
-      .eq('role', 'ADMIN')
-      .order('created_at', { ascending: false });
+    const [{ data: admins, error }, geoLookups] = await Promise.all([
+      supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, phone, email, status, created_at, rank_audit_log, allowed_sectors, country_id, governorate_id, district_id')
+        .eq('role', 'ADMIN')
+        .order('created_at', { ascending: false }),
+      fetchGeoLookups(),
+    ]);
 
     if (error) throw error;
 
@@ -33,7 +41,6 @@ export async function GET(req: Request) {
         adm.phone === PRIMARY_SOVEREIGN_ADMIN_PHONE ||
         adm.phone === '+201551981977' ||
         adm.phone === '201551981977';
-      const sectors = getAdminAllowedSectors(adm);
       return {
         id: adm.id,
         full_name: adm.full_name,
@@ -44,7 +51,9 @@ export async function GET(req: Request) {
         admin_rank: rank,
         admin_rank_label: rank === 'GENERAL_ADMIN' ? 'مشرف عام' : 'مشرف مساعد',
         is_primary: isPrimary,
-        allowed_sectors: sectors,
+        allowed_sectors: getAdminAllowedSectors(adm),
+        allowed_permissions: getAdminAllowedPermissions(adm),
+        geo_scope: getAdminGeoScope(adm),
       };
     });
 
@@ -54,9 +63,11 @@ export async function GET(req: Request) {
       callerRank,
       callerId: admin.id,
       callerAllowedSectors,
+      callerAllowedPermissions,
+      callerGeoScope,
+      geo: geoLookups.geo,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message || 'Failed' }, { status: 500 });
   }
 }
-

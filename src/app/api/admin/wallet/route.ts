@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { hasAdminPermission, hasAdminSectorAccess, verifyAdminCaller } from '@/lib/admin-auth-verifier';
 import {
   fetchWalletOverview,
   fetchWalletReceipts,
@@ -22,9 +22,17 @@ export async function GET(req: Request) {
   if (!admin) {
     return NextResponse.json({ success: false, error: 'Unauthorized: Admin privileges required' }, { status: 401 });
   }
+  if (!hasAdminSectorAccess(admin, 'wallet')) {
+    return NextResponse.json({ success: false, error: 'غير مصرح: لا تملك صلاحية قطاع المحفظة' }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const view = searchParams.get('view') || 'overview';
+  const requiredViewPerm =
+    view === 'receipts' ? 'wallet.receipts' : view === 'vouchers' ? 'wallet.vouchers' : 'wallet.overview';
+  if (!hasAdminPermission(admin, requiredViewPerm)) {
+    return NextResponse.json({ success: false, error: 'غير مصرح: لا تملك صلاحية عرض هذا القسم' }, { status: 403 });
+  }
 
   try {
     switch (view) {
@@ -59,6 +67,19 @@ export async function POST(req: Request) {
   }
 
   const { action } = body || {};
+
+  const actionPermMap: Record<string, string> = {
+    approve_receipt: 'wallet.receipts',
+    reject_receipt: 'wallet.receipts',
+    direct_topup: 'wallet.direct_topup',
+    generate_vouchers: 'wallet.vouchers',
+    toggle_self_topup: 'wallet.settings',
+    send_message: 'wallet.settings',
+  };
+  const requiredPerm = actionPermMap[action];
+  if (!hasAdminSectorAccess(admin, 'wallet') || (requiredPerm && !hasAdminPermission(admin, requiredPerm))) {
+    return NextResponse.json({ success: false, error: 'غير مصرح: لا تملك الصلاحية الفرعية لتنفيذ هذا الإجراء المالي' }, { status: 403 });
+  }
 
   try {
     switch (action) {

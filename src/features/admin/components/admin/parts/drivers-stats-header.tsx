@@ -5,6 +5,7 @@ import { Users, Gift, Zap, Send, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { WelcomeHoursConfig } from '@/features/admin/types/driver-management';
+import { useAdminPermissions } from '@/features/admin/context/admin-permissions-context';
 
 interface DriversStatsHeaderProps {
   welcomeConfig: WelcomeHoursConfig;
@@ -31,6 +32,7 @@ export function DriversStatsHeader({
   isArabic,
   t,
 }: DriversStatsHeaderProps) {
+  const { hasPermission } = useAdminPermissions();
   return (
     <div className={styles.header}>
         <div>
@@ -45,52 +47,58 @@ export function DriversStatsHeader({
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Welcome Hours Config Button */}
-          <Button
-            type="button"
-            onClick={onOpenWelcomeHours}
-            className={cn(
-              "font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-2 shadow-lg transition-all cursor-pointer active:scale-95 border",
-              welcomeConfig.enabled
-                ? "bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-teal-500/20 text-emerald-300 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/30 shadow-emerald-900/20"
-                : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 shadow-black/20"
-            )}
-            title={t('welcomeHoursTooltip')}
-          >
-            <Gift className="w-4 h-4 text-emerald-400" />
-            <span>
-              {welcomeConfig.enabled
-                ? t('welcomeHoursBtnActive', { hours: welcomeConfig.hours })
-                : t('welcomeHoursBtnDisabled')}
-            </span>
-            <span
+          {hasPermission('captains.welcome_hours') && (
+            <Button
+              type="button"
+              onClick={onOpenWelcomeHours}
               className={cn(
-                "w-2 h-2 rounded-full",
-                welcomeConfig.enabled ? "bg-emerald-400 animate-pulse" : "bg-slate-500"
+                "font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-2 shadow-lg transition-all cursor-pointer active:scale-95 border",
+                welcomeConfig.enabled
+                  ? "bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-teal-500/20 text-emerald-300 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/30 shadow-emerald-900/20"
+                  : "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 shadow-black/20"
               )}
-            />
-          </Button>
+              title={t('welcomeHoursTooltip')}
+            >
+              <Gift className="w-4 h-4 text-emerald-400" />
+              <span>
+                {welcomeConfig.enabled
+                  ? t('welcomeHoursBtnActive', { hours: welcomeConfig.hours })
+                  : t('welcomeHoursBtnDisabled')}
+              </span>
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  welcomeConfig.enabled ? "bg-emerald-400 animate-pulse" : "bg-slate-500"
+                )}
+              />
+            </Button>
+          )}
 
           {/* Bulk Topup Button */}
-          <Button
-            type="button"
-            onClick={onOpenBulkTopup}
-            className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-[#14B8A6]/20 transition-all cursor-pointer active:scale-95"
-            title={t('bulkTopupTooltip')}
-          >
-            <Zap className="w-4 h-4" />
-            <span>{t('bulkTopupBtn')}</span>
-          </Button>
+          {hasPermission('captains.topup') && (
+            <Button
+              type="button"
+              onClick={onOpenBulkTopup}
+              className="bg-[#14B8A6] hover:bg-[#2DD4BF] text-[#0B0F19] font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-[#14B8A6]/20 transition-all cursor-pointer active:scale-95"
+              title={t('bulkTopupTooltip')}
+            >
+              <Zap className="w-4 h-4" />
+              <span>{t('bulkTopupBtn')}</span>
+            </Button>
+          )}
 
           {/* Bulk Message Button */}
-          <Button
-            type="button"
-            onClick={onOpenBulkMessage}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
-            title={t('bulkMessageTooltip')}
-          >
-            <Send className={cn("w-4 h-4", isArabic ? "ml-0.5" : "mr-0.5")} />
-            <span>{t('bulkMessageBtn')}</span>
-          </Button>
+          {hasPermission('captains.message') && (
+            <Button
+              type="button"
+              onClick={onOpenBulkMessage}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
+              title={t('bulkMessageTooltip')}
+            >
+              <Send className={cn("w-4 h-4", isArabic ? "ml-0.5" : "mr-0.5")} />
+              <span>{t('bulkMessageBtn')}</span>
+            </Button>
+          )}
 
           {/* Refresh Button */}
           <Button

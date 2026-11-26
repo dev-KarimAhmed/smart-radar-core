@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller, getAdminRank } from '@/lib/admin-auth-verifier';
+import { hasAdminPermission, hasAdminSectorAccess, verifyAdminCaller, getAdminRank } from '@/lib/admin-auth-verifier';
 import {
   DEFAULT_TRANSFER_CHANNELS,
   type PaymentTransferChannel,
@@ -59,6 +59,9 @@ export async function GET(req: Request) {
       { status: 401 }
     );
   }
+  if (!hasAdminSectorAccess(admin, 'wallet')) {
+    return NextResponse.json({ success: false, error: 'غير مصرح بالوصول لقنوات التحويل' }, { status: 403 });
+  }
 
   try {
     const callerRank = getAdminRank(admin);
@@ -85,6 +88,15 @@ export async function POST(req: Request) {
       { success: false, error: 'Unauthorized: Admin privileges required' },
       { status: 401 }
     );
+  }
+  if (!hasAdminPermission(admin, 'wallet.channels')) {
+    return NextResponse.json(
+      { success: false, error: 'غير مصرح: لا تملك صلاحية تعديل قنوات التحويل' },
+      { status: 403 }
+    );
+  }
+  if (!hasAdminSectorAccess(admin, 'wallet')) {
+    return NextResponse.json({ success: false, error: 'غير مصرح بالوصول لقنوات التحويل' }, { status: 403 });
   }
 
   try {

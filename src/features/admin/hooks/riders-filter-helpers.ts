@@ -1,5 +1,5 @@
-import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
 import type { RiderUser } from '@/features/admin/types/rider-management';
+import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
 
 export interface RidersFilterSnapshot {
   searchQuery: string;
@@ -64,15 +64,10 @@ export function matchesRiderSnapshot(
 
   let matchesImmunity = true;
   if (s.immunityFilter === 'HIGH') matchesImmunity = r.trust_score >= 4.5;
-  else if (s.immunityFilter === 'WARNING') {
-    matchesImmunity = r.trust_score >= 4.2 && r.trust_score < 4.5;
-  } else if (s.immunityFilter === 'CRITICAL') {
-    matchesImmunity = r.trust_score < 4.2;
-  }
+  else if (s.immunityFilter === 'WARNING') matchesImmunity = r.trust_score >= 4.2 && r.trust_score < 4.5;
+  else if (s.immunityFilter === 'CRITICAL') matchesImmunity = r.trust_score < 4.2;
 
-  const targetCountry = geoLookup.countries.find(
-    (cntry) => String(cntry.id) === s.selectedCountry
-  );
+  const targetCountry = geoLookup.countries.find((cntry) => String(cntry.id) === s.selectedCountry);
   const matchesCountry =
     s.selectedCountry === 'ALL' ||
     r.country_id === Number(s.selectedCountry) ||
@@ -80,33 +75,20 @@ export function matchesRiderSnapshot(
       targetCountry &&
         (r.country_name === targetCountry.name_ar ||
           (targetCountry.country_code &&
-            r.phone?.startsWith(
-              targetCountry.country_code === 'EG' ? '+20' : '+962'
-            )))
+            r.phone?.startsWith(targetCountry.country_code === 'EG' ? '+20' : '+962')))
     );
 
-  const targetGov = geoLookup.governorates.find(
-    (g) => String(g.id) === s.selectedGovernorate
-  );
+  const targetGov = geoLookup.governorates.find((g) => String(g.id) === s.selectedGovernorate);
   const matchesGov =
     s.selectedGovernorate === 'ALL' ||
     r.governorate_id === Number(s.selectedGovernorate) ||
     Boolean(targetGov && r.governorate === targetGov.name_ar);
 
-  const targetDist = geoLookup.districts.find(
-    (d) => String(d.id) === s.selectedDistrict
-  );
+  const targetDist = geoLookup.districts.find((d) => String(d.id) === s.selectedDistrict);
   const matchesDist =
     s.selectedDistrict === 'ALL' ||
     r.district_id === Number(s.selectedDistrict) ||
     Boolean(targetDist && r.district === targetDist.name_ar);
 
-  return (
-    Boolean(matchesSearch) &&
-    matchesStatus &&
-    matchesImmunity &&
-    matchesCountry &&
-    matchesGov &&
-    matchesDist
-  );
+  return Boolean(matchesSearch) && matchesStatus && matchesImmunity && matchesCountry && matchesGov && matchesDist;
 }

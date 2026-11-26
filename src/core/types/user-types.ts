@@ -28,6 +28,12 @@ export interface User {
   rank?: 'Diamond' | 'Platinum' | 'Gold' | 'Bronze' | 'Silver';
   adminRank?: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
   allowedSectors?: string[];
+  allowedPermissions?: string[];
+  geoScope?: {
+    countryId: number | null;
+    governorateId: number | null;
+    districtId: number | null;
+  };
   avatar?: string;
   fcmTokens?: string[];
   deviceId?: string;

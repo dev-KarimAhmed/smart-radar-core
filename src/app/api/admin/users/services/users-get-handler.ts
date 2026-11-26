@@ -5,17 +5,19 @@
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { hasAdminSectorAccess } from '@/lib/admin-auth-verifier';
+import { hasAdminPermission, hasAdminSectorAccess } from '@/lib/admin-auth-verifier';
 import { mapEnrichedUser } from './users-get-mapper';
 import { buildFilteredProfilesQuery, fetchGeoLookups } from './users-query-builder';
+import { applyAdminGeoToUserFilters } from './users-geo-guard';
 
 export async function handleUsersGet(req: Request, admin: any) {
   const { searchParams } = new URL(req.url);
   const roleFilter = searchParams.get('role')?.toUpperCase() || 'CAPTAIN';
   const targetSector = roleFilter === 'CAPTAIN' ? 'captains' : 'riders';
+  const viewPerm = roleFilter === 'CAPTAIN' ? 'captains.view' : 'riders.view';
   const metaOnly = searchParams.get('metaOnly') === '1';
 
-  if (!hasAdminSectorAccess(admin, targetSector)) {
+  if (!hasAdminSectorAccess(admin, targetSector) || !hasAdminPermission(admin, viewPerm)) {
     return NextResponse.json(
       { success: false, error: 'غير مصرح: ليس لديك صلاحية الوصول لهذا القطاع' },
       { status: 403 }
@@ -24,32 +26,50 @@ export async function handleUsersGet(req: Request, admin: any) {
 
   try {
     const targetRole = roleFilter === 'CAPTAIN' ? 'CAPTAIN' : 'RIDER';
+    const requestedFilters = {
+      countryId: searchParams.get('countryId') || 'ALL',
+      governorateId: searchParams.get('governorateId') || 'ALL',
+      districtId: searchParams.get('districtId') || 'ALL',
+      status: searchParams.get('status') || 'ALL',
+      tier: searchParams.get('tier') || 'ALL',
+      language: searchParams.get('language') || 'ALL',
+      q: searchParams.get('q') || '',
+    };
+    const scoped = applyAdminGeoToUserFilters(admin, requestedFilters);
 
     if (metaOnly) {
-      const [lookups, countRes] = await Promise.all([
-        fetchGeoLookups(),
-        supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', targetRole),
-      ]);
+      const lookups = await fetchGeoLookups();
+      let countQuery = supabaseAdmin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', targetRole);
+      if (scoped.filters.countryId && scoped.filters.countryId !== 'ALL') {
+        const cId = Number(scoped.filters.countryId);
+        if (cId === 1) countQuery = countQuery.or('country_id.eq.1,phone.like.+962%');
+        else if (cId === 2) countQuery = countQuery.or('country_id.eq.2,phone.like.+20%');
+        else if (Number.isFinite(cId)) countQuery = countQuery.eq('country_id', cId);
+      }
+      if (scoped.filters.governorateId && scoped.filters.governorateId !== 'ALL') {
+        countQuery = countQuery.eq('governorate_id', Number(scoped.filters.governorateId));
+      }
+      if (scoped.filters.districtId && scoped.filters.districtId !== 'ALL') {
+        countQuery = countQuery.eq('district_id', Number(scoped.filters.districtId));
+      }
+      const countRes = await countQuery;
       return NextResponse.json({
         success: true,
         users: [],
-        totalCount: countRes.count ?? 0,
+        totalCount: scoped.blocked ? 0 : (countRes.count ?? 0),
         geo: lookups.geo,
       });
     }
 
-    const [{ data: profiles, error: pErr }, lookups] = await Promise.all([
-      buildFilteredProfilesQuery(targetRole, {
-        countryId: searchParams.get('countryId') || 'ALL',
-        governorateId: searchParams.get('governorateId') || 'ALL',
-        districtId: searchParams.get('districtId') || 'ALL',
-        status: searchParams.get('status') || 'ALL',
-        tier: searchParams.get('tier') || 'ALL',
-        language: searchParams.get('language') || 'ALL',
-        q: searchParams.get('q') || '',
-      }),
-      fetchGeoLookups(),
-    ]);
+    const lookups = await fetchGeoLookups();
+    if (scoped.blocked) {
+      return NextResponse.json({ success: true, users: [], geo: lookups.geo });
+    }
+
+    const { data: profiles, error: pErr } = await buildFilteredProfilesQuery(targetRole, scoped.filters);
 
     if (pErr) throw pErr;
     if (!profiles || profiles.length === 0) {

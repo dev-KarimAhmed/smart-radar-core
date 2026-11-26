@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
+import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
 import { AdminProfile } from '@/features/admin/types/admin-profile';
-import { AdminSectorId } from '@/features/admin/lib/admin-permissions';
+import { AdminGeoScope, AdminSectorId } from '@/features/admin/lib/admin-permissions';
 import { AdminDeleteDialog } from './admin-delete-dialog';
 import { AdminPermissionsDialog } from './admin-permissions-dialog';
 
@@ -20,6 +21,11 @@ interface AdminModalsProps {
   setEditRank: (rank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN') => void;
   editSectors: AdminSectorId[];
   setEditSectors: React.Dispatch<React.SetStateAction<AdminSectorId[]>>;
+  editPermissions: string[];
+  setEditPermissions: React.Dispatch<React.SetStateAction<string[]>>;
+  editGeoScope: AdminGeoScope;
+  setEditGeoScope: React.Dispatch<React.SetStateAction<AdminGeoScope>>;
+  geoLookup: GeoLookup;
   savingPermissions: boolean;
   onSavePermissions: () => void;
 }
@@ -46,6 +52,11 @@ export function AdminModals(props: AdminModalsProps) {
         setEditRank={props.setEditRank}
         editSectors={props.editSectors}
         setEditSectors={props.setEditSectors}
+        editPermissions={props.editPermissions}
+        setEditPermissions={props.setEditPermissions}
+        editGeoScope={props.editGeoScope}
+        setEditGeoScope={props.setEditGeoScope}
+        geoLookup={props.geoLookup}
         savingPermissions={props.savingPermissions}
         onSavePermissions={props.onSavePermissions}
       />

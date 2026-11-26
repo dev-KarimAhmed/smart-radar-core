@@ -1,8 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { ALL_SECTOR_IDS } from '@/features/admin/lib/admin-permissions';
+import {
+  ALL_SECTOR_IDS,
+  ALL_SUB_PERMISSION_IDS,
+  AdminGeoScope,
+  UNRESTRICTED_GEO_SCOPE,
+  getAllSubPermissionIdsForSectors,
+} from '@/features/admin/lib/admin-permissions';
 import { adminFetch } from '../lib/admin-api-client';
 import { PRIMARY_SOVEREIGN_ADMIN_ID, PRIMARY_SOVEREIGN_ADMIN_PHONE } from '../components/admin/admins-management-panel';
 
@@ -18,6 +24,26 @@ export function useAdminViewPermissions() {
       return [...ALL_SECTOR_IDS];
     }
     return Array.isArray(user?.allowedSectors) ? user.allowedSectors : [...ALL_SECTOR_IDS];
+  });
+
+  const [callerAllowedPermissions, setCallerAllowedPermissions] = useState<string[]>(() => {
+    if (isCallerPrimary || user?.adminRank === 'GENERAL_ADMIN') {
+      return [...ALL_SUB_PERMISSION_IDS];
+    }
+    if (Array.isArray(user?.allowedPermissions)) {
+      return user.allowedPermissions;
+    }
+    if (Array.isArray(user?.allowedSectors)) {
+      return getAllSubPermissionIdsForSectors(user.allowedSectors);
+    }
+    return [...ALL_SUB_PERMISSION_IDS];
+  });
+
+  const [callerGeoScope, setCallerGeoScope] = useState<AdminGeoScope>(() => {
+    if (isCallerPrimary || user?.adminRank === 'GENERAL_ADMIN') {
+      return { ...UNRESTRICTED_GEO_SCOPE };
+    }
+    return user?.geoScope || { ...UNRESTRICTED_GEO_SCOPE };
   });
 
   const [callerRank, setCallerRank] = useState<string | null>(() => {
@@ -45,9 +71,19 @@ export function useAdminViewPermissions() {
           if (data.callerRank === 'GENERAL_ADMIN') {
             setCallerRank('GENERAL_ADMIN');
             setCallerAllowedSectors([...ALL_SECTOR_IDS]);
+            setCallerAllowedPermissions([...ALL_SUB_PERMISSION_IDS]);
+            setCallerGeoScope({ ...UNRESTRICTED_GEO_SCOPE });
           } else if (Array.isArray(data.callerAllowedSectors)) {
             setCallerRank(data.callerRank || 'ASSISTANT_ADMIN');
             setCallerAllowedSectors(data.callerAllowedSectors);
+            if (Array.isArray(data.callerAllowedPermissions)) {
+              setCallerAllowedPermissions(data.callerAllowedPermissions);
+            } else {
+              setCallerAllowedPermissions(getAllSubPermissionIdsForSectors(data.callerAllowedSectors));
+            }
+            if (data.callerGeoScope) {
+              setCallerGeoScope(data.callerGeoScope);
+            }
           }
         }
       })
@@ -70,6 +106,14 @@ export function useAdminViewPermissions() {
       return callerAllowedSectors.includes(sectorId);
     },
     [isGeneral, callerAllowedSectors]
+  );
+
+  const hasPermission = useCallback(
+    (permId: string) => {
+      if (isGeneral) return true;
+      return callerAllowedPermissions.includes(permId);
+    },
+    [isGeneral, callerAllowedPermissions]
   );
 
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -105,6 +149,9 @@ export function useAdminViewPermissions() {
   return {
     isGeneral,
     canAccessSector,
+    hasPermission,
+    callerAllowedPermissions,
+    callerGeoScope,
     activeTab,
     setActiveTab,
     totalVisibleTriggers,

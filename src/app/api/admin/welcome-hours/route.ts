@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
+import { hasAdminPermission, verifyAdminCaller } from '@/lib/admin-auth-verifier';
 import { encodeNotificationPayload } from '@/shared/utils/notification-i18n';
 import {
   WELCOME_HOURS_FLAG_KEY,
@@ -44,6 +44,12 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized: Admin privileges required' },
       { status: 401 }
+    );
+  }
+  if (!hasAdminPermission(admin, 'captains.welcome_hours')) {
+    return NextResponse.json(
+      { success: false, error: 'غير مصرح: لا تملك صلاحية إدارة الساعات الترحيبية' },
+      { status: 403 }
     );
   }
 

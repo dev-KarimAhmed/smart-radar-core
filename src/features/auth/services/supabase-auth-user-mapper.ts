@@ -46,6 +46,23 @@ export function buildUserFromSupabaseAuth(authUser: User) {
             ? metadata.allowedSectors
             : undefined));
 
+  const allowedPermissions: string[] | undefined = isSovereignOwner || adminRank === 'GENERAL_ADMIN'
+    ? undefined
+    : (Array.isArray(metadata.allowed_permissions)
+        ? metadata.allowed_permissions
+        : (Array.isArray(metadata.allowedPermissions)
+            ? metadata.allowedPermissions
+            : undefined));
+
+  const rawGeoScope = metadata.geo_scope || metadata.geoScope;
+  const geoScope = !isSovereignOwner && adminRank !== 'GENERAL_ADMIN' && rawGeoScope && typeof rawGeoScope === 'object'
+    ? {
+        countryId: rawGeoScope.countryId ?? null,
+        governorateId: rawGeoScope.governorateId ?? null,
+        districtId: rawGeoScope.districtId ?? null,
+      }
+    : undefined;
+
   return {
     uid: authUser.id,
     phone,
@@ -53,6 +70,8 @@ export function buildUserFromSupabaseAuth(authUser: User) {
     subRole,
     adminRank,
     allowedSectors,
+    allowedPermissions,
+    geoScope,
     name: String(metadata.full_name || metadata.name || authUser.phone || ''),
     countryId,
     currencyAr,

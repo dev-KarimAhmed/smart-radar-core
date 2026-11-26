@@ -5,6 +5,7 @@ import { Receipt, Zap, Ticket, Layers, Clock, CreditCard, UserCheck, RefreshCw }
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { WalletSubTab } from '@/features/admin/types/admin-wallet';
+import { useAdminPermissions } from '@/features/admin/context/admin-permissions-context';
 
 interface WalletSubtabNavProps {
   activeSubTab: WalletSubTab;
@@ -23,20 +24,23 @@ export function WalletSubtabNav({
   onRefresh,
   t,
 }: WalletSubtabNavProps) {
-  const tabs: Array<{ id: WalletSubTab; label: string; icon: React.ReactNode; badge?: number }> = [
+  const { hasPermission } = useAdminPermissions();
+  const allTabs: Array<{ id: WalletSubTab; label: string; icon: React.ReactNode; badge?: number; perm: string }> = [
     {
       id: 'receipts',
       label: t('subtabReceipts'),
       icon: <Receipt className="w-4 h-4" />,
       badge: pendingReceiptsCount > 0 ? pendingReceiptsCount : undefined,
+      perm: 'wallet.receipts',
     },
-    { id: 'direct', label: t('subtabDirectTopup'), icon: <Zap className="w-4 h-4" /> },
-    { id: 'vouchers', label: t('subtabVouchers'), icon: <Ticket className="w-4 h-4" /> },
-    { id: 'ledger', label: t('subtabTransactions'), icon: <Layers className="w-4 h-4" /> },
-    { id: 'rates', label: t('subtabHourlyRates'), icon: <Clock className="w-4 h-4" /> },
-    { id: 'channels', label: 'أرقام التحويل', icon: <CreditCard className="w-4 h-4" /> },
-    { id: 'delegates', label: 'المناديب المالية', icon: <UserCheck className="w-4 h-4" /> },
+    { id: 'direct', label: t('subtabDirectTopup'), icon: <Zap className="w-4 h-4" />, perm: 'wallet.direct_topup' },
+    { id: 'vouchers', label: t('subtabVouchers'), icon: <Ticket className="w-4 h-4" />, perm: 'wallet.vouchers' },
+    { id: 'ledger', label: t('subtabTransactions'), icon: <Layers className="w-4 h-4" />, perm: 'wallet.overview' },
+    { id: 'rates', label: t('subtabHourlyRates'), icon: <Clock className="w-4 h-4" />, perm: 'hourly_rates.view' },
+    { id: 'channels', label: 'أرقام التحويل', icon: <CreditCard className="w-4 h-4" />, perm: 'wallet.channels' },
+    { id: 'delegates', label: 'المناديب المالية', icon: <UserCheck className="w-4 h-4" />, perm: 'delegates.view' },
   ];
+  const tabs = allTabs.filter((tab) => hasPermission(tab.perm));
 
   return (
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#050A0F]/90 border border-white/10 p-2 rounded-2xl">

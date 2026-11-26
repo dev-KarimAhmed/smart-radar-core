@@ -1,3 +1,34 @@
+import {
+  ALL_SUB_PERMISSION_IDS,
+  UNRESTRICTED_GEO_SCOPE,
+  deriveSectorsFromPermissions,
+  encodeAdminScopeAndPermsIntoAudit,
+  getAllSubPermissionIdsForSectors,
+  getSubPermissionsForSector,
+  isEntityWithinGeoScope,
+  isGeoScopeRestricted,
+  normalizeGeoScope,
+  parseAdminScopeAndPermsFromAudit,
+  type AdminGeoScope,
+  type AdminSubPermissionDef,
+  SECTOR_SUB_PERMISSIONS,
+} from './admin-granular-permissions';
+
+export {
+  ALL_SUB_PERMISSION_IDS,
+  SECTOR_SUB_PERMISSIONS,
+  UNRESTRICTED_GEO_SCOPE,
+  deriveSectorsFromPermissions,
+  encodeAdminScopeAndPermsIntoAudit,
+  getAllSubPermissionIdsForSectors,
+  getSubPermissionsForSector,
+  isEntityWithinGeoScope,
+  isGeoScopeRestricted,
+  normalizeGeoScope,
+  parseAdminScopeAndPermsFromAudit,
+};
+export type { AdminGeoScope, AdminSubPermissionDef };
+
 export interface AdminSectorConfig {
   id: string;
   labelAr: string;
@@ -64,6 +95,7 @@ export function isGeneralAdmin(admin: any): boolean {
     admin.phone === '201551981977' ||
     admin.id === 'dev-admin-001' ||
     admin.admin_rank === 'GENERAL_ADMIN' ||
+    admin.adminRank === 'GENERAL_ADMIN' ||
     admin.user_metadata?.admin_rank === 'GENERAL_ADMIN'
   ) {
     return true;
@@ -75,18 +107,76 @@ export function isGeneralAdmin(admin: any): boolean {
   return false;
 }
 
+export function getAdminGeoScope(admin: any): AdminGeoScope {
+  if (!admin || isGeneralAdmin(admin)) {
+    return { ...UNRESTRICTED_GEO_SCOPE };
+  }
+
+  const parsedAudit = parseAdminScopeAndPermsFromAudit(admin.rank_audit_log);
+  if (parsedAudit.geoScope) {
+    return parsedAudit.geoScope;
+  }
+
+  const rawGeo = admin.geo_scope || admin.geoScope || admin.user_metadata?.geo_scope;
+  if (rawGeo && typeof rawGeo === 'object') {
+    return normalizeGeoScope(rawGeo);
+  }
+
+  return { ...UNRESTRICTED_GEO_SCOPE };
+}
+
+export function getAdminAllowedPermissions(admin: any): string[] {
+  if (!admin) return [];
+  if (isGeneralAdmin(admin)) {
+    return [...ALL_SUB_PERMISSION_IDS];
+  }
+
+  const parsedAudit = parseAdminScopeAndPermsFromAudit(admin.rank_audit_log);
+  if (parsedAudit.hasScopedPermissions) {
+    return parsedAudit.permissions;
+  }
+
+  const rawPerms =
+    admin.allowed_permissions ||
+    admin.allowedPermissions ||
+    admin.user_metadata?.allowed_permissions;
+  if (Array.isArray(rawPerms)) {
+    return rawPerms.filter((p) => ALL_SUB_PERMISSION_IDS.includes(p));
+  }
+
+  // Backward compatible fallback for legacy admins: all sub-permissions within allowed sectors
+  const rawSectors = admin.allowed_sectors || admin.allowedSectors || admin.user_metadata?.allowed_sectors;
+  const legacySectors =
+    Array.isArray(rawSectors) && rawSectors.length > 0
+      ? rawSectors.filter((s: string) => ALL_SECTOR_IDS.includes(s as AdminSectorId))
+      : ['captains', 'riders'];
+  return getAllSubPermissionIdsForSectors(legacySectors);
+}
+
 export function getAdminAllowedSectors(admin: any): AdminSectorId[] {
   if (!admin) return [];
   if (isGeneralAdmin(admin)) {
     return [...ALL_SECTOR_IDS];
   }
 
-  const raw = admin.allowed_sectors || admin.user_metadata?.allowed_sectors;
-  if (Array.isArray(raw) && raw.length > 0) {
-    return raw.filter((s) => ALL_SECTOR_IDS.includes(s as AdminSectorId)) as AdminSectorId[];
+  const parsedAudit = parseAdminScopeAndPermsFromAudit(admin.rank_audit_log);
+  if (parsedAudit.hasScopedPermissions) {
+    return deriveSectorsFromPermissions(parsedAudit.permissions) as AdminSectorId[];
   }
 
-  // Default fallback for assistant admins
+  const rawPerms =
+    admin.allowed_permissions ||
+    admin.allowedPermissions ||
+    admin.user_metadata?.allowed_permissions;
+  if (Array.isArray(rawPerms)) {
+    return deriveSectorsFromPermissions(rawPerms) as AdminSectorId[];
+  }
+
+  const raw = admin.allowed_sectors || admin.allowedSectors || admin.user_metadata?.allowed_sectors;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw.filter((s: string) => ALL_SECTOR_IDS.includes(s as AdminSectorId)) as AdminSectorId[];
+  }
+
   return ['captains', 'riders'];
 }
 
@@ -97,3 +187,8 @@ export function hasAdminSectorAccess(admin: any, sectorId: string): boolean {
   return sectors.includes(sectorId as AdminSectorId);
 }
 
+export function hasAdminPermission(admin: any, permissionId: string): boolean {
+  if (!admin) return false;
+  if (isGeneralAdmin(admin)) return true;
+  return getAdminAllowedPermissions(admin).includes(permissionId);
+}

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
   verifyAdminCaller,
   getAdminRank,
+  invalidateAdminCache,
   PRIMARY_SOVEREIGN_ADMIN_ID,
   PRIMARY_SOVEREIGN_ADMIN_PHONE,
 } from '@/lib/admin-auth-verifier';
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
     // Verify target user is an admin
     const { data: targetProfile, error: profileErr } = await supabaseAdmin
       .from('profiles')
-      .select('id, phone, role')
+      .select('id, phone, role, rank_audit_log')
       .eq('id', targetAdminId)
       .maybeSingle();
 
@@ -63,22 +64,33 @@ export async function POST(req: Request) {
     }
 
     const rankAuditValue = newRank === 'GENERAL_ADMIN' ? 'RANK_GENERAL_ADMIN' : 'RANK_ASSISTANT_ADMIN';
+    const nextAuditLog = Array.isArray(targetProfile.rank_audit_log)
+      ? [
+          ...targetProfile.rank_audit_log.filter(
+            (r: string) => r !== 'RANK_GENERAL_ADMIN' && r !== 'RANK_ASSISTANT_ADMIN'
+          ),
+          rankAuditValue,
+        ]
+      : [rankAuditValue];
 
     // 1. Update profiles table
     const { error: updateErr } = await supabaseAdmin
       .from('profiles')
       .update({
-        rank_audit_log: [rankAuditValue],
+        rank_audit_log: nextAuditLog,
         updated_at: new Date().toISOString(),
       })
       .eq('id', targetAdminId);
 
     if (updateErr) throw updateErr;
 
-    // 2. Update auth user metadata
+    // 2. Update auth user metadata preserving geo_scope & allowed_permissions
     try {
+      const { data: existingAuth } = await supabaseAdmin.auth.admin.getUserById(targetAdminId);
+      const prevMeta = existingAuth?.user?.user_metadata || {};
       await supabaseAdmin.auth.admin.updateUserById(targetAdminId, {
         user_metadata: {
+          ...prevMeta,
           admin_rank: newRank,
           updated_at_epoch: Date.now(),
         },
@@ -86,6 +98,8 @@ export async function POST(req: Request) {
     } catch (authMetaErr) {
       console.warn('[UpdateAdminRank] Warning updating auth metadata:', authMetaErr);
     }
+
+    invalidateAdminCache(targetAdminId);
 
     return NextResponse.json({
       success: true,

@@ -1,11 +1,4 @@
 import { supabaseAdmin } from './supabase-admin';
-import {
-  ADMIN_SECTORS,
-  ALL_SECTOR_IDS,
-  AdminSectorId,
-  getAdminAllowedSectors,
-  hasAdminSectorAccess,
-} from '@/features/admin/lib/admin-permissions';
 
 export type AdminRank = 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
 
@@ -15,10 +8,18 @@ export const PRIMARY_SOVEREIGN_ADMIN_PHONE = '+201551981922';
 export {
   ADMIN_SECTORS,
   ALL_SECTOR_IDS,
+  ALL_SUB_PERMISSION_IDS,
+  UNRESTRICTED_GEO_SCOPE,
+  getAdminAllowedPermissions,
   getAdminAllowedSectors,
+  getAdminGeoScope,
+  hasAdminPermission,
   hasAdminSectorAccess,
-};
-export type { AdminSectorId };
+  isEntityWithinGeoScope,
+  isGeoScopeRestricted,
+  type AdminGeoScope,
+  type AdminSectorId,
+} from '@/features/admin/lib/admin-permissions';
 
 export function getAdminRank(admin: any): AdminRank {
   if (!admin) return 'ASSISTANT_ADMIN';
@@ -60,6 +61,18 @@ interface CachedAdmin {
 
 // In-memory cache to make admin verification instantaneous (< 1ms)
 const adminCache = new Map<string, CachedAdmin>();
+
+export function invalidateAdminCache(adminId?: string) {
+  if (!adminId) {
+    adminCache.clear();
+    return;
+  }
+  for (const [key, cached] of adminCache.entries()) {
+    if (cached?.admin?.id === adminId || key === adminId) {
+      adminCache.delete(key);
+    }
+  }
+}
 
 export async function verifyAdminCaller(req: Request) {
   const isDev = process.env.NODE_ENV !== 'production';
@@ -131,23 +144,7 @@ export async function verifyAdminCaller(req: Request) {
       const payload = JSON.parse(payloadRaw);
 
       if (payload && payload.sub) {
-        // Fast role check in JWT metadata
-        const roleInMeta = String(payload.user_metadata?.role || payload.app_metadata?.role || '').toUpperCase();
-        if (roleInMeta === 'ADMIN') {
-          const adminObj = {
-            id: payload.sub,
-            role: 'ADMIN',
-            admin_rank: getAdminRank({ id: payload.sub, phone: payload.phone, user_metadata: payload.user_metadata }),
-            user_metadata: payload.user_metadata,
-            email: payload.email,
-            phone: payload.phone,
-            full_name: payload.user_metadata?.full_name || 'مشرف معتمد',
-          };
-          adminCache.set(token, { admin: adminObj, expiresAt: Date.now() + 5 * 60 * 1000 });
-          return adminObj;
-        }
-
-        // Check profiles table for this payload.sub
+        // Prefer live profile row for accurate rank_audit_log, allowed_sectors & geo_scope
         const { data: profile } = await supabaseAdmin
           .from('profiles')
           .select('*')
@@ -155,8 +152,30 @@ export async function verifyAdminCaller(req: Request) {
           .maybeSingle();
 
         if (profile && String(profile.role).toUpperCase() === 'ADMIN') {
-          adminCache.set(token, { admin: profile, expiresAt: Date.now() + 5 * 60 * 1000 });
-          return profile;
+          const mergedAdmin = {
+            ...profile,
+            user_metadata: payload.user_metadata,
+          };
+          adminCache.set(token, { admin: mergedAdmin, expiresAt: Date.now() + 5 * 60 * 1000 });
+          return mergedAdmin;
+        }
+
+        const roleInMeta = String(payload.user_metadata?.role || payload.app_metadata?.role || '').toUpperCase();
+        if (roleInMeta === 'ADMIN') {
+          const adminObj = {
+            id: payload.sub,
+            role: 'ADMIN',
+            admin_rank: getAdminRank({ id: payload.sub, phone: payload.phone, user_metadata: payload.user_metadata }),
+            allowed_sectors: payload.user_metadata?.allowed_sectors,
+            allowed_permissions: payload.user_metadata?.allowed_permissions,
+            geo_scope: payload.user_metadata?.geo_scope,
+            user_metadata: payload.user_metadata,
+            email: payload.email,
+            phone: payload.phone,
+            full_name: payload.user_metadata?.full_name || 'مشرف معتمد',
+          };
+          adminCache.set(token, { admin: adminObj, expiresAt: Date.now() + 5 * 60 * 1000 });
+          return adminObj;
         }
       }
     } catch (jwtErr) {
@@ -176,12 +195,6 @@ export async function verifyAdminCaller(req: Request) {
       const user = await Promise.race([authPromise, timeoutPromise]);
 
       if (user) {
-        const roleInMeta = String(user.user_metadata?.role || user.app_metadata?.role || '').toUpperCase();
-        if (roleInMeta === 'ADMIN') {
-          adminCache.set(token, { admin: user, expiresAt: Date.now() + 5 * 60 * 1000 });
-          return user;
-        }
-
         const { data: profile } = await supabaseAdmin
           .from('profiles')
           .select('*')
@@ -189,8 +202,15 @@ export async function verifyAdminCaller(req: Request) {
           .maybeSingle();
 
         if (profile && String(profile.role).toUpperCase() === 'ADMIN') {
-          adminCache.set(token, { admin: profile, expiresAt: Date.now() + 5 * 60 * 1000 });
-          return profile;
+          const mergedAdmin = { ...profile, user_metadata: user.user_metadata };
+          adminCache.set(token, { admin: mergedAdmin, expiresAt: Date.now() + 5 * 60 * 1000 });
+          return mergedAdmin;
+        }
+
+        const roleInMeta = String(user.user_metadata?.role || user.app_metadata?.role || '').toUpperCase();
+        if (roleInMeta === 'ADMIN') {
+          adminCache.set(token, { admin: user, expiresAt: Date.now() + 5 * 60 * 1000 });
+          return user;
         }
       }
     } catch (err) {

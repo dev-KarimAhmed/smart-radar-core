@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check, Crown, Loader2, Shield, ShieldCheck, Sliders } from 'lucide-react';
+import { Loader2, ShieldCheck, Sliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,8 +13,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { ADMIN_SECTORS, ALL_SECTOR_IDS, AdminSectorId } from '@/features/admin/lib/admin-permissions';
+import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
+import { AdminGeoScope, AdminSectorId } from '@/features/admin/lib/admin-permissions';
 import { AdminProfile } from '@/features/admin/types/admin-profile';
+import { AdminSectorSelector } from './admin-sector-selector';
+import { AdminGeoScopePicker } from './admin-geo-scope-picker';
 
 interface AdminPermissionsDialogProps {
   t: any;
@@ -26,6 +29,11 @@ interface AdminPermissionsDialogProps {
   setEditRank: (rank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN') => void;
   editSectors: AdminSectorId[];
   setEditSectors: React.Dispatch<React.SetStateAction<AdminSectorId[]>>;
+  editPermissions: string[];
+  setEditPermissions: React.Dispatch<React.SetStateAction<string[]>>;
+  editGeoScope: AdminGeoScope;
+  setEditGeoScope: React.Dispatch<React.SetStateAction<AdminGeoScope>>;
+  geoLookup: GeoLookup;
   savingPermissions: boolean;
   onSavePermissions: () => void;
 }
@@ -40,25 +48,30 @@ export function AdminPermissionsDialog({
   setEditRank,
   editSectors,
   setEditSectors,
+  editPermissions,
+  setEditPermissions,
+  editGeoScope,
+  setEditGeoScope,
+  geoLookup,
   savingPermissions,
   onSavePermissions,
 }: AdminPermissionsDialogProps) {
   return (
     <Dialog open={!!editPermissionsTarget} onOpenChange={(open) => !open && setEditPermissionsTarget(null)}>
-      <DialogContent className="max-w-lg bg-[#0B0F19] border border-teal-500/30 text-white shadow-2xl rounded-2xl p-6" dir={direction}>
-        <DialogHeader className={cn("space-y-1.5", isArabic ? "text-right" : "text-left")}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-[#0B0F19] border border-teal-500/30 text-white shadow-2xl rounded-2xl p-6" dir={direction}>
+        <DialogHeader className={cn('space-y-1.5', isArabic ? 'text-right' : 'text-left')}>
           <div className="flex items-center gap-2 text-teal-400">
             <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
               <Sliders className="w-5 h-5 text-teal-400" />
             </div>
             <DialogTitle className="text-base font-black text-white">
-              {isArabic ? 'تعديل صلاحيات القطاعات والرتبة' : 'Edit Sector Permissions & Rank'}
+              {isArabic ? 'تعديل الصلاحيات والنطاق الجغرافي للمشرف' : 'Edit Supervisor Permissions & Territory'}
             </DialogTitle>
           </div>
           <DialogDescription className="text-slate-400 text-xs">
             {isArabic
-              ? 'تحكم في أزرار القطاعات المصرح لهذا المشرف بالوصول إليها وإدارتها في لوحة التحكم.'
-              : 'Control which sector buttons this supervisor is authorized to access and manage.'}
+              ? 'حدد القطاعات، الصلاحيات الفرعية داخل كل قطاع، والنطاق الجغرافي المصرح به لهذا المشرف.'
+              : 'Configure authorized sectors, granular sub-permissions per sector, and geographic territory.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -71,141 +84,35 @@ export function AdminPermissionsDialog({
               </div>
               <Badge
                 variant="outline"
-                className={editPermissionsTarget.admin_rank === 'GENERAL_ADMIN' ? 'border-amber-500/40 text-amber-300' : 'border-cyan-500/40 text-cyan-300'}
+                className={
+                  editPermissionsTarget.admin_rank === 'GENERAL_ADMIN'
+                    ? 'border-amber-500/40 text-amber-300'
+                    : 'border-cyan-500/40 text-cyan-300'
+                }
               >
                 {editPermissionsTarget.admin_rank === 'GENERAL_ADMIN' ? t('generalAdmin') : t('assistantAdmin')}
               </Badge>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-300">{t('adminRankLabel')}</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditRank('ASSISTANT_ADMIN')}
-                  className={cn(
-                    "p-2.5 rounded-xl border text-start transition flex items-center gap-2 cursor-pointer",
-                    editRank === 'ASSISTANT_ADMIN'
-                      ? "bg-cyan-500/15 border-cyan-500 text-cyan-200 ring-1 ring-cyan-500/40"
-                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
-                  )}
-                >
-                  <Shield className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <p className="text-xs font-bold">{t('assistantAdmin')}</p>
-                    <p className="text-[10px] text-slate-400">{isArabic ? 'صلاحيات قطاعية محددة' : 'Custom sectors'}</p>
-                  </div>
-                </button>
+            <AdminSectorSelector
+              t={t}
+              isArabic={isArabic}
+              adminRank={editRank}
+              setAdminRank={setEditRank}
+              allowedSectors={editSectors}
+              setAllowedSectors={setEditSectors}
+              allowedPermissions={editPermissions}
+              setAllowedPermissions={setEditPermissions}
+            />
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditRank('GENERAL_ADMIN');
-                    setEditSectors([...ALL_SECTOR_IDS]);
-                  }}
-                  className={cn(
-                    "p-2.5 rounded-xl border text-start transition flex items-center gap-2 cursor-pointer",
-                    editRank === 'GENERAL_ADMIN'
-                      ? "bg-amber-500/15 border-amber-500 text-amber-200 ring-1 ring-amber-500/40"
-                      : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
-                  )}
-                >
-                  <Crown className="w-4 h-4 text-amber-400" />
-                  <div>
-                    <p className="text-xs font-bold">{t('generalAdmin')}</p>
-                    <p className="text-[10px] text-slate-400">{isArabic ? 'كامل القطاعات' : 'Full access'}</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-slate-300">
-                  {isArabic ? 'صلاحيات أزرار القطاعات:' : 'Sector Permissions:'}
-                </label>
-                {editRank === 'ASSISTANT_ADMIN' && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditSectors([...ALL_SECTOR_IDS])}
-                      className="text-[10px] text-teal-400 hover:text-teal-300 font-bold transition cursor-pointer"
-                    >
-                      {isArabic ? 'تحديد الكل' : 'Select All'}
-                    </button>
-                    <span className="text-slate-600">|</span>
-                    <button
-                      type="button"
-                      onClick={() => setEditSectors([])}
-                      className="text-[10px] text-slate-400 hover:text-slate-300 font-bold transition cursor-pointer"
-                    >
-                      {isArabic ? 'إلغاء التحديد' : 'Deselect All'}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {editRank === 'GENERAL_ADMIN' ? (
-                <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300 text-xs flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>
-                    {isArabic
-                      ? 'المشرف العام يملك وصولاً سيادياً كاملاً لجميع القطاعات تلقائياً.'
-                      : 'General Admin has full sovereign access to all sectors automatically.'}
-                  </span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {ADMIN_SECTORS.map((sector) => {
-                    const isChecked = editSectors.includes(sector.id as AdminSectorId);
-                    return (
-                      <button
-                        key={sector.id}
-                        type="button"
-                        onClick={() => {
-                          setEditSectors((prev) =>
-                            isChecked
-                              ? prev.filter((id) => id !== sector.id)
-                              : [...prev, sector.id as AdminSectorId]
-                          );
-                        }}
-                        className={cn(
-                          "p-2.5 rounded-xl border text-start transition flex items-center justify-between gap-2 cursor-pointer",
-                          isChecked
-                            ? "bg-teal-500/15 border-teal-500/50 text-white shadow-sm ring-1 ring-teal-500/30"
-                            : "bg-black/40 border-white/10 text-slate-400 hover:text-white"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={cn(
-                              "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
-                              isChecked
-                                ? "bg-[#14B8A6] border-[#14B8A6] text-[#0B0F19]"
-                                : "border-white/20 bg-black/40"
-                            )}
-                          >
-                            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                          </div>
-                          <span className="text-xs font-bold">
-                            {isArabic ? sector.labelAr : sector.labelEn}
-                          </span>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[9px] font-mono",
-                            isChecked ? "border-teal-500/40 text-teal-300" : "border-white/10 text-slate-500"
-                          )}
-                        >
-                          {sector.id}
-                        </Badge>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {editRank === 'ASSISTANT_ADMIN' && (
+              <AdminGeoScopePicker
+                isArabic={isArabic}
+                geoLookup={geoLookup}
+                geoScope={editGeoScope}
+                setGeoScope={setEditGeoScope}
+              />
+            )}
           </div>
         )}
 
@@ -218,13 +125,13 @@ export function AdminPermissionsDialog({
           >
             {savingPermissions ? (
               <>
-                <Loader2 className={cn("w-4 h-4 animate-spin", isArabic ? "ml-2" : "mr-2")} />
+                <Loader2 className={cn('w-4 h-4 animate-spin', isArabic ? 'ml-2' : 'mr-2')} />
                 {t('saving')}
               </>
             ) : (
               <>
-                <ShieldCheck className={cn("w-4 h-4", isArabic ? "ml-1.5" : "mr-1.5")} />
-                <span>{isArabic ? 'حفظ الصلاحيات' : 'Save Permissions'}</span>
+                <ShieldCheck className={cn('w-4 h-4', isArabic ? 'ml-1.5' : 'mr-1.5')} />
+                <span>{isArabic ? 'حفظ الصلاحيات والنطاق' : 'Save Permissions & Territory'}</span>
               </>
             )}
           </Button>
@@ -242,4 +149,3 @@ export function AdminPermissionsDialog({
     </Dialog>
   );
 }
-

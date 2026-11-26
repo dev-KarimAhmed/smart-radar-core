@@ -1,55 +1,16 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminCaller, getAdminRank } from '@/lib/admin-auth-verifier';
 import {
-  DEFAULT_FINANCIAL_DELEGATES,
-  type FinancialDelegate,
-} from '@/features/admin/types/wallet-directory';
+  getAdminGeoScope,
+  getAdminRank,
+  hasAdminPermission,
+  isEntityWithinGeoScope,
+  verifyAdminCaller,
+} from '@/lib/admin-auth-verifier';
+import type { FinancialDelegate } from '@/features/admin/types/wallet-directory';
+import { loadDelegatesFromDb, saveDelegatesToDb } from './delegates-admin-db';
 
 export const dynamic = 'force-dynamic';
-
-const FLAG_KEY = 'financial_delegates_directory';
-
-async function loadDelegatesFromDb(): Promise<FinancialDelegate[]> {
-  try {
-    const { data } = await supabaseAdmin
-      .from('app_flags')
-      .select('note')
-      .eq('flag', FLAG_KEY)
-      .maybeSingle();
-
-    if (data?.note) {
-      const parsed = JSON.parse(data.note);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.warn('[financial-delegates] error loading from app_flags:', err);
-  }
-
-  // Pre-seed defaults if flag is missing
-  try {
-    await supabaseAdmin.from('app_flags').upsert({
-      flag: FLAG_KEY,
-      enabled: true,
-      note: JSON.stringify(DEFAULT_FINANCIAL_DELEGATES),
-      updated_at: new Date().toISOString(),
-    });
-  } catch {}
-
-  return DEFAULT_FINANCIAL_DELEGATES;
-}
-
-async function saveDelegatesToDb(delegates: FinancialDelegate[]): Promise<boolean> {
-  const { error } = await supabaseAdmin.from('app_flags').upsert({
-    flag: FLAG_KEY,
-    enabled: true,
-    note: JSON.stringify(delegates),
-    updated_at: new Date().toISOString(),
-  });
-  return !error;
-}
 
 export async function GET(req: Request) {
   const admin = await verifyAdminCaller(req);
@@ -59,10 +20,24 @@ export async function GET(req: Request) {
       { status: 401 }
     );
   }
+  if (!hasAdminPermission(admin, 'delegates.view')) {
+    return NextResponse.json(
+      { success: false, error: 'غير مصرح: لا تملك صلاحية عرض المناديب الماليين' },
+      { status: 403 }
+    );
+  }
 
   try {
     const callerRank = getAdminRank(admin);
-    const delegates = await loadDelegatesFromDb();
+    const scope = getAdminGeoScope(admin);
+    const delegates = (await loadDelegatesFromDb()).filter((d) =>
+      isEntityWithinGeoScope(scope, {
+        country_id: d.countryId ?? null,
+        governorate_id: d.governorateId ?? null,
+        district_id: d.districtId ?? null,
+        phone: d.phone,
+      })
+    );
 
     // Fetch geography lists for selection dropdowns
     const [countriesRes, govRes, distRes] = await Promise.all([
@@ -95,13 +70,26 @@ export async function POST(req: Request) {
       { status: 401 }
     );
   }
+  if (!hasAdminPermission(admin, 'delegates.manage')) {
+    return NextResponse.json(
+      { success: false, error: 'غير مصرح: لا تملك صلاحية إدارة المناديب الماليين' },
+      { status: 403 }
+    );
+  }
 
   try {
     const body = await req.json();
     const { action } = body;
+    const scope = getAdminGeoScope(admin);
     const delegates = await loadDelegatesFromDb();
 
     if (action === 'create') {
+      if (!isEntityWithinGeoScope(scope, { country_id: body.countryId ?? 1, governorate_id: body.governorateId ?? null, district_id: body.districtId ?? null })) {
+        return NextResponse.json(
+          { success: false, error: 'غير مصرح: لا يمكنك إضافة مندوب خارج نطاقك الجغرافي' },
+          { status: 403 }
+        );
+      }
       const {
         name,
         phone,
@@ -172,6 +160,9 @@ export async function POST(req: Request) {
       if (index === -1) {
         return NextResponse.json({ success: false, error: 'المندوب غير موجود' }, { status: 404 });
       }
+      if (!isEntityWithinGeoScope(scope, { country_id: delegates[index].countryId ?? null, governorate_id: delegates[index].governorateId ?? null, district_id: delegates[index].districtId ?? null, phone: delegates[index].phone })) {
+        return NextResponse.json({ success: false, error: 'غير مصرح: المندوب خارج نطاقك الجغرافي' }, { status: 403 });
+      }
 
       const cleanPhone = phone ? phone.trim().replace(/^\+/, '') : delegates[index].phone;
       const cleanWhatsapp = whatsapp !== undefined
@@ -204,10 +195,14 @@ export async function POST(req: Request) {
 
     if (action === 'delete') {
       const { id } = body;
-      const filtered = delegates.filter((d) => d.id !== id);
-      if (filtered.length === delegates.length) {
+      const target = delegates.find((d) => d.id === id);
+      if (!target) {
         return NextResponse.json({ success: false, error: 'المندوب غير موجود' }, { status: 404 });
       }
+      if (!isEntityWithinGeoScope(scope, { country_id: target.countryId ?? null, governorate_id: target.governorateId ?? null, district_id: target.districtId ?? null, phone: target.phone })) {
+        return NextResponse.json({ success: false, error: 'غير مصرح: المندوب خارج نطاقك الجغرافي' }, { status: 403 });
+      }
+      const filtered = delegates.filter((d) => d.id !== id);
 
       await saveDelegatesToDb(filtered);
       return NextResponse.json({ success: true, message: 'تم حذف المندوب بنجاح', delegates: filtered });
@@ -218,6 +213,9 @@ export async function POST(req: Request) {
       const index = delegates.findIndex((d) => d.id === id);
       if (index === -1) {
         return NextResponse.json({ success: false, error: 'المندوب غير موجود' }, { status: 404 });
+      }
+      if (!isEntityWithinGeoScope(scope, { country_id: delegates[index].countryId ?? null, governorate_id: delegates[index].governorateId ?? null, district_id: delegates[index].districtId ?? null, phone: delegates[index].phone })) {
+        return NextResponse.json({ success: false, error: 'غير مصرح: المندوب خارج نطاقك الجغرافي' }, { status: 403 });
       }
 
       delegates[index].isActive = !delegates[index].isActive;

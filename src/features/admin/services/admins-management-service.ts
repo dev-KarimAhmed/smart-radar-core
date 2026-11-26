@@ -1,5 +1,5 @@
 import { adminFetch } from '../lib/admin-api-client';
-import { AdminSectorId } from '../lib/admin-permissions';
+import { AdminGeoScope, AdminSectorId } from '../lib/admin-permissions';
 
 export interface CreateSubAdminPayload {
   fullName: string;
@@ -7,12 +7,16 @@ export interface CreateSubAdminPayload {
   password: string;
   adminRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
   allowedSectors: AdminSectorId[];
+  allowedPermissions?: string[];
+  geoScope?: AdminGeoScope;
 }
 
 export interface UpdateAdminPermissionsPayload {
   adminId: string;
   adminRank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN';
   allowedSectors: AdminSectorId[];
+  allowedPermissions?: string[];
+  geoScope?: AdminGeoScope;
 }
 
 export async function fetchAdminsList() {
@@ -56,4 +60,3 @@ export async function deleteAdmin(targetAdminId: string) {
   });
   return res.json();
 }
-

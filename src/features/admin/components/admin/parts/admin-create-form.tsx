@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { AdminSectorId } from '@/features/admin/lib/admin-permissions';
+import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
+import { AdminGeoScope, AdminSectorId } from '@/features/admin/lib/admin-permissions';
 import { AdminSectorSelector } from './admin-sector-selector';
+import { AdminGeoScopePicker } from './admin-geo-scope-picker';
 
 interface AdminCreateFormProps {
   t: any;
@@ -40,6 +42,11 @@ interface AdminCreateFormProps {
   setAdminRank: (rank: 'GENERAL_ADMIN' | 'ASSISTANT_ADMIN') => void;
   allowedSectors: AdminSectorId[];
   setAllowedSectors: React.Dispatch<React.SetStateAction<AdminSectorId[]>>;
+  allowedPermissions: string[];
+  setAllowedPermissions: React.Dispatch<React.SetStateAction<string[]>>;
+  geoScope: AdminGeoScope;
+  setGeoScope: React.Dispatch<React.SetStateAction<AdminGeoScope>>;
+  geoLookup: GeoLookup;
   submitting: boolean;
 }
 
@@ -66,6 +73,11 @@ export function AdminCreateForm({
   setAdminRank,
   allowedSectors,
   setAllowedSectors,
+  allowedPermissions,
+  setAllowedPermissions,
+  geoScope,
+  setGeoScope,
+  geoLookup,
   submitting,
 }: AdminCreateFormProps) {
   if (!isAdding || !isGeneralAdmin) return null;
@@ -123,7 +135,7 @@ export function AdminCreateForm({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className={cn(
-                "h-10 rounded-xl border-white/10 bg-[#0B0F19] text-xs text-white placeholder:text-slate-500 focus:border-[#14B8A6]",
+                'h-10 rounded-xl border-white/10 bg-[#0B0F19] text-xs text-white placeholder:text-slate-500 focus:border-[#14B8A6]',
                 isPhoneValid && '!border-emerald-500/70 focus:!border-emerald-500 ring-1 ring-emerald-500/20',
                 !isPhoneValid && phone.trim() && '!border-amber-500/60 focus:!border-amber-500'
               )}
@@ -172,7 +184,18 @@ export function AdminCreateForm({
         setAdminRank={setAdminRank}
         allowedSectors={allowedSectors}
         setAllowedSectors={setAllowedSectors}
+        allowedPermissions={allowedPermissions}
+        setAllowedPermissions={setAllowedPermissions}
       />
+
+      {adminRank === 'ASSISTANT_ADMIN' && (
+        <AdminGeoScopePicker
+          isArabic={isArabic}
+          geoLookup={geoLookup}
+          geoScope={geoScope}
+          setGeoScope={setGeoScope}
+        />
+      )}
 
       <div className="flex justify-end pt-2">
         <button

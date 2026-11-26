@@ -4,6 +4,7 @@ import React from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
 import { AdminProfile } from '@/features/admin/types/admin-profile';
 import { AdminsTableRow } from './admins-table-row';
 
@@ -12,6 +13,7 @@ interface AdminsListTableProps {
   isArabic: boolean;
   loading: boolean;
   admins: AdminProfile[];
+  geoLookup: GeoLookup;
   isGeneralAdmin: boolean;
   callerId: string | null;
   currentUserId?: string;
@@ -27,6 +29,7 @@ export function AdminsListTable({
   isArabic,
   loading,
   admins,
+  geoLookup,
   isGeneralAdmin,
   callerId,
   currentUserId,
@@ -58,6 +61,7 @@ export function AdminsListTable({
                   <th className="px-4 py-3">{t('colPhone')}</th>
                   <th className="px-4 py-3">{t('colRole')}</th>
                   <th className="px-4 py-3">{isArabic ? 'صلاحيات القطاعات' : 'Sectors'}</th>
+                  <th className="px-4 py-3">{isArabic ? 'النطاق الجغرافي' : 'Territory'}</th>
                   <th className="px-4 py-3">{t('colStatus')}</th>
                   <th className="px-4 py-3">{t('colDate')}</th>
                   {isGeneralAdmin && <th className="px-4 py-3 text-center">{t('colActions')}</th>}
@@ -68,6 +72,7 @@ export function AdminsListTable({
                   <AdminsTableRow
                     key={admin.id}
                     admin={admin}
+                    geoLookup={geoLookup}
                     t={t}
                     isArabic={isArabic}
                     isGeneralAdmin={isGeneralAdmin}

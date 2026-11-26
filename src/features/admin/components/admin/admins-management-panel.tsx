@@ -22,7 +22,7 @@ export function AdminsManagementPanel() {
   const state = useAdminsManagement();
 
   return (
-    <div className={cn("space-y-6", state.isArabic ? "text-right" : "text-left")} dir={state.direction}>
+    <div className={cn('space-y-6', state.isArabic ? 'text-right' : 'text-left')} dir={state.direction}>
       <AdminsStatsHeader
         t={state.t}
         adminsCount={state.admins.length}
@@ -61,6 +61,11 @@ export function AdminsManagementPanel() {
         setAdminRank={state.setAdminRank}
         allowedSectors={state.allowedSectors}
         setAllowedSectors={state.setAllowedSectors}
+        allowedPermissions={state.allowedPermissions}
+        setAllowedPermissions={state.setAllowedPermissions}
+        geoScope={state.geoScope}
+        setGeoScope={state.setGeoScope}
+        geoLookup={state.geoLookup}
         submitting={state.submitting}
       />
 
@@ -69,6 +74,7 @@ export function AdminsManagementPanel() {
         isArabic={state.isArabic}
         loading={state.loading}
         admins={state.admins}
+        geoLookup={state.geoLookup}
         isGeneralAdmin={state.isGeneralAdmin}
         callerId={state.callerId}
         currentUserId={user?.uid}
@@ -93,6 +99,11 @@ export function AdminsManagementPanel() {
         setEditRank={state.setEditRank}
         editSectors={state.editSectors}
         setEditSectors={state.setEditSectors}
+        editPermissions={state.editPermissions}
+        setEditPermissions={state.setEditPermissions}
+        editGeoScope={state.editGeoScope}
+        setEditGeoScope={state.setEditGeoScope}
+        geoLookup={state.geoLookup}
         savingPermissions={state.savingPermissions}
         onSavePermissions={state.handleSavePermissions}
       />

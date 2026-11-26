@@ -1,8 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { normalizePhoneForCountry } from '@/features/auth/utils/registration-helpers';
-import { ALL_SECTOR_IDS, AdminSectorId } from '../lib/admin-permissions';
+import {
+  ALL_SECTOR_IDS,
+  ALL_SUB_PERMISSION_IDS,
+  AdminGeoScope,
+  AdminSectorId,
+  UNRESTRICTED_GEO_SCOPE,
+} from '../lib/admin-permissions';
 import { createSubAdmin } from '../services/admins-management-service';
 
 export function useAdminCreateForm({
@@ -21,9 +27,27 @@ export function useAdminCreateForm({
   const [password, setPassword] = useState('');
   const [adminRank, setAdminRank] = useState<'GENERAL_ADMIN' | 'ASSISTANT_ADMIN'>('ASSISTANT_ADMIN');
   const [allowedSectors, setAllowedSectors] = useState<AdminSectorId[]>([...ALL_SECTOR_IDS]);
+  const [allowedPermissions, setAllowedPermissions] = useState<string[]>([...ALL_SUB_PERMISSION_IDS]);
+  const [geoScope, setGeoScopeState] = useState<AdminGeoScope>({ ...UNRESTRICTED_GEO_SCOPE });
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+
+  const setGeoScope = useCallback(
+    (updater: React.SetStateAction<AdminGeoScope>) => {
+      setGeoScopeState((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        // Sync default untouched phone prefix when picking a specific country
+        if (next.countryId === 2 && phone === '+9627') {
+          setPhone('+201');
+        } else if (next.countryId === 1 && phone === '+201') {
+          setPhone('+9627');
+        }
+        return next;
+      });
+    },
+    [phone]
+  );
 
   const phoneValidation = useMemo(() => {
     const val = phone.trim();
@@ -50,6 +74,10 @@ export function useAdminCreateForm({
       setFormError(t('errPassword'));
       return;
     }
+    if (adminRank === 'ASSISTANT_ADMIN' && (allowedSectors.length === 0 || allowedPermissions.length === 0)) {
+      setFormError('يرجى اختيار قطاع واحد وصلاحية فرعية واحدة على الأقل للمشرف المساعد.');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -59,6 +87,8 @@ export function useAdminCreateForm({
         password,
         adminRank,
         allowedSectors: adminRank === 'GENERAL_ADMIN' ? [...ALL_SECTOR_IDS] : allowedSectors,
+        allowedPermissions: adminRank === 'GENERAL_ADMIN' ? [...ALL_SUB_PERMISSION_IDS] : allowedPermissions,
+        geoScope: adminRank === 'GENERAL_ADMIN' ? { ...UNRESTRICTED_GEO_SCOPE } : geoScope,
       });
 
       if (!result?.success) {
@@ -71,6 +101,8 @@ export function useAdminCreateForm({
       setPassword('');
       setAdminRank('ASSISTANT_ADMIN');
       setAllowedSectors([...ALL_SECTOR_IDS]);
+      setAllowedPermissions([...ALL_SUB_PERMISSION_IDS]);
+      setGeoScopeState({ ...UNRESTRICTED_GEO_SCOPE });
       await onSuccess();
       setTimeout(() => {
         setIsAdding(false);
@@ -97,6 +129,10 @@ export function useAdminCreateForm({
     setAdminRank,
     allowedSectors,
     setAllowedSectors,
+    allowedPermissions,
+    setAllowedPermissions,
+    geoScope,
+    setGeoScope,
     showPassword,
     setShowPassword,
     formError,
@@ -108,4 +144,3 @@ export function useAdminCreateForm({
     handleCreateAdmin,
   };
 }
-

@@ -13,6 +13,7 @@ import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
 import { useAdminViewPermissions } from '../hooks/use-admin-view-permissions';
+import { AdminPermissionsProvider } from '../context/admin-permissions-context';
 import { AdminViewTabsList } from './admin/parts/admin-view-tabs-list';
 import { AdminAdsUnderConstruction } from './admin/parts/admin-ads-under-construction';
 
@@ -24,6 +25,8 @@ export function AdminViewTab() {
   const {
     isGeneral,
     canAccessSector,
+    hasPermission,
+    callerGeoScope,
     activeTab,
     setActiveTab,
     totalVisibleTriggers,
@@ -31,7 +34,15 @@ export function AdminViewTab() {
   } = useAdminViewPermissions();
 
   return (
-    <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
+    <AdminPermissionsProvider
+      value={{
+        isGeneral,
+        canAccessSector,
+        hasPermission,
+        geoScope: callerGeoScope,
+      }}
+    >
+      <div className={cn("space-y-6 font-sans", isArabic ? "text-right" : "text-left")} dir={direction}>
       {/* شريط الإدارة العلوي - الملف الشخصي، تغيير كلمة السر، تسجيل الخروج */}
       <AdminTopBar />
 
@@ -108,6 +119,7 @@ export function AdminViewTab() {
           </TabsContent>
         )}
       </Tabs>
-    </div>
+      </div>
+    </AdminPermissionsProvider>
   );
 }

@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAdminCaller } from '@/lib/admin-auth-verifier';
 import { handleUsersGet } from './services/users-get-handler';
+import { resolveAndAuthorizeUserMutation } from './services/users-geo-guard';
 import {
   handleUpdateStatus,
   handleUpdateLanguage,
@@ -57,6 +58,11 @@ export async function POST(req: Request) {
 
     if (!isBulkAction && !effectiveUserId) {
       return NextResponse.json({ success: false, error: 'userId is required' }, { status: 400 });
+    }
+
+    const authCheck = await resolveAndAuthorizeUserMutation(admin, body);
+    if (!authCheck.ok) {
+      return NextResponse.json({ success: false, error: authCheck.error }, { status: authCheck.status });
     }
 
     switch (action) {

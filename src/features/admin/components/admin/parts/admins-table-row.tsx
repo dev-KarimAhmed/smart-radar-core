@@ -6,7 +6,9 @@ import {
   Check,
   CheckCircle2,
   Crown,
+  Globe,
   Loader2,
+  MapPin,
   Shield,
   Sliders,
   Trash2,
@@ -14,7 +16,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ADMIN_SECTORS } from '@/features/admin/lib/admin-permissions';
+import type { GeoLookup } from '@/features/admin/components/admin/geo-filter-bar';
+import {
+  ADMIN_SECTORS,
+  getSubPermissionsForSector,
+  isGeoScopeRestricted,
+} from '@/features/admin/lib/admin-permissions';
 import {
   AdminProfile,
   PRIMARY_SOVEREIGN_ADMIN_ID,
@@ -23,6 +30,7 @@ import {
 
 interface AdminsTableRowProps {
   admin: AdminProfile;
+  geoLookup: GeoLookup;
   t: any;
   isArabic: boolean;
   isGeneralAdmin: boolean;
@@ -37,6 +45,7 @@ interface AdminsTableRowProps {
 
 export function AdminsTableRow({
   admin,
+  geoLookup,
   t,
   isArabic,
   isGeneralAdmin,
@@ -59,6 +68,15 @@ export function AdminsTableRow({
     (currentUserPhone && admin.phone === currentUserPhone);
   const canModify = isGeneralAdmin && !isTargetPrimary;
   const canDelete = isGeneralAdmin && !isTargetPrimary && !isCallerHimself;
+
+  const country = geoLookup.countries.find((c) => c.id === admin.geo_scope?.countryId);
+  const gov = geoLookup.governorates.find((g) => g.id === admin.geo_scope?.governorateId);
+  const dist = geoLookup.districts.find((d) => d.id === admin.geo_scope?.districtId);
+  const geoParts = [country?.name_ar, gov?.name_ar, dist?.name_ar].filter(Boolean);
+  const geoLabel =
+    isTargetGeneral || !isGeoScopeRestricted(admin.geo_scope)
+      ? isArabic ? 'كل الدول والمناطق' : 'All Regions'
+      : geoParts.join(' - ') || (isArabic ? 'نطاق مخصص' : 'Scoped');
 
   return (
     <tr className="border-b border-white/5 hover:bg-white/[0.02] transition">
@@ -107,10 +125,14 @@ export function AdminsTableRow({
             <span>{isArabic ? 'كامل القطاعات (مشرف عام)' : 'All Sectors (General Admin)'}</span>
           </span>
         ) : (
-          <div className="flex flex-wrap gap-1 max-w-[260px]">
+          <div className="flex flex-wrap gap-1 max-w-[280px]">
             {Array.isArray(admin.allowed_sectors) && admin.allowed_sectors.length > 0 ? (
               admin.allowed_sectors.map((secId) => {
                 const secDef = ADMIN_SECTORS.find((s) => s.id === secId);
+                const subPerms = getSubPermissionsForSector(secId);
+                const activeSub = Array.isArray(admin.allowed_permissions)
+                  ? subPerms.filter((p) => admin.allowed_permissions?.includes(p.id)).length
+                  : subPerms.length;
                 return (
                   <span
                     key={secId}
@@ -118,6 +140,11 @@ export function AdminsTableRow({
                   >
                     <Check className="w-2.5 h-2.5 text-teal-400 stroke-[3]" />
                     <span>{isArabic ? secDef?.labelAr || secId : secDef?.labelEn || secId}</span>
+                    {subPerms.length > 0 && (
+                      <span className="text-[9px] text-cyan-200/80 font-mono">
+                        {activeSub}/{subPerms.length}
+                      </span>
+                    )}
                   </span>
                 );
               })
@@ -127,6 +154,20 @@ export function AdminsTableRow({
               </span>
             )}
           </div>
+        )}
+      </td>
+
+      <td className="px-4 py-3">
+        {isTargetGeneral || !isGeoScopeRestricted(admin.geo_scope) ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-lg">
+            <Globe className="w-3 h-3" />
+            <span>{geoLabel}</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-lg">
+            <MapPin className="w-3 h-3" />
+            <span>{geoLabel}</span>
+          </span>
         )}
       </td>
 
@@ -151,13 +192,12 @@ export function AdminsTableRow({
                 variant="ghost"
                 onClick={() => onOpenEditPermissions(admin)}
                 className="h-7 px-2.5 text-[10px] font-bold rounded-lg text-teal-300 hover:text-white hover:bg-teal-500/20 border border-teal-500/30 transition-all flex items-center gap-1 cursor-pointer"
-                title={isArabic ? 'تعديل صلاحيات القطاعات والرتبة' : 'Edit Sector Permissions & Rank'}
+                title={isArabic ? 'تعديل الصلاحيات والنطاق الجغرافي' : 'Edit Permissions & Territory'}
               >
                 <Sliders className="h-3 w-3 text-teal-400" />
                 <span>{isArabic ? 'الصلاحيات' : 'Permissions'}</span>
               </Button>
             )}
-
             {canModify ? (
               <Button
                 type="button"
@@ -174,15 +214,10 @@ export function AdminsTableRow({
               >
                 {actionLoading === admin.id ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
-                ) : isTargetGeneral ? (
-                  <span className="flex items-center gap-1">
-                    <Shield className="h-3 w-3 text-cyan-400" />
-                    <span>{t('demoteToAssistantBtn')}</span>
-                  </span>
                 ) : (
                   <span className="flex items-center gap-1">
-                    <ArrowUpRight className="h-3 w-3 text-amber-400" />
-                    <span>{t('promoteToGeneralBtn')}</span>
+                    {isTargetGeneral ? <Shield className="h-3 w-3 text-cyan-400" /> : <ArrowUpRight className="h-3 w-3 text-amber-400" />}
+                    <span>{isTargetGeneral ? t('demoteToAssistantBtn') : t('promoteToGeneralBtn')}</span>
                   </span>
                 )}
               </Button>
@@ -191,8 +226,7 @@ export function AdminsTableRow({
                 {admin.is_primary ? t('primaryProtected') : '-'}
               </span>
             )}
-
-            {canDelete ? (
+            {canDelete && (
               <Button
                 type="button"
                 size="sm"
@@ -203,11 +237,10 @@ export function AdminsTableRow({
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
-            ) : null}
+            )}
           </div>
         </td>
       )}
     </tr>
   );
 }
-

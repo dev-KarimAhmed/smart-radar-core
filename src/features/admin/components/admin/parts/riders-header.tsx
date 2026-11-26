@@ -4,6 +4,7 @@ import React from 'react';
 import { Users, FlaskConical, Send, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAdminPermissions } from '@/features/admin/context/admin-permissions-context';
 
 interface RidersHeaderProps {
   isSimulationOpen: boolean;
@@ -22,6 +23,7 @@ export function RidersHeader({
   loading,
   t,
 }: RidersHeaderProps) {
+  const { hasPermission } = useAdminPermissions();
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-white/10">
       <div>
@@ -36,31 +38,35 @@ export function RidersHeader({
 
       <div className="flex items-center gap-2">
         {/* Inactivity & Activity Simulation Toggle Button */}
-        <Button
-          type="button"
-          onClick={onToggleSimulation}
-          className={cn(
-            "font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-md",
-            isSimulationOpen
-              ? "bg-amber-500 text-slate-950 border border-amber-400 shadow-amber-500/25 ring-1 ring-amber-400/50"
-              : "border border-amber-500/40 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
-          )}
-          title={t('simulationSubtitle')}
-        >
-          <FlaskConical className="w-4 h-4" />
-          <span>{t('simulationToggleBtn')}</span>
-        </Button>
+        {hasPermission('riders.simulation') && (
+          <Button
+            type="button"
+            onClick={onToggleSimulation}
+            className={cn(
+              "font-black text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-md",
+              isSimulationOpen
+                ? "bg-amber-500 text-slate-950 border border-amber-400 shadow-amber-500/25 ring-1 ring-amber-400/50"
+                : "border border-amber-500/40 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+            )}
+            title={t('simulationSubtitle')}
+          >
+            <FlaskConical className="w-4 h-4" />
+            <span>{t('simulationToggleBtn')}</span>
+          </Button>
+        )}
 
         {/* Global Bulk Message / Notification Button */}
-        <Button
-          type="button"
-          onClick={onOpenBulkMessage}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
-          title={t('bulkMessageTooltip')}
-        >
-          <Send className="w-4 h-4 ml-0.5" />
-          <span>{t('bulkMessageBtn')}</span>
-        </Button>
+        {hasPermission('riders.message') && (
+          <Button
+            type="button"
+            onClick={onOpenBulkMessage}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs h-10 px-3.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
+            title={t('bulkMessageTooltip')}
+          >
+            <Send className="w-4 h-4 ml-0.5" />
+            <span>{t('bulkMessageBtn')}</span>
+          </Button>
+        )}
 
         <Button
           type="button"
