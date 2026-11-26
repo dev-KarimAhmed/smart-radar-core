@@ -43,12 +43,31 @@ export function TariffComparisonGrid({
   const numPerKm = Number(pricePerKm);
   const numPerMin = Number(pricePerMin);
   const numBaseFare = baseFare !== undefined ? Number(baseFare) : NaN;
-  const isBelowMarket = Boolean(
-    marketAverage &&
-      ((marketAverage.perKm > 0 && pricePerKm !== '' && Number.isFinite(numPerKm) && numPerKm < marketAverage.perKm) ||
-        (marketAverage.perMin > 0 && pricePerMin !== '' && Number.isFinite(numPerMin) && numPerMin < marketAverage.perMin) ||
-        (marketAverage.baseFare > 0 && baseFare !== undefined && baseFare !== '' && Number.isFinite(numBaseFare) && numBaseFare < marketAverage.baseFare))
+  const isPerKmBelow = Boolean(
+    marketAverage && marketAverage.perKm > 0 && pricePerKm !== '' && Number.isFinite(numPerKm) && numPerKm < marketAverage.perKm
   );
+  const isPerMinBelow = Boolean(
+    marketAverage && marketAverage.perMin > 0 && pricePerMin !== '' && Number.isFinite(numPerMin) && numPerMin < marketAverage.perMin
+  );
+  const isBaseFareBelow = Boolean(
+    marketAverage && marketAverage.baseFare > 0 && baseFare !== undefined && baseFare !== '' && Number.isFinite(numBaseFare) && numBaseFare < marketAverage.baseFare
+  );
+  const isBelowMarket = isPerKmBelow || isPerMinBelow || isBaseFareBelow;
+
+  const belowMarketReasonsAr: string[] = [];
+  const belowMarketReasonsEn: string[] = [];
+  if (isBaseFareBelow && marketAverage) {
+    belowMarketReasonsAr.push(`تأسيس المسافات القصيرة / فتحة العداد أقل من ${marketAverage.baseFare.toFixed(2)}`);
+    belowMarketReasonsEn.push(`Base fare below ${marketAverage.baseFare.toFixed(2)}`);
+  }
+  if (isPerKmBelow && marketAverage) {
+    belowMarketReasonsAr.push(`سعر الكم أقل من ${marketAverage.perKm.toFixed(2)}`);
+    belowMarketReasonsEn.push(`Per km below ${marketAverage.perKm.toFixed(2)}`);
+  }
+  if (isPerMinBelow && marketAverage) {
+    belowMarketReasonsAr.push(`سعر الدقيقة أقل من ${marketAverage.perMin.toFixed(2)}`);
+    belowMarketReasonsEn.push(`Per min below ${marketAverage.perMin.toFixed(2)}`);
+  }
 
   return (
     <>
@@ -71,8 +90,8 @@ export function TariffComparisonGrid({
           <Clock className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
           <span>
             {isArabic
-              ? 'تنبيه: سعرك أقل من متوسط السوق — عند تقديم أي عرض على طلب، سيتأخر ظهور عرضك للمستخدم لمدة 3 دقائق.'
-              : 'Notice: Your price is below the market average — when you submit an offer, its appearance to the rider will be delayed by 3 minutes.'}
+              ? `تنبيه: سعرك أقل من متوسط السوق (${belowMarketReasonsAr.join(' · ')}) — عند تقديم أي عرض على طلب، سيتأخر ظهور عرضك للمستخدم لمدة 3 دقائق.`
+              : `Notice: Your price is below the market average (${belowMarketReasonsEn.join(' · ')}) — when you submit an offer, its appearance to the rider will be delayed by 3 minutes.`}
           </span>
         </div>
       ) : null}
