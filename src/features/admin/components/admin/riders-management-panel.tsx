@@ -4,7 +4,6 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useRidersManagement } from '@/features/admin/hooks/use-riders-management';
 import { RidersHeader } from './parts/riders-header';
-import { RidersStatsBar } from './parts/riders-stats-bar';
 import { RidersFilterControls } from './parts/riders-filter-controls';
 import { RidersSelectionBar } from './parts/riders-selection-bar';
 import { RidersTable } from './parts/riders-table';
@@ -47,7 +46,6 @@ export function RidersManagementPanel() {
     handleToggleSelect,
     clearSelection,
     filteredRiders,
-    stats,
     setInspectRider,
     setSecurityRider,
     setTargetStatus,
@@ -99,10 +97,7 @@ export function RidersManagementPanel() {
         />
       )}
 
-      {/* 2. KPI Summary Bar */}
-      <RidersStatsBar stats={stats} isArabic={isArabic} t={t} />
-
-      {/* 3. Search and Multi-filter Controls */}
+      {/* 2. Search and Multi-filter Controls */}
       <RidersFilterControls
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
