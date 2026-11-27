@@ -80,6 +80,13 @@ export const ADMIN_SECTORS: AdminSectorConfig[] = [
     descriptionAr: 'إدارة المشرفين، صلاحيات القطاعات، والحسابات الإدارية',
     iconName: 'ShieldCheck',
   },
+  {
+    id: 'whatsapp_groups',
+    labelAr: 'مجموعات واتساب',
+    labelEn: 'WhatsApp Groups',
+    descriptionAr: 'إنشاء الروابط المميزة لمجموعات واتساب، ربطها بالكباتن، وإدارة الحالة والعداد الزمني غير المالي',
+    iconName: 'MessageSquare',
+  },
 ] as const;
 
 export type AdminSectorId = typeof ADMIN_SECTORS[number]['id'];

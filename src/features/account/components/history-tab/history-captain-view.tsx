@@ -15,6 +15,7 @@ import { HistoryRanksPoints } from './history-ranks-points';
 import { HistorySovereignLogs } from './history-sovereign-logs';
 import { HistoryErrorExplorer } from './history-error-explorer';
 import { HistoryFavoriteRiders } from '@/features/referral/components/history-favorite-riders';
+import { HistoryGroupMinutesRow } from '@/features/whatsapp-groups/contract';
 import { BlockedRidersSection } from '@/features/captain/components/profile/blocked-riders-section';
 
 export interface HistoryCaptainViewProps {
@@ -115,6 +116,7 @@ export function HistoryCaptainView({
           {/* Section 4: Customers Log */}
           {(activeCategory === 'all' || activeCategory === 'customers') && (
             <div className="space-y-4">
+              <HistoryGroupMinutesRow isCaptain={true} userId={user?.uid} />
               <HistoryFavoriteRiders user={user} isArabic={isArabic} />
               <BlockedRidersSection isArabic={isArabic} />
             </div>

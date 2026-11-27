@@ -12,6 +12,7 @@ import {
   Construction,
   UsersRound,
   ShieldAlert,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from "next-intl";
@@ -45,7 +46,9 @@ export function AdminViewTabsList({
                 ? "grid-cols-2"
                 : totalVisibleTriggers <= 4
                   ? "grid-cols-2 sm:grid-cols-4"
-                  : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7"
+                  : totalVisibleTriggers <= 7
+                    ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7"
+                    : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-8"
           )}
         >
           {canAccessSector('captains') && (
@@ -115,6 +118,16 @@ export function AdminViewTabsList({
             >
               <UsersRound className="w-4 h-4" />
               <span>{t('delegates')}</span>
+            </TabsTrigger>
+          )}
+
+          {canAccessSector('whatsapp_groups') && (
+            <TabsTrigger
+              value="whatsapp_groups"
+              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all data-[state=active]:bg-[#14B8A6] data-[state=active]:text-[#0B0F19] text-slate-300 hover:text-white cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>{t('whatsappGroups')}</span>
             </TabsTrigger>
           )}
         </TabsList>

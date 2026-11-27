@@ -9,6 +9,7 @@ import { RidersManagementPanel } from './admin/riders-management-panel';
 import { AdminsManagementPanel } from './admin/admins-management-panel';
 import { HourlyRatesManagementPanel } from './admin/hourly-rates-management-panel';
 import { FinancialDelegatesPanel } from './admin/panels/financial-delegates-panel';
+import { WhatsappGroupsPanel } from './admin/panels/whatsapp-groups-panel';
 import { SovereignErrorBoundary } from '@/components/sovereign-error-boundary';
 import { useDashboardLanguage } from '@/hooks/use-dashboard-language';
 import { cn } from '@/lib/utils';
@@ -115,6 +116,15 @@ export function AdminViewTab() {
           <TabsContent value="admins" className="space-y-6">
             <SovereignErrorBoundary>
               <AdminsManagementPanel />
+            </SovereignErrorBoundary>
+          </TabsContent>
+        )}
+
+        {/* 8. مجموعات واتساب */}
+        {canAccessSector('whatsapp_groups') && (
+          <TabsContent value="whatsapp_groups" className="space-y-6">
+            <SovereignErrorBoundary>
+              <WhatsappGroupsPanel />
             </SovereignErrorBoundary>
           </TabsContent>
         )}

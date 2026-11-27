@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { WhatsAppGroupRegistrationField } from '@/features/whatsapp-groups/contract';
 import { styles, type CaptainPersonalValues } from './personal-step-types';
 
 interface PersonalSecurityFieldsProps {
@@ -60,6 +61,8 @@ export function PersonalSecurityFields({
         </div>
         {errors.password ? <p className={styles.error}>{errors.password}</p> : null}
       </div>
+
+      <WhatsAppGroupRegistrationField />
 
       <label className={styles.rememberRow}>
         <span className={styles.rememberText}>

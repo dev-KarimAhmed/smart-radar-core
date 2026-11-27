@@ -135,6 +135,7 @@ export function PersonalStep() {
             isSubmitting={state.isSubmitting}
             onFormSubmit={state.onFormSubmit}
             openPasswordReset={state.openPasswordReset}
+            isRiderRegistration={state.role === 'rider'}
           />
 
           <PersonalModeSwitch

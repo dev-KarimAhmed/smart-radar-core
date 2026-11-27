@@ -11,6 +11,7 @@ import { HistoryRiderTrips } from './history-rider-trips';
 import { HistoryTripNotifications } from './history-trip-notifications';
 import { HistoryLegalDeclarations } from './history-legal-declarations';
 import { HistoryFavoriteCaptains } from './history-favorite-captains';
+import { HistoryGroupMinutesRow } from '@/features/whatsapp-groups/contract';
 import { BlockedCaptainsSection } from '../profile-tab/blocked-captains-section';
 
 export interface HistoryPassengerViewProps {
@@ -106,6 +107,7 @@ export function HistoryPassengerView({
       {/* 3. Customers / Favorite Captains Log */}
       {(effectiveCategory === 'all' || effectiveCategory === 'customers') && (
         <div className="space-y-4">
+          <HistoryGroupMinutesRow isCaptain={false} userId={user?.uid} />
           <HistoryFavoriteCaptains
             favoriteCaptains={favoriteCaptains}
             toggleFavorite={toggleFavorite}

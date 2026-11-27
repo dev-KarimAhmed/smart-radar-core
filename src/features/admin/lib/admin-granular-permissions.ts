@@ -55,6 +55,12 @@ export const SECTOR_SUB_PERMISSIONS: Record<string, readonly AdminSubPermissionD
   admins: [
     { id: 'admins.view', sectorId: 'admins', labelAr: 'عرض قائمة المشرفين ونطاقاتهم', labelEn: 'View Supervisors List', descriptionAr: 'الاطلاع على حسابات المشرفين وصلاحياتهم ونطاقاتهم', descriptionEn: 'View supervisors directory and assignments' },
   ],
+  whatsapp_groups: [
+    { id: 'whatsapp_groups.view', sectorId: 'whatsapp_groups', labelAr: 'عرض روابط مجموعات واتساب', labelEn: 'View WhatsApp Groups', descriptionAr: 'الاطلاع على الروابط المميزة وعدادات الدقائق غير المالية', descriptionEn: 'View special group links and non-financial minutes' },
+    { id: 'whatsapp_groups.create', sectorId: 'whatsapp_groups', labelAr: 'إنشاء رابط مجموعة جديد', labelEn: 'Create Group Link', descriptionAr: 'إنشاء رابط مميز لمجموعة واتساب وربطه بكابتن نشط', descriptionEn: 'Create a group link and assign an active captain' },
+    { id: 'whatsapp_groups.toggle', sectorId: 'whatsapp_groups', labelAr: 'تفعيل وإيقاف الروابط', labelEn: 'Toggle Group Status', descriptionAr: 'تبديل حالة رابط المجموعة بين نشط ومتوقف', descriptionEn: 'Activate or pause special group links' },
+    { id: 'whatsapp_groups.unlink', sectorId: 'whatsapp_groups', labelAr: 'فك ارتباط مالك الرابط', labelEn: 'Unlink Group Owner', descriptionAr: 'فك ارتباط الشبكة عن مالك الرابط وتحرير الأعضاء', descriptionEn: 'Unlink group owner and release group members' },
+  ],
 } as const;
 
 export const ALL_SUB_PERMISSION_IDS: string[] = Object.values(SECTOR_SUB_PERMISSIONS)

@@ -39,7 +39,7 @@ export function buildUserFromSupabaseAuth(authUser: User) {
         : undefined);
 
   const allowedSectors: string[] | undefined = isSovereignOwner || adminRank === 'GENERAL_ADMIN'
-    ? ['captains', 'riders', 'wallet', 'hourly_rates', 'delegates', 'admins']
+    ? ['captains', 'riders', 'wallet', 'hourly_rates', 'delegates', 'admins', 'whatsapp_groups']
     : (Array.isArray(metadata.allowed_sectors)
         ? metadata.allowed_sectors
         : (Array.isArray(metadata.allowedSectors)

@@ -9,6 +9,7 @@ import { type AuthMode } from './personal-step.copy';
 import { PersonalStepField } from './personal-step-field';
 import { PersonalContactFields } from './personal-contact-fields';
 import { PersonalLocationFields } from './personal-location-fields';
+import { WhatsAppGroupRegistrationField } from '@/features/whatsapp-groups/contract';
 
 interface PersonalAuthFormProps {
   mode: AuthMode;
@@ -39,6 +40,7 @@ interface PersonalAuthFormProps {
   isSubmitting: boolean;
   onFormSubmit: (e: React.FormEvent) => void;
   openPasswordReset: () => void;
+  isRiderRegistration?: boolean;
 }
 
 export function PersonalAuthForm({
@@ -70,6 +72,7 @@ export function PersonalAuthForm({
   isSubmitting,
   onFormSubmit,
   openPasswordReset,
+  isRiderRegistration = false,
 }: PersonalAuthFormProps) {
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -157,6 +160,8 @@ export function PersonalAuthForm({
             {t.forgotPassword}
           </button>
         ) : null}
+
+        {mode === 'register' && isRiderRegistration ? <WhatsAppGroupRegistrationField /> : null}
 
         <label className={styles.style767_124}>
           <span className={cn(isArabic ? styles.style768_125 : styles.style768_126)}>
