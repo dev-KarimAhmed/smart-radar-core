@@ -140,24 +140,6 @@ export async function signInRiderWithPhone(input: RiderSupabaseSignInInput) {
     }
   }
 
-  // 1. Strict single-session check: reject login if account is already active on another device/browser
-  if (!input.forceTakeover && currentDeviceId && typeof window !== 'undefined') {
-    const isPhoneActive = await checkAccountInUse(supabase, validation.phone, currentDeviceId);
-    const isEmailActive = input.email ? await checkAccountInUse(supabase, input.email, currentDeviceId) : false;
-
-    if (isPhoneActive || isEmailActive) {
-      const isAr = typeof window !== 'undefined'
-        ? (window.localStorage.getItem('radar_dashboard_language') !== 'en')
-        : true;
-      const errorMsg = isAr
-        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.'
-        : 'This account is currently active on another device or browser. You cannot log in until it is logged out from the other device first.';
-      const err = new Error(errorMsg);
-      (err as any).code = 'account_in_use';
-      throw err;
-    }
-  }
-
   const response = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

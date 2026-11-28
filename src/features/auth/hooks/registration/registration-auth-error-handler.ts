@@ -54,24 +54,9 @@ export function handleAuthSubmitError({
       variant: 'destructive',
       title: lang === 'ar' ? 'الحساب قيد الاستخدام حالياً' : 'Account Already In Use',
       description: lang === 'ar'
-        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. هل ترغب في تسجيل الخروج من الأجهزة الأخرى والدخول هنا؟'
-        : 'This account is active on another device or browser. Do you want to log out from other devices and sign in here?',
-      duration: 16000,
-      action: onForceTakeover
-        ? React.createElement(
-          'button',
-          {
-            type: 'button',
-            onClick: (event: any) => {
-              event.stopPropagation();
-              void onForceTakeover();
-            },
-            className:
-              'w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer border border-red-400/40',
-          },
-          lang === 'ar' ? 'تسجيل الخروج من الأجهزة الأخرى والدخول' : 'Force logout other devices & sign in',
-        )
-        : undefined,
+        ? 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. يرجى إغلاقه من هناك أولاً لتتمكن من الدخول هنا.'
+        : 'This account is currently active on another device or browser. Please close it there first to sign in here.',
+      duration: 10000,
     });
     return;
   }
