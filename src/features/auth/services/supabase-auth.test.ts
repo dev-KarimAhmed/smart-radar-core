@@ -16,7 +16,7 @@ assert.equal(validatePhoneAndPassword('00966500000000', '123456').ok, false, 'Sa
 
 assert.equal(
   mapSupabaseAuthError({ message: 'role_mismatch:CAPTAIN:RIDER' }),
-  'هذا الحساب مسجل كـ كابتن (سائق). يرجى تسجيل الدخول من بوابة الكباتن.',
+  'رقم الهاتف أو كلمة المرور غير صحيحة.',
 );
 
 assert.equal(

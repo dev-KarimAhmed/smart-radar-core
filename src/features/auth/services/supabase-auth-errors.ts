@@ -202,7 +202,7 @@ export function mapSupabaseAuthError(error: unknown) {
     const parts = (message.startsWith('role_mismatch:') ? message : fullText).split(':');
     const actualRole = parts[1]?.toUpperCase() || '';
     if (actualRole === 'CAPTAIN') {
-      return 'هذا الحساب مسجل كـ كابتن (سائق). يرجى تسجيل الدخول من بوابة الكباتن.';
+      return 'رقم الهاتف أو كلمة المرور غير صحيحة.';
     } else if (actualRole === 'ADMIN') {
       return 'هذا الحساب مسجل كـ مشرف (Admin). يرجى تسجيل الدخول من بوابة المشرفين (/admin).';
     } else if (actualRole === 'RIDER') {

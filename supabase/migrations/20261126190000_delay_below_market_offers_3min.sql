@@ -170,10 +170,15 @@ BEGIN
   END;
 
   IF (
-    (v_market_base > 0 AND tariff.base_fare IS NOT NULL AND tariff.base_fare < v_market_base)
-    OR (v_market_km > 0 AND tariff.price_per_km IS NOT NULL AND tariff.price_per_km < v_market_km)
-    OR (v_market_min > 0 AND tariff.price_per_min IS NOT NULL AND tariff.price_per_min < v_market_min)
-    OR (reference_fare IS NOT NULL AND reference_fare > 0 AND p_offer_price < reference_fare)
+    (reference_fare IS NOT NULL AND reference_fare > 0 AND p_offer_price < reference_fare)
+    OR (
+      (reference_fare IS NULL OR reference_fare <= 0)
+      AND (
+        (v_market_base > 0 AND tariff.base_fare IS NOT NULL AND tariff.base_fare < v_market_base)
+        OR (v_market_km > 0 AND tariff.price_per_km IS NOT NULL AND tariff.price_per_km < v_market_km)
+        OR (v_market_min > 0 AND tariff.price_per_min IS NOT NULL AND tariff.price_per_min < v_market_min)
+      )
+    )
   ) THEN
     is_below_market := true;
     visibility_delay_seconds := 180;

@@ -134,7 +134,18 @@ export async function POST(req: Request) {
       .eq('id', user.id)
       .maybeSingle();
 
-    // 1. Strict single-session check on database level
+    // 1. Role and status verification MUST run before single-session check
+    // so a user signing into the wrong role portal (e.g. captain on rider login)
+    // gets a role/credentials rejection rather than an "account in use" takeover prompt.
+    const roleCheck = validateRoleAndStatus({ profile, user, expectedRole });
+    if (!roleCheck.ok) {
+      return NextResponse.json(
+        { success: false, code: roleCheck.code, error: roleCheck.error },
+        { status: roleCheck.status },
+      );
+    }
+
+    // 2. Strict single-session check on database level
     const sessionCheck = await verifySingleSession({
       adminClient,
       userId: user.id,
@@ -151,15 +162,6 @@ export async function POST(req: Request) {
           error: sessionCheck.error || 'هذا الحساب مسجل دخول حالياً على جهاز أو متصفح آخر. لا يمكنك تسجيل الدخول حتى يتم تسجيل الخروج من الجهاز المفتوح أولاً.',
         },
         { status: 409 },
-      );
-    }
-
-    // Role and status verification
-    const roleCheck = validateRoleAndStatus({ profile, user, expectedRole });
-    if (!roleCheck.ok) {
-      return NextResponse.json(
-        { success: false, code: roleCheck.code, error: roleCheck.error },
-        { status: roleCheck.status },
       );
     }
 
